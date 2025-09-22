@@ -19,7 +19,7 @@ foreach ($file in $RequiredFiles) {
         Write-Host "Missing: $file" -ForegroundColor Red
     }
 }
-
+ 
 # Check config.yaml content
 $configPath = Join-Path $AddonPath "config.yaml"
 if (Test-Path $configPath) {

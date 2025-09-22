@@ -1,0 +1,17 @@
+In the reference folder you will fine the html file that was built to help with programming a broadlink device. 
+In my case it is a rm4 pro. 
+This html page uses the HA api to communicate with an updated broadlink comonent based on the original with the added feature to list learned commands. 
+
+YOu can find that code in the reference folder as well. 
+
+What I want to do now is create the same functionality as an add-on instead of the stand along web page -> HA api (custom component).
+
+The basic broadlink add-on supports the learning of commands.
+I want to replace the need for an extended version of the broadlink component by adding the functionality to list learned commands to the basic add-on. Refer to the broadlink_plus component code to see how it's done.
+
+I am fine with the new add-on being based on the html file in the reference folder. We should be able to do away with the url and token fields.
+
+I do understand that this add-on will require ro access to config/.storage to list learned commands.
+
+Can you help me create this add-on?
+

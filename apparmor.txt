@@ -1,0 +1,73 @@
+#include <tunables/global>
+
+profile broadlink_manager flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities
+  capability,
+  file,
+  signal (send) set=(kill,term,int,hup,cont),
+
+  # S6-Overlay
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
+  # Bashio
+  /usr/lib/bashio/** ix,
+  /tmp/** rwk,
+
+  # Access to options.json and other add-on files
+  /data/** rw,
+
+  # Start new profile for service
+  /usr/bin/python3 cx -> broadlink_manager,
+
+  profile broadlink_manager flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+    #include <abstractions/python>
+
+    # Receive signals from S6-Overlay
+    signal (receive) set=(kill,term,int,hup,cont),
+
+    # Access to options.json and other add-on files
+    /data/** rw,
+
+    # Access to application files
+    /app/** r,
+    /app/main.py r,
+
+    # Network access for Broadlink communication
+    network inet dgram,
+    network inet stream,
+
+    # Python
+    /usr/bin/python3 r,
+    /usr/lib/python3*/** r,
+
+    # System files
+    /etc/resolv.conf r,
+    /etc/hosts r,
+    /etc/nsswitch.conf r,
+    /etc/passwd r,
+    /etc/group r,
+
+    # Temporary files
+    /tmp/** rw,
+    /var/tmp/** rw,
+
+    # Proc filesystem
+    @{PROC}/sys/net/core/somaxconn r,
+    @{PROC}/meminfo r,
+    @{PROC}/stat r,
+    @{PROC}/uptime r,
+  }
+}

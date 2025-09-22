@@ -1,0 +1,27 @@
+name: Broadlink Manager
+version: "1.0.0"
+slug: broadlink-manager
+description: A Home Assistant add-on for managing Broadlink devices with web interface
+arch:
+  - amd64
+  - aarch64
+  - armv7
+startup: application
+boot: manual
+init: false
+options:
+  log_level: info
+  web_port: 8099
+  auto_discover: true
+schema:
+  log_level: list(trace|debug|info|warning|error|fatal)?
+  web_port: port
+  auto_discover: bool?
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: Web interface for Broadlink device management
+homeassistant_api: true
+hassio_api: true
+map:
+  - config:ro

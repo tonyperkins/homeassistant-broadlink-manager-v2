@@ -1,0 +1,13 @@
+# Describes the services provided by the Broadlink Plus integration.
+list_commands:
+  # Service to list all learned IR/RF commands for a Broadlink remote device.
+  name: List Stored Commands
+  description: >
+    Fetches all stored IR/RF commands for the specified remote device and
+    populates them into the associated `input_text` helper entity. This allows
+    users to easily view all available commands.
+  # This service targets remote entities.
+  target:
+    entity:
+      integration: broadlink_plus
+      domain: remote

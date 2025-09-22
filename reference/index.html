@@ -1,0 +1,1546 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HA Command Learning Helper</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --border-light: #475569;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 24px 0;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .config-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .config-section h2 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        input, select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: var(--surface-light);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.875rem;
+            gap: 6px;
+            border: 1px solid;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .connection-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-connected {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .status-connected:hover {
+            background: #059669;
+            border-color: #059669;
+        }
+
+        .status-connected::before {
+            background: var(--success);
+        }
+
+        .status-disconnected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .status-disconnected:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .status-disconnected::before {
+            background: var(--danger);
+        }
+        
+        .status-learning {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .status-learning::before {
+            background: var(--primary);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        .device-templates {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .template-card {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .template-card:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .template-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .template-card h3 {
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .template-card p {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .command-list {
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-light);
+        }
+
+        .command-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s ease;
+        }
+
+        .command-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .command-item:last-child {
+            border-bottom: none;
+        }
+
+        .command-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .command-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 0.75rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-pending {
+            background: var(--warning);
+        }
+
+        .status-learned {
+            background: var(--success);
+        }
+        
+        .status-learning {
+            background: var(--primary);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        .status-failed {
+            background: var(--danger);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--primary));
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .log-area {
+            background: #0a0a0a;
+            color: #22c55e;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            height: 180px;
+            overflow-y: auto;
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            border-left-color: var(--primary);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+            border-left-color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border-left-color: var(--danger);
+        }
+
+        .learning-progress {
+            background: rgba(99, 102, 241, 0.1) !important;
+            border: 1px solid rgba(99, 102, 241, 0.2) !important;
+            color: var(--text-primary) !important;
+            border-radius: var(--radius-sm) !important;
+            font-size: 0.875rem !important;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .compact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .config-section {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* Scrollbar styling */
+        .command-list::-webkit-scrollbar,
+        .log-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .command-list::-webkit-scrollbar-track,
+        .log-area::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+
+        .command-list::-webkit-scrollbar-thumb,
+        .log-area::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        .command-list::-webkit-scrollbar-thumb:hover,
+        .log-area::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .device-templates {
+                grid-template-columns: 1fr;
+            }
+
+            .config-section {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 HA Command Learning Helper</h1>
+            <p>Streamline your Home Assistant IR/RF command learning process</p>
+        </div>
+
+        <!-- Connection & Setup -->
+        <div class="config-section">
+            <h2>🔗 Connection & Setup</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="haUrl">Home Assistant URL</label>
+                    <input type="url" id="haUrl" placeholder="http://homeassistant.local:8123" value="http://homeassistant.local:8123">
+                </div>
+                <div class="form-group">
+                    <label for="haToken">Access Token</label>
+                    <input type="password" id="haToken" placeholder="Your HA access token">
+                </div>
+                <div class="form-group">
+                    <label for="broadlinkDevice">Broadlink Device</label>
+                    <select id="broadlinkDevice">
+                        <option value="">Select device...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="roomName">Room</label>
+                    <select id="roomName">
+                        <option value="">Select room...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="deviceName">Device Name</label>
+                    <input type="text" id="deviceName" placeholder="fan" value="fan">
+                </div>
+                <div class="form-group">
+                    <label for="commandType">Type</label>
+                    <select id="commandType">
+                        <option value="rf">RF</option>
+                        <option value="ir">IR</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
+                <button id="connectButton" class="btn btn-primary connection-status status-disconnected" onclick="testConnection()">🔗 Connect</button>
+            </div>
+        </div>
+
+        <!-- Device Templates (temporarily hidden) -->
+        <div class="config-section" style="display: none;">
+            <h2>📋 Device Templates</h2>
+            <p>Select a template to auto-populate commands for common devices:</p>
+            <div class="device-templates">
+                <div class="template-card" data-template="ceiling-fan">
+                    <h3>🌀 Ceiling Fan</h3>
+                    <p>Light on/off, 6 speeds, fan off, reverse</p>
+                </div>
+                <div class="template-card" data-template="tv">
+                    <h3>📺 TV</h3>
+                    <p>Power, volume, channels, menu navigation</p>
+                </div>
+                <div class="template-card" data-template="ac">
+                    <h3>❄️ Air Conditioner</h3>
+                    <p>Power, temperature, mode, fan speed</p>
+                </div>
+                <div class="template-card" data-template="stereo">
+                    <h3>🔊 Stereo System</h3>
+                    <p>Power, volume, input selection, playback</p>
+                </div>
+                <div class="template-card" data-template="custom">
+                    <h3>⚙️ Custom</h3>
+                    <p>Create your own command list</p>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="loadTemplate()">Load Selected Template</button>
+        </div>
+
+        <!-- Command Management -->
+        <div class="config-section">
+            <h2>🎮 Commands</h2>
+            <div style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="newCommand">Add Command</label>
+                    <input type="text" id="newCommand" placeholder="command_name">
+                </div>
+                <button class="btn btn-primary" onclick="addCommand()">Add</button>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                    Progress: <span id="progressText" style="color: var(--text-primary); font-weight: 500;">0/0 learned</span>
+                </div>
+                <div class="button-group" style="margin: 0; gap: 8px;">
+                    <button class="btn btn-success btn-small" onclick="learnAllCommands()">Learn All</button>
+                    <button class="btn btn-warning btn-small" onclick="testAllCommands()">Test All</button>
+                    <button class="btn btn-danger btn-small" onclick="clearAllCommands()">Clear</button>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+
+            <div class="command-list" id="commandList">
+                <!-- Commands will be populated here -->
+            </div>
+        </div>
+
+        <!-- Export & Actions -->
+        <div class="config-section">
+            <h2>📤 Export</h2>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="generateYAML()">Generate YAML</button>
+                <button class="btn btn-primary" onclick="downloadYAML()">Download Config</button>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="config-section">
+            <h2>📊 Activity Log</h2>
+            <div class="log-area" id="logArea">
+                <div>🚀 HA Command Learning Helper initialized...</div>
+                <div>💡 Connect to Home Assistant to get started</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Application State ---
+        let haUrl = '';
+        let haToken = '';
+        let wsConnection = null;
+        let wsMessageId = 0;
+        let commands = [];
+        let allLearnedCommands = {};
+        let selectedTemplate = null; // This will hold the key of the selected template, e.g., 'tv'
+        let currentDeviceKey = '';
+        let areasLoaded = false;
+        let pollingInterval = null;
+        let lastInstruction = '';
+
+        // --- Utility Helpers ---
+        function sanitize(str) {
+            // Convert to a safe slug for IDs/keys while keeping the original label for display
+            if (str === undefined || str === null) return '';
+            return String(str)
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        }
+
+        let currentlyLearningIndex = -1;
+        let learningPhase = 'idle'; // idle, sweeping, learning
+
+        // --- Device Templates ---
+        const templates = {
+            'ceiling-fan': [
+                'light_on', 'light_off', 'speed_1', 'speed_2', 'speed_3', 
+                'speed_4', 'speed_5', 'speed_6', 'fan_off', 'reverse'
+            ],
+            'tv': [
+                'power', 'vol_up', 'vol_down', 'ch_up', 'ch_down', 'mute',
+                'menu', 'home', 'back', 'ok', 'up', 'down', 'left', 'right'
+            ],
+            'ac': [
+                'power', 'temp_up', 'temp_down', 'mode_cool', 'mode_heat', 
+                'mode_auto', 'fan_low', 'fan_med', 'fan_high', 'swing'
+            ],
+            'stereo': [
+                'power', 'vol_up', 'vol_down', 'mute', 'play', 'pause', 
+                'stop', 'next', 'prev', 'input_1', 'input_2', 'input_3'
+            ],
+            'custom': []
+        };
+
+        // --- Initialize ---
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            setupEventListeners();
+            log('Application loaded successfully');
+        });
+
+        function showAlert(message, type = 'error') {
+            const container = document.querySelector('.container');
+            if (!container) return;
+
+            const alertEl = document.createElement('div');
+            alertEl.className = `alert alert-${type}`;
+            alertEl.textContent = message;
+
+            // Insert it after the main header
+            container.insertBefore(alertEl, container.children[1]);
+
+            setTimeout(() => {
+                alertEl.style.transition = 'opacity 0.5s ease';
+                alertEl.style.opacity = '0';
+                setTimeout(() => alertEl.remove(), 500);
+            }, 5000); // Remove after 5 seconds
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedTemplate = this.dataset.template;
+                });
+            });
+
+            document.getElementById('roomName').addEventListener('change', populateCommandsForSelectedRoom);
+            document.getElementById('broadlinkDevice').addEventListener('change', fetchLearnedCommands);
+
+            ['haUrl', 'haToken', 'roomName', 'deviceName', 'commandType'].forEach(id => {
+                document.getElementById(id).addEventListener('input', saveToStorage);
+            });
+        }
+
+        // --- Storage Functions ---
+        function saveToStorage() {
+            try {
+                const data = {
+                    haUrl: document.getElementById('haUrl').value,
+                    haToken: document.getElementById('haToken').value,
+                    roomName: document.getElementById('roomName').value,
+                    deviceName: document.getElementById('deviceName').value,
+                    commandType: document.getElementById('commandType').value,
+                    commands: commands
+                };
+                localStorage.setItem('haCommandHelperConfig', JSON.stringify(data));
+            } catch (e) {
+                console.warn("localStorage is not available. State will not be saved.");
+            }
+        }
+
+        function startPolling(commandIndex) {
+            // Ensure any existing poller is stopped
+            stopPolling();
+            currentlyLearningIndex = commandIndex;
+            learningPhase = 'sweeping';
+            lastInstruction = '';
+
+            const pollStartTime = Date.now();
+            const TIMEOUT = 45000; // 45 seconds
+
+            pollingInterval = setInterval(() => {
+                if (Date.now() - pollStartTime > TIMEOUT) {
+                    log('Polling timed out.', 'error');
+                    stopPolling();
+                    updateLearningStatus(commandIndex, 'error', 'Learning process timed out.');
+                    return;
+                }
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    try {
+                        wsConnection.send(JSON.stringify({ id: ++wsMessageId, type: 'persistent_notification/get' }));
+                    } catch (e) {
+                        log(`Failed to poll notifications: ${e.message}`, 'error');
+                    }
+                } else {
+                    log('WebSocket not open; waiting to poll notifications...');
+                }
+            }, 1000);
+            log(`Started polling for command: ${commands[commandIndex]?.fullName || commandIndex}`);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            currentlyLearningIndex = -1;
+            learningPhase = 'idle';
+            lastInstruction = '';
+            log('Stopped polling.');
+        }
+
+        function loadFromStorage() {
+             try {
+                const data = JSON.parse(localStorage.getItem('haCommandHelperConfig'));
+                if (data) {
+                    document.getElementById('haUrl').value = data.haUrl || 'http://homeassistant.local:8123';
+                    document.getElementById('haToken').value = data.haToken || '';
+                    document.getElementById('roomName').value = data.roomName || '';
+                    document.getElementById('deviceName').value = data.deviceName || 'fan';
+                    document.getElementById('commandType').value = data.commandType || 'rf';
+                    commands = data.commands || [];
+                    updateCommandList();
+                    updateProgress();
+                    log('Configuration loaded from storage');
+                }
+            } catch (e) {
+                 console.warn("Could not load from localStorage.");
+            }
+        }
+
+        function populateCommandsForSelectedRoom(evtOrFlag) {
+            // If called from template loading, we pass true explicitly.
+            const fromTemplate = evtOrFlag === true;
+            const selectedRoom = document.getElementById('roomName').value; // This is already sanitized from populateAreas
+            const deviceName = sanitize(document.getElementById('deviceName').value);
+            if (!selectedRoom || !deviceName) {
+                log('Room or device name is missing, cannot populate commands.');
+                return;
+            }
+            const searchKeyPart = `${selectedRoom}_${deviceName}`;
+
+            log(`Searching for command key containing: '${searchKeyPart}'`);
+
+            const matchingKey = Object.keys(allLearnedCommands).find(key => key.includes(searchKeyPart));
+
+            if (matchingKey) {
+                // Device with learned commands found
+                log(`Found matching device key: '${matchingKey}'`);
+                currentDeviceKey = matchingKey;
+                const commandNames = allLearnedCommands[matchingKey] || [];
+                commands = commandNames.map(commandName => ({
+                    name: commandName,
+                    status: 'learned',
+                    fullName: `${matchingKey}_${commandName}`,
+                }));
+                log(`Populated ${commands.length} learned commands for device '${matchingKey}'`);
+            } else {
+                // No existing device found
+                log(`No matching command key found for '${searchKeyPart}'.`);
+                currentDeviceKey = searchKeyPart; // Set the key for the new device
+                if (fromTemplate && commands.length > 0) {
+                    // We just loaded a template; apply it to this device key
+                    log(`Using ${commands.length} commands from template for new device '${currentDeviceKey}'.`);
+                    commands.forEach(command => {
+                        command.status = 'pending'; // Mark as unlearned
+                        command.fullName = `${currentDeviceKey}_${command.name}`;
+                    });
+                } else {
+                    // Clear commands on room/device change to avoid carrying over from previous room
+                    log('Clearing commands for new room/device since no learned/template commands apply.');
+                    commands = [];
+                }
+            }
+
+            updateCommandList();
+            updateProgress();
+            saveToStorage();
+        }
+
+        // --- Home Assistant API Functions ---
+        async function testConnection() {
+            haUrl = document.getElementById('haUrl').value;
+            haToken = document.getElementById('haToken').value;
+            const connectBtn = document.getElementById('connectButton');
+
+            if (!haUrl || !haToken) {
+                showAlert('Please enter both URL and token', 'error');
+                return;
+            }
+
+            log(`Testing connection to ${haUrl}...`);
+            
+            try {
+                const response = await fetch(`${haUrl}/api/`, {
+                    headers: {
+                        'Authorization': `Bearer ${haToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    connectBtn.textContent = '✅ Connected';
+                    connectBtn.className = 'btn connection-status status-connected';
+                    connectBtn.onclick = disconnectFromHA;
+                    log('Successfully connected to Home Assistant');
+                    connectWebSocket(); // Connect WebSocket to load areas and handle events
+                    await loadBroadlinkDevices();
+                    // Learned commands will be fetched when a device is selected. 
+                    // loadAreas will be called after websocket is connected
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                connectBtn.textContent = '❌ Connection Failed';
+                connectBtn.className = 'btn connection-status status-disconnected';
+                connectBtn.onclick = testConnection;
+                log(`❌ Connection failed: ${error.message}`, 'error');
+                console.error('Full connection error object:', error);
+                showAlert('Connection failed. Check URL and token.', 'error');
+            }
+        }
+
+        function disconnectFromHA() {
+            const connectBtn = document.getElementById('connectButton');
+            
+            // Close WebSocket connection if open
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                wsConnection.close();
+            }
+            wsConnection = null;
+            
+            // Stop any ongoing polling
+            stopPolling();
+            
+            // Reset UI state
+            connectBtn.textContent = '🔗 Connect';
+            connectBtn.className = 'btn btn-primary connection-status status-disconnected';
+            connectBtn.onclick = testConnection;
+            
+            // Clear device and area data
+            document.getElementById('broadlinkDevice').innerHTML = '<option value="">Select device...</option>';
+            document.getElementById('roomName').innerHTML = '<option value="">Select room...</option>';
+            
+            log('Disconnected from Home Assistant');
+        }
+
+        function loadAreas() {
+            areasLoaded = false;
+            log('Loading areas...');
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                wsConnection.send(JSON.stringify({
+                    id: ++wsMessageId,
+                    type: 'config/area_registry/list'
+                }));
+                // If WS path doesn't return quickly, fall back to HTTP
+                setTimeout(() => {
+                    if (!areasLoaded) {
+                        log('WS areas not received in time. Falling back to HTTP.');
+                        loadAreasViaHTTP();
+                    }
+                }, 1500);
+            } else {
+                // If WS isn't available, use HTTP straight away
+                log('WS not open when loading areas. Using HTTP.');
+                loadAreasViaHTTP();
+            }
+        }
+
+        function populateAreas(areas) {
+            const select = document.getElementById('roomName');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Select a room...</option>';
+
+            areas.forEach(area => {
+                const option = document.createElement('option');
+                option.value = sanitize(area.name);
+                option.textContent = area.name;
+                select.appendChild(option);
+            });
+
+            if (!areas || areas.length === 0) {
+                // Provide a sensible default if user hasn't configured Areas in HA
+                const option = document.createElement('option');
+                option.value = 'home';
+                option.textContent = 'Home';
+                select.appendChild(option);
+                showAlert('No Areas found in Home Assistant. Using a default "Home" room. You can add Areas in Settings → Areas & Zones.', 'info');
+            }
+
+            // Restore previously selected value if it exists
+            if (currentValue) {
+                select.value = currentValue;
+            }
+
+            // If still not selected, choose the first real option and trigger change
+            if (!select.value) {
+                const firstOption = Array.from(select.options).find(opt => opt.value);
+                if (firstOption) {
+                    select.value = firstOption.value;
+                    // Trigger dependent updates
+                    select.dispatchEvent(new Event('change'));
+                }
+            }
+
+            log(`Found ${areas.length} areas/rooms`);
+            areasLoaded = true;
+        }
+
+        async function loadAreasViaHTTP() {
+            try {
+                // Prefer the REST areas endpoint
+                const response = await fetch(`${haUrl}/api/areas`, {
+                    headers: {
+                        'Authorization': `Bearer ${haToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const areas = await response.json();
+                if (Array.isArray(areas)) {
+                    // Normalize in case REST returns a different structure
+                    const normalized = areas.map(a => ({ name: a.name || a.area_id || 'Unnamed' }));
+                    populateAreas(normalized);
+                } else {
+                    log('HTTP /api/areas returned unexpected format.');
+                }
+            } catch (e) {
+                log(`Failed to load areas via HTTP: ${e.message}`, 'error');
+            }
+        }
+
+        async function loadBroadlinkDevices() {
+            try {
+                const response = await fetch(`${haUrl}/api/states`, {
+                    headers: {
+                        'Authorization': `Bearer ${haToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const entities = await response.json();
+                const broadlinkDevices = entities.filter(entity => 
+                    entity.entity_id.startsWith('remote.') && 
+                    (entity.attributes.friendly_name?.toLowerCase().includes('broadlink') || entity.entity_id.includes('broadlink'))
+                );
+
+                const select = document.getElementById('broadlinkDevice');
+                select.innerHTML = '<option value="">Select a device...</option>';
+
+                broadlinkDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.entity_id;
+                    option.textContent = device.attributes.friendly_name || device.entity_id;
+                    select.appendChild(option);
+                });
+
+                // Auto-select the first device if available
+                if (broadlinkDevices.length > 0) {
+                    select.value = broadlinkDevices[0].entity_id;
+                    log(`Auto-selected first Broadlink device: ${broadlinkDevices[0].attributes.friendly_name || broadlinkDevices[0].entity_id}`);
+                    // Trigger the change event to fetch learned commands
+                    select.dispatchEvent(new Event('change'));
+                }
+
+                log(`Found ${broadlinkDevices.length} Broadlink devices`);
+            } catch (error) {
+                log(`Error loading devices: ${error.message}`);
+            }
+        }
+
+        async function fetchLearnedCommands() {
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+            if (!deviceEntityId) {
+                log('Cannot fetch commands, no Broadlink device selected.');
+                return;
+            }
+
+            log('Fetching all learned commands...');
+            try {
+                const response = await fetch(`${haUrl}/api/services/broadlink_plus/list_commands?return_response=true`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${haToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ entity_id: deviceEntityId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // The actual commands are nested under the service_response key in the response
+                log(`Raw response from list_commands: ${JSON.stringify(data, null, 2)}`);
+                if (data && data.service_response) {
+                    // The service returns a dictionary where the key is the device name from the service call.
+                    // We can just grab the first (and only) value from the response.
+                    allLearnedCommands = data.service_response;
+                    if (Object.keys(allLearnedCommands).length > 0) {
+                        log(`Successfully fetched ${Object.keys(allLearnedCommands).length} total learned command groups.`);
+                        log(`Available command groups: ${Object.keys(allLearnedCommands).join(', ')}`);
+                        log(`Full command data: ${JSON.stringify(allLearnedCommands, null, 2)}`);
+                    } else {
+                         allLearnedCommands = {};
+                         log('No learned commands found in the service response.');
+                    }
+                } else {
+                    allLearnedCommands = {};
+                    log('No service_response found or data is invalid.');
+                }
+
+            } catch (error) {
+                log(`Error fetching learned commands: ${error.message}`, 'error');
+                showAlert('Could not fetch learned commands.', 'error');
+                allLearnedCommands = {}; // Reset on error
+            }
+        }
+
+        // --- WebSocket Logic ---
+        function connectWebSocket() {
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
+            
+            let wsUrl;
+            try {
+                const url = new URL(haUrl);
+                const protocol = url.protocol === 'https:' ? 'wss' : 'ws';
+                wsUrl = `${protocol}://${url.host}/api/websocket`;
+            } catch (e) {
+                log(`Invalid URL format: "${haUrl}"`, 'error');
+                return;
+            }
+
+            wsConnection = new WebSocket(wsUrl);
+            
+            wsConnection.onopen = function() {
+                log('WebSocket connection established.');
+                wsConnection.send(JSON.stringify({ type: "auth", access_token: haToken }));
+            };
+            
+            wsConnection.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === "auth_ok") {
+                    log('WebSocket authenticated');
+                    // Now that we're authenticated, we can safely load areas (rooms)
+                    loadAreas();
+                } else if (data.type === "result" && data.success) {
+                    // This handles results that are not arrays, like persistent_notification list
+                    if (Array.isArray(data.result)) {
+                        if (data.result.some(item => 'area_id' in item)) {
+                            populateAreas(data.result);
+                        } else {
+                            handleNotificationPoll(data.result);
+                        }
+                    }
+                } else if (data.type === "result" && !data.success) {
+                    log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');
+                }
+            };
+            
+            wsConnection.onerror = (error) => log(`WebSocket error: ${error}`, 'error');
+            wsConnection.onclose = () => {
+                log('WebSocket disconnected');
+                wsConnection = null;
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    currentlyLearningIndex = -1;
+                    learningPhase = 'idle';
+                    log('Stopped polling.');
+                }
+            };
+
+        }
+
+
+        function handleNotificationPoll(notifications) {
+            if (currentlyLearningIndex === -1) return;
+
+            const command = commands[currentlyLearningIndex];
+            const deviceFullName = getDeviceFullName();
+            const commandName = command.name;
+            const fullCommandName = `${deviceFullName}_${commandName}`;
+
+            log(`Poll result: Found ${notifications.length} notifications.`);
+            // Diagnostic logging: titles and snippets to verify backend messages
+            try {
+                const summary = notifications.map(n => ({ t: n.title, m: (n.message || '').slice(0, 120) }));
+                log(`Notifications: ${JSON.stringify(summary)}`);
+            } catch (e) {
+                // ignore JSON issues
+            }
+
+            if (learningPhase === 'sweeping') {
+                const nameMatchers = [
+                    `'${commandName}'`,
+                    `${commandName}`,
+                    `'${fullCommandName}'`,
+                    `${fullCommandName}`
+                ];
+                const sweepNotification = notifications.find(n => {
+                    if (n.title !== 'Sweep frequency') return false;
+                    const msg = n.message || '';
+                    return nameMatchers.some(k => msg.includes(k));
+                });
+                if (sweepNotification) {
+                    const instruction = "Press and hold the remote button...";
+                    if (lastInstruction !== instruction) {
+                        lastInstruction = instruction;
+                        updateLearningStatus(currentlyLearningIndex, 'instruction', instruction);
+                    }
+                } else if (lastInstruction.startsWith('Press and hold') && !notifications.some(n => n.title === 'Sweep frequency')) {
+                    const instruction = "Release the button. Now prepare to press it briefly.";
+                    updateLearningStatus(currentlyLearningIndex, 'instruction', instruction);
+                    learningPhase = 'learning';
+                    lastInstruction = instruction;
+                }
+            } else if (learningPhase === 'learning') {
+                const nameMatchers = [
+                    `'${commandName}'`,
+                    `${commandName}`,
+                    `'${fullCommandName}'`,
+                    `${fullCommandName}`
+                ];
+                const learnNotification = notifications.find(n => {
+                    if (n.title !== 'Learn command') return false;
+                    const msg = n.message || '';
+                    return nameMatchers.some(k => msg.includes(k));
+                });
+                if (learnNotification) {
+                    const instruction = "Press the button briefly.";
+                    if (lastInstruction !== instruction) {
+                        lastInstruction = instruction;
+                        updateLearningStatus(currentlyLearningIndex, 'instruction', instruction);
+                    }
+                } else if (lastInstruction.startsWith('Press the button')) {
+                    learningPhase = 'completed';
+                    lastInstruction = '';
+                    log('Final learning step completed by user.');
+                }
+            }
+        }
+
+        async function dismissNotification(notificationId) {
+             try {
+                await fetch(`${haUrl}/api/services/persistent_notification/dismiss`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${haToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notification_id: notificationId })
+                });
+                log('Notification dismissed successfully');
+            } catch (error) {
+                log(`Error dismissing notification: ${error.message}`, 'error');
+            }
+        }
+
+        function updateLearningStatus(index, type, message) {
+            const command = commands[index];
+            if (!command) return;
+
+            log(`Updating status for ${command.fullName}: ${type} - ${message}`)
+
+            if (type === 'instruction') {
+                command.status = 'learning';
+                command.instruction = message;
+            } else if (type === 'success') {
+                command.status = 'learned';
+                delete command.instruction;
+                stopPolling();
+            } else if (type === 'error') {
+                command.status = 'failed';
+                command.instruction = message; // Show the error
+                stopPolling();
+            }
+            
+            updateCommandList();
+            updateProgress();
+            saveToStorage();
+        }
+
+        function cancelLearning(index) {
+            log(`Learning cancelled for command: ${commands[index].fullName}`);
+            stopPolling();
+            commands[index].status = 'pending';
+            delete commands[index].instruction;
+            updateCommandList();
+            updateProgress();
+            saveToStorage();
+        }
+        
+        // --- Command Management ---
+        async function learnCommand(index) {
+            const command = commands[index];
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+            const commandType = document.getElementById('commandType').value;
+
+            if (!deviceEntityId) {
+                showAlert('Please select a Broadlink device first', 'error');
+                return;
+            }
+
+            log(`Learning command: ${command.fullName}`);
+            command.status = 'learning';
+            updateCommandList();
+
+            const payload = {
+                entity_id: deviceEntityId,
+                device: getDeviceFullName(),
+                command: command.name, // Use the simple command name
+                command_type: commandType
+            };
+
+            log(`Sending payload: ${JSON.stringify(payload)}`);
+            startPolling(index);
+
+            try {
+                const response = await fetch(`${haUrl}/api/services/remote/learn_command`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${haToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                log('Learn command service call finished.');
+
+                // Wait for the poller to catch up and update the learningPhase
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                if (learningPhase !== 'completed') {
+                     throw new Error('Learning process timed out or was cancelled on the device before completion.');
+                }
+
+                log(`--- CAPTURED COMMAND for ${command.fullName} ---`);
+                updateLearningStatus(index, 'success', `Successfully learned: ${command.fullName}`);
+
+            } catch (error) {
+                log(`Failed to learn ${command.fullName}: ${error.message}`, 'error');
+                updateLearningStatus(index, 'error', error.message);
+            } finally {
+                stopPolling();
+            }
+        }
+        
+        // --- UI and Template Functions ---
+        function loadTemplate() {
+            if (!selectedTemplate) {
+                showAlert('Please select a template first.', 'error');
+                return;
+            }
+            const templateCommands = templates[selectedTemplate];
+            if (!templateCommands) {
+                showAlert('Invalid template selected.', 'error');
+                return;
+            }
+
+            // Clear existing commands and load from template
+            commands = templateCommands.map(name => ({ name: name, status: 'pending' }));
+            log(`Loaded ${commands.length} commands from '${selectedTemplate}' template.`);
+            
+            // Now, trigger the population logic which will handle both new and existing devices
+            populateCommandsForSelectedRoom(true);
+        }
+
+        function getDeviceFullName() {
+            const room = document.getElementById('roomName').value; // This is already sanitized from populateAreas
+            const device = sanitize(document.getElementById('deviceName').value);
+            return `${room}_${device}`;
+        }
+
+        function generateFullCommandName(commandName) {
+            return `${getDeviceFullName()}_${commandName}`;
+        }
+
+        function addCommand() {
+            const commandName = document.getElementById('newCommand').value.trim();
+            if (!commandName) {
+                showAlert('Please enter a command name', 'error');
+                return;
+            }
+            commands.push({
+                name: commandName,
+                status: 'pending',
+                fullName: generateFullCommandName(commandName)
+            });
+            updateCommandList();
+            updateProgress();
+            document.getElementById('newCommand').value = '';
+            log(`Added custom command: ${commandName}`);
+            saveToStorage();
+        }
+
+        function removeCommand(index) {
+            const command = commands[index];
+            commands.splice(index, 1);
+            updateCommandList();
+            updateProgress();
+            log(`Removed command: ${command.name}`);
+            saveToStorage();
+        }
+
+        function updateCommandList() {
+            const container = document.getElementById('commandList');
+            container.innerHTML = '';
+            commands.forEach((command, index) => {
+                const item = document.createElement('div');
+                item.className = 'command-item';
+                
+                if (command.status === 'learning') {
+                    item.innerHTML = `
+                        <div style="width: 100%;">
+                            <div class="alert alert-info" style="margin: 0;">
+                                <h4>Learning ${command.fullName}</h4>
+                                <div class="learning-progress" style="margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 5px; font-weight: bold;">
+                                    Status: ${command.instruction || 'Starting...'}
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <button class="btn btn-warning btn-small" onclick="cancelLearning(${index})">Cancel</button>
+                                </div>
+                            </div>
+                        </div>`;
+                } else {
+                    item.innerHTML = `
+                        <div>
+                            <span class="status-indicator status-${command.status}"></span>
+                            <span class="command-name">${command.fullName}</span>
+                        </div>
+                        <div class="command-actions">
+                            <button class="btn btn-primary btn-small" onclick="learnCommand(${index})">Learn</button>
+                            <button class="btn btn-warning btn-small" onclick="testCommand(${index})">Test</button>
+                            <button class="btn btn-danger btn-small" onclick="removeCommand(${index})" style="display: none;">Remove</button>
+                        </div>`;
+                }
+                container.appendChild(item);
+            });
+        }
+
+        function updateLearningProgressUI(commandIndex, phase, message) {
+            const container = document.getElementById('commandList');
+            const item = container.children[commandIndex];
+            if (item) {
+                const progressDiv = item.querySelector('.learning-progress');
+                if (progressDiv) {
+                    progressDiv.textContent = `Status: ${message}`;
+                }
+            }
+        }
+
+        function cancelLearning(index) {
+            const command = commands[index];
+            command.status = 'pending';
+            stopPolling();
+            updateCommandList();
+            updateProgress();
+            saveToStorage();
+            log(`Learning cancelled for: ${command.fullName}`);
+        }
+
+        function updateProgress() {
+            const learned = commands.filter(cmd => cmd.status === 'learned').length;
+            const total = commands.length;
+            const percentage = total > 0 ? (learned / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${learned}/${total} commands learned`;
+        }
+
+        async function learnAllCommands() {
+            for (let i = 0; i < commands.length; i++) {
+                if (commands[i].status !== 'learned') {
+                    await learnCommand(i);
+                    // Wait for the command to be learned before moving to the next
+                    await new Promise(resolve => {
+                        const checkInterval = setInterval(() => {
+                            if (commands[i].status !== 'learning') {
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 500);
+                    });
+                     await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause
+                }
+            }
+            log('✅ Bulk learning process completed');
+        }
+
+        async function testCommand(index) {
+            const command = commands[index];
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+
+            if (command.status !== 'learned') {
+                showAlert('Command must be learned before testing', 'error');
+                return;
+            }
+
+            if (!currentDeviceKey) {
+                showAlert('No device context is set. Please select a room and device first.', 'error');
+                log('Error: currentDeviceKey is not set. Cannot test command.', 'error');
+                return;
+            }
+
+            try {
+                const payload = {
+                    entity_id: deviceEntityId,
+                    device: currentDeviceKey,
+                    command: command.name
+                };
+
+                log(`Sending test command with payload: ${JSON.stringify(payload, null, 2)}`);
+                const response = await fetch(`${haUrl}/api/services/remote/send_command`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${haToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                log(`Successfully sent test command for: ${command.fullName}`);
+                showAlert(`Test command for '${command.name}' sent successfully!`, 'success');
+
+            } catch (error) {
+                log(`Failed to send ${command.fullName}: ${error.message}`, 'error');
+                showAlert(`Failed to send test command: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAllCommands() {
+            for (let i = 0; i < commands.length; i++) {
+                if (commands[i].status === 'learned') {
+                    await testCommand(i);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        }
+
+        function clearAllCommands() {
+            if (confirm('Are you sure you want to clear all commands?')) {
+                commands = [];
+                updateCommandList();
+                updateProgress();
+                saveToStorage();
+            }
+        }
+
+        // --- YAML Generation ---
+        function generateYAML() {
+            const learnedCommands = commands.filter(cmd => cmd.status === 'learned');
+            if (learnedCommands.length === 0) {
+                showAlert('No learned commands to export', 'error');
+                return;
+            }
+
+            const deviceFullName = getDeviceFullName();
+            let yaml = `broadlink_plus:\n  - ${deviceFullName}:\n`;
+            learnedCommands.forEach(cmd => {
+                yaml += `    - ${cmd.name}\n`;
+            });
+
+            const yamlWindow = window.open('', '_blank');
+            yamlWindow.document.write(`<pre>${yaml}</pre>`);
+        }
+
+        function downloadYAML() {
+            showAlert('YAML download not yet implemented.', 'info');
+        }
+
+        // --- Utilities ---
+        function log(message, level = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            if(level === 'error') logEntry.style.color = '#ff4d4d';
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+    </script>
+</body>
+</html>

@@ -173,7 +173,20 @@ class BroadlinkWebServer:
                     data = json.loads(content)
                     areas = data.get('data', {}).get('areas', [])
                     logger.info(f"Found {len(areas)} areas in storage file")
-                    return [{'area_id': area['area_id'], 'name': area['name']} for area in areas]
+                    
+                    # Handle different storage formats
+                    result_areas = []
+                    for area in areas:
+                        try:
+                            area_id = area.get('area_id') or area.get('id', '')
+                            name = area.get('name', '')
+                            if area_id and name:
+                                result_areas.append({'area_id': area_id, 'name': name})
+                        except Exception as e:
+                            logger.warning(f"Skipping malformed area entry: {area}, error: {e}")
+                    
+                    logger.info(f"Successfully processed {len(result_areas)} areas from storage")
+                    return result_areas
             
             # If no areas found, return empty list (don't force a default)
             logger.warning("No areas found via API or storage file")
@@ -181,15 +194,26 @@ class BroadlinkWebServer:
             
         except Exception as e:
             logger.error(f"Error getting areas: {e}")
-            # Try alternative API endpoint
+            # Try alternative API endpoint - this returns all entities, need to filter
             try:
-                logger.info("Trying alternative areas API endpoint...")
-                areas_response = await self._make_ha_request('GET', 'areas')
-                if areas_response and isinstance(areas_response, list):
-                    logger.info(f"Found {len(areas_response)} areas via alternative API")
-                    return areas_response
+                logger.info("Trying to get areas from states API...")
+                states_response = await self._make_ha_request('GET', 'states')
+                if states_response and isinstance(states_response, list):
+                    # Extract unique area names from entity attributes
+                    areas_set = set()
+                    for entity in states_response:
+                        attributes = entity.get('attributes', {})
+                        area_id = attributes.get('area_id')
+                        if area_id:
+                            # Try to get area name from device registry or use area_id
+                            area_name = area_id.replace('_', ' ').title()
+                            areas_set.add((area_id, area_name))
+                    
+                    areas_list = [{'area_id': area_id, 'name': name} for area_id, name in areas_set]
+                    logger.info(f"Extracted {len(areas_list)} unique areas from states")
+                    return areas_list
             except Exception as e2:
-                logger.error(f"Alternative API also failed: {e2}")
+                logger.error(f"States API also failed: {e2}")
             
             # Return empty list instead of default
             return []

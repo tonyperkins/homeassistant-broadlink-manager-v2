@@ -131,32 +131,68 @@ class BroadlinkWebServer:
             'Content-Type': 'application/json'
         }
         
+        logger.info(f"Making {method} request to: {url}")
+        
         async with aiohttp.ClientSession() as session:
             if method.upper() == 'GET':
                 async with session.get(url, headers=headers) as response:
-                    return await response.json()
+                    logger.info(f"Response status: {response.status}")
+                    if response.status == 200:
+                        result = await response.json()
+                        logger.info(f"Response data type: {type(result)}, length: {len(result) if isinstance(result, (list, dict)) else 'N/A'}")
+                        return result
+                    else:
+                        logger.error(f"API request failed with status {response.status}: {await response.text()}")
+                        return {}
             elif method.upper() == 'POST':
                 async with session.post(url, headers=headers, json=data) as response:
-                    return await response.json()
+                    logger.info(f"Response status: {response.status}")
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        logger.error(f"API request failed with status {response.status}: {await response.text()}")
+                        return {}
     
     async def _get_ha_areas(self) -> List[Dict]:
         """Get Home Assistant areas"""
         try:
-            # Try to get areas from the registry
+            # First try API call (more reliable)
+            logger.info("Attempting to get areas via Home Assistant API...")
+            areas_response = await self._make_ha_request('GET', 'config/area_registry')
+            
+            if areas_response and isinstance(areas_response, list):
+                logger.info(f"Found {len(areas_response)} areas via API")
+                return [{'area_id': area.get('area_id', area.get('id', '')), 'name': area.get('name', '')} for area in areas_response if area.get('name')]
+            
+            # Fallback to storage file
+            logger.info("API call failed, trying storage file...")
             registry_file = self.storage_path / "core.area_registry"
             if registry_file.exists():
                 async with aiofiles.open(registry_file, 'r') as f:
                     content = await f.read()
                     data = json.loads(content)
                     areas = data.get('data', {}).get('areas', [])
+                    logger.info(f"Found {len(areas)} areas in storage file")
                     return [{'area_id': area['area_id'], 'name': area['name']} for area in areas]
-            else:
-                # Fallback to API call
-                return await self._make_ha_request('GET', 'areas')
+            
+            # If no areas found, return empty list (don't force a default)
+            logger.warning("No areas found via API or storage file")
+            return []
+            
         except Exception as e:
             logger.error(f"Error getting areas: {e}")
-            # Return a default area if none found
-            return [{'area_id': 'home', 'name': 'Home'}]
+            # Try alternative API endpoint
+            try:
+                logger.info("Trying alternative areas API endpoint...")
+                areas_response = await self._make_ha_request('GET', 'areas')
+                if areas_response and isinstance(areas_response, list):
+                    logger.info(f"Found {len(areas_response)} areas via alternative API")
+                    return areas_response
+            except Exception as e2:
+                logger.error(f"Alternative API also failed: {e2}")
+            
+            # Return empty list instead of default
+            return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
         """Get Broadlink remote devices"""

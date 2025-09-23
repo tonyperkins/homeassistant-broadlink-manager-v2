@@ -35,11 +35,9 @@ class BroadlinkWebServer:
         self.ha_token = os.environ.get('SUPERVISOR_TOKEN')
         self.storage_path = Path("/config/.storage")
         
-        # WebSocket notification system
-        self.ws_notifications = []
-        self.ws_message_id = 0
-        self.ws_connection = None
-        self.ws_thread = None
+        # Simple notification cache
+        self.cached_notifications = []
+        self.last_notification_check = 0
         
         self._setup_routes()
         # Disable WebSocket client for now due to auth issues
@@ -416,73 +414,40 @@ class BroadlinkWebServer:
             return {'success': False, 'error': str(e)}
     
     async def _get_notifications(self) -> List[Dict]:
-        """Get persistent notifications from Home Assistant"""
+        """Get persistent notifications from Home Assistant - simplified approach"""
         try:
+            current_time = time.time()
+            
+            # Check states for persistent_notification entities
+            states = await self._make_ha_request('GET', 'states')
+            if not isinstance(states, list):
+                logger.warning("States API returned non-list response")
+                return []
+            
             notifications = []
-            
-            # Method 1: Try the direct persistent_notification API (like reference HTML)
-            try:
-                logger.info("Trying persistent_notification API...")
-                pn_response = await self._make_ha_request('GET', 'persistent_notification')
-                if isinstance(pn_response, list):
-                    logger.info(f"Got {len(pn_response)} notifications from persistent_notification API")
-                    for notification in pn_response:
-                        title = notification.get('title', '')
-                        message = notification.get('message', '')
-                        if ('sweep' in title.lower() or 'learn' in title.lower() or 
-                            'command' in title.lower() or 'broadlink' in message.lower()):
-                            notifications.append({
-                                'id': notification.get('notification_id', ''),
-                                'title': title,
-                                'message': message,
-                                'created_at': notification.get('created_at', '')
-                            })
-                            logger.info(f"Found notification via API: {title} - {message[:100]}")
-                elif isinstance(pn_response, dict):
-                    logger.info(f"Got dict response from persistent_notification API: {pn_response}")
-            except Exception as e:
-                logger.warning(f"persistent_notification API failed: {e}")
-            
-            # Method 2: Try states endpoint for persistent_notification entities
-            if not notifications:
-                logger.info("Trying states endpoint...")
-                states = await self._make_ha_request('GET', 'states')
-                if isinstance(states, list):
-                    logger.info(f"Got {len(states)} states, looking for persistent_notification entities")
-                    pn_count = 0
-                    for entity in states:
-                        entity_id = entity.get('entity_id', '')
-                        if entity_id.startswith('persistent_notification.'):
-                            pn_count += 1
-                            attributes = entity.get('attributes', {})
-                            title = attributes.get('title', '')
-                            message = attributes.get('message', '')
-                            
-                            logger.info(f"Found persistent_notification entity: {entity_id}, title: '{title}', message: '{message[:50]}...'")
-                            
-                            # Look for learning-related notifications
-                            if ('sweep' in title.lower() or 'learn' in title.lower() or 
-                                'command' in title.lower() or 'broadlink' in message.lower()):
-                                notifications.append({
-                                    'id': entity_id,
-                                    'title': title,
-                                    'message': message,
-                                    'created_at': entity.get('last_changed')
-                                })
-                                logger.info(f"Found learning notification: {title} - {message[:100]}")
+            for entity in states:
+                entity_id = entity.get('entity_id', '')
+                if entity_id.startswith('persistent_notification.'):
+                    attributes = entity.get('attributes', {})
+                    title = attributes.get('title', '')
+                    message = attributes.get('message', '')
                     
-                    logger.info(f"Found {pn_count} total persistent_notification entities")
+                    # Look for Broadlink learning notifications
+                    if ('sweep frequency' in title.lower() or 'learn command' in title.lower()):
+                        notifications.append({
+                            'id': entity_id,
+                            'title': title,
+                            'message': message,
+                            'created_at': entity.get('last_changed', ''),
+                            'state': entity.get('state', '')
+                        })
+                        logger.info(f"Found Broadlink notification: '{title}' - '{message[:100]}'")
             
-            # Method 3: Try config/persistent_notification endpoint
-            if not notifications:
-                logger.info("Trying config/persistent_notification endpoint...")
-                try:
-                    config_pn = await self._make_ha_request('GET', 'config/persistent_notification')
-                    logger.info(f"Config persistent_notification response: {config_pn}")
-                except Exception as e:
-                    logger.warning(f"config/persistent_notification failed: {e}")
+            # Cache the results
+            self.cached_notifications = notifications
+            self.last_notification_check = current_time
             
-            logger.info(f"Final result: Found {len(notifications)} learning-related notifications")
+            logger.info(f"Found {len(notifications)} Broadlink learning notifications")
             return notifications
             
         except Exception as e:
@@ -880,7 +845,8 @@ class BroadlinkWebServer:
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
             loadBroadlinkDevices();
-            connectWebSocket();
+            // Disable WebSocket for now due to auth issues
+            // connectWebSocket();
             log('Application initialized');
         });
 
@@ -1053,7 +1019,7 @@ class BroadlinkWebServer:
         let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
         let lastInstruction = '';
 
-        // Start polling for learning notifications (WebSocket-based like reference)
+        // Start polling for learning notifications (HTTP-based, simple approach)
         function startLearningPolling(commandIndex) {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
@@ -1063,19 +1029,23 @@ class BroadlinkWebServer:
             lastInstruction = '';
             currentlyLearningIndex = commandIndex;
             
-            pollingInterval = setInterval(() => {
-                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-                    try {
-                        wsConnection.send(JSON.stringify({ id: ++wsMessageId, type: 'persistent_notification/get' }));
-                    } catch (e) {
-                        log(`Failed to poll notifications: ${e.message}`, 'error');
+            pollingInterval = setInterval(async () => {
+                try {
+                    // Use our backend API to get notifications
+                    const response = await fetch('/api/notifications');
+                    const notifications = await response.json();
+                    
+                    if (notifications && notifications.length > 0) {
+                        log(`Found ${notifications.length} notifications`);
+                        handleNotificationPoll(notifications, commandIndex);
                     }
-                } else {
-                    log('WebSocket not open; waiting to poll notifications...');
+                } catch (error) {
+                    // Polling errors are normal, don't show them
+                    console.log('Polling error (normal):', error);
                 }
-            }, 1000); // Poll every 1 second like the reference
+            }, 2000); // Poll every 2 seconds
             
-            log(`Started WebSocket polling for command: ${commands[commandIndex]?.name || commandIndex}`);
+            log(`Started HTTP polling for command: ${commands[commandIndex]?.name || commandIndex}`);
             
             // Auto-stop polling after 45 seconds like the reference
             setTimeout(() => {

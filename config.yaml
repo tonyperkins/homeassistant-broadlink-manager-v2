@@ -1,5 +1,5 @@
 name: Broadlink Manager
-version: "1.0.6"
+version: "1.0.8"
 slug: broadlink-manager
 description: A Home Assistant add-on for managing Broadlink devices with web interface
 arch:
@@ -9,6 +9,9 @@ arch:
 startup: application
 boot: manual
 init: false
+webui: "http://[HOST]:[PORT:8099]"
+ingress: true
+panel_icon: mdi:remote
 options:
   log_level: info
   web_port: 8099

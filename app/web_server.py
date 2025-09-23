@@ -476,29 +476,35 @@ class BroadlinkWebServer:
                     title = attributes.get('title', '')
                     message = attributes.get('message', '')
                     
-                    # Debug: Log all notification titles to see what we're getting
-                    if title:
-                        logger.info(f"DEBUG: Found notification - Title: '{title}', Message: '{message[:50]}...'")
+                    # Debug: Log ALL persistent notifications to see what we have
+                    logger.info(f"DEBUG: Found persistent notification - ID: '{entity_id}', Title: '{title}', Message: '{message[:100]}...', State: '{entity.get('state', 'N/A')}'")
 
-                    # Look for Broadlink learning notifications (broader search)
-                    if ('sweep frequency' in title.lower() or 'learn command' in title.lower() or 
-                        'broadlink' in title.lower() or 'sweep' in title.lower() or 
-                        'learn' in title.lower()):
+                    # Look for Broadlink learning notifications - much broader search
+                    # Check title, message, and entity attributes for any Broadlink-related content
+                    entity_attrs = entity.get('attributes', {})
+                    full_search_text = f"{title} {message} {entity_attrs}".lower()
+                    
+                    if (any(keyword in full_search_text for keyword in [
+                        'sweep frequency', 'learn command', 'broadlink', 'sweep', 'learning', 
+                        'press and hold', 'press the button', 'remote', 'rf', 'ir'
+                    ])):
                         notifications.append({
                             'id': entity_id,
                             'title': title,
                             'message': message,
                             'created_at': entity.get('last_changed', ''),
-                            'state': entity.get('state', '')
+                            'state': entity.get('state', ''),
+                            'attributes': entity_attrs
                         })
-                        logger.info(f"Found potential Broadlink notification: '{title}' - '{message[:100]}'")
+                        logger.info(f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
             
             # Cache the results
             self.cached_notifications = notifications
             self.last_notification_check = current_time
             
-            logger.info(f"Total notifications found: {len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])}")
-            logger.info(f"Found {len(notifications)} potential Broadlink learning notifications")
+            persistent_count = len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])
+            logger.info(f"Total persistent notifications found: {persistent_count}")
+            logger.info(f"Matched Broadlink learning notifications: {len(notifications)}")
             return notifications
             
         except Exception as e:

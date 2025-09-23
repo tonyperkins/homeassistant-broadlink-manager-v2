@@ -124,9 +124,34 @@ class BroadlinkWebServer:
         def get_token():
             """Get supervisor token for WebSocket authentication"""
             try:
-                return jsonify({"token": self.ha_token})
+                # For add-on context, we need to check if supervisor token works
+                # If not, we'll need to use alternative authentication
+                logger.info(f"Providing token for WebSocket: {self.ha_token[:20]}...")
+                return jsonify({
+                    "token": self.ha_token,
+                    "source": "supervisor"
+                })
             except Exception as e:
                 logger.error(f"Error getting token: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/debug/websocket-fallback')
+        def websocket_fallback():
+            """Fallback endpoint to disable WebSocket and use HTTP polling only"""
+            return jsonify({
+                "use_websocket": False,
+                "message": "WebSocket authentication failed, using HTTP fallback"
+            })
+        
+        @self.app.route('/api/notifications')
+        def get_notifications_http():
+            """HTTP fallback for notifications when WebSocket fails"""
+            try:
+                # For now, return empty array - this is just to prevent JS errors
+                # Real notifications would need Home Assistant API access
+                return jsonify([])
+            except Exception as e:
+                logger.error(f"Error getting HTTP notifications: {e}")
                 return jsonify({"error": str(e)}), 500
         
         @self.app.route('/api/delete', methods=['POST'])
@@ -1197,7 +1222,7 @@ class BroadlinkWebServer:
                     return;
                 }
                 
-                // WebSocket polling like reference HTML
+                // Try WebSocket first, fallback to HTTP if needed
                 if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
                     wsConnection.send(JSON.stringify({ 
                         id: ++wsMessageId, 
@@ -1205,7 +1230,22 @@ class BroadlinkWebServer:
                     }));
                     log(`Sent WebSocket notification request (ID: ${wsMessageId})`);
                 } else {
-                    log('WebSocket not open; waiting to poll notifications...');
+                    log('WebSocket not available, using HTTP fallback...');
+                    // Use HTTP API fallback for notifications
+                    try {
+                        fetch('/api/notifications')
+                            .then(response => response.json())
+                            .then(notifications => {
+                                if (notifications && notifications.length > 0) {
+                                    handleNotificationPoll(notifications);
+                                }
+                            })
+                            .catch(error => {
+                                console.log('HTTP notification polling error:', error);
+                            });
+                    } catch (error) {
+                        console.log('HTTP fallback error:', error);
+                    }
                 }
             }, 1000);
             
@@ -1517,6 +1557,12 @@ class BroadlinkWebServer:
                         
                         if (data.type === "auth_ok") {
                             log('WebSocket authenticated successfully');
+                        } else if (data.type === "auth_invalid") {
+                            log('WebSocket authentication failed - supervisor token invalid', 'error');
+                            wsConnection.close();
+                            wsConnection = null;
+                            // Don't try more URLs, supervisor token auth failed
+                            urlIndex = wsUrls.length;
                         } else if (data.type === "result" && data.success) {
                             // Handle persistent notification results (like reference HTML)
                             if (Array.isArray(data.result)) {

@@ -1097,6 +1097,62 @@ class BroadlinkWebServer:
                 
                 if (result.success) {
                     log(`Learning started: ${command.name}`);
+                    showAlert('Learning process started. Watch for real-time instructions below.', 'success');
+                } else {
+                    command.status = 'failed';
+                    log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
+                    showAlert(`Failed to start learning: ${result.error}`, 'error');
+                    stopLearningPolling();
+                }
+            } catch (error) {
+                command.status = 'failed';
+                log(`Error starting learning: ${error.message}`, 'error');
+                showAlert(`Error starting learning: ${error.message}`, 'error');
+                stopLearningPolling();
+            }
+            
+            updateCommandList();
+        }
+
+        async function learnCommand(index) {
+            const command = commands[index];
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+            const commandType = document.getElementById('commandType').value;
+            
+            if (!deviceEntityId) {
+                showAlert('Please select a Broadlink device', 'error');
+                return;
+            }
+
+            if (isLearning) {
+                showAlert('Already learning a command. Please wait.', 'warning');
+                return;
+            }
+            
+            isLearning = true;
+            learningCommand = command.name;
+            command.status = 'learning';
+            updateCommandList();
+            
+            // Start polling for notifications
+            startLearningPolling(index);
+            
+            try {
+                const response = await fetch('/api/learn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: deviceEntityId,
+                        device: command.device,
+                        command: command.name,
+                        command_type: commandType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`Learning started: ${command.name}`);
                     showAlert(result.message || 'Learning process started. Watch for Home Assistant notifications.', 'info');
                 } else {
                     command.status = 'failed';
@@ -1135,48 +1191,47 @@ class BroadlinkWebServer:
                 if (Date.now() - pollStartTime > TIMEOUT) {
                     log('Learning process timed out', 'error');
                     commands[commandIndex].status = 'failed';
+                    showAlert('⏰ Learning process timed out', 'warning');
+                    stopLearningPolling();
+                    updateCommandList();
+                    return;
+                }
+                
+                // WebSocket polling like reference HTML
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    wsConnection.send(JSON.stringify({ 
+                        id: ++wsMessageId, 
+                        type: 'persistent_notification/get' 
+                    }));
+                    log(`Sent WebSocket notification request (ID: ${wsMessageId})`);
+                } else {
+                    log('WebSocket not open; waiting to poll notifications...');
+                }
+            }, 1000);
+            
+            log(`Started polling for command: ${commands[commandIndex]?.name || commandIndex}`);
+        }
 
-    if (isLearning) {
-        showAlert('Already learning a command. Please wait.', 'warning');
-        return;
-    }
-    
-    isLearning = true;
-    learningCommand = command.name;
-    command.status = 'learning';
-    updateCommandList();
-    
-    // Start polling for notifications
-    startLearningPolling(index);
-    
-    try {
-        const response = await fetch('/api/learn', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                entity_id: deviceEntityId,
-                device: command.device,
-                command: command.name,
-                command_type: commandType
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            log(`Learning started: ${command.name}`);
-            showAlert(result.message || 'Learning process started. Watch for Home Assistant notifications.', 'info');
-        } else {
-            command.status = 'failed';
-            log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
-            showAlert(`Failed to start learning: ${result.error}`, 'error');
-            stopLearningPolling();
-        // Handle notification polling results - enhanced to match reference HTML logic
-        function handleNotificationPoll(notifications, commandIndex) {
+        // Stop polling for learning notifications
+        function stopLearningPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            isLearning = false;
+            learningCommand = '';
+            learningPhase = 'idle';
+            lastInstruction = '';
+            currentlyLearningIndex = -1;
+            log('Stopped polling.');
+        }
+
+        // Handle notification polling results
+        function handleNotificationPoll(notifications) {
             if (currentlyLearningIndex === -1 || !isLearning) return;
 
-            const command = commands[commandIndex];
-            const deviceFullName = getDeviceKey(); // Using our device key function
+            const command = commands[currentlyLearningIndex];
+            const deviceFullName = getDeviceKey();
             const commandName = command.name;
             const fullCommandName = `${deviceFullName}_${commandName}`;
             
@@ -1451,9 +1506,9 @@ class BroadlinkWebServer:
                     if (data.type === "auth_ok") {
                         log('WebSocket authenticated successfully');
                     } else if (data.type === "result" && data.success) {
-                        // Handle persistent notification results
+                        // Handle persistent notification results (like reference HTML)
                         if (Array.isArray(data.result)) {
-                            handleNotificationPoll(data.result, currentlyLearningIndex);
+                            handleNotificationPoll(data.result);
                         }
                     } else if (data.type === "result" && !data.success) {
                         log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');

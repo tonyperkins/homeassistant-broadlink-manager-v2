@@ -434,8 +434,14 @@ class BroadlinkWebServer:
                     title = attributes.get('title', '')
                     message = attributes.get('message', '')
                     
-                    # Look for Broadlink learning notifications
-                    if ('sweep frequency' in title.lower() or 'learn command' in title.lower()):
+                    # Debug: Log all notification titles to see what we're getting
+                    if title:
+                        logger.info(f"DEBUG: Found notification - Title: '{title}', Message: '{message[:50]}...'")
+
+                    # Look for Broadlink learning notifications (broader search)
+                    if ('sweep frequency' in title.lower() or 'learn command' in title.lower() or 
+                        'broadlink' in title.lower() or 'sweep' in title.lower() or 
+                        'learn' in title.lower()):
                         notifications.append({
                             'id': entity_id,
                             'title': title,
@@ -443,13 +449,14 @@ class BroadlinkWebServer:
                             'created_at': entity.get('last_changed', ''),
                             'state': entity.get('state', '')
                         })
-                        logger.info(f"Found Broadlink notification: '{title}' - '{message[:100]}'")
+                        logger.info(f"Found potential Broadlink notification: '{title}' - '{message[:100]}'")
             
             # Cache the results
             self.cached_notifications = notifications
             self.last_notification_check = current_time
             
-            logger.info(f"Found {len(notifications)} Broadlink learning notifications")
+            logger.info(f"Total notifications found: {len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])}")
+            logger.info(f"Found {len(notifications)} potential Broadlink learning notifications")
             return notifications
             
         except Exception as e:
@@ -1286,27 +1293,8 @@ class BroadlinkWebServer:
         document.getElementById('roomName').addEventListener('change', function() {
             currentRoom = this.value;
         });
-
-        document.getElementById('deviceName').addEventListener('change', function() {
-            currentDeviceName = this.value;
-        });
-
-        // WebSocket connection functions (like reference HTML)
-        function connectWebSocket() {
-            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
-            
-            // Use supervisor/core endpoint for add-on WebSocket connection
-            const wsUrl = 'ws://supervisor/core/api/websocket';
-            
-            log(`Connecting to WebSocket: ${wsUrl}`);
-            
-            try {
-                wsConnection = new WebSocket(wsUrl);
                 
-                wsConnection.onopen = function() {
-                    log('WebSocket connection established.');
-                    // For add-on, we'll use the supervisor token from the backend
-                    // This is a simplified approach - we'll get the token via an API call
+        const result = await response.json();
                     getTokenAndAuth();
                 };
                 

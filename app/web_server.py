@@ -1293,8 +1293,27 @@ class BroadlinkWebServer:
         document.getElementById('roomName').addEventListener('change', function() {
             currentRoom = this.value;
         });
+
+        document.getElementById('deviceName').addEventListener('change', function() {
+            currentDeviceName = this.value;
+        });
+
+        // WebSocket connection functions (like reference HTML)
+        function connectWebSocket() {
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
+            
+            // Use supervisor/core endpoint for add-on WebSocket connection
+            const wsUrl = 'ws://supervisor/core/api/websocket';
+            
+            log(`Attempting to connect to WebSocket: ${wsUrl}`);
+            
+            try {
+                wsConnection = new WebSocket(wsUrl);
                 
-        const result = await response.json();
+                wsConnection.onopen = function() {
+                    log('WebSocket connection established.');
+                    // For add-on, we'll use the supervisor token from the backend
+                    // This is a simplified approach - we'll get the token via an API call
                     getTokenAndAuth();
                 };
                 

@@ -192,15 +192,6 @@ class BroadlinkWebServer:
             except Exception as e:
                 logger.error(f"Error getting all notifications: {e}")
                 return jsonify({"error": str(e)}), 500
-        
-        @self.app.route('/api/debug/token')
-        def get_token():
-            """Get supervisor token for WebSocket authentication"""
-            try:
-                return jsonify({"token": self.ha_token})
-            except Exception as e:
-                logger.error(f"Error getting token: {e}")
-                return jsonify({"error": str(e)}), 500
 
         @self.app.route('/api/debug/test-service', methods=['POST'])
         def test_service():

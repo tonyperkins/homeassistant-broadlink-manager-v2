@@ -147,12 +147,14 @@ class BroadlinkWebServer:
         def get_notifications_http():
             """HTTP fallback for notifications when WebSocket fails"""
             try:
-                # For now, return empty array - this is just to prevent JS errors
-                # Real notifications would need Home Assistant API access
-                return jsonify([])
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                notifications = loop.run_until_complete(self._get_notifications_http())
+                loop.close()
+                return jsonify(notifications)
             except Exception as e:
                 logger.error(f"Error getting HTTP notifications: {e}")
-                return jsonify({"error": str(e)}), 500
+                return jsonify([])
         
         @self.app.route('/api/delete', methods=['POST'])
         def delete_command():
@@ -461,6 +463,44 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error sending command: {e}")
             return {'success': False, 'error': str(e)}
+    
+    async def _get_notifications_http(self) -> List[Dict]:
+        """Get persistent notifications via HTTP (fallback when WebSocket fails)"""
+        try:
+            # Get all states and filter for persistent notifications
+            states = await self._make_ha_request('GET', 'states')
+            if not isinstance(states, list):
+                logger.warning("States API returned non-list response")
+                return []
+            
+            notifications = []
+            for entity in states:
+                entity_id = entity.get('entity_id', '')
+                if entity_id.startswith('persistent_notification.'):
+                    attributes = entity.get('attributes', {})
+                    title = attributes.get('title', '')
+                    message = attributes.get('message', '')
+                    
+                    # Log ALL persistent notifications for debugging
+                    logger.info(f"HTTP: Found notification - Title: '{title}', Message: '{message[:50]}...'")
+                    
+                    # Look for Broadlink learning notifications
+                    if (any(keyword in title.lower() for keyword in ['sweep frequency', 'learn command']) or
+                        any(keyword in message.lower() for keyword in ['broadlink', 'sweep', 'learning', 'press and hold', 'press the button', 'remote'])):
+                        notifications.append({
+                            'title': title,
+                            'message': message,
+                            'notification_id': entity_id,
+                            'created_at': entity.get('last_changed', ''),
+                        })
+                        logger.info(f"★ HTTP MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
+            
+            logger.info(f"HTTP notifications: Found {len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])} total, {len(notifications)} Broadlink")
+            return notifications
+            
+        except Exception as e:
+            logger.error(f"Error getting HTTP notifications: {e}")
+            return []
     
     async def _delete_command(self, data: Dict) -> Dict:
         """Delete a command"""

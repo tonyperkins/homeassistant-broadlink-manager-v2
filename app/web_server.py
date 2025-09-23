@@ -388,31 +388,71 @@ class BroadlinkWebServer:
     async def _get_notifications(self) -> List[Dict]:
         """Get persistent notifications from Home Assistant"""
         try:
-            # Get all persistent notifications - try different endpoints
             notifications = []
             
-            # Try the states endpoint to get persistent_notification entities
-            states = await self._make_ha_request('GET', 'states')
-            if isinstance(states, list):
-                for entity in states:
-                    entity_id = entity.get('entity_id', '')
-                    if entity_id.startswith('persistent_notification.'):
-                        attributes = entity.get('attributes', {})
-                        title = attributes.get('title', '')
-                        message = attributes.get('message', '')
-                        
-                        # Look for learning-related notifications
+            # Method 1: Try the direct persistent_notification API (like reference HTML)
+            try:
+                logger.info("Trying persistent_notification API...")
+                pn_response = await self._make_ha_request('GET', 'persistent_notification')
+                if isinstance(pn_response, list):
+                    logger.info(f"Got {len(pn_response)} notifications from persistent_notification API")
+                    for notification in pn_response:
+                        title = notification.get('title', '')
+                        message = notification.get('message', '')
                         if ('sweep' in title.lower() or 'learn' in title.lower() or 
-                            'broadlink' in message.lower() or 'command' in title.lower()):
+                            'command' in title.lower() or 'broadlink' in message.lower()):
                             notifications.append({
-                                'id': entity_id,
+                                'id': notification.get('notification_id', ''),
                                 'title': title,
                                 'message': message,
-                                'created_at': entity.get('last_changed')
+                                'created_at': notification.get('created_at', '')
                             })
-                            logger.info(f"Found notification: {title} - {message[:100]}")
+                            logger.info(f"Found notification via API: {title} - {message[:100]}")
+                elif isinstance(pn_response, dict):
+                    logger.info(f"Got dict response from persistent_notification API: {pn_response}")
+            except Exception as e:
+                logger.warning(f"persistent_notification API failed: {e}")
             
-            logger.info(f"Found {len(notifications)} learning-related notifications")
+            # Method 2: Try states endpoint for persistent_notification entities
+            if not notifications:
+                logger.info("Trying states endpoint...")
+                states = await self._make_ha_request('GET', 'states')
+                if isinstance(states, list):
+                    logger.info(f"Got {len(states)} states, looking for persistent_notification entities")
+                    pn_count = 0
+                    for entity in states:
+                        entity_id = entity.get('entity_id', '')
+                        if entity_id.startswith('persistent_notification.'):
+                            pn_count += 1
+                            attributes = entity.get('attributes', {})
+                            title = attributes.get('title', '')
+                            message = attributes.get('message', '')
+                            
+                            logger.info(f"Found persistent_notification entity: {entity_id}, title: '{title}', message: '{message[:50]}...'")
+                            
+                            # Look for learning-related notifications
+                            if ('sweep' in title.lower() or 'learn' in title.lower() or 
+                                'command' in title.lower() or 'broadlink' in message.lower()):
+                                notifications.append({
+                                    'id': entity_id,
+                                    'title': title,
+                                    'message': message,
+                                    'created_at': entity.get('last_changed')
+                                })
+                                logger.info(f"Found learning notification: {title} - {message[:100]}")
+                    
+                    logger.info(f"Found {pn_count} total persistent_notification entities")
+            
+            # Method 3: Try config/persistent_notification endpoint
+            if not notifications:
+                logger.info("Trying config/persistent_notification endpoint...")
+                try:
+                    config_pn = await self._make_ha_request('GET', 'config/persistent_notification')
+                    logger.info(f"Config persistent_notification response: {config_pn}")
+                except Exception as e:
+                    logger.warning(f"config/persistent_notification failed: {e}")
+            
+            logger.info(f"Final result: Found {len(notifications)} learning-related notifications")
             return notifications
             
         except Exception as e:
@@ -692,6 +732,7 @@ class BroadlinkWebServer:
                 </div>
                 <button class="btn btn-primary" onclick="addCommand()">Add</button>
                 <button class="btn btn-success" onclick="loadCommands()">Refresh</button>
+                <button class="btn btn-warning" onclick="testNotifications()">Test Notifications</button>
             </div>
             
             <div class="command-list" id="commandList">
@@ -995,6 +1036,29 @@ class BroadlinkWebServer:
             }
             isLearning = false;
             learningCommand = '';
+            learningPhase = 'idle';
+        }
+
+        // Test notifications function for debugging
+        async function testNotifications() {
+            try {
+                log('Testing notification detection...');
+                
+                // Test regular notifications endpoint
+                const response = await fetch('/api/notifications');
+                const notifications = await response.json();
+                log(`Regular notifications: ${JSON.stringify(notifications, null, 2)}`);
+                
+                // Test debug endpoint
+                const debugResponse = await fetch('/api/debug/all-notifications');
+                const allNotifications = await debugResponse.json();
+                log(`All notifications: ${JSON.stringify(allNotifications, null, 2)}`);
+                
+                showAlert(`Found ${notifications.length} learning notifications, ${allNotifications.length} total. Check logs for details.`, 'info');
+            } catch (error) {
+                log(`Error testing notifications: ${error.message}`, 'error');
+                showAlert(`Error testing notifications: ${error.message}`, 'error');
+            }
         }
 
         async function testCommand(index) {

@@ -135,6 +135,33 @@ class BroadlinkWebServer:
             except Exception as e:
                 logger.error(f"Error getting notifications: {e}")
                 return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/debug/all-notifications')
+        def get_all_notifications():
+            """Get all persistent notifications for debugging"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                states = loop.run_until_complete(self._make_ha_request('GET', 'states'))
+                loop.close()
+                
+                all_notifications = []
+                if isinstance(states, list):
+                    for entity in states:
+                        entity_id = entity.get('entity_id', '')
+                        if entity_id.startswith('persistent_notification.'):
+                            attributes = entity.get('attributes', {})
+                            all_notifications.append({
+                                'id': entity_id,
+                                'title': attributes.get('title', ''),
+                                'message': attributes.get('message', ''),
+                                'created_at': entity.get('last_changed')
+                            })
+                
+                return jsonify(all_notifications)
+            except Exception as e:
+                logger.error(f"Error getting all notifications: {e}")
+                return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make a request to Home Assistant API"""
@@ -361,24 +388,32 @@ class BroadlinkWebServer:
     async def _get_notifications(self) -> List[Dict]:
         """Get persistent notifications from Home Assistant"""
         try:
-            # Get all persistent notifications
-            notifications = await self._make_ha_request('GET', 'persistent_notification')
+            # Get all persistent notifications - try different endpoints
+            notifications = []
             
-            # Filter for Broadlink-related notifications
-            broadlink_notifications = []
-            if isinstance(notifications, list):
-                for notification in notifications:
-                    message = notification.get('message', '').lower()
-                    title = notification.get('title', '').lower()
-                    if 'broadlink' in message or 'broadlink' in title or 'learn' in message:
-                        broadlink_notifications.append({
-                            'id': notification.get('notification_id'),
-                            'title': notification.get('title', ''),
-                            'message': notification.get('message', ''),
-                            'created_at': notification.get('created_at')
-                        })
+            # Try the states endpoint to get persistent_notification entities
+            states = await self._make_ha_request('GET', 'states')
+            if isinstance(states, list):
+                for entity in states:
+                    entity_id = entity.get('entity_id', '')
+                    if entity_id.startswith('persistent_notification.'):
+                        attributes = entity.get('attributes', {})
+                        title = attributes.get('title', '')
+                        message = attributes.get('message', '')
+                        
+                        # Look for learning-related notifications
+                        if ('sweep' in title.lower() or 'learn' in title.lower() or 
+                            'broadlink' in message.lower() or 'command' in title.lower()):
+                            notifications.append({
+                                'id': entity_id,
+                                'title': title,
+                                'message': message,
+                                'created_at': entity.get('last_changed')
+                            })
+                            logger.info(f"Found notification: {title} - {message[:100]}")
             
-            return broadlink_notifications
+            logger.info(f"Found {len(notifications)} learning-related notifications")
+            return notifications
             
         except Exception as e:
             logger.error(f"Error getting notifications: {e}")
@@ -846,50 +881,36 @@ class BroadlinkWebServer:
             updateCommandList();
         }
 
+        // Learning phase tracking
+        let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
+        let lastInstruction = '';
+
         // Start polling for learning notifications
         function startLearningPolling(commandIndex) {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
             }
             
+            learningPhase = 'sweeping';
+            lastInstruction = '';
+            
             pollingInterval = setInterval(async () => {
                 try {
                     const response = await fetch('/api/notifications');
                     const notifications = await response.json();
                     
+                    log(`Poll result: Found ${notifications.length} notifications`);
+                    
                     if (notifications && notifications.length > 0) {
-                        // Get the most recent Broadlink notification
-                        const latestNotification = notifications[0];
-                        const message = latestNotification.message;
-                        
-                        log(`Notification: ${message}`);
-                        
-                        // Check for learning instructions
-                        if (message.includes('Hold down') || message.includes('hold') || message.includes('frequency')) {
-                            showAlert(`🔄 Step 1: ${message}`, 'info');
-                        } else if (message.includes('Press') || message.includes('briefly') || message.includes('capture')) {
-                            showAlert(`🔄 Step 2: ${message}`, 'info');
-                        } else if (message.includes('completed') || message.includes('learned') || message.includes('success')) {
-                            commands[commandIndex].status = 'learned';
-                            showAlert(`✅ Successfully learned ${learningCommand}!`, 'success');
-                            log(`Learning completed for ${learningCommand}`);
-                            stopLearningPolling();
-                            updateCommandList();
-                        } else if (message.includes('failed') || message.includes('error') || message.includes('timeout')) {
-                            commands[commandIndex].status = 'failed';
-                            showAlert(`❌ Learning failed: ${message}`, 'error');
-                            log(`Learning failed: ${message}`);
-                            stopLearningPolling();
-                            updateCommandList();
-                        }
+                        handleNotificationPoll(notifications, commandIndex);
                     }
                 } catch (error) {
                     // Polling errors are normal, don't show them
                     console.log('Polling error (normal):', error);
                 }
-            }, 2000); // Poll every 2 seconds
+            }, 1000); // Poll every 1 second like the reference
             
-            // Auto-stop polling after 60 seconds
+            // Auto-stop polling after 45 seconds like the reference
             setTimeout(() => {
                 if (isLearning) {
                     commands[commandIndex].status = 'failed';
@@ -898,7 +919,72 @@ class BroadlinkWebServer:
                     stopLearningPolling();
                     updateCommandList();
                 }
-            }, 60000);
+            }, 45000);
+        }
+
+        // Handle notification polling results - based on reference HTML logic
+        function handleNotificationPoll(notifications, commandIndex) {
+            if (!isLearning) return;
+
+            const command = commands[commandIndex];
+            const commandName = command.name;
+            
+            // Create matchers for the command name
+            const nameMatchers = [
+                `'${commandName}'`,
+                commandName,
+                `'${command.device}_${commandName}'`,
+                `${command.device}_${commandName}`
+            ];
+
+            if (learningPhase === 'sweeping') {
+                // Look for "Sweep frequency" notification
+                const sweepNotification = notifications.find(n => {
+                    if (n.title !== 'Sweep frequency') return false;
+                    const msg = n.message || '';
+                    return nameMatchers.some(k => msg.includes(k));
+                });
+                
+                if (sweepNotification) {
+                    const instruction = "Press and hold the remote button...";
+                    if (lastInstruction !== instruction) {
+                        lastInstruction = instruction;
+                        showAlert(`🔄 Step 1: ${instruction}`, 'info');
+                        log(`Learning instruction: ${instruction}`);
+                    }
+                } else if (lastInstruction.startsWith('Press and hold') && 
+                          !notifications.some(n => n.title === 'Sweep frequency')) {
+                    const instruction = "Release the button. Now prepare to press it briefly.";
+                    showAlert(`🔄 Transition: ${instruction}`, 'info');
+                    log(`Learning instruction: ${instruction}`);
+                    learningPhase = 'learning';
+                    lastInstruction = instruction;
+                }
+            } else if (learningPhase === 'learning') {
+                // Look for "Learn command" notification
+                const learnNotification = notifications.find(n => {
+                    if (n.title !== 'Learn command') return false;
+                    const msg = n.message || '';
+                    return nameMatchers.some(k => msg.includes(k));
+                });
+                
+                if (learnNotification) {
+                    const instruction = "Press the button briefly.";
+                    if (lastInstruction !== instruction) {
+                        lastInstruction = instruction;
+                        showAlert(`🔄 Step 2: ${instruction}`, 'info');
+                        log(`Learning instruction: ${instruction}`);
+                    }
+                } else if (lastInstruction.startsWith('Press the button')) {
+                    learningPhase = 'completed';
+                    lastInstruction = '';
+                    commands[commandIndex].status = 'learned';
+                    showAlert(`✅ Successfully learned ${learningCommand}!`, 'success');
+                    log(`Learning completed for ${learningCommand}`);
+                    stopLearningPolling();
+                    updateCommandList();
+                }
+            }
         }
 
         // Stop polling for learning notifications

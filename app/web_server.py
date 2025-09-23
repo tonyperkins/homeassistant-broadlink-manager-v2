@@ -143,18 +143,6 @@ class BroadlinkWebServer:
                 "message": "WebSocket authentication failed, using HTTP fallback"
             })
         
-        @self.app.route('/api/notifications')
-        def get_notifications_http():
-            """HTTP fallback for notifications when WebSocket fails"""
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                notifications = loop.run_until_complete(self._get_notifications_http())
-                loop.close()
-                return jsonify(notifications)
-            except Exception as e:
-                logger.error(f"Error getting HTTP notifications: {e}")
-                return jsonify([])
         
         @self.app.route('/api/delete', methods=['POST'])
         def delete_command():
@@ -1142,9 +1130,6 @@ class BroadlinkWebServer:
             command.status = 'learning';
             updateCommandList();
             
-            // Start polling for notifications
-            startLearningPolling(index);
-            
             try {
                 const response = await fetch('/api/learn', {
                     method: 'POST',
@@ -1161,18 +1146,18 @@ class BroadlinkWebServer:
                 
                 if (result.success) {
                     log(`Learning started: ${command.name}`);
-                    showAlert('Learning process started. Watch for real-time instructions below.', 'success');
+                    showAlert('✅ Learning started! Go to Home Assistant notifications (🔔) for instructions.', 'success');
+                    // Set status back to pending since we can't track progress
+                    command.status = 'pending';
                 } else {
-                    command.status = 'failed';
+                    command.status = 'failed';  
                     log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
                     showAlert(`Failed to start learning: ${result.error}`, 'error');
-                    stopLearningPolling();
                 }
             } catch (error) {
                 command.status = 'failed';
                 log(`Error starting learning: ${error.message}`, 'error');
                 showAlert(`Error starting learning: ${error.message}`, 'error');
-                stopLearningPolling();
             }
             
             updateCommandList();

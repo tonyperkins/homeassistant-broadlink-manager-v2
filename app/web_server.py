@@ -1483,7 +1483,7 @@ class BroadlinkWebServer:
 
         // WebSocket connection functions (like reference HTML)
         function connectWebSocket() {
-            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
+            if (wsConnection && (wsConnection.readyState === WebSocket.OPEN || wsConnection.readyState === WebSocket.CONNECTING)) return;
             
             // Try different WebSocket URLs for add-on context
             const wsUrls = [
@@ -1508,8 +1508,8 @@ class BroadlinkWebServer:
                     
                     wsConnection.onopen = function() {
                         log('WebSocket connection established.');
-                        // For add-on, we'll use the supervisor token from the backend
-                        getTokenAndAuth();
+                        // Add small delay before authentication to ensure WebSocket is ready
+                        setTimeout(getTokenAndAuth, 100);
                     };
                     
                     wsConnection.onmessage = function(event) {
@@ -1553,11 +1553,18 @@ class BroadlinkWebServer:
 
         async function getTokenAndAuth() {
             try {
+                // Ensure WebSocket is ready
+                if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
+                    log('WebSocket not ready for authentication', 'error');
+                    return;
+                }
+                
                 // Get the supervisor token from our backend
                 const response = await fetch('/api/debug/token');
                 const tokenData = await response.json();
                 
                 if (tokenData.token) {
+                    log('Sending WebSocket authentication...');
                     wsConnection.send(JSON.stringify({ type: "auth", access_token: tokenData.token }));
                 } else {
                     log('Failed to get authentication token', 'error');

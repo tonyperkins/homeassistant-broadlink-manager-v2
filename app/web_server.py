@@ -40,8 +40,10 @@ class BroadlinkWebServer:
         self.last_notification_check = 0
         
         self._setup_routes()
-        # Disable WebSocket client for now due to auth issues
-        # self._start_websocket_client()
+        # Initialize WebSocket variables
+        self.ws_connection = None
+        self.ws_message_id = 0
+        self.ws_notifications = []
     
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -845,8 +847,8 @@ class BroadlinkWebServer:
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
             loadBroadlinkDevices();
-            // Disable WebSocket for now due to auth issues
-            // connectWebSocket();
+            // Enable WebSocket for proper notification handling
+            connectWebSocket();
             log('Application initialized');
         });
 
@@ -1019,7 +1021,7 @@ class BroadlinkWebServer:
         let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
         let lastInstruction = '';
 
-        // Start polling for learning notifications (HTTP-based, simple approach)
+        // Start polling for learning notifications (WebSocket + HTTP fallback)
         function startLearningPolling(commandIndex) {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
@@ -1029,47 +1031,61 @@ class BroadlinkWebServer:
             lastInstruction = '';
             currentlyLearningIndex = commandIndex;
             
+            const pollStartTime = Date.now();
+            const TIMEOUT = 45000; // 45 seconds
+            
             pollingInterval = setInterval(async () => {
-                try {
-                    // Use our backend API to get notifications
-                    const response = await fetch('/api/notifications');
-                    const notifications = await response.json();
-                    
-                    if (notifications && notifications.length > 0) {
-                        log(`Found ${notifications.length} notifications`);
-                        handleNotificationPoll(notifications, commandIndex);
-                    }
-                } catch (error) {
-                    // Polling errors are normal, don't show them
-                    console.log('Polling error (normal):', error);
-                }
-            }, 2000); // Poll every 2 seconds
-            
-            log(`Started HTTP polling for command: ${commands[commandIndex]?.name || commandIndex}`);
-            
-            // Auto-stop polling after 45 seconds like the reference
-            setTimeout(() => {
-                if (isLearning) {
+                if (Date.now() - pollStartTime > TIMEOUT) {
+                    log('Learning process timed out', 'error');
                     commands[commandIndex].status = 'failed';
                     showAlert('⏰ Learning process timed out', 'warning');
-                    log('Learning process timed out');
                     stopLearningPolling();
                     updateCommandList();
+                    return;
                 }
-            }, 45000);
+                
+                try {
+                    // Try WebSocket first if available
+                    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                        wsConnection.send(JSON.stringify({ 
+                            id: ++wsMessageId, 
+                            type: 'persistent_notification/get' 
+                        }));
+                    } else {
+                        // Fallback to HTTP API
+                        const response = await fetch('/api/notifications');
+                        const notifications = await response.json();
+                        
+                        if (notifications && notifications.length > 0) {
+                            handleNotificationPoll(notifications, commandIndex);
+                        }
+                    }
+                } catch (error) {
+                    // Polling errors are normal during WebSocket, don't show them
+                    console.log('Polling error (normal):', error);
+                }
+            }, 1000); // Poll every 1 second like reference
+            
+            log(`Started polling for command: ${commands[commandIndex]?.name || commandIndex}`);
         }
 
-        // Handle notification polling results - based on reference HTML logic
+        // Handle notification polling results - enhanced to match reference HTML logic
         function handleNotificationPoll(notifications, commandIndex) {
-            if (!isLearning) return;
+            if (currentlyLearningIndex === -1 || !isLearning) return;
 
             const command = commands[commandIndex];
+            const deviceFullName = getDeviceKey(); // Using our device key function
             const commandName = command.name;
+            const fullCommandName = `${deviceFullName}_${commandName}`;
             
-            // Create matchers for the command name
+            log(`Poll result: Found ${notifications.length} notifications for ${fullCommandName}`);
+            
+            // Create matchers for the command name (like reference HTML)
             const nameMatchers = [
                 `'${commandName}'`,
                 commandName,
+                `'${fullCommandName}'`,
+                fullCommandName,
                 `'${command.device}_${commandName}'`,
                 `${command.device}_${commandName}`
             ];
@@ -1091,6 +1107,7 @@ class BroadlinkWebServer:
                     }
                 } else if (lastInstruction.startsWith('Press and hold') && 
                           !notifications.some(n => n.title === 'Sweep frequency')) {
+                    // Transition from sweeping to learning phase
                     const instruction = "Release the button. Now prepare to press it briefly.";
                     showAlert(`🔄 Transition: ${instruction}`, 'info');
                     log(`Learning instruction: ${instruction}`);
@@ -1113,6 +1130,7 @@ class BroadlinkWebServer:
                         log(`Learning instruction: ${instruction}`);
                     }
                 } else if (lastInstruction.startsWith('Press the button')) {
+                    // Learning completed
                     learningPhase = 'completed';
                     lastInstruction = '';
                     commands[commandIndex].status = 'learned';
@@ -1133,6 +1151,9 @@ class BroadlinkWebServer:
             isLearning = false;
             learningCommand = '';
             learningPhase = 'idle';
+            lastInstruction = '';
+            currentlyLearningIndex = -1;
+            log('Stopped polling.');
         }
 
         // Test notifications function for debugging
@@ -1274,9 +1295,8 @@ class BroadlinkWebServer:
         function connectWebSocket() {
             if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
             
-            // Use the current page's host for WebSocket connection
-            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-            const wsUrl = `${protocol}://${window.location.host.replace(':8099', ':8123')}/api/websocket`;
+            // Use supervisor/core endpoint for add-on WebSocket connection
+            const wsUrl = 'ws://supervisor/core/api/websocket';
             
             log(`Connecting to WebSocket: ${wsUrl}`);
             
@@ -1294,8 +1314,9 @@ class BroadlinkWebServer:
                     const data = JSON.parse(event.data);
                     
                     if (data.type === "auth_ok") {
-                        log('WebSocket authenticated');
+                        log('WebSocket authenticated successfully');
                     } else if (data.type === "result" && data.success) {
+                        // Handle persistent notification results
                         if (Array.isArray(data.result)) {
                             handleNotificationPoll(data.result, currentlyLearningIndex);
                         }
@@ -1308,10 +1329,8 @@ class BroadlinkWebServer:
                 wsConnection.onclose = () => {
                     log('WebSocket disconnected');
                     wsConnection = null;
-                    if (pollingInterval) {
-                        clearInterval(pollingInterval);
-                        pollingInterval = null;
-                        stopLearningPolling();
+                    if (pollingInterval && currentlyLearningIndex !== -1) {
+                        log('WebSocket closed during learning - continuing with HTTP fallback');
                     }
                 };
             } catch (error) {

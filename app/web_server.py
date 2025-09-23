@@ -120,6 +120,15 @@ class BroadlinkWebServer:
                 logger.error(f"Error sending command: {e}")
                 return jsonify({"error": str(e)}), 500
         
+        @self.app.route('/api/debug/token')
+        def get_token():
+            """Get supervisor token for WebSocket authentication"""
+            try:
+                return jsonify({"token": self.ha_token})
+            except Exception as e:
+                logger.error(f"Error getting token: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.app.route('/api/delete', methods=['POST'])
         def delete_command():
             """Delete a command"""
@@ -1485,47 +1494,70 @@ class BroadlinkWebServer:
         function connectWebSocket() {
             if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
             
-            // Use supervisor/core endpoint for add-on WebSocket connection
-            const wsUrl = 'ws://supervisor/core/api/websocket';
+            // Try different WebSocket URLs for add-on context
+            const wsUrls = [
+                'ws://supervisor/core/api/websocket',
+                `ws://${window.location.hostname}:8123/api/websocket`,
+                `ws://homeassistant.local:8123/api/websocket`
+            ];
             
-            log(`Attempting to connect to WebSocket: ${wsUrl}`);
+            let urlIndex = 0;
             
-            try {
-                wsConnection = new WebSocket(wsUrl);
+            function tryConnect() {
+                if (urlIndex >= wsUrls.length) {
+                    log('All WebSocket URLs failed, giving up', 'error');
+                    return;
+                }
                 
-                wsConnection.onopen = function() {
-                    log('WebSocket connection established.');
-                    // For add-on, we'll use the supervisor token from the backend
-                    // This is a simplified approach - we'll get the token via an API call
-                    getTokenAndAuth();
-                };
+                const wsUrl = wsUrls[urlIndex];
+                log(`Attempting to connect to WebSocket: ${wsUrl}`);
                 
-                wsConnection.onmessage = function(event) {
-                    const data = JSON.parse(event.data);
+                try {
+                    wsConnection = new WebSocket(wsUrl);
                     
-                    if (data.type === "auth_ok") {
-                        log('WebSocket authenticated successfully');
-                    } else if (data.type === "result" && data.success) {
-                        // Handle persistent notification results (like reference HTML)
-                        if (Array.isArray(data.result)) {
-                            handleNotificationPoll(data.result);
+                    wsConnection.onopen = function() {
+                        log('WebSocket connection established.');
+                        // For add-on, we'll use the supervisor token from the backend
+                        getTokenAndAuth();
+                    };
+                    
+                    wsConnection.onmessage = function(event) {
+                        const data = JSON.parse(event.data);
+                        
+                        if (data.type === "auth_ok") {
+                            log('WebSocket authenticated successfully');
+                        } else if (data.type === "result" && data.success) {
+                            // Handle persistent notification results (like reference HTML)
+                            if (Array.isArray(data.result)) {
+                                handleNotificationPoll(data.result);
+                            }
+                        } else if (data.type === "result" && !data.success) {
+                            log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');
                         }
-                    } else if (data.type === "result" && !data.success) {
-                        log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');
-                    }
-                };
-                
-                wsConnection.onerror = (error) => log(`WebSocket error: ${error}`, 'error');
-                wsConnection.onclose = () => {
-                    log('WebSocket disconnected');
-                    wsConnection = null;
-                    if (pollingInterval && currentlyLearningIndex !== -1) {
-                        log('WebSocket closed during learning - continuing with HTTP fallback');
-                    }
-                };
-            } catch (error) {
-                log(`WebSocket connection failed: ${error.message}`, 'error');
+                    };
+                    
+                    wsConnection.onerror = (error) => {
+                        log(`WebSocket error on ${wsUrl}: ${error}`, 'error');
+                        urlIndex++;
+                        setTimeout(tryConnect, 2000); // Try next URL after 2 seconds
+                    };
+                    
+                    wsConnection.onclose = (event) => {
+                        log(`WebSocket closed: ${event.code} ${event.reason}`);
+                        wsConnection = null;
+                        if (event.code !== 1000) { // If not normal closure
+                            urlIndex++;
+                            setTimeout(tryConnect, 2000); // Try next URL
+                        }
+                    };
+                } catch (error) {
+                    log(`WebSocket connection failed: ${error.message}`, 'error');
+                    urlIndex++;
+                    setTimeout(tryConnect, 2000); // Try next URL
+                }
             }
+            
+            tryConnect();
         }
 
         async function getTokenAndAuth() {

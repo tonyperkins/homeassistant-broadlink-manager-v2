@@ -993,6 +993,14 @@ class BroadlinkWebServer:
         let currentRoom = '';
         let currentDeviceName = '';
 
+        // Helper function to get correct API URL for both direct and ingress access
+        function getApiUrl(endpoint) {
+            const baseUrl = window.location.pathname.endsWith('/') ? 
+                window.location.pathname.slice(0, -1) : window.location.pathname;
+            return baseUrl.includes('/api/hassio_ingress/') ? 
+                `${baseUrl}${endpoint}` : endpoint;
+        }
+
         // Initialize the application  
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
@@ -1003,7 +1011,7 @@ class BroadlinkWebServer:
 
         async function loadAreas() {
             try {
-                const response = await fetch('/api/areas');
+                const response = await fetch(getApiUrl('/api/areas'));
                 const areas = await response.json();
                 
                 const select = document.getElementById('roomName');
@@ -1024,7 +1032,7 @@ class BroadlinkWebServer:
 
         async function loadBroadlinkDevices() {
             try {
-                const response = await fetch('/api/devices');
+                const response = await fetch(getApiUrl('/api/devices'));
                 const devices = await response.json();
                 
                 const select = document.getElementById('broadlinkDevice');
@@ -1055,7 +1063,7 @@ class BroadlinkWebServer:
             }
             
             try {
-                const response = await fetch(`/api/commands/${encodeURIComponent(currentDevice)}`);
+                const response = await fetch(getApiUrl(`/api/commands/${encodeURIComponent(currentDevice)}`));
                 const commandData = await response.json();
                 
                 commands = [];

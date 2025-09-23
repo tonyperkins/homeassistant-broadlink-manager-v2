@@ -122,6 +122,19 @@ class BroadlinkWebServer:
             except Exception as e:
                 logger.error(f"Error deleting command: {e}")
                 return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/notifications')
+        def get_notifications():
+            """Get persistent notifications for learning status"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                notifications = loop.run_until_complete(self._get_notifications())
+                loop.close()
+                return jsonify(notifications)
+            except Exception as e:
+                logger.error(f"Error getting notifications: {e}")
+                return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make a request to Home Assistant API"""
@@ -270,22 +283,36 @@ class BroadlinkWebServer:
             return {}
     
     async def _learn_command(self, data: Dict) -> Dict:
-        """Learn a new command"""
+        """Learn a new command with 2-step process monitoring"""
         try:
             entity_id = data.get('entity_id')
             device = data.get('device')
             command = data.get('command')
             command_type = data.get('command_type', 'ir')
             
-            payload = {
+            logger.info(f"Starting learning process for command: {command}")
+            
+            # Prepare the service call payload
+            service_data = {
                 'entity_id': entity_id,
                 'device': device,
                 'command': command,
                 'command_type': command_type
             }
             
-            result = await self._make_ha_request('POST', 'services/remote/learn_command', payload)
-            return {'success': True, 'result': result}
+            # Start the learning process
+            logger.info(f"Calling learn_command service with data: {service_data}")
+            result = await self._make_ha_request('POST', 'services/remote/learn_command', service_data)
+            
+            if result:
+                logger.info("Learn command service called successfully")
+                return {
+                    'success': True, 
+                    'message': 'Learning process started. Follow the instructions in Home Assistant notifications.',
+                    'result': result
+                }
+            else:
+                return {'success': False, 'error': 'Failed to start learning process'}
             
         except Exception as e:
             logger.error(f"Error learning command: {e}")
@@ -318,18 +345,44 @@ class BroadlinkWebServer:
             device = data.get('device')
             command = data.get('command')
             
-            payload = {
+            service_data = {
                 'entity_id': entity_id,
                 'device': device,
                 'command': command
             }
             
-            result = await self._make_ha_request('POST', 'services/remote/delete_command', payload)
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', service_data)
             return {'success': True, 'result': result}
             
         except Exception as e:
             logger.error(f"Error deleting command: {e}")
             return {'success': False, 'error': str(e)}
+    
+    async def _get_notifications(self) -> List[Dict]:
+        """Get persistent notifications from Home Assistant"""
+        try:
+            # Get all persistent notifications
+            notifications = await self._make_ha_request('GET', 'persistent_notification')
+            
+            # Filter for Broadlink-related notifications
+            broadlink_notifications = []
+            if isinstance(notifications, list):
+                for notification in notifications:
+                    message = notification.get('message', '').lower()
+                    title = notification.get('title', '').lower()
+                    if 'broadlink' in message or 'broadlink' in title or 'learn' in message:
+                        broadlink_notifications.append({
+                            'id': notification.get('notification_id'),
+                            'title': notification.get('title', ''),
+                            'message': notification.get('message', ''),
+                            'created_at': notification.get('created_at')
+                        })
+            
+            return broadlink_notifications
+            
+        except Exception as e:
+            logger.error(f"Error getting notifications: {e}")
+            return []
     
     def _get_html_template(self) -> str:
         """Get the HTML template for the web interface"""
@@ -732,6 +785,11 @@ class BroadlinkWebServer:
             return `${room}_${device}`;
         }
 
+        // Learning state variables
+        let isLearning = false;
+        let learningCommand = '';
+        let pollingInterval = null;
+
         async function learnCommand(index) {
             const command = commands[index];
             const deviceEntityId = document.getElementById('broadlinkDevice').value;
@@ -741,9 +799,19 @@ class BroadlinkWebServer:
                 showAlert('Please select a Broadlink device', 'error');
                 return;
             }
+
+            if (isLearning) {
+                showAlert('Already learning a command. Please wait.', 'warning');
+                return;
+            }
             
+            isLearning = true;
+            learningCommand = command.name;
             command.status = 'learning';
             updateCommandList();
+            
+            // Start polling for notifications
+            startLearningPolling(index);
             
             try {
                 const response = await fetch('/api/learn', {
@@ -760,21 +828,87 @@ class BroadlinkWebServer:
                 const result = await response.json();
                 
                 if (result.success) {
-                    command.status = 'learned';
-                    log(`Successfully learned: ${command.name}`);
-                    showAlert(`Command "${command.name}" learned successfully!`, 'success');
+                    log(`Learning started: ${command.name}`);
+                    showAlert(result.message || 'Learning process started. Watch for Home Assistant notifications.', 'info');
                 } else {
                     command.status = 'failed';
-                    log(`Failed to learn: ${command.name} - ${result.error}`, 'error');
-                    showAlert(`Failed to learn command: ${result.error}`, 'error');
+                    log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
+                    showAlert(`Failed to start learning: ${result.error}`, 'error');
+                    stopLearningPolling();
                 }
             } catch (error) {
                 command.status = 'failed';
-                log(`Error learning command: ${error.message}`, 'error');
-                showAlert(`Error learning command: ${error.message}`, 'error');
+                log(`Error starting learning: ${error.message}`, 'error');
+                showAlert(`Error starting learning: ${error.message}`, 'error');
+                stopLearningPolling();
             }
             
             updateCommandList();
+        }
+
+        // Start polling for learning notifications
+        function startLearningPolling(commandIndex) {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/notifications');
+                    const notifications = await response.json();
+                    
+                    if (notifications && notifications.length > 0) {
+                        // Get the most recent Broadlink notification
+                        const latestNotification = notifications[0];
+                        const message = latestNotification.message;
+                        
+                        log(`Notification: ${message}`);
+                        
+                        // Check for learning instructions
+                        if (message.includes('Hold down') || message.includes('hold') || message.includes('frequency')) {
+                            showAlert(`🔄 Step 1: ${message}`, 'info');
+                        } else if (message.includes('Press') || message.includes('briefly') || message.includes('capture')) {
+                            showAlert(`🔄 Step 2: ${message}`, 'info');
+                        } else if (message.includes('completed') || message.includes('learned') || message.includes('success')) {
+                            commands[commandIndex].status = 'learned';
+                            showAlert(`✅ Successfully learned ${learningCommand}!`, 'success');
+                            log(`Learning completed for ${learningCommand}`);
+                            stopLearningPolling();
+                            updateCommandList();
+                        } else if (message.includes('failed') || message.includes('error') || message.includes('timeout')) {
+                            commands[commandIndex].status = 'failed';
+                            showAlert(`❌ Learning failed: ${message}`, 'error');
+                            log(`Learning failed: ${message}`);
+                            stopLearningPolling();
+                            updateCommandList();
+                        }
+                    }
+                } catch (error) {
+                    // Polling errors are normal, don't show them
+                    console.log('Polling error (normal):', error);
+                }
+            }, 2000); // Poll every 2 seconds
+            
+            // Auto-stop polling after 60 seconds
+            setTimeout(() => {
+                if (isLearning) {
+                    commands[commandIndex].status = 'failed';
+                    showAlert('⏰ Learning process timed out', 'warning');
+                    log('Learning process timed out');
+                    stopLearningPolling();
+                    updateCommandList();
+                }
+            }, 60000);
+        }
+
+        // Stop polling for learning notifications
+        function stopLearningPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            isLearning = false;
+            learningCommand = '';
         }
 
         async function testCommand(index) {

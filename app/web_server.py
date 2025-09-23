@@ -10,11 +10,14 @@ import logging
 import asyncio
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+import threading
+import time
 
 from flask import Flask, render_template_string, request, jsonify, send_from_directory
 from flask_cors import CORS
 import aiohttp
 import aiofiles
+import websockets
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +35,14 @@ class BroadlinkWebServer:
         self.ha_token = os.environ.get('SUPERVISOR_TOKEN')
         self.storage_path = Path("/config/.storage")
         
+        # WebSocket notification system
+        self.ws_notifications = []
+        self.ws_message_id = 0
+        self.ws_connection = None
+        self.ws_thread = None
+        
         self._setup_routes()
+        self._start_websocket_client()
     
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -129,6 +139,16 @@ class BroadlinkWebServer:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                # Try WebSocket method first, fallback to REST API
+                try:
+                    notifications = loop.run_until_complete(self._get_ws_notifications())
+                    if notifications:
+                        loop.close()
+                        return jsonify(notifications)
+                except Exception as ws_error:
+                    logger.warning(f"WebSocket notifications failed: {ws_error}")
+                
+                # Fallback to REST API
                 notifications = loop.run_until_complete(self._get_notifications())
                 loop.close()
                 return jsonify(notifications)
@@ -457,6 +477,97 @@ class BroadlinkWebServer:
             
         except Exception as e:
             logger.error(f"Error getting notifications: {e}")
+            return []
+    
+    def _start_websocket_client(self):
+        """Start WebSocket client in a separate thread"""
+        def run_websocket():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(self._websocket_client())
+            except Exception as e:
+                logger.error(f"WebSocket client error: {e}")
+            finally:
+                loop.close()
+        
+        self.ws_thread = threading.Thread(target=run_websocket, daemon=True)
+        self.ws_thread.start()
+        logger.info("Started WebSocket client thread")
+    
+    async def _websocket_client(self):
+        """WebSocket client to connect to Home Assistant"""
+        ws_url = "ws://supervisor/core/api/websocket"
+        
+        while True:
+            try:
+                logger.info(f"Connecting to WebSocket: {ws_url}")
+                async with websockets.connect(ws_url) as websocket:
+                    self.ws_connection = websocket
+                    
+                    # Authenticate
+                    auth_msg = {"type": "auth", "access_token": self.ha_token}
+                    await websocket.send(json.dumps(auth_msg))
+                    
+                    # Wait for auth response
+                    auth_response = await websocket.recv()
+                    auth_data = json.loads(auth_response)
+                    
+                    if auth_data.get("type") == "auth_ok":
+                        logger.info("WebSocket authenticated successfully")
+                        
+                        # Listen for messages
+                        async for message in websocket:
+                            try:
+                                data = json.loads(message)
+                                await self._handle_websocket_message(data)
+                            except Exception as e:
+                                logger.error(f"Error handling WebSocket message: {e}")
+                    else:
+                        logger.error(f"WebSocket authentication failed: {auth_data}")
+                        
+            except Exception as e:
+                logger.error(f"WebSocket connection error: {e}")
+                await asyncio.sleep(5)  # Wait before reconnecting
+    
+    async def _handle_websocket_message(self, data: Dict):
+        """Handle incoming WebSocket messages"""
+        if data.get("type") == "result" and data.get("success") and "result" in data:
+            result = data["result"]
+            if isinstance(result, list):
+                # This could be persistent notifications
+                self.ws_notifications = result
+                logger.info(f"Updated WebSocket notifications: {len(result)} items")
+    
+    async def _get_ws_notifications(self) -> List[Dict]:
+        """Get notifications from WebSocket cache"""
+        try:
+            if self.ws_connection:
+                # Request fresh notifications
+                self.ws_message_id += 1
+                request_msg = {
+                    "id": self.ws_message_id,
+                    "type": "persistent_notification/get"
+                }
+                await self.ws_connection.send(json.dumps(request_msg))
+                
+                # Wait a bit for response
+                await asyncio.sleep(0.5)
+            
+            # Filter for learning-related notifications
+            learning_notifications = []
+            for notification in self.ws_notifications:
+                title = notification.get('title', '').lower()
+                message = notification.get('message', '').lower()
+                if ('sweep' in title or 'learn' in title or 
+                    'command' in title or 'broadlink' in message):
+                    learning_notifications.append(notification)
+                    logger.info(f"Found WebSocket notification: {notification.get('title')} - {notification.get('message', '')[:100]}")
+            
+            return learning_notifications
+            
+        except Exception as e:
+            logger.error(f"Error getting WebSocket notifications: {e}")
             return []
     
     def _get_html_template(self) -> str:

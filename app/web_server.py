@@ -192,6 +192,39 @@ class BroadlinkWebServer:
             except Exception as e:
                 logger.error(f"Error getting token: {e}")
                 return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/debug/test-service', methods=['POST'])
+        def test_service():
+            """Test if we can call Broadlink services at all"""
+            try:
+                data = request.get_json()
+                entity_id = data.get('entity_id', 'remote.broadlink')
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Try to call the Broadlink service info first
+                logger.info(f"Testing service call to remote.learn_command for entity: {entity_id}")
+                
+                test_data = {
+                    'entity_id': entity_id,
+                    'device': 'test_device',
+                    'command': 'test_command',
+                    'command_type': 'rf'
+                }
+                
+                result = loop.run_until_complete(self._make_ha_request('POST', 'services/remote/learn_command', test_data))
+                loop.close()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Service test completed',
+                    'result': result,
+                    'entity_id': entity_id
+                })
+            except Exception as e:
+                logger.error(f"Error testing service: {e}")
+                return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make a request to Home Assistant API"""
@@ -216,12 +249,18 @@ class BroadlinkWebServer:
                         return {}
             elif method.upper() == 'POST':
                 async with session.post(url, headers=headers, json=data) as response:
-                    logger.info(f"Response status: {response.status}")
+                    logger.info(f"POST Response status: {response.status}")
+                    response_text = await response.text()
+                    logger.info(f"POST Response body: {response_text}")
                     if response.status == 200:
-                        return await response.json()
+                        try:
+                            return await response.json() if response_text else {}
+                        except:
+                            logger.info("POST response was successful but not JSON, returning empty dict")
+                            return {}
                     else:
-                        logger.error(f"API request failed with status {response.status}: {await response.text()}")
-                        return {}
+                        logger.error(f"POST API request failed with status {response.status}: {response_text}")
+                        return None
     
     async def _get_ha_areas(self) -> List[Dict]:
         """Get Home Assistant areas"""
@@ -361,7 +400,9 @@ class BroadlinkWebServer:
             logger.info(f"Calling learn_command service with data: {service_data}")
             result = await self._make_ha_request('POST', 'services/remote/learn_command', service_data)
             
-            if result:
+            logger.info(f"Learn command service result: {result}")
+            
+            if result is not None:
                 logger.info("Learn command service called successfully")
                 return {
                     'success': True, 
@@ -369,7 +410,8 @@ class BroadlinkWebServer:
                     'result': result
                 }
             else:
-                return {'success': False, 'error': 'Failed to start learning process'}
+                logger.error("Learn command service returned None - service call may have failed")
+                return {'success': False, 'error': 'Failed to start learning process - service call returned no response'}
             
         except Exception as e:
             logger.error(f"Error learning command: {e}")
@@ -828,6 +870,7 @@ class BroadlinkWebServer:
                 <button class="btn btn-primary" onclick="addCommand()">Add</button>
                 <button class="btn btn-success" onclick="loadCommands()">Refresh</button>
                 <button class="btn btn-warning" onclick="testNotifications()">Test Notifications</button>
+                <button class="btn btn-danger" onclick="testService()">Test Service</button>
             </div>
             
             <div class="command-list" id="commandList">
@@ -1182,6 +1225,39 @@ class BroadlinkWebServer:
             } catch (error) {
                 log(`Error testing notifications: ${error.message}`, 'error');
                 showAlert(`Error testing notifications: ${error.message}`, 'error');
+            }
+        }
+
+        // Test service function for debugging
+        async function testService() {
+            try {
+                const deviceEntityId = document.getElementById('broadlinkDevice').value;
+                if (!deviceEntityId) {
+                    showAlert('Please select a Broadlink device first', 'error');
+                    return;
+                }
+                
+                log('Testing Broadlink service call...');
+                
+                const response = await fetch('/api/debug/test-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: deviceEntityId
+                    })
+                });
+                
+                const result = await response.json();
+                log(`Service test result: ${JSON.stringify(result, null, 2)}`);
+                
+                if (result.success) {
+                    showAlert('Service test completed. Check logs for details.', 'info');
+                } else {
+                    showAlert(`Service test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`Error testing service: ${error.message}`, 'error');
+                showAlert(`Error testing service: ${error.message}`, 'error');
             }
         }
 

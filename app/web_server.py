@@ -458,11 +458,52 @@ class BroadlinkWebServer:
             return {'success': False, 'error': str(e)}
     
     async def _get_notifications(self) -> List[Dict]:
-        """Get persistent notifications from Home Assistant - simplified approach"""
+        """Get persistent notifications from Home Assistant - using correct API endpoint"""
         try:
             current_time = time.time()
             
-            # Check states for persistent_notification entities
+            # Try the direct persistent notification API endpoint first
+            logger.info("Trying direct persistent notification API endpoint...")
+            pn_notifications = await self._make_ha_request('GET', 'persistent_notification')
+            
+            if isinstance(pn_notifications, list) and len(pn_notifications) > 0:
+                logger.info(f"Found {len(pn_notifications)} notifications via persistent_notification API")
+                
+                notifications = []
+                for notification in pn_notifications:
+                    title = notification.get('title', '')
+                    message = notification.get('message', '')
+                    notification_id = notification.get('notification_id', '')
+                    
+                    # Debug: Log ALL persistent notifications
+                    logger.info(f"DEBUG: Persistent notification - ID: '{notification_id}', Title: '{title}', Message: '{message[:100]}...'")
+                    
+                    # Look for Broadlink learning notifications
+                    full_search_text = f"{title} {message}".lower()
+                    
+                    if (any(keyword in full_search_text for keyword in [
+                        'sweep frequency', 'learn command', 'broadlink', 'sweep', 'learning', 
+                        'press and hold', 'press the button', 'remote', 'rf', 'ir'
+                    ])):
+                        notifications.append({
+                            'id': notification_id,
+                            'title': title,
+                            'message': message,
+                            'created_at': notification.get('created_at', ''),
+                            'notification': notification
+                        })
+                        logger.info(f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
+                
+                # Cache the results
+                self.cached_notifications = notifications
+                self.last_notification_check = current_time
+                
+                logger.info(f"Total persistent notifications found: {len(pn_notifications)}")
+                logger.info(f"Matched Broadlink learning notifications: {len(notifications)}")
+                return notifications
+            
+            # Fallback to states API if persistent_notification endpoint doesn't work
+            logger.info("Persistent notification API returned empty, trying states API...")
             states = await self._make_ha_request('GET', 'states')
             if not isinstance(states, list):
                 logger.warning("States API returned non-list response")
@@ -477,7 +518,7 @@ class BroadlinkWebServer:
                     message = attributes.get('message', '')
                     
                     # Debug: Log ALL persistent notifications to see what we have
-                    logger.info(f"DEBUG: Found persistent notification - ID: '{entity_id}', Title: '{title}', Message: '{message[:100]}...', State: '{entity.get('state', 'N/A')}'")
+                    logger.info(f"DEBUG: Found persistent notification via states - ID: '{entity_id}', Title: '{title}', Message: '{message[:100]}...', State: '{entity.get('state', 'N/A')}'")
 
                     # Look for Broadlink learning notifications - much broader search
                     # Check title, message, and entity attributes for any Broadlink-related content
@@ -503,7 +544,7 @@ class BroadlinkWebServer:
             self.last_notification_check = current_time
             
             persistent_count = len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])
-            logger.info(f"Total persistent notifications found: {persistent_count}")
+            logger.info(f"Total persistent notifications found via states: {persistent_count}")
             logger.info(f"Matched Broadlink learning notifications: {len(notifications)}")
             return notifications
             

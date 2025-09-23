@@ -423,27 +423,6 @@ class BroadlinkWebServer:
                 'command_type': command_type
             }
             
-            # Start the learning process
-            logger.info(f"Calling learn_command service with data: {service_data}")
-            result = await self._make_ha_request('POST', 'services/remote/learn_command', service_data)
-            
-            logger.info(f"Learn command service result: {result}")
-            
-            if result is not None:
-                logger.info("Learn command service called successfully")
-                return {
-                    'success': True, 
-                    'message': 'Learning process started. Follow the instructions in Home Assistant notifications.',
-                    'result': result
-                }
-            else:
-                logger.error("Learn command service returned None - service call may have failed")
-                return {'success': False, 'error': 'Failed to start learning process - service call returned no response'}
-            
-        except Exception as e:
-            logger.error(f"Error learning command: {e}")
-            return {'success': False, 'error': str(e)}
-    
     async def _send_command(self, data: Dict) -> Dict:
         """Send a command"""
         try:

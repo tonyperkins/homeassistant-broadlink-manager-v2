@@ -42,7 +42,8 @@ class BroadlinkWebServer:
         self.ws_thread = None
         
         self._setup_routes()
-        self._start_websocket_client()
+        # Disable WebSocket client for now due to auth issues
+        # self._start_websocket_client()
     
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -181,6 +182,15 @@ class BroadlinkWebServer:
                 return jsonify(all_notifications)
             except Exception as e:
                 logger.error(f"Error getting all notifications: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/debug/token')
+        def get_token():
+            """Get supervisor token for WebSocket authentication"""
+            try:
+                return jsonify({"token": self.ha_token})
+            except Exception as e:
+                logger.error(f"Error getting token: {e}")
                 return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
@@ -870,6 +880,7 @@ class BroadlinkWebServer:
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
             loadBroadlinkDevices();
+            connectWebSocket();
             log('Application initialized');
         });
 
@@ -976,6 +987,11 @@ class BroadlinkWebServer:
         let isLearning = false;
         let learningCommand = '';
         let pollingInterval = null;
+        
+        // WebSocket variables (like reference HTML)
+        let wsConnection = null;
+        let wsMessageId = 0;
+        let currentlyLearningIndex = -1;
 
         async function learnCommand(index) {
             const command = commands[index];
@@ -1037,7 +1053,7 @@ class BroadlinkWebServer:
         let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
         let lastInstruction = '';
 
-        // Start polling for learning notifications
+        // Start polling for learning notifications (WebSocket-based like reference)
         function startLearningPolling(commandIndex) {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
@@ -1045,22 +1061,21 @@ class BroadlinkWebServer:
             
             learningPhase = 'sweeping';
             lastInstruction = '';
+            currentlyLearningIndex = commandIndex;
             
-            pollingInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/api/notifications');
-                    const notifications = await response.json();
-                    
-                    log(`Poll result: Found ${notifications.length} notifications`);
-                    
-                    if (notifications && notifications.length > 0) {
-                        handleNotificationPoll(notifications, commandIndex);
+            pollingInterval = setInterval(() => {
+                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+                    try {
+                        wsConnection.send(JSON.stringify({ id: ++wsMessageId, type: 'persistent_notification/get' }));
+                    } catch (e) {
+                        log(`Failed to poll notifications: ${e.message}`, 'error');
                     }
-                } catch (error) {
-                    // Polling errors are normal, don't show them
-                    console.log('Polling error (normal):', error);
+                } else {
+                    log('WebSocket not open; waiting to poll notifications...');
                 }
             }, 1000); // Poll every 1 second like the reference
+            
+            log(`Started WebSocket polling for command: ${commands[commandIndex]?.name || commandIndex}`);
             
             // Auto-stop polling after 45 seconds like the reference
             setTimeout(() => {
@@ -1284,6 +1299,71 @@ class BroadlinkWebServer:
         document.getElementById('deviceName').addEventListener('change', function() {
             currentDeviceName = this.value;
         });
+
+        // WebSocket connection functions (like reference HTML)
+        function connectWebSocket() {
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) return;
+            
+            // Use the current page's host for WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const wsUrl = `${protocol}://${window.location.host.replace(':8099', ':8123')}/api/websocket`;
+            
+            log(`Connecting to WebSocket: ${wsUrl}`);
+            
+            try {
+                wsConnection = new WebSocket(wsUrl);
+                
+                wsConnection.onopen = function() {
+                    log('WebSocket connection established.');
+                    // For add-on, we'll use the supervisor token from the backend
+                    // This is a simplified approach - we'll get the token via an API call
+                    getTokenAndAuth();
+                };
+                
+                wsConnection.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === "auth_ok") {
+                        log('WebSocket authenticated');
+                    } else if (data.type === "result" && data.success) {
+                        if (Array.isArray(data.result)) {
+                            handleNotificationPoll(data.result, currentlyLearningIndex);
+                        }
+                    } else if (data.type === "result" && !data.success) {
+                        log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');
+                    }
+                };
+                
+                wsConnection.onerror = (error) => log(`WebSocket error: ${error}`, 'error');
+                wsConnection.onclose = () => {
+                    log('WebSocket disconnected');
+                    wsConnection = null;
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        stopLearningPolling();
+                    }
+                };
+            } catch (error) {
+                log(`WebSocket connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function getTokenAndAuth() {
+            try {
+                // Get the supervisor token from our backend
+                const response = await fetch('/api/debug/token');
+                const tokenData = await response.json();
+                
+                if (tokenData.token) {
+                    wsConnection.send(JSON.stringify({ type: "auth", access_token: tokenData.token }));
+                } else {
+                    log('Failed to get authentication token', 'error');
+                }
+            } catch (error) {
+                log(`Failed to authenticate WebSocket: ${error.message}`, 'error');
+            }
+        }
     </script>
 </body>
 </html>

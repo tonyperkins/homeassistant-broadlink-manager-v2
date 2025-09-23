@@ -1191,8 +1191,7 @@ class BroadlinkWebServer:
             command.status = 'learning';
             updateCommandList();
             
-            // Start polling for notifications
-            startLearningPolling(index);
+            // Polling removed - notifications handled by Home Assistant UI
             
             try {
                 const response = await fetch('/api/learn', {
@@ -1231,58 +1230,6 @@ class BroadlinkWebServer:
         let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
         let lastInstruction = '';
 
-        // Start polling for learning notifications (WebSocket + HTTP fallback)
-        function startLearningPolling(commandIndex) {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-            }
-            
-            learningPhase = 'sweeping';
-            lastInstruction = '';
-            currentlyLearningIndex = commandIndex;
-            
-            const pollStartTime = Date.now();
-            const TIMEOUT = 45000; // 45 seconds
-            
-            pollingInterval = setInterval(async () => {
-                if (Date.now() - pollStartTime > TIMEOUT) {
-                    log('Learning process timed out', 'error');
-                    commands[commandIndex].status = 'failed';
-                    showAlert('⏰ Learning process timed out', 'warning');
-                    stopLearningPolling();
-                    updateCommandList();
-                    return;
-                }
-                
-                // Try WebSocket first, fallback to HTTP if needed
-                if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-                    wsConnection.send(JSON.stringify({ 
-                        id: ++wsMessageId, 
-                        type: 'persistent_notification/get' 
-                    }));
-                    log(`Sent WebSocket notification request (ID: ${wsMessageId})`);
-                } else {
-                    log('WebSocket not available, using HTTP fallback...');
-                    // Use HTTP API fallback for notifications
-                    try {
-                        fetch('/api/notifications')
-                            .then(response => response.json())
-                            .then(notifications => {
-                                if (notifications && notifications.length > 0) {
-                                    handleNotificationPoll(notifications);
-                                }
-                            })
-                            .catch(error => {
-                                console.log('HTTP notification polling error:', error);
-                            });
-                    } catch (error) {
-                        console.log('HTTP fallback error:', error);
-                    }
-                }
-            }, 1000);
-            
-            log(`Started polling for command: ${commands[commandIndex]?.name || commandIndex}`);
-        }
 
         // Stop polling for learning notifications
         function stopLearningPolling() {

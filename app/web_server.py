@@ -1135,37 +1135,42 @@ class BroadlinkWebServer:
                 if (Date.now() - pollStartTime > TIMEOUT) {
                     log('Learning process timed out', 'error');
                     commands[commandIndex].status = 'failed';
-                    showAlert('⏰ Learning process timed out', 'warning');
-                    stopLearningPolling();
-                    updateCommandList();
-                    return;
-                }
-                
-                try {
-                    // Try WebSocket first if available
-                    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
-                        wsConnection.send(JSON.stringify({ 
-                            id: ++wsMessageId, 
-                            type: 'persistent_notification/get' 
-                        }));
-                    } else {
-                        // Fallback to HTTP API
-                        const response = await fetch('/api/notifications');
-                        const notifications = await response.json();
-                        
-                        if (notifications && notifications.length > 0) {
-                            handleNotificationPoll(notifications, commandIndex);
-                        }
-                    }
-                } catch (error) {
-                    // Polling errors are normal during WebSocket, don't show them
-                    console.log('Polling error (normal):', error);
-                }
-            }, 1000); // Poll every 1 second like reference
-            
-            log(`Started polling for command: ${commands[commandIndex]?.name || commandIndex}`);
-        }
 
+    if (isLearning) {
+        showAlert('Already learning a command. Please wait.', 'warning');
+        return;
+    }
+    
+    isLearning = true;
+    learningCommand = command.name;
+    command.status = 'learning';
+    updateCommandList();
+    
+    // Start polling for notifications
+    startLearningPolling(index);
+    
+    try {
+        const response = await fetch('/api/learn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                entity_id: deviceEntityId,
+                device: command.device,
+                command: command.name,
+                command_type: commandType
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            log(`Learning started: ${command.name}`);
+            showAlert(result.message || 'Learning process started. Watch for Home Assistant notifications.', 'info');
+        } else {
+            command.status = 'failed';
+            log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
+            showAlert(`Failed to start learning: ${result.error}`, 'error');
+            stopLearningPolling();
         // Handle notification polling results - enhanced to match reference HTML logic
         function handleNotificationPoll(notifications, commandIndex) {
             if (currentlyLearningIndex === -1 || !isLearning) return;

@@ -1139,7 +1139,7 @@ class BroadlinkWebServer:
             updateCommandList();
             
             try {
-                const response = await fetch('/api/learn', {
+                const response = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1194,7 +1194,7 @@ class BroadlinkWebServer:
             // Polling removed - notifications handled by Home Assistant UI
             
             try {
-                const response = await fetch('/api/learn', {
+                const response = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

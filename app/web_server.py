@@ -1005,13 +1005,12 @@ class BroadlinkWebServer:
         let currentRoom = '';
         let currentDeviceName = '';
 
-        // Initialize the application
+        // Initialize the application  
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
             loadBroadlinkDevices();
-            // Enable WebSocket for proper notification handling
-            connectWebSocket();
-            log('Application initialized');
+            // Skip WebSocket connection - not supported in add-on context
+            log('Application initialized (WebSocket disabled - using HTTP for notifications)');
         });
 
         async function loadAreas() {

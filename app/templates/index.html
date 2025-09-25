@@ -607,7 +607,8 @@
         }
 
         async function testCommand(deviceName, commandName) {
-            log(`Testing command: ${deviceName}_${commandName}`);
+            log(`Testing command: device="${deviceName}", command="${commandName}"`);
+            log(`Full command would be: ${deviceName}_${commandName}`);
             
             try {
                 // Find the entity_id for this device by matching area

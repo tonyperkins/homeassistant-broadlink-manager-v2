@@ -380,7 +380,7 @@ class BroadlinkWebServer:
             
             # Get area information first
             areas_data = await self._get_ha_areas()
-            area_lookup = {area['area_id']: area['name'] for area in areas_data}
+            area_lookup = {area['id']: area['name'] for area in areas_data}
             
             # Get device registry
             device_registry_file = self.storage_path / "core.device_registry"
@@ -456,7 +456,7 @@ class BroadlinkWebServer:
             
             # Also get area information for filtering
             areas_data = await self._get_ha_areas()
-            area_lookup = {area['area_id']: area['name'] for area in areas_data}
+            area_lookup = {area['id']: area['name'] for area in areas_data}
             
             for storage_file in storage_files:
                 try:

@@ -117,3 +117,4 @@ Thumbs.db
 # Add-on specific
 *.log
 data/
+.storage/

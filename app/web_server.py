@@ -129,19 +129,64 @@ class BroadlinkWebServer:
                 logger.info(f"Providing token for WebSocket: {self.ha_token[:20]}...")
                 return jsonify({
                     "token": self.ha_token,
-                    "source": "supervisor"
                 })
             except Exception as e:
                 logger.error(f"Error getting token: {e}")
                 return jsonify({"error": str(e)}), 500
         
-        @self.app.route('/api/debug/websocket-fallback')
-        def websocket_fallback():
-            """Fallback endpoint to disable WebSocket and use HTTP polling only"""
-            return jsonify({
-                "use_websocket": False,
-                "message": "WebSocket authentication failed, using HTTP fallback"
-            })
+        @self.app.route('/api/learned-devices')
+        def get_learned_devices():
+            """Get all learned devices with area and command information for filtering"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                commands_data = loop.run_until_complete(self._get_learned_commands())
+                loop.close()
+                
+                # Transform data for filtering UI
+                result = {
+                    'areas': {},
+                    'devices': {},
+                    'commands': []
+                }
+                
+                for device_name, device_info in commands_data.items():
+                    area_id = device_info.get('area_id')
+                    area_name = device_info.get('area_name', 'Unknown')
+                    device_part = device_info.get('device_part', device_name)
+                    
+                    # Add to areas
+                    if area_id and area_id not in result['areas']:
+                        result['areas'][area_id] = area_name
+                    
+                    # Add to devices
+                    if device_name not in result['devices']:
+                        result['devices'][device_name] = {
+                            'area_id': area_id,
+                            'area_name': area_name,
+                            'device_part': device_part,
+                            'full_name': device_name
+                        }
+                    
+                    # Add commands
+                    for command in device_info.get('commands', []):
+                        result['commands'].append({
+                            'device_name': device_name,
+                            'device_part': device_part,
+                            'command': command,
+                            'area_id': area_id,
+                            'area_name': area_name,
+                            'full_command_name': f"{device_name}_{command}"
+                        })
+                
+                return jsonify(result)
+            except Exception as e:
+                logger.error(f"Error getting learned devices: {e}")
+                return jsonify({"error": str(e)}), 500
+
+        @self.app.route('/api/debug/broadlink-full-data')
+        def debug_broadlink_full_data():
+            """Get all learned devices with area and command information for debugging"""
         
         
         @self.app.route('/api/delete', methods=['POST'])
@@ -278,18 +323,10 @@ class BroadlinkWebServer:
                         return None
     
     async def _get_ha_areas(self) -> List[Dict]:
-        """Get Home Assistant areas"""
+        """Get Home Assistant areas from storage files"""
         try:
-            # First try API call (more reliable)
-            logger.info("Attempting to get areas via Home Assistant API...")
-            areas_response = await self._make_ha_request('GET', 'config/area_registry')
-            
-            if areas_response and isinstance(areas_response, list):
-                logger.info(f"Found {len(areas_response)} areas via API")
-                return [{'area_id': area.get('area_id', area.get('id', '')), 'name': area.get('name', '')} for area in areas_response if area.get('name')]
-            
-            # Fallback to storage file
-            logger.info("API call failed, trying storage file...")
+            # Read directly from storage file (primary method for add-on)
+            logger.info("Reading areas from storage file...")
             registry_file = self.storage_path / "core.area_registry"
             if registry_file.exists():
                 async with aiofiles.open(registry_file, 'r') as f:
@@ -312,184 +349,124 @@ class BroadlinkWebServer:
                     logger.info(f"Successfully processed {len(result_areas)} areas from storage")
                     return result_areas
             
-            # If no areas found, return empty list (don't force a default)
-            logger.warning("No areas found via API or storage file")
+            # Fallback to API call if storage file doesn't exist
+            logger.info("Storage file not found, trying API call...")
+            areas_response = await self._make_ha_request('GET', 'config/area_registry')
+            
+            if areas_response and isinstance(areas_response, list):
+                logger.info(f"Found {len(areas_response)} areas via API")
+                return [{'area_id': area.get('area_id', area.get('id', '')), 'name': area.get('name', '')} for area in areas_response if area.get('name')]
+            
+            # If no areas found, return empty list
+            logger.warning("No areas found via storage or API")
             return []
             
         except Exception as e:
             logger.error(f"Error getting areas: {e}")
-            # Try alternative API endpoint - this returns all entities, need to filter
-            try:
-                logger.info("Trying to get areas from states API...")
-                states_response = await self._make_ha_request('GET', 'states')
-                if states_response and isinstance(states_response, list):
-                    # Extract unique area names from entity attributes
-                    areas_set = set()
-                    for entity in states_response:
-                        attributes = entity.get('attributes', {})
-                        area_id = attributes.get('area_id')
-                        if area_id:
-                            # Try to get area name from device registry or use area_id
-                            area_name = area_id.replace('_', ' ').title()
-                            areas_set.add((area_id, area_name))
-                    
-                    areas_list = [{'area_id': area_id, 'name': name} for area_id, name in areas_set]
-                    logger.info(f"Extracted {len(areas_list)} unique areas from states")
-                    return areas_list
-            except Exception as e2:
-                logger.error(f"States API also failed: {e2}")
-            
-            # Return empty list instead of default
             return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices by finding remote entities that belong to Broadlink devices"""
+        """Get Broadlink remote devices from storage files"""
         try:
-            # Get all states and registries
-            states = await self._make_ha_request('GET', 'states')
+            # Read from storage files (primary method for add-on)
+            logger.info("Reading Broadlink devices from storage files...")
+            
+            # Get device registry
+            device_registry_file = self.storage_path / "core.device_registry"
+            entity_registry_file = self.storage_path / "core.entity_registry"
+            
+            broadlink_devices = []
+            
+            if device_registry_file.exists() and entity_registry_file.exists():
+                # Read device registry
+                async with aiofiles.open(device_registry_file, 'r') as f:
+                    device_content = await f.read()
+                    device_data = json.loads(device_content)
+                    devices = device_data.get('data', {}).get('devices', [])
+                
+                # Read entity registry
+                async with aiofiles.open(entity_registry_file, 'r') as f:
+                    entity_content = await f.read()
+                    entity_data = json.loads(entity_content)
+                    entities = entity_data.get('data', {}).get('entities', [])
+                
+                # Find Broadlink devices
+                for device in devices:
+                    manufacturer = device.get('manufacturer', '').lower()
+                    name = device.get('name', '').lower()
+                    identifiers = device.get('identifiers', [])
+                    
+                    # Check if this is a Broadlink device
+                    if (manufacturer == 'broadlink' or
+                        'broadlink' in name or
+                        any('broadlink' in str(identifier).lower() for identifier in identifiers)):
+                        
+                        device_id = device.get('id')
+                        area_id = device.get('area_id')
+                        
+                        # Find corresponding entities
+                        for entity in entities:
+                            if (entity.get('device_id') == device_id and 
+                                entity.get('entity_id', '').startswith('remote.')):
+                                
+                                broadlink_devices.append({
+                                    'entity_id': entity.get('entity_id'),
+                                    'name': device.get('name', entity.get('entity_id')),
+                                    'device_id': device_id,
+                                    'unique_id': entity.get('unique_id'),
+                                    'area_id': area_id
+                                })
+                
+                logger.info(f"Found {len(broadlink_devices)} Broadlink devices from storage")
+                return broadlink_devices
+            
+            # Fallback to API calls if storage files don't exist
+            logger.info("Storage files not found, trying API calls...")
             device_registry = await self._make_ha_request('GET', 'config/device_registry')
             entity_registry = await self._make_ha_request('GET', 'config/entity_registry')
             
-            broadlink_devices = []
-            broadlink_device_ids = set()
-            
-            logger.info("Starting Broadlink device discovery...")
-            logger.info(f"Got {len(states) if isinstance(states, list) else 0} states")
-            logger.info(f"Device registry type: {type(device_registry)}, length: {len(device_registry) if isinstance(device_registry, list) else 'N/A'}")
-            logger.info(f"Entity registry type: {type(entity_registry)}, length: {len(entity_registry) if isinstance(entity_registry, list) else 'N/A'}")
-            
-            # First, find all Broadlink devices in the device registry
-            if isinstance(device_registry, list):
-                logger.info("Searching device registry for Broadlink devices...")
+            if isinstance(device_registry, list) and isinstance(entity_registry, list):
                 for device in device_registry:
                     manufacturer = device.get('manufacturer', '').lower()
-                    model = device.get('model', '').lower()
-                    name = device.get('name', 'Unknown')
-                    # Check if this is a Broadlink device
-                    if 'broadlink' in manufacturer or 'broadlink' in model:
+                    name = device.get('name', '').lower()
+                    identifiers = device.get('identifiers', [])
+                    
+                    if (manufacturer == 'broadlink' or
+                        'broadlink' in name or
+                        any('broadlink' in str(identifier).lower() for identifier in identifiers)):
+                        
                         device_id = device.get('id')
-                        if device_id:
-                            broadlink_device_ids.add(device_id)
-                            logger.info(f"✓ Found Broadlink device: {name} (ID: {device_id}, Manufacturer: {manufacturer}, Model: {model})")
-                
-                logger.info(f"Found {len(broadlink_device_ids)} Broadlink devices in registry")
-            else:
-                logger.warning("Device registry not available or not a list")
-            
-            # Now find remote entities that belong to these Broadlink devices
-            if isinstance(entity_registry, list) and broadlink_device_ids:
-                logger.info("Searching entity registry for remote entities...")
-                for entity_reg in entity_registry:
-                    entity_id = entity_reg.get('entity_id', '')
-                    device_id = entity_reg.get('device_id')
-                    platform = entity_reg.get('platform', '')
-                    
-                    # Check if this is a remote entity belonging to a Broadlink device
-                    if (entity_id.startswith('remote.') and 
-                        device_id in broadlink_device_ids):
                         
-                        logger.info(f"Found remote entity {entity_id} with device_id {device_id} and platform {platform}")
-                        
-                        # Find the corresponding state information
-                        entity_state = None
-                        for state in states:
-                            if state.get('entity_id') == entity_id:
-                                entity_state = state
-                                break
-                        
-                        if entity_state:
-                            attributes = entity_state.get('attributes', {})
-                            broadlink_devices.append({
-                                'entity_id': entity_id,
-                                'name': attributes.get('friendly_name', entity_id),
-                                'state': entity_state.get('state'),
-                                'device_id': device_id,
-                                'platform': platform
-                            })
-                            logger.info(f"✓ Added Broadlink remote entity: {entity_id}")
-                        else:
-                            logger.warning(f"No state found for entity: {entity_id}")
-            else:
-                logger.warning("Entity registry not available, not a list, or no Broadlink devices found")
+                        for entity in entity_registry:
+                            if (entity.get('device_id') == device_id and 
+                                entity.get('entity_id', '').startswith('remote.')):
+                                
+                                broadlink_devices.append({
+                                    'entity_id': entity.get('entity_id'),
+                                    'name': device.get('name', entity.get('entity_id')),
+                                    'device_id': device_id,
+                                    'unique_id': entity.get('unique_id'),
+                                    'area_id': device.get('area_id')
+                                })
             
-            # If we found devices via registry, return them
-            if broadlink_devices:
-                logger.info(f"Registry method found {len(broadlink_devices)} Broadlink remote devices")
-                return broadlink_devices
-            
-            # Fallback: Direct state inspection for all remote entities
-            logger.warning("Registry approach found no devices, trying comprehensive state inspection")
-            for entity in states:
-                entity_id = entity.get('entity_id', '')
-                if entity_id.startswith('remote.'):
-                    attributes = entity.get('attributes', {})
-                    
-                    # Log details for debugging
-                    logger.info(f"Examining remote entity: {entity_id}")
-                    logger.info(f"  Attributes: {list(attributes.keys())}")
-                    
-                    # Check various attributes that might indicate this is a Broadlink device
-                    device_class = attributes.get('device_class', '').lower()
-                    integration = attributes.get('integration', '').lower()
-                    attribution = attributes.get('attribution', '').lower()
-                    friendly_name = attributes.get('friendly_name', '').lower()
-                    
-                    # More comprehensive check for Broadlink indicators
-                    is_broadlink = (
-                        'broadlink' in entity_id.lower() or
-                        'broadlink' in integration or 
-                        'broadlink' in attribution or
-                        'broadlink' in friendly_name or
-                        'rm4' in friendly_name or  # Common Broadlink model
-                        'rm3' in friendly_name or  # Common Broadlink model
-                        any('broadlink' in str(v).lower() for v in attributes.values() if isinstance(v, str))
-                    )
-                    
-                    if is_broadlink:
-                        broadlink_devices.append({
-                            'entity_id': entity_id,
-                            'name': attributes.get('friendly_name', entity_id),
-                            'state': entity.get('state')
-                        })
-                        logger.info(f"✓ Found Broadlink remote via state inspection: {entity_id}")
-                    else:
-                        logger.info(f"  Not identified as Broadlink device")
-            
-            logger.info(f"Final result: Found {len(broadlink_devices)} Broadlink remote devices")
+            logger.info(f"Returning {len(broadlink_devices)} Broadlink remote devices")
             return broadlink_devices
-            
+
         except Exception as e:
             logger.error(f"Error getting Broadlink devices: {e}")
-            # Simple fallback - just look for all remote entities and let user decide
-            try:
-                logger.info("Using simple fallback - returning all remote entities")
-                states = await self._make_ha_request('GET', 'states')
-                broadlink_devices = []
-                
-                for entity in states:
-                    entity_id = entity.get('entity_id', '')
-                    if entity_id.startswith('remote.'):
-                        attributes = entity.get('attributes', {})
-                        broadlink_devices.append({
-                            'entity_id': entity_id,
-                            'name': attributes.get('friendly_name', entity_id),
-                            'state': entity.get('state')
-                        })
-                
-                logger.info(f"Fallback method found {len(broadlink_devices)} remote devices")
-                return broadlink_devices
-            except Exception as fallback_error:
-                logger.error(f"Fallback method also failed: {fallback_error}")
-                return []
+            return []
     
-    async def _get_learned_commands(self, device_id: str) -> Dict:
-        """Get learned commands for a specific device by reading storage files"""
+    async def _get_learned_commands(self, device_id: str = None) -> Dict:
+        """Get learned commands from storage files with filtering and area information"""
         try:
-            # Find the storage file for this device
-            # Broadlink storage files are named like: broadlink_remote_{unique_id}_codes
+            # Find the storage files for Broadlink commands
             storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
             
             all_commands = {}
+            
+            # Also get area information for filtering
+            areas_data = await self._get_ha_areas()
+            area_lookup = {area['area_id']: area['name'] for area in areas_data}
             
             for storage_file in storage_files:
                 try:
@@ -500,12 +477,42 @@ class BroadlinkWebServer:
                         # The data structure contains device names as keys
                         for device_name, commands in data.get('data', {}).items():
                             if isinstance(commands, dict):
-                                all_commands[device_name] = list(commands.keys())
+                                # Parse the device name to extract area and device info
+                                # Format: {area}_{device} e.g., "tony_s_office_ceiling_fan"
+                                parts = device_name.split('_')
+                                if len(parts) >= 2:
+                                    # Try to match area from the beginning of the device name
+                                    area_id = None
+                                    device_part = device_name
+                                    
+                                    # Check if device name starts with a known area
+                                    for aid, aname in area_lookup.items():
+                                        if device_name.startswith(aid + '_'):
+                                            area_id = aid
+                                            device_part = device_name[len(aid) + 1:]
+                                            break
+                                    
+                                    all_commands[device_name] = {
+                                        'commands': list(commands.keys()),
+                                        'area_id': area_id,
+                                        'area_name': area_lookup.get(area_id, 'Unknown'),
+                                        'device_part': device_part,
+                                        'full_name': device_name
+                                    }
+                                else:
+                                    all_commands[device_name] = {
+                                        'commands': list(commands.keys()),
+                                        'area_id': None,
+                                        'area_name': 'Unknown',
+                                        'device_part': device_name,
+                                        'full_name': device_name
+                                    }
                 
                 except Exception as e:
                     logger.warning(f"Error reading storage file {storage_file}: {e}")
                     continue
             
+            logger.info(f"Found {len(all_commands)} learned devices with commands")
             return all_commands
             
         except Exception as e:
@@ -966,6 +973,11 @@ class BroadlinkWebServer:
             color: white;
         }
 
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
         .btn-danger {
             background: var(--danger);
             color: white;
@@ -1047,6 +1059,16 @@ class BroadlinkWebServer:
             <h1>🏠 Broadlink Remote Manager</h1>
         </div>
 
+        <!-- Mode Toggle -->
+        <div class="config-section">
+            <h2>📋 Mode</h2>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+                <button id="filterModeBtn" class="btn btn-primary" onclick="setMode('filter')">Filter Mode</button>
+                <button id="addModeBtn" class="btn btn-secondary" onclick="setMode('add')">Add Mode</button>
+                <span id="modeDescription" style="color: var(--text-secondary); font-size: 0.875rem;">Filter existing commands by area and device</span>
+            </div>
+        </div>
+
         <!-- Device Selection -->
         <div class="config-section">
             <h2>🔗 Device Selection</h2>
@@ -1058,16 +1080,18 @@ class BroadlinkWebServer:
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="roomName">Room</label>
-                    <select id="roomName">
-                        <option value="">Loading areas...</option>
+                    <label for="areaName">Area</label>
+                    <select id="areaName">
+                        <option value="">All Areas</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="deviceName">Device Name</label>
-                    <input type="text" id="deviceName" placeholder="fan" value="fan">
+                    <label for="deviceName">Device</label>
+                    <select id="deviceName">
+                        <option value="">All Devices</option>
+                    </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="commandTypeGroup">
                     <label for="commandType">Type</label>
                     <select id="commandType">
                         <option value="rf">RF</option>
@@ -1075,20 +1099,33 @@ class BroadlinkWebServer:
                     </select>
                 </div>
             </div>
+            
+            <!-- Add Mode Fields -->
+            <div id="addModeFields" style="display: none;">
+                <div class="form-grid" style="margin-top: 16px;">
+                    <div class="form-group">
+                        <label for="newDeviceName">New Device Name</label>
+                        <input type="text" id="newDeviceName" placeholder="ceiling_fan">
+                    </div>
+                    <div class="form-group">
+                        <label for="newCommandName">Command Name</label>
+                        <input type="text" id="newCommandName" placeholder="fan_off">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Command Management -->
         <div class="config-section">
             <h2>🎮 Commands</h2>
-            <div style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px;">
-                <div class="form-group" style="flex: 1;">
-                    <label for="newCommand">Add Command</label>
-                    <input type="text" id="newCommand" placeholder="command_name">
-                </div>
-                <button class="btn btn-primary" onclick="addCommand()">Add</button>
+            <div id="filterModeControls" style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px;">
                 <button class="btn btn-success" onclick="loadCommands()">Refresh</button>
-                <button class="btn btn-warning" onclick="testNotifications()">Test Notifications</button>
-                <button class="btn btn-danger" onclick="testService()">Test Service</button>
+                <span style="color: var(--text-secondary); font-size: 0.875rem; align-self: center;">Use the dropdowns above to filter commands</span>
+            </div>
+            
+            <div id="addModeControls" style="display: none; gap: 12px; align-items: end; margin-bottom: 16px;">
+                <button class="btn btn-primary" onclick="learnNewCommand()">Learn Command</button>
+                <span style="color: var(--text-secondary); font-size: 0.875rem; align-self: center;">Fill in the device and command details above, then click Learn</span>
             </div>
             
             <div class="command-list" id="commandList">
@@ -1107,8 +1144,10 @@ class BroadlinkWebServer:
 
     <script>
         let commands = [];
+        let learnedData = {};
+        let currentMode = 'filter';
         let currentDevice = '';
-        let currentRoom = '';
+        let currentArea = '';
         let currentDeviceName = '';
 
         // Helper function to get correct API URL for both direct and ingress access
@@ -1123,17 +1162,57 @@ class BroadlinkWebServer:
         document.addEventListener('DOMContentLoaded', function() {
             loadAreas();
             loadBroadlinkDevices();
-            // Skip WebSocket connection - not supported in add-on context
-            log('Application initialized (WebSocket disabled - using HTTP for notifications)');
+            loadLearnedData();
+            setMode('filter'); // Start in filter mode
+            log('Application initialized - Filter mode active');
         });
+
+        function setMode(mode) {
+            currentMode = mode;
+            
+            const filterBtn = document.getElementById('filterModeBtn');
+            const addBtn = document.getElementById('addModeBtn');
+            const modeDesc = document.getElementById('modeDescription');
+            const addModeFields = document.getElementById('addModeFields');
+            const filterModeControls = document.getElementById('filterModeControls');
+            const addModeControls = document.getElementById('addModeControls');
+            
+            if (mode === 'filter') {
+                filterBtn.className = 'btn btn-primary';
+                addBtn.className = 'btn btn-secondary';
+                modeDesc.textContent = 'Filter existing commands by area and device';
+                addModeFields.style.display = 'none';
+                filterModeControls.style.display = 'flex';
+                addModeControls.style.display = 'none';
+                
+                // Reset dropdowns to show all
+                document.getElementById('areaName').value = '';
+                document.getElementById('deviceName').value = '';
+                
+                // Load and display all commands
+                loadCommands();
+            } else {
+                filterBtn.className = 'btn btn-secondary';
+                addBtn.className = 'btn btn-primary';
+                modeDesc.textContent = 'Add new commands by selecting area, device, and command details';
+                addModeFields.style.display = 'block';
+                filterModeControls.style.display = 'none';
+                addModeControls.style.display = 'flex';
+                
+                // Clear command list in add mode
+                document.getElementById('commandList').innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Select area, device, and command details above, then click Learn Command</div>';
+            }
+            
+            log(`Switched to ${mode} mode`);
+        }
 
         async function loadAreas() {
             try {
                 const response = await fetch(getApiUrl('/api/areas'));
                 const areas = await response.json();
                 
-                const select = document.getElementById('roomName');
-                select.innerHTML = '<option value="">Select a room...</option>';
+                const select = document.getElementById('areaName');
+                select.innerHTML = '<option value="">All Areas</option>';
                 
                 areas.forEach(area => {
                     const option = document.createElement('option');
@@ -1145,6 +1224,51 @@ class BroadlinkWebServer:
                 log(`Loaded ${areas.length} areas`);
             } catch (error) {
                 log(`Error loading areas: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadLearnedData() {
+            try {
+                const response = await fetch(getApiUrl('/api/learned-devices'));
+                learnedData = await response.json();
+                
+                log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
+                
+                // Update area dropdown with only areas that have learned commands
+                updateAreaDropdown();
+                
+                // Load commands if in filter mode
+                if (currentMode === 'filter') {
+                    loadCommands();
+                }
+            } catch (error) {
+                log(`Error loading learned data: ${error.message}`, 'error');
+            }
+        }
+
+        function updateAreaDropdown() {
+            const select = document.getElementById('areaName');
+            const currentValue = select.value;
+            
+            if (currentMode === 'filter') {
+                // In filter mode, only show areas with learned commands
+                select.innerHTML = '<option value="">All Areas</option>';
+                
+                Object.values(learnedData.areas).forEach(areaName => {
+                    const areaId = Object.keys(learnedData.areas).find(key => learnedData.areas[key] === areaName);
+                    const option = document.createElement('option');
+                    option.value = areaId;
+                    option.textContent = areaName;
+                    select.appendChild(option);
+                });
+            } else {
+                // In add mode, show all available areas
+                loadAreas();
+            }
+            
+            // Restore selection if still valid
+            if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
             }
         }
 
@@ -1174,87 +1298,110 @@ class BroadlinkWebServer:
             }
         }
 
-        async function loadCommands() {
-            if (!currentDevice) {
-                log('No device selected', 'error');
-                return;
-            }
+        function updateDeviceDropdown() {
+            const areaSelect = document.getElementById('areaName');
+            const deviceSelect = document.getElementById('deviceName');
+            const selectedArea = areaSelect.value;
             
-            try {
-                const response = await fetch(getApiUrl(`/api/commands/${encodeURIComponent(currentDevice)}`));
-                const commandData = await response.json();
+            deviceSelect.innerHTML = '<option value="">All Devices</option>';
+            
+            if (currentMode === 'filter') {
+                // Filter devices based on selected area
+                const relevantDevices = Object.values(learnedData.devices).filter(device => 
+                    !selectedArea || device.area_id === selectedArea
+                );
                 
-                commands = [];
-                for (const [deviceName, commandList] of Object.entries(commandData)) {
-                    commandList.forEach(cmd => {
-                        commands.push({
-                            name: cmd,
-                            device: deviceName,
-                            status: 'learned'
-                        });
-                    });
-                }
-                
-                updateCommandList();
-                log(`Loaded ${commands.length} commands`);
-            } catch (error) {
-                log(`Error loading commands: ${error.message}`, 'error');
+                relevantDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.full_name;
+                    option.textContent = device.device_part;
+                    deviceSelect.appendChild(option);
+                });
+            } else {
+                // In add mode, this becomes a text input for new device names
+                // We'll handle this in the mode switching
             }
         }
 
-        function addCommand() {
-            const commandName = document.getElementById('newCommand').value.trim();
-            if (!commandName) {
+        async function loadCommands() {
+            if (currentMode !== 'filter') return;
+            
+            const areaFilter = document.getElementById('areaName').value;
+            const deviceFilter = document.getElementById('deviceName').value;
+            
+            // Filter commands based on selections
+            let filteredCommands = learnedData.commands;
+            
+            if (areaFilter) {
+                filteredCommands = filteredCommands.filter(cmd => cmd.area_id === areaFilter);
+            }
+            
+            if (deviceFilter) {
+                filteredCommands = filteredCommands.filter(cmd => cmd.device_name === deviceFilter);
+            }
+            
+            updateCommandList(filteredCommands);
+            log(`Showing ${filteredCommands.length} commands (filtered from ${learnedData.commands.length} total)`);
+        }
+
+        function updateCommandList(commandsToShow = null) {
+            const container = document.getElementById('commandList');
+            const commandsData = commandsToShow || learnedData.commands || [];
+            
+            if (commandsData.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No commands found</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            commandsData.forEach((command, index) => {
+                const item = document.createElement('div');
+                item.className = 'command-item';
+                
+                item.innerHTML = `
+                    <div>
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 8px;"></span>
+                        <span class="command-name">${command.area_name} → ${command.device_part} → ${command.command}</span>
+                    </div>
+                    <div class="command-actions">
+                        <button class="btn btn-warning btn-small" onclick="testCommand('${command.device_name}', '${command.command}')">Test</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteCommand('${command.device_name}', '${command.command}')">Remove</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function learnNewCommand() {
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+            const areaId = document.getElementById('areaName').value;
+            const newDeviceName = document.getElementById('newDeviceName').value.trim();
+            const newCommandName = document.getElementById('newCommandName').value.trim();
+            const commandType = document.getElementById('commandType').value;
+            
+            if (!deviceEntityId) {
+                showAlert('Please select a Broadlink device', 'error');
+                return;
+            }
+            
+            if (!areaId) {
+                showAlert('Please select an area', 'error');
+                return;
+            }
+            
+            if (!newDeviceName) {
+                showAlert('Please enter a device name', 'error');
+                return;
+            }
+            
+            if (!newCommandName) {
                 showAlert('Please enter a command name', 'error');
                 return;
             }
             
-            commands.push({
-                name: commandName,
-                device: getDeviceKey(),
-                status: 'pending'
-            });
-            
-            updateCommandList();
-            document.getElementById('newCommand').value = '';
-            log(`Added command: ${commandName}`);
-        }
-
-        function getDeviceKey() {
-            const room = document.getElementById('roomName').value;
-            const device = document.getElementById('deviceName').value;
-            return `${room}_${device}`;
-        }
-
-        // Learning state variables
-        let isLearning = false;
-        let learningCommand = '';
-        let pollingInterval = null;
-        
-        // WebSocket variables (like reference HTML)
-        let wsConnection = null;
-        let wsMessageId = 0;
-        let currentlyLearningIndex = -1;
-
-        async function learnCommand(index) {
-            const command = commands[index];
-            const deviceEntityId = document.getElementById('broadlinkDevice').value;
-            const commandType = document.getElementById('commandType').value;
-            
-            if (!deviceEntityId) {
-                showAlert('Please select a Broadlink device', 'error');
-                return;
-            }
-
-            if (isLearning) {
-                showAlert('Already learning a command. Please wait.', 'warning');
-                return;
-            }
-            
-            isLearning = true;
-            learningCommand = command.name;
-            command.status = 'learning';
-            updateCommandList();
+            // Create the full device name in the format: {area}_{device}
+            const fullDeviceName = `${areaId}_${newDeviceName}`;
             
             try {
                 const response = await fetch(getApiUrl('/api/learn'), {
@@ -1262,8 +1409,8 @@ class BroadlinkWebServer:
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         entity_id: deviceEntityId,
-                        device: command.device,
-                        command: command.name,
+                        device: fullDeviceName,
+                        command: newCommandName,
                         command_type: commandType
                     })
                 });
@@ -1271,267 +1418,48 @@ class BroadlinkWebServer:
                 const result = await response.json();
                 
                 if (result.success) {
-                    log(`Learning started: ${command.name}`);
-                    showAlert('✅ Learning started! Go to Home Assistant notifications (🔔) for instructions.', 'success');
-                    // Set status back to pending since we can't track progress
-                    command.status = 'pending';
+                    log(`Learning started: ${fullDeviceName}_${newCommandName}`);
+                    showAlert('✅ Learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
+                    
+                    // Clear the input fields
+                    document.getElementById('newDeviceName').value = '';
+                    document.getElementById('newCommandName').value = '';
                 } else {
-                    command.status = 'failed';  
-                    log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
+                    log(`Failed to start learning: ${result.error}`, 'error');
                     showAlert(`Failed to start learning: ${result.error}`, 'error');
                 }
             } catch (error) {
-                command.status = 'failed';
                 log(`Error starting learning: ${error.message}`, 'error');
                 showAlert(`Error starting learning: ${error.message}`, 'error');
             }
-            
-            updateCommandList();
         }
 
-        async function learnCommand(index) {
-            const command = commands[index];
+        async function testCommand(deviceName, commandName) {
             const deviceEntityId = document.getElementById('broadlinkDevice').value;
-            const commandType = document.getElementById('commandType').value;
             
             if (!deviceEntityId) {
                 showAlert('Please select a Broadlink device', 'error');
                 return;
             }
-
-            if (isLearning) {
-                showAlert('Already learning a command. Please wait.', 'warning');
-                return;
-            }
-            
-            isLearning = true;
-            learningCommand = command.name;
-            command.status = 'learning';
-            updateCommandList();
-            
-            // Polling removed - notifications handled by Home Assistant UI
             
             try {
-                const response = await fetch(getApiUrl('/api/learn'), {
+                const response = await fetch(getApiUrl('/api/send'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         entity_id: deviceEntityId,
-                        device: command.device,
-                        command: command.name,
-                        command_type: commandType
+                        device: deviceName,
+                        command: commandName
                     })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    log(`Learning started: ${command.name}`);
-                    showAlert(result.message || 'Learning process started. Watch for Home Assistant notifications.', 'info');
+                    log(`Successfully sent: ${deviceName}_${commandName}`);
+                    showAlert(`Command "${commandName}" sent successfully!`, 'success');
                 } else {
-                    command.status = 'failed';
-                    log(`Failed to start learning: ${command.name} - ${result.error}`, 'error');
-                    showAlert(`Failed to start learning: ${result.error}`, 'error');
-                    stopLearningPolling();
-                }
-            } catch (error) {
-                command.status = 'failed';
-                log(`Error starting learning: ${error.message}`, 'error');
-                showAlert(`Error starting learning: ${error.message}`, 'error');
-                stopLearningPolling();
-            }
-            
-            updateCommandList();
-        }
-
-        // Learning phase tracking
-        let learningPhase = 'idle'; // 'idle', 'sweeping', 'learning', 'completed'
-        let lastInstruction = '';
-
-
-        // Stop polling for learning notifications
-        function stopLearningPolling() {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-            }
-            isLearning = false;
-            learningCommand = '';
-            learningPhase = 'idle';
-            lastInstruction = '';
-            currentlyLearningIndex = -1;
-            log('Stopped polling.');
-        }
-
-        // Handle notification polling results
-        function handleNotificationPoll(notifications) {
-            if (currentlyLearningIndex === -1 || !isLearning) return;
-
-            const command = commands[currentlyLearningIndex];
-            const deviceFullName = getDeviceKey();
-            const commandName = command.name;
-            const fullCommandName = `${deviceFullName}_${commandName}`;
-            
-            log(`Poll result: Found ${notifications.length} notifications for ${fullCommandName}`);
-            
-            // Create matchers for the command name (like reference HTML)
-            const nameMatchers = [
-                `'${commandName}'`,
-                commandName,
-                `'${fullCommandName}'`,
-                fullCommandName,
-                `'${command.device}_${commandName}'`,
-                `${command.device}_${commandName}`
-            ];
-
-            if (learningPhase === 'sweeping') {
-                // Look for "Sweep frequency" notification
-                const sweepNotification = notifications.find(n => {
-                    if (n.title !== 'Sweep frequency') return false;
-                    const msg = n.message || '';
-                    return nameMatchers.some(k => msg.includes(k));
-                });
-                
-                if (sweepNotification) {
-                    const instruction = "Press and hold the remote button...";
-                    if (lastInstruction !== instruction) {
-                        lastInstruction = instruction;
-                        showAlert(`🔄 Step 1: ${instruction}`, 'info');
-                        log(`Learning instruction: ${instruction}`);
-                    }
-                } else if (lastInstruction.startsWith('Press and hold') && 
-                          !notifications.some(n => n.title === 'Sweep frequency')) {
-                    // Transition from sweeping to learning phase
-                    const instruction = "Release the button. Now prepare to press it briefly.";
-                    showAlert(`🔄 Transition: ${instruction}`, 'info');
-                    log(`Learning instruction: ${instruction}`);
-                    learningPhase = 'learning';
-                    lastInstruction = instruction;
-                }
-            } else if (learningPhase === 'learning') {
-                // Look for "Learn command" notification
-                const learnNotification = notifications.find(n => {
-                    if (n.title !== 'Learn command') return false;
-                    const msg = n.message || '';
-                    return nameMatchers.some(k => msg.includes(k));
-                });
-                
-                if (learnNotification) {
-                    const instruction = "Press the button briefly.";
-                    if (lastInstruction !== instruction) {
-                        lastInstruction = instruction;
-                        showAlert(`🔄 Step 2: ${instruction}`, 'info');
-                        log(`Learning instruction: ${instruction}`);
-                    }
-                } else if (lastInstruction.startsWith('Press the button')) {
-                    // Learning completed
-                    learningPhase = 'completed';
-                    lastInstruction = '';
-                    commands[commandIndex].status = 'learned';
-                    showAlert(`✅ Successfully learned ${learningCommand}!`, 'success');
-                    log(`Learning completed for ${learningCommand}`);
-                    stopLearningPolling();
-                    updateCommandList();
-                }
-            }
-        }
-
-        // Stop polling for learning notifications
-        function stopLearningPolling() {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-            }
-            isLearning = false;
-            learningCommand = '';
-            learningPhase = 'idle';
-            lastInstruction = '';
-            currentlyLearningIndex = -1;
-            log('Stopped polling.');
-        }
-
-        // Test notifications function for debugging
-        async function testNotifications() {
-            try {
-                log('Testing notification detection...');
-                
-                // Test regular notifications endpoint
-                const response = await fetch('/api/notifications');
-                const notifications = await response.json();
-                log(`Regular notifications: ${JSON.stringify(notifications, null, 2)}`);
-                
-                // Test debug endpoint
-                const debugResponse = await fetch('/api/debug/all-notifications');
-                const allNotifications = await debugResponse.json();
-                log(`All notifications: ${JSON.stringify(allNotifications, null, 2)}`);
-                
-                showAlert(`Found ${notifications.length} learning notifications, ${allNotifications.length} total. Check logs for details.`, 'info');
-            } catch (error) {
-                log(`Error testing notifications: ${error.message}`, 'error');
-                showAlert(`Error testing notifications: ${error.message}`, 'error');
-            }
-        }
-
-        // Test service function for debugging
-        async function testService() {
-            try {
-                const deviceEntityId = document.getElementById('broadlinkDevice').value;
-                if (!deviceEntityId) {
-                    showAlert('Please select a Broadlink device first', 'error');
-                    return;
-                }
-                
-                log('Testing Broadlink service call...');
-                
-                const response = await fetch('/api/debug/test-service', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        entity_id: deviceEntityId
-                    })
-                });
-                
-                const result = await response.json();
-                log(`Service test result: ${JSON.stringify(result, null, 2)}`);
-                
-                if (result.success) {
-                    showAlert('Service test completed. Check logs for details.', 'info');
-                } else {
-                    showAlert(`Service test failed: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                log(`Error testing service: ${error.message}`, 'error');
-                showAlert(`Error testing service: ${error.message}`, 'error');
-            }
-        }
-
-        async function testCommand(index) {
-            const command = commands[index];
-            const deviceEntityId = document.getElementById('broadlinkDevice').value;
-            
-            if (command.status !== 'learned') {
-                showAlert('Command must be learned before testing', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        entity_id: deviceEntityId,
-                        device: command.device,
-                        command: command.name
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    log(`Successfully sent: ${command.name}`);
-                    showAlert(`Command "${command.name}" sent successfully!`, 'success');
-                } else {
-                    log(`Failed to send: ${command.name} - ${result.error}`, 'error');
+                    log(`Failed to send: ${deviceName}_${commandName} - ${result.error}`, 'error');
                     showAlert(`Failed to send command: ${result.error}`, 'error');
                 }
             } catch (error) {
@@ -1540,44 +1468,62 @@ class BroadlinkWebServer:
             }
         }
 
-        function removeCommand(index) {
-            const command = commands[index];
-            commands.splice(index, 1);
-            updateCommandList();
-            log(`Removed command: ${command.name}`);
+        async function deleteCommand(deviceName, commandName) {
+            if (!confirm(`Are you sure you want to delete the command "${commandName}" from device "${deviceName}"?`)) {
+                return;
+            }
+            
+            const deviceEntityId = document.getElementById('broadlinkDevice').value;
+            
+            if (!deviceEntityId) {
+                showAlert('Please select a Broadlink device', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(getApiUrl('/api/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: deviceEntityId,
+                        device: deviceName,
+                        command: commandName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`Successfully deleted: ${deviceName}_${commandName}`);
+                    showAlert(`Command "${commandName}" deleted successfully!`, 'success');
+                    
+                    // Reload learned data and refresh the command list
+                    await loadLearnedData();
+                } else {
+                    log(`Failed to delete: ${deviceName}_${commandName} - ${result.error}`, 'error');
+                    showAlert(`Failed to delete command: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`Error deleting command: ${error.message}`, 'error');
+                showAlert(`Error deleting command: ${error.message}`, 'error');
+            }
         }
 
-        function updateCommandList() {
-            const container = document.getElementById('commandList');
-            container.innerHTML = '';
-            
-            commands.forEach((command, index) => {
-                const item = document.createElement('div');
-                item.className = 'command-item';
-                
-                const statusColor = {
-                    'pending': '#f59e0b',
-                    'learning': '#6366f1',
-                    'learned': '#10b981',
-                    'failed': '#ef4444'
-                }[command.status] || '#64748b';
-                
-                item.innerHTML = `
-                    <div>
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; margin-right: 8px;"></span>
-                        <span class="command-name">${command.device}_${command.name}</span>
-                    </div>
-                    <div class="command-actions">
-                        <button class="btn btn-primary btn-small" onclick="learnCommand(${index})" ${command.status === 'learning' ? 'disabled' : ''}>
-                            ${command.status === 'learning' ? 'Learning...' : 'Learn'}
-                        </button>
-                        <button class="btn btn-warning btn-small" onclick="testCommand(${index})" ${command.status !== 'learned' ? 'disabled' : ''}>Test</button>
-                        <button class="btn btn-danger btn-small" onclick="removeCommand(${index})">Remove</button>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
+        // Event listeners for filtering
+        document.getElementById('areaName').addEventListener('change', function() {
+            currentArea = this.value;
+            updateDeviceDropdown();
+            loadCommands();
+        });
+
+        document.getElementById('deviceName').addEventListener('change', function() {
+            currentDeviceName = this.value;
+            loadCommands();
+        });
+
+        document.getElementById('broadlinkDevice').addEventListener('change', function() {
+            currentDevice = this.value;
+        });
 
         function showAlert(message, type = 'error') {
             const container = document.querySelector('.container');
@@ -1604,121 +1550,10 @@ class BroadlinkWebServer:
             logArea.scrollTop = logArea.scrollHeight;
         }
 
-        // Event listeners
-        document.getElementById('broadlinkDevice').addEventListener('change', function() {
-            currentDevice = this.value;
-            loadCommands();
-        });
-
-        document.getElementById('roomName').addEventListener('change', function() {
-            currentRoom = this.value;
-        });
-
-        document.getElementById('deviceName').addEventListener('change', function() {
-            currentDeviceName = this.value;
-        });
-
-        // WebSocket connection functions (like reference HTML)
-        function connectWebSocket() {
-            if (wsConnection && (wsConnection.readyState === WebSocket.OPEN || wsConnection.readyState === WebSocket.CONNECTING)) return;
-            
-            // Try different WebSocket URLs for add-on context
-            const wsUrls = [
-                'ws://supervisor/core/api/websocket',
-                `ws://${window.location.hostname}:8123/api/websocket`,
-                `ws://homeassistant.local:8123/api/websocket`
-            ];
-            
-            let urlIndex = 0;
-            
-            function tryConnect() {
-                if (urlIndex >= wsUrls.length) {
-                    log('All WebSocket URLs failed, giving up', 'error');
-                    return;
-                }
-                
-                const wsUrl = wsUrls[urlIndex];
-                log(`Attempting to connect to WebSocket: ${wsUrl}`);
-                
-                try {
-                    wsConnection = new WebSocket(wsUrl);
-                    
-                    wsConnection.onopen = function() {
-                        log('WebSocket connection established.');
-                        // Add small delay before authentication to ensure WebSocket is ready
-                        setTimeout(getTokenAndAuth, 100);
-                    };
-                    
-                    wsConnection.onmessage = function(event) {
-                        const data = JSON.parse(event.data);
-                        
-                        if (data.type === "auth_ok") {
-                            log('WebSocket authenticated successfully');
-                        } else if (data.type === "auth_invalid") {
-                            log('WebSocket authentication failed - supervisor token invalid', 'error');
-                            wsConnection.close();
-                            wsConnection = null;
-                            // Don't try more URLs, supervisor token auth failed
-                            urlIndex = wsUrls.length;
-                        } else if (data.type === "result" && data.success) {
-                            // Handle persistent notification results (like reference HTML)
-                            if (Array.isArray(data.result)) {
-                                handleNotificationPoll(data.result);
-                            }
-                        } else if (data.type === "result" && !data.success) {
-                            log(`WS Error: ${data.error?.message || 'Unknown error'}`, 'error');
-                        }
-                    };
-                    
-                    wsConnection.onerror = (error) => {
-                        log(`WebSocket error on ${wsUrl}: ${error}`, 'error');
-                        urlIndex++;
-                        setTimeout(tryConnect, 2000); // Try next URL after 2 seconds
-                    };
-                    
-                    wsConnection.onclose = (event) => {
-                        log(`WebSocket closed: ${event.code} ${event.reason}`);
-                        wsConnection = null;
-                        if (event.code !== 1000) { // If not normal closure
-                            urlIndex++;
-                            setTimeout(tryConnect, 2000); // Try next URL
-                        }
-                    };
-                } catch (error) {
-                    log(`WebSocket connection failed: ${error.message}`, 'error');
-                    urlIndex++;
-                    setTimeout(tryConnect, 2000); // Try next URL
-                }
-            }
-            
-            tryConnect();
-        }
-
-        async function getTokenAndAuth() {
-            try {
-                // Ensure WebSocket is ready
-                if (!wsConnection || wsConnection.readyState !== WebSocket.OPEN) {
-                    log('WebSocket not ready for authentication', 'error');
-                    return;
-                }
-                
-                // Get the supervisor token from our backend
-                const response = await fetch('/api/debug/token');
-                const tokenData = await response.json();
-                
-                if (tokenData.token) {
-                    log('Sending WebSocket authentication...');
-                    wsConnection.send(JSON.stringify({ type: "auth", access_token: tokenData.token }));
-                } else {
-                    log('Failed to get authentication token', 'error');
-                }
-            } catch (error) {
-                log(`Failed to authenticate WebSocket: ${error.message}`, 'error');
-            }
-        }
     </script>
 </body>
 </html>
+
         '''
     
     def run(self):

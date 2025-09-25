@@ -343,72 +343,22 @@ class BroadlinkWebServer:
             return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices by finding entities that belong to the Broadlink device"""
+        """Get Broadlink remote devices"""
         try:
-            # First, get the device registry to find the Broadlink device
-            device_registry = await self._make_ha_request('GET', 'config/device_registry')
-            broadlink_device = None
-
-            if isinstance(device_registry, list):
-                for device in device_registry:
-                    # Look for the Broadlink device by manufacturer or name
-                    identifiers = device.get('identifiers', [])
-                    manufacturer = device.get('manufacturer', '').lower()
-                    model = device.get('model', '').lower()
-                    name = device.get('name', '').lower()
-
-                    # Check if this is a Broadlink device
-                    if (manufacturer == 'broadlink' or
-                        'broadlink' in name or
-                        any('broadlink' in str(identifier).lower() for identifier in identifiers)):
-                        broadlink_device = device
-                        break
-
-            if not broadlink_device:
-                logger.warning("No Broadlink device found in device registry")
-                return []
-
-            logger.info(f"Found Broadlink device: {broadlink_device.get('name', broadlink_device.get('id', 'Unknown'))}")
-
-            # Get the entity registry to find entities that belong to this device
-            entity_registry = await self._make_ha_request('GET', 'config/entity_registry')
-            broadlink_entities = []
-
-            if isinstance(entity_registry, list):
-                for entity in entity_registry:
-                    # Check if this entity belongs to the Broadlink device
-                    device_id = entity.get('device_id')
-                    entity_id = entity.get('entity_id', '')
-
-                    if device_id == broadlink_device.get('id') and entity_id.startswith('remote.'):
-                        broadlink_entities.append(entity)
-
-            logger.info(f"Found {len(broadlink_entities)} remote entities for Broadlink device")
-
-            # Get the current states for these entities
             states = await self._make_ha_request('GET', 'states')
             broadlink_devices = []
-
-            if isinstance(states, list):
-                for entity in broadlink_entities:
-                    entity_id = entity.get('entity_id', '')
-
-                    # Find the corresponding state
-                    for state in states:
-                        if state.get('entity_id') == entity_id:
-                            attributes = state.get('attributes', {})
-                            broadlink_devices.append({
-                                'entity_id': entity_id,
-                                'name': attributes.get('friendly_name', entity_id),
-                                'state': state.get('state'),
-                                'device_id': entity.get('device_id'),
-                                'unique_id': entity.get('unique_id')
-                            })
-                            break
-
-            logger.info(f"Returning {len(broadlink_devices)} Broadlink remote devices")
+            
+            for entity in states:
+                entity_id = entity.get('entity_id', '')
+                if entity_id.startswith('remote.') and 'broadlink' in entity_id.lower():
+                    attributes = entity.get('attributes', {})
+                    broadlink_devices.append({
+                        'entity_id': entity_id,
+                        'name': attributes.get('friendly_name', entity_id),
+                        'state': entity.get('state')
+                    })
+            
             return broadlink_devices
-
         except Exception as e:
             logger.error(f"Error getting Broadlink devices: {e}")
             return []

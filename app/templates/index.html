@@ -417,6 +417,37 @@
                 `${baseUrl}${endpoint}` : endpoint;
         }
 
+        // Setup event listeners for command buttons
+        function setupCommandEventListeners() {
+            // Remove existing listeners to avoid duplicates
+            document.removeEventListener('click', handleCommandButtonClick);
+            document.addEventListener('click', handleCommandButtonClick);
+        }
+
+        function handleCommandButtonClick(event) {
+            const target = event.target;
+            
+            if (target.classList.contains('command-test-btn')) {
+                event.preventDefault();
+                const deviceName = target.getAttribute('data-device');
+                const commandName = target.getAttribute('data-command');
+                console.log('Test button clicked:', {deviceName, commandName});
+                testCommand(deviceName, commandName);
+            } else if (target.classList.contains('command-relearn-btn')) {
+                event.preventDefault();
+                const deviceName = target.getAttribute('data-device');
+                const commandName = target.getAttribute('data-command');
+                console.log('Relearn button clicked:', {deviceName, commandName});
+                relearnCommand(deviceName, commandName);
+            } else if (target.classList.contains('command-delete-btn')) {
+                event.preventDefault();
+                const deviceName = target.getAttribute('data-device');
+                const commandName = target.getAttribute('data-command');
+                console.log('Delete button clicked:', {deviceName, commandName});
+                deleteCommand(deviceName, commandName);
+            }
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
             log('🚀 Broadlink Manager initialized...');
@@ -433,11 +464,15 @@
                 log('✅ Initial data loaded successfully');
             } catch (error) {
                 log(`❌ Failed to load initial data: ${error.message}`, 'error');
+                
+                // Fallback: render with test data to show UI structure
                 log('🔧 Rendering with test data for debugging');
                 renderTestData();
+                
+                // Setup event listeners after rendering test data
+                setupCommandEventListeners();
             }
         });
-
         function updateHeaderStats() {
             try {
                 const deviceCount = Object.keys(learnedData.devices || {}).length;
@@ -473,6 +508,9 @@
                 
                 updateHeaderStats();
                 renderBroadlinkDevices();
+                
+                // Setup event listeners after rendering
+                setupCommandEventListeners();
                 
             } catch (error) {
                 console.error('Error loading learned data:', error);
@@ -576,9 +614,15 @@
                                                 <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
                                                 <div class="command-name">${command.command}</div>
                                                 <div class="command-actions">
-                                                    <button class="btn btn-primary" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
-                                                    <button class="btn btn-secondary" onclick="relearnCommand('${command.device_name}', '${command.command}')">🔄 Re-learn</button>
-                                                    <button class="btn btn-danger" onclick="deleteCommand('${command.device_name}', '${command.command}')">🗑️</button>
+                                                    <button class="btn btn-primary command-test-btn" 
+                                                            data-device="${command.device_name}" 
+                                                            data-command="${command.command}">▶ Test</button>
+                                                    <button class="btn btn-secondary command-relearn-btn" 
+                                                            data-device="${command.device_name}" 
+                                                            data-command="${command.command}">🔄 Re-learn</button>
+                                                    <button class="btn btn-danger command-delete-btn" 
+                                                            data-device="${command.device_name}" 
+                                                            data-command="${command.command}">🗑️</button>
                                                 </div>
                                             </div>
                                         `).join('')}
@@ -856,18 +900,18 @@
                                     <div class="command-type rf">RF</div>
                                     <div class="command-name">fan_off</div>
                                     <div class="command-actions">
-                                        <button class="btn btn-primary">▶ Test</button>
-                                        <button class="btn btn-secondary">🔄 Re-learn</button>
-                                        <button class="btn btn-danger">🗑️</button>
+                                        <button class="btn btn-primary command-test-btn" data-device="tony_s_office_ceiling_fan" data-command="fan_off">▶ Test</button>
+                                        <button class="btn btn-secondary command-relearn-btn" data-device="tony_s_office_ceiling_fan" data-command="fan_off">🔄 Re-learn</button>
+                                        <button class="btn btn-danger command-delete-btn" data-device="tony_s_office_ceiling_fan" data-command="fan_off">🗑️</button>
                                     </div>
                                 </div>
                                 <div class="command-item">
                                     <div class="command-type ir">IR</div>
                                     <div class="command-name">light_on</div>
                                     <div class="command-actions">
-                                        <button class="btn btn-primary">▶ Test</button>
-                                        <button class="btn btn-secondary">🔄 Re-learn</button>
-                                        <button class="btn btn-danger">🗑️</button>
+                                        <button class="btn btn-primary command-test-btn" data-device="tony_s_office_ceiling_fan" data-command="light_on">▶ Test</button>
+                                        <button class="btn btn-secondary command-relearn-btn" data-device="tony_s_office_ceiling_fan" data-command="light_on">🔄 Re-learn</button>
+                                        <button class="btn btn-danger command-delete-btn" data-device="tony_s_office_ceiling_fan" data-command="light_on">🗑️</button>
                                     </div>
                                 </div>
                             </div>

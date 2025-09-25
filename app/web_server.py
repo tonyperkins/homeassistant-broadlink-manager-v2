@@ -169,11 +169,15 @@ class BroadlinkWebServer:
                         }
                     
                     # Add commands
+                    command_data = device_info.get('command_data', {})
                     for command in device_info.get('commands', []):
+                        command_code = command_data.get(command, '')
+                        command_type = 'rf' if command_code.startswith('sc') else 'ir'
                         result['commands'].append({
                             'device_name': device_name,
                             'device_part': device_part,
                             'command': command,
+                            'command_type': command_type,
                             'area_id': area_id,
                             'area_name': area_name,
                             'full_command_name': f"{device_name}_{command}"
@@ -500,6 +504,7 @@ class BroadlinkWebServer:
                                     
                                     all_commands[device_name] = {
                                         'commands': list(commands.keys()),
+                                        'command_data': commands,  # Include actual command codes
                                         'area_id': area_id,
                                         'area_name': area_lookup.get(area_id, 'Unknown'),
                                         'device_part': device_part,
@@ -508,6 +513,7 @@ class BroadlinkWebServer:
                                 else:
                                     all_commands[device_name] = {
                                         'commands': list(commands.keys()),
+                                        'command_data': commands,  # Include actual command codes
                                         'area_id': None,
                                         'area_name': 'Unknown',
                                         'device_part': device_name,
@@ -1125,7 +1131,7 @@ class BroadlinkWebServer:
         <div class="config-section">
             <h2>🎮 Commands</h2>
             <div id="filterModeControls" style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px;">
-                <button class="btn btn-success" onclick="loadCommands()">Refresh</button>
+                <button class="btn btn-success" onclick="refreshData()">Refresh</button>
                 <span style="color: var(--text-secondary); font-size: 0.875rem; align-self: center;">Use the dropdowns above to filter commands</span>
             </div>
             
@@ -1293,11 +1299,6 @@ class BroadlinkWebServer:
                     select.appendChild(option);
                 });
                 
-                if (devices.length > 0) {
-                    select.value = devices[0].entity_id;
-                    currentDevice = devices[0].entity_id;
-                }
-                
                 log(`Loaded ${devices.length} Broadlink devices`);
             } catch (error) {
                 log(`Error loading devices: ${error.message}`, 'error');
@@ -1307,25 +1308,35 @@ class BroadlinkWebServer:
         function updateDeviceDropdown() {
             const areaSelect = document.getElementById('areaName');
             const deviceSelect = document.getElementById('deviceName');
+            const broadlinkSelect = document.getElementById('broadlinkDevice');
             const selectedArea = areaSelect.value;
             
-            deviceSelect.innerHTML = '<option value="">All Devices</option>';
-            
             if (currentMode === 'filter') {
-                // Filter devices based on selected area
-                const relevantDevices = Object.values(learnedData.devices).filter(device => 
-                    !selectedArea || device.area_id === selectedArea
-                );
+                deviceSelect.innerHTML = '<option value="">All Devices</option>';
                 
-                relevantDevices.forEach(device => {
-                    const option = document.createElement('option');
-                    option.value = device.full_name;
-                    option.textContent = device.device_part;
-                    deviceSelect.appendChild(option);
-                });
+                // Only show devices if area or broadlink device is selected
+                if (selectedArea || broadlinkSelect.value) {
+                    // Filter devices based on selected area
+                    const relevantDevices = Object.values(learnedData.devices).filter(device => 
+                        !selectedArea || device.area_id === selectedArea
+                    );
+                    
+                    relevantDevices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.full_name;
+                        option.textContent = device.device_part;
+                        deviceSelect.appendChild(option);
+                    });
+                }
             } else {
-                // In add mode, this becomes a text input for new device names
-                // We'll handle this in the mode switching
+                // In add mode, require area and broadlink device selection
+                if (!selectedArea || !broadlinkSelect.value) {
+                    deviceSelect.innerHTML = '<option value="">Select area and Broadlink device first</option>';
+                    deviceSelect.disabled = true;
+                } else {
+                    deviceSelect.innerHTML = '<option value="">Select or enter device name</option>';
+                    deviceSelect.disabled = false;
+                }
             }
         }
 
@@ -1365,10 +1376,14 @@ class BroadlinkWebServer:
                 const item = document.createElement('div');
                 item.className = 'command-item';
                 
+                const typeColor = command.command_type === 'rf' ? '#f59e0b' : '#10b981';
+                const typeLabel = command.command_type === 'rf' ? 'RF' : 'IR';
+                
                 item.innerHTML = `
                     <div>
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-right: 8px;"></span>
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; margin-right: 8px;"></span>
                         <span class="command-name">${command.area_name} → ${command.device_part} → ${command.command}</span>
+                        <span style="background: ${typeColor}; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${typeLabel}</span>
                     </div>
                     <div class="command-actions">
                         <button class="btn btn-warning btn-small" onclick="testCommand('${command.device_name}', '${command.command}')">Test</button>
@@ -1529,7 +1544,19 @@ class BroadlinkWebServer:
 
         document.getElementById('broadlinkDevice').addEventListener('change', function() {
             currentDevice = this.value;
+            updateDeviceDropdown();
         });
+
+        async function refreshData() {
+            log('Refreshing data...');
+            await loadLearnedData();
+            log('Data refreshed');
+        }
+
+        function detectCommandType(commandCode) {
+            // If command starts with "sc", it's RF, otherwise IR
+            return commandCode && commandCode.startsWith('sc') ? 'rf' : 'ir';
+        }
 
         function showAlert(message, type = 'error') {
             const container = document.querySelector('.container');

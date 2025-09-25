@@ -57,18 +57,11 @@
 
         .header-stats {
             font-size: 14px;
-            color: #9ca3af;
         }
 
         .add-button {
             background: #059669;
             color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
             transition: background-color 0.2s ease;
         }
 
@@ -358,14 +351,33 @@
         .alert {
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 0.875rem;
+            font-weight: 500;
             border-left: 4px solid;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 500px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .alert-success {
             background: rgba(16, 185, 129, 0.1);
             color: #6ee7b7;
+            animation: slideInRight 0.3s ease-out;
             border-left-color: #10b981;
         }
 
@@ -373,6 +385,122 @@
             background: rgba(239, 68, 68, 0.1);
             color: #fca5a5;
             border-left-color: #ef4444;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-dialog {
+            background: #1f2937;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #e1e5e9;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #374151;
+            color: #e1e5e9;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e1e5e9;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            color: #e1e5e9;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
     </style>
 </head>
@@ -716,7 +844,7 @@
         }
 
         async function relearnCommand(deviceName, commandName) {
-            if (!confirm(`Re-learn the command "${commandName}" from device "${deviceName}"?\n\nThis will delete the existing command and start learning a new one.`)) {
+            if (!confirm(`Re-learn the command "${commandName}" from device "${deviceName}"?\n\nThis will overwrite the existing command with a new learned signal.`)) {
                 return;
             }
             
@@ -744,62 +872,46 @@
                         d.name.toLowerCase().includes(deviceParts[0]));
                     
                     if (!fallbackDevice) {
-                        showAlert(`Could not find device for ${deviceName}`, 'error');
+                        const errorMsg = `Could not find device for ${deviceName}`;
+                        log(`❌ ${errorMsg}`, 'error');
+                        showAlert(errorMsg, 'error');
                         return;
                     }
                 }
                 
                 const selectedDevice = device || fallbackDevice;
                 
-                // First delete the existing command
-                const deleteResponse = await fetch(getApiUrl('/api/delete'), {
+                // Start learning the command (will overwrite existing)
+                const learnResponse = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         entity_id: selectedDevice.entity_id,
                         device: deviceName,
-                        command: commandName
+                        command: commandName,
+                        command_type: 'ir' // Default to IR, will be detected after learning
                     })
                 });
                 
-                const deleteResult = await deleteResponse.json();
+                const learnResult = await learnResponse.json();
                 
-                if (deleteResult.success) {
-                    log(`✅ Existing command deleted: ${deviceName}_${commandName}`);
+                if (learnResult.success) {
+                    log(`✅ Re-learning started: ${deviceName}_${commandName}`);
+                    showAlert('✅ Re-learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
                     
-                    // Then start learning the new command
-                    const learnResponse = await fetch(getApiUrl('/api/learn'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            entity_id: selectedDevice.entity_id,
-                            device: deviceName,
-                            command: commandName,
-                            command_type: 'ir' // Default to IR, will be detected after learning
-                        })
-                    });
-                    
-                    const learnResult = await learnResponse.json();
-                    
-                    if (learnResult.success) {
-                        log(`✅ Re-learning started: ${deviceName}_${commandName}`);
-                        showAlert('✅ Re-learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
-                        
-                        // Reload data after a short delay
-                        setTimeout(async () => {
-                            await loadLearnedData();
-                        }, 2000);
-                    } else {
-                        log(`❌ Failed to start re-learning: ${learnResult.error}`, 'error');
-                        showAlert(`Failed to start re-learning: ${learnResult.error}`, 'error');
-                    }
+                    // Reload data after a short delay
+                    setTimeout(async () => {
+                        await loadLearnedData();
+                    }, 2000);
                 } else {
-                    log(`❌ Failed to delete existing command: ${deleteResult.error}`, 'error');
-                    showAlert(`Failed to delete existing command: ${deleteResult.error}`, 'error');
+                    const errorMsg = `Failed to start re-learning: ${learnResult.error || 'Unknown error'}`;
+                    log(`❌ ${errorMsg}`, 'error');
+                    showAlert(errorMsg, 'error');
                 }
             } catch (error) {
-                log(`❌ Error re-learning command: ${error.message}`, 'error');
-                showAlert(`Error re-learning command: ${error.message}`, 'error');
+                const errorMsg = `Error re-learning command: ${error.message}`;
+                log(`❌ ${errorMsg}`, 'error');
+                showAlert(errorMsg, 'error');
             }
         }
 
@@ -868,7 +980,129 @@
         }
 
         function showAddDialog() {
-            showAlert('Add dialog coming soon!', 'info');
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-header">
+                        <h3>Add New Command</h3>
+                        <button class="modal-close" onclick="closeAddDialog()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="deviceSelect">Device:</label>
+                            <select id="deviceSelect" class="form-control">
+                                <option value="">Select a device...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="commandName">Command Name:</label>
+                            <input type="text" id="commandName" class="form-control" placeholder="e.g., power_on, volume_up">
+                        </div>
+                        <div class="form-group">
+                            <label for="commandType">Command Type:</label>
+                            <select id="commandType" class="form-control">
+                                <option value="ir">IR (Infrared)</option>
+                                <option value="rf">RF (Radio Frequency)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddDialog()">Cancel</button>
+                        <button class="btn btn-primary" onclick="startLearning()">Start Learning</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Populate device dropdown
+            populateDeviceDropdown();
+        }
+
+        function closeAddDialog() {
+            const overlay = document.querySelector('.modal-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+
+        function populateDeviceDropdown() {
+            const deviceSelect = document.getElementById('deviceSelect');
+            const allDevices = learnedData.allDevices || [];
+            
+            deviceSelect.innerHTML = '<option value="">Select a device...</option>';
+            
+            allDevices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.entity_id;
+                option.textContent = `${device.area_name || 'Unknown Area'} - ${device.name}`;
+                option.dataset.areaName = device.area_name || '';
+                deviceSelect.appendChild(option);
+            });
+        }
+
+        async function startLearning() {
+            const deviceSelect = document.getElementById('deviceSelect');
+            const commandName = document.getElementById('commandName').value.trim();
+            const commandType = document.getElementById('commandType').value;
+            
+            if (!deviceSelect.value) {
+                showAlert('Please select a device', 'error');
+                return;
+            }
+            
+            if (!commandName) {
+                showAlert('Please enter a command name', 'error');
+                return;
+            }
+            
+            // Validate command name format
+            if (!/^[a-z0-9_]+$/.test(commandName)) {
+                showAlert('Command name can only contain lowercase letters, numbers, and underscores', 'error');
+                return;
+            }
+            
+            const selectedOption = deviceSelect.options[deviceSelect.selectedIndex];
+            const areaName = selectedOption.dataset.areaName;
+            const deviceName = `${areaName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${commandName.split('_')[0]}`;
+            
+            log(`Starting to learn new command: ${deviceName}_${commandName}`);
+            
+            try {
+                const response = await fetch(getApiUrl('/api/learn'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: deviceSelect.value,
+                        device: deviceName,
+                        command: commandName,
+                        command_type: commandType
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Learning started: ${deviceName}_${commandName}`);
+                    showAlert('✅ Learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
+                    closeAddDialog();
+                    
+                    // Reload data after a short delay
+                    setTimeout(async () => {
+                        await loadLearnedData();
+                    }, 2000);
+                } else {
+                    const errorMsg = `Failed to start learning: ${result.error || 'Unknown error'}`;
+                    log(`❌ ${errorMsg}`, 'error');
+                    showAlert(errorMsg, 'error');
+                }
+            } catch (error) {
+                const errorMsg = `Error starting learning: ${error.message}`;
+                log(`❌ ${errorMsg}`, 'error');
+                showAlert(errorMsg, 'error');
+            }
         }
 
         function renderTestData() {
@@ -924,16 +1158,21 @@
         }
 
         function showAlert(message, type = 'error') {
-            const container = document.querySelector('.container');
+            // Remove any existing alerts first
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
             const alertEl = document.createElement('div');
             alertEl.className = `alert alert-${type}`;
             alertEl.textContent = message;
             
-            container.insertBefore(alertEl, container.children[1]);
+            // Add to body instead of container to avoid UI shifting
+            document.body.appendChild(alertEl);
             
             setTimeout(() => {
-                alertEl.style.transition = 'opacity 0.5s ease';
+                alertEl.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                 alertEl.style.opacity = '0';
+                alertEl.style.transform = 'translateX(100%)';
                 setTimeout(() => alertEl.remove(), 500);
             }, 5000);
         }

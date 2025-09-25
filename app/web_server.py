@@ -392,30 +392,36 @@ class BroadlinkWebServer:
                 
                 # Find Broadlink devices
                 for device in devices:
-                    manufacturer = device.get('manufacturer', '').lower()
-                    name = device.get('name', '').lower()
-                    identifiers = device.get('identifiers', [])
-                    
-                    # Check if this is a Broadlink device
-                    if (manufacturer == 'broadlink' or
-                        'broadlink' in name or
-                        any('broadlink' in str(identifier).lower() for identifier in identifiers)):
+                    try:
+                        manufacturer = (device.get('manufacturer') or '').lower()
+                        name = (device.get('name') or '').lower()
+                        identifiers = device.get('identifiers', [])
                         
-                        device_id = device.get('id')
-                        area_id = device.get('area_id')
-                        
-                        # Find corresponding entities
-                        for entity in entities:
-                            if (entity.get('device_id') == device_id and 
-                                entity.get('entity_id', '').startswith('remote.')):
-                                
-                                broadlink_devices.append({
-                                    'entity_id': entity.get('entity_id'),
-                                    'name': device.get('name', entity.get('entity_id')),
-                                    'device_id': device_id,
-                                    'unique_id': entity.get('unique_id'),
-                                    'area_id': area_id
-                                })
+                        # Check if this is a Broadlink device
+                        if (manufacturer == 'broadlink' or
+                            'broadlink' in name or
+                            any('broadlink' in str(identifier).lower() for identifier in identifiers)):
+                            
+                            device_id = device.get('id')
+                            area_id = device.get('area_id')
+                            
+                            logger.info(f"Found Broadlink device: {name} (ID: {device_id}, Manufacturer: {manufacturer})")
+                            
+                            # Find corresponding entities
+                            for entity in entities:
+                                if (entity.get('device_id') == device_id and 
+                                    entity.get('entity_id', '').startswith('remote.')):
+                                    
+                                    broadlink_devices.append({
+                                        'entity_id': entity.get('entity_id'),
+                                        'name': device.get('name', entity.get('entity_id')),
+                                        'device_id': device_id,
+                                        'unique_id': entity.get('unique_id'),
+                                        'area_id': area_id
+                                    })
+                    except Exception as e:
+                        logger.warning(f"Error processing device entry: {e}, device: {device}")
+                        continue
                 
                 logger.info(f"Found {len(broadlink_devices)} Broadlink devices from storage")
                 return broadlink_devices
@@ -427,8 +433,8 @@ class BroadlinkWebServer:
             
             if isinstance(device_registry, list) and isinstance(entity_registry, list):
                 for device in device_registry:
-                    manufacturer = device.get('manufacturer', '').lower()
-                    name = device.get('name', '').lower()
+                    manufacturer = (device.get('manufacturer') or '').lower()
+                    name = (device.get('name') or '').lower()
                     identifiers = device.get('identifiers', [])
                     
                     if (manufacturer == 'broadlink' or

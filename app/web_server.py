@@ -793,7 +793,12 @@ class BroadlinkWebServer:
             device = data.get('device')
             command = data.get('command')
             
-            logger.info(f"Sending command: {device}{command} to entity {entity_id}")
+            logger.info(f"SEND REQUEST DEBUG:")
+            logger.info(f"  Raw data received: {data}")
+            logger.info(f"  entity_id: '{entity_id}'")
+            logger.info(f"  device: '{device}' (length: {len(device) if device else 'None'})")
+            logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
+            logger.info(f"Sending command: {device}_{command} to entity {entity_id}")
             
             payload = {
                 'entity_id': entity_id,
@@ -821,7 +826,12 @@ class BroadlinkWebServer:
             device = data.get('device')
             command = data.get('command')
             
-            logger.info(f"Deleting command: {device}{command} from entity {entity_id}")
+            logger.info(f"DELETE REQUEST DEBUG:")
+            logger.info(f"  Raw data received: {data}")
+            logger.info(f"  entity_id: '{entity_id}'")
+            logger.info(f"  device: '{device}' (length: {len(device) if device else 'None'})")
+            logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
+            logger.info(f"Deleting command: {device}_{command} from entity {entity_id}")
             
             service_data = {
                 'entity_id': entity_id,

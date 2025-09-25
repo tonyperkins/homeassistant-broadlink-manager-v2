@@ -525,7 +525,21 @@ class BroadlinkWebServer:
             logger.info("Checking available services...")
             services_result = await self._make_ha_request('GET', 'services')
             if services_result:
-                remote_services = services_result.get('remote', {})
+                logger.info(f"Services result type: {type(services_result)}")
+                
+                # Handle both dict and list formats
+                if isinstance(services_result, dict):
+                    remote_services = services_result.get('remote', {})
+                elif isinstance(services_result, list):
+                    # Find remote services in the list
+                    remote_services = {}
+                    for service_domain in services_result:
+                        if isinstance(service_domain, dict) and service_domain.get('domain') == 'remote':
+                            remote_services = service_domain.get('services', {})
+                            break
+                else:
+                    remote_services = {}
+                
                 logger.info(f"Available remote services: {list(remote_services.keys()) if remote_services else 'None'}")
                 
                 # Check if learn_command exists
@@ -566,9 +580,26 @@ class BroadlinkWebServer:
             result = await self._make_ha_request('POST', 'services/remote/learn_command', service_payload)
             logger.info(f"Learn command service result: {result}")
             
+            # Check if we got a 400 error, which might mean the format is wrong
+            if result is None:
+                logger.info("Got None result (likely 400 error), trying legacy format...")
+                
+                # Try the old format as fallback
+                legacy_payload = {
+                    'entity_id': entity_id,
+                    'device': device,
+                    'command': command
+                }
+                if command_type == 'rf':
+                    legacy_payload['command_type'] = 'rf'
+                
+                logger.info(f"Trying legacy format: {legacy_payload}")
+                result = await self._make_ha_request('POST', 'services/remote/learn_command', legacy_payload)
+                logger.info(f"Legacy format result: {result}")
+            
             # If that didn't work, try different service approaches
             if not result or result == []:
-                logger.info("Empty result, trying alternative service calls...")
+                logger.info("Still empty result, trying alternative service calls...")
                 
                 # Try broadlink-specific service
                 logger.info("Trying broadlink.learn service...")
@@ -882,11 +913,23 @@ class BroadlinkWebServer:
             
             result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
             
+            # If we got a 400 error, try the legacy format
+            if result is None:
+                logger.info("Got None result for send_command, trying legacy format...")
+                legacy_payload = {
+                    'entity_id': entity_id,
+                    'device': device,
+                    'command': command
+                }
+                logger.info(f"Trying legacy send format: {legacy_payload}")
+                result = await self._make_ha_request('POST', 'services/remote/send_command', legacy_payload)
+                logger.info(f"Legacy send result: {result}")
+            
             if result is not None:
-                logger.info(f"Command sent successfully: {device}{command}")
+                logger.info(f"Command sent successfully: {device}_{command}")
                 return {'success': True, 'message': f'Command {command} sent successfully'}
             else:
-                logger.error(f"Failed to send command: {device}{command}")
+                logger.error(f"Failed to send command: {device}_{command}")
                 return {'success': False, 'error': 'Failed to send command'}
             
         except Exception as e:
@@ -920,11 +963,23 @@ class BroadlinkWebServer:
             
             result = await self._make_ha_request('POST', 'services/remote/delete_command', service_payload)
             
+            # If we got a 400 error, try the legacy format
+            if result is None:
+                logger.info("Got None result for delete_command, trying legacy format...")
+                legacy_payload = {
+                    'entity_id': entity_id,
+                    'device': device,
+                    'command': command
+                }
+                logger.info(f"Trying legacy delete format: {legacy_payload}")
+                result = await self._make_ha_request('POST', 'services/remote/delete_command', legacy_payload)
+                logger.info(f"Legacy delete result: {result}")
+            
             if result is not None:
-                logger.info(f"Command deleted successfully: {device}{command}")
+                logger.info(f"Command deleted successfully: {device}_{command}")
                 return {'success': True, 'message': f'Command {command} deleted successfully'}
             else:
-                logger.error(f"Failed to delete command: {device}{command}")
+                logger.error(f"Failed to delete command: {device}_{command}")
                 return {'success': False, 'error': 'Failed to delete command'}
             
         except Exception as e:

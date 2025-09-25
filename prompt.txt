@@ -1,3 +1,8 @@
+Mock ups
+https://claude.ai/public/artifacts/fd2d41d9-7036-45ef-a090-bc11e05946e7
+
+
+
 Generally speaking this is an add-on for Home Assistant that provides a web interface for managing broadlink devices
 making the process of learning, testing, and removing commands easier. The default broadlink integration in HA is not 
 very user friendly and requires a lot of manual configuration and testing. This add-on provides a simple and intuitive 

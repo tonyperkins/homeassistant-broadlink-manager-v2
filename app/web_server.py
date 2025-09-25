@@ -1063,86 +1063,234 @@ class BroadlinkWebServer:
             color: #fca5a5;
             border-left-color: var(--danger);
         }
+
+        /* Device Cards */
+        .device-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .device-header:hover {
+            background: var(--surface-light);
+        }
+
+        .device-icon {
+            width: 40px;
+            height: 40px;
+            background: #3b82f6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .device-info {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .device-details {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .device-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 12px;
+        }
+
+        .device-chevron {
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .device-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        /* Command Groups */
+        .command-groups {
+            border-top: 1px solid var(--border);
+            background: var(--background);
+        }
+
+        .command-group {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .command-group:last-child {
+            border-bottom: none;
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .group-header:hover {
+            background: var(--surface-light);
+        }
+
+        .group-chevron {
+            margin-right: 8px;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+
+        .group-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        .group-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .group-count {
+            margin-left: auto;
+            background: var(--surface-light);
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        /* Commands */
+        .commands-list {
+            background: var(--surface);
+        }
+
+        .command-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 48px;
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s ease;
+        }
+
+        .command-row:hover {
+            background: var(--surface-light);
+        }
+
+        .command-row:hover .command-actions {
+            opacity: 1;
+        }
+
+        .command-row:last-child {
+            border-bottom: none;
+        }
+
+        .command-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .command-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-right: 8px;
+        }
+
+        .command-type-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .command-type-ir {
+            background: #10b981;
+            color: white;
+        }
+
+        .command-type-rf {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .command-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn.test {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .action-btn.relearn {
+            background: var(--warning);
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
 1    <div class="container">
-        <div class="header" style="text-align: left;">
-            <h1>🏠 Broadlink Remote Manager</h1>
+        <!-- Header with Add Button -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+                <h1 style="margin: 0; font-size: 1.5rem;">Broadlink</h1>
+                <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">2 devices • 13 entities</p>
+            </div>
+            <button class="btn btn-primary" onclick="showAddDialog()" style="background: #10b981; border: none;">
+                Add entry
+            </button>
         </div>
 
-        <!-- Mode Toggle -->
-        <div class="config-section">
-            <h2>📋 Mode</h2>
-            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
-                <button id="filterModeBtn" class="btn btn-primary" onclick="setMode('filter')">Filter Mode</button>
-                <button id="addModeBtn" class="btn btn-secondary" onclick="setMode('add')">Add Mode</button>
-                <span id="modeDescription" style="color: var(--text-secondary); font-size: 0.875rem;">Filter existing commands by area and device</span>
-            </div>
+        <!-- Integration Entities Header -->
+        <div style="margin-bottom: 16px;">
+            <h3 style="color: #3b82f6; font-size: 0.875rem; font-weight: 500; margin: 0;">Integration entities</h3>
         </div>
 
-        <!-- Device Selection -->
-        <div class="config-section">
-            <h2>🔗 Device Selection</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="broadlinkDevice">Broadlink Device</label>
-                    <select id="broadlinkDevice">
-                        <option value="">Loading devices...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="areaName">Area</label>
-                    <select id="areaName">
-                        <option value="">All Areas</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="deviceName">Device</label>
-                    <select id="deviceName">
-                        <option value="">All Devices</option>
-                    </select>
-                </div>
-                <div class="form-group" id="commandTypeGroup">
-                    <label for="commandType">Type</label>
-                    <select id="commandType">
-                        <option value="rf">RF</option>
-                        <option value="ir">IR</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Add Mode Fields -->
-            <div id="addModeFields" style="display: none;">
-                <div class="form-grid" style="margin-top: 16px;">
-                    <div class="form-group">
-                        <label for="newDeviceName">New Device Name</label>
-                        <input type="text" id="newDeviceName" placeholder="ceiling_fan">
-                    </div>
-                    <div class="form-group">
-                        <label for="newCommandName">Command Name</label>
-                        <input type="text" id="newCommandName" placeholder="fan_off">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Command Management -->
-        <div class="config-section">
-            <h2>🎮 Commands</h2>
-            <div id="filterModeControls" style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px;">
-                <button class="btn btn-success" onclick="refreshData()">Refresh</button>
-                <span style="color: var(--text-secondary); font-size: 0.875rem; align-self: center;">Use the dropdowns above to filter commands</span>
-            </div>
-            
-            <div id="addModeControls" style="display: none; gap: 12px; align-items: end; margin-bottom: 16px;">
-                <button class="btn btn-primary" onclick="learnNewCommand()">Learn Command</button>
-                <span style="color: var(--text-secondary); font-size: 0.875rem; align-self: center;">Fill in the device and command details above, then click Learn</span>
-            </div>
-            
-            <div class="command-list" id="commandList">
-                <!-- Commands will be populated here -->
-            </div>
+        <!-- Broadlink Devices -->
+        <div id="broadlinkDevices">
+            <!-- Devices will be populated here -->
         </div>
 
         <!-- Activity Log -->
@@ -1246,15 +1394,23 @@ class BroadlinkWebServer:
                 
                 log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
                 
-                // Update area dropdown with only areas that have learned commands
-                updateAreaDropdown();
+                // Update the device count in header
+                updateHeaderStats();
                 
-                // Load commands if in filter mode
-                if (currentMode === 'filter') {
-                    loadCommands();
-                }
+                // Render the new hierarchical view
+                renderBroadlinkDevices();
+                
             } catch (error) {
                 log(`Error loading learned data: ${error.message}`, 'error');
+            }
+        }
+
+        function updateHeaderStats() {
+            const deviceCount = Object.keys(learnedData.devices || {}).length;
+            const commandCount = (learnedData.commands || []).length;
+            const headerStats = document.querySelector('.container > div:first-child p');
+            if (headerStats) {
+                headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
             }
         }
 
@@ -1361,37 +1517,111 @@ class BroadlinkWebServer:
             log(`Showing ${filteredCommands.length} commands (filtered from ${learnedData.commands.length} total)`);
         }
 
-        function updateCommandList(commandsToShow = null) {
-            const container = document.getElementById('commandList');
-            const commandsData = commandsToShow || learnedData.commands || [];
+        function renderBroadlinkDevices() {
+            const container = document.getElementById('broadlinkDevices');
             
-            if (commandsData.length === 0) {
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No commands found</div>';
+            if (!learnedData || !learnedData.commands || learnedData.commands.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No learned commands found</div>';
                 return;
             }
             
+            // Group commands by area and device
+            const deviceGroups = {};
+            
+            learnedData.commands.forEach(command => {
+                const areaName = command.area_name || 'Unknown Area';
+                const devicePart = command.device_part;
+                
+                if (!deviceGroups[areaName]) {
+                    deviceGroups[areaName] = {};
+                }
+                
+                if (!deviceGroups[areaName][devicePart]) {
+                    deviceGroups[areaName][devicePart] = [];
+                }
+                
+                deviceGroups[areaName][devicePart].push(command);
+            });
+            
             container.innerHTML = '';
             
-            commandsData.forEach((command, index) => {
-                const item = document.createElement('div');
-                item.className = 'command-item';
+            // Create device cards for each area
+            Object.keys(deviceGroups).forEach(areaName => {
+                const deviceCard = document.createElement('div');
+                deviceCard.className = 'device-card';
                 
-                const typeColor = command.command_type === 'rf' ? '#f59e0b' : '#10b981';
-                const typeLabel = command.command_type === 'rf' ? 'RF' : 'IR';
+                const totalCommands = Object.values(deviceGroups[areaName]).reduce((sum, commands) => sum + commands.length, 0);
+                const deviceCount = Object.keys(deviceGroups[areaName]).length;
                 
-                item.innerHTML = `
-                    <div>
-                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${typeColor}; margin-right: 8px;"></span>
-                        <span class="command-name">${command.area_name} → ${command.device_part} → ${command.command}</span>
-                        <span style="background: ${typeColor}; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px;">${typeLabel}</span>
+                deviceCard.innerHTML = `
+                    <div class="device-header" onclick="toggleDevice('${areaName}')">
+                        <div class="device-icon">📡</div>
+                        <div class="device-info">
+                            <div class="device-name">${areaName} RM4 Pro</div>
+                            <div class="device-details">Broadlink • ${areaName} • ${deviceCount} entities</div>
+                        </div>
+                        <div class="device-status"></div>
+                        <div class="device-chevron" id="chevron-${areaName}">▶</div>
                     </div>
-                    <div class="command-actions">
-                        <button class="btn btn-warning btn-small" onclick="testCommand('${command.device_name}', '${command.command}')">Test</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteCommand('${command.device_name}', '${command.command}')">Remove</button>
+                    <div class="command-groups" id="groups-${areaName}" style="display: none;">
+                        ${Object.keys(deviceGroups[areaName]).map(devicePart => {
+                            const commands = deviceGroups[areaName][devicePart];
+                            return `
+                                <div class="command-group">
+                                    <div class="group-header" onclick="toggleGroup('${areaName}', '${devicePart}')">
+                                        <div class="group-chevron" id="group-chevron-${areaName}-${devicePart}">▶</div>
+                                        <div class="group-name">${devicePart}</div>
+                                        <div class="group-count">${commands.length}</div>
+                                    </div>
+                                    <div class="commands-list" id="commands-${areaName}-${devicePart}" style="display: none;">
+                                        ${commands.map(command => `
+                                            <div class="command-row">
+                                                <div class="command-info">
+                                                    <span class="command-name">${command.command}</span>
+                                                    <span class="command-type-badge command-type-${command.command_type}">${command.command_type.toUpperCase()}</span>
+                                                </div>
+                                                <div class="command-actions">
+                                                    <button class="action-btn test" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
+                                                    <button class="action-btn relearn" onclick="relearnCommand('${command.device_name}', '${command.command}')">🔄 Re-learn</button>
+                                                    <button class="action-btn delete" onclick="deleteCommand('${command.device_name}', '${command.command}')">🗑</button>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 `;
-                container.appendChild(item);
+                
+                container.appendChild(deviceCard);
             });
+        }
+
+        function toggleDevice(areaName) {
+            const groups = document.getElementById(`groups-${areaName}`);
+            const chevron = document.getElementById(`chevron-${areaName}`);
+            
+            if (groups.style.display === 'none') {
+                groups.style.display = 'block';
+                chevron.classList.add('expanded');
+            } else {
+                groups.style.display = 'none';
+                chevron.classList.remove('expanded');
+            }
+        }
+
+        function toggleGroup(areaName, devicePart) {
+            const commands = document.getElementById(`commands-${areaName}-${devicePart}`);
+            const chevron = document.getElementById(`group-chevron-${areaName}-${devicePart}`);
+            
+            if (commands.style.display === 'none') {
+                commands.style.display = 'block';
+                chevron.classList.add('expanded');
+            } else {
+                commands.style.display = 'none';
+                chevron.classList.remove('expanded');
+            }
         }
 
         async function learnNewCommand() {
@@ -1558,6 +1788,58 @@ class BroadlinkWebServer:
             return commandCode && commandCode.startsWith('sc') ? 'rf' : 'ir';
         }
 
+        async function relearnCommand(deviceName, commandName) {
+            if (!confirm(`Re-learn the command "${commandName}" from device "${deviceName}"?`)) {
+                return;
+            }
+            
+            // First delete the existing command
+            try {
+                const deleteResponse = await fetch(getApiUrl('/api/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: currentDevice || document.getElementById('broadlinkDevice').value,
+                        device: deviceName,
+                        command: commandName
+                    })
+                });
+                
+                if (deleteResponse.ok) {
+                    // Then start learning the new command
+                    const learnResponse = await fetch(getApiUrl('/api/learn'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            entity_id: currentDevice || document.getElementById('broadlinkDevice').value,
+                            device: deviceName,
+                            command: commandName,
+                            command_type: 'ir' // Default to IR, will be detected after learning
+                        })
+                    });
+                    
+                    const result = await learnResponse.json();
+                    
+                    if (result.success) {
+                        log(`Re-learning started: ${deviceName}_${commandName}`);
+                        showAlert('✅ Re-learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
+                        await loadLearnedData();
+                    } else {
+                        log(`Failed to start re-learning: ${result.error}`, 'error');
+                        showAlert(`Failed to start re-learning: ${result.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Error re-learning command: ${error.message}`, 'error');
+                showAlert(`Error re-learning command: ${error.message}`, 'error');
+            }
+        }
+
+        function showAddDialog() {
+            // TODO: Implement add dialog
+            showAlert('Add dialog coming soon!', 'info');
+        }
+
         function showAlert(message, type = 'error') {
             const container = document.querySelector('.container');
             const alertEl = document.createElement('div');
@@ -1582,6 +1864,18 @@ class BroadlinkWebServer:
             logArea.appendChild(logEntry);
             logArea.scrollTop = logArea.scrollHeight;
         }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Broadlink Manager initialized...');
+            
+            try {
+                await loadLearnedData();
+                log('✅ Initial data loaded successfully');
+            } catch (error) {
+                log(`❌ Failed to load initial data: ${error.message}`, 'error');
+            }
+        });
 
     </script>
 </body>

@@ -450,11 +450,23 @@
 
         async function loadLearnedData() {
             try {
-                const response = await fetch(getApiUrl('/api/learned-devices'));
-                learnedData = await response.json();
+                // Load both learned commands and all detected devices
+                const [learnedResponse, devicesResponse] = await Promise.all([
+                    fetch(getApiUrl('/api/learned-devices')),
+                    fetch(getApiUrl('/api/devices'))
+                ]);
+                
+                learnedData = await learnedResponse.json();
+                const allDevices = await devicesResponse.json();
                 
                 console.log('Loaded learned data:', learnedData);
+                console.log('All detected devices:', allDevices);
+                
                 log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
+                log(`Detected ${allDevices.length} total Broadlink devices`);
+                
+                // Store all devices for rendering
+                learnedData.allDevices = allDevices;
                 
                 updateHeaderStats();
                 renderBroadlinkDevices();
@@ -473,42 +485,63 @@
                 return;
             }
             
-            if (!learnedData || !learnedData.commands || learnedData.commands.length === 0) {
-                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #9ca3af;">No learned commands found</div>';
+            // Show all detected devices, even if they don't have learned commands
+            const allDevices = learnedData.allDevices || [];
+            const hasCommands = learnedData && learnedData.commands && learnedData.commands.length > 0;
+            
+            if (allDevices.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #9ca3af;">No Broadlink devices detected</div>';
                 return;
             }
             
-            // Group commands by area and device
-            const broadlinkDevices = {};
+            // Group all detected devices by area, then add learned commands
+            const devicesByArea = {};
             
-            learnedData.commands.forEach(command => {
-                const areaName = command.area_name || 'Unknown Area';
-                const devicePart = command.device_part;
-                
-                if (!broadlinkDevices[areaName]) {
-                    broadlinkDevices[areaName] = {
+            // First, add all detected devices
+            allDevices.forEach(device => {
+                const areaName = device.area_name || 'Unknown Area';
+                if (!devicesByArea[areaName]) {
+                    devicesByArea[areaName] = {
+                        device: device,
                         deviceGroups: {},
                         totalCommands: 0
                     };
                 }
-                
-                if (!broadlinkDevices[areaName].deviceGroups[devicePart]) {
-                    broadlinkDevices[areaName].deviceGroups[devicePart] = [];
-                }
-                
-                broadlinkDevices[areaName].deviceGroups[devicePart].push(command);
-                broadlinkDevices[areaName].totalCommands++;
             });
+            
+            // Then add learned commands to the appropriate devices
+            if (hasCommands) {
+                learnedData.commands.forEach(command => {
+                    const areaName = command.area_name || 'Unknown Area';
+                    const devicePart = command.device_part;
+                    
+                    if (!devicesByArea[areaName]) {
+                        devicesByArea[areaName] = {
+                            device: null,
+                            deviceGroups: {},
+                            totalCommands: 0
+                        };
+                    }
+                    
+                    if (!devicesByArea[areaName].deviceGroups[devicePart]) {
+                        devicesByArea[areaName].deviceGroups[devicePart] = [];
+                    }
+                    
+                    devicesByArea[areaName].deviceGroups[devicePart].push(command);
+                    devicesByArea[areaName].totalCommands++;
+                });
+            }
             
             container.innerHTML = '';
             
-            // Create device cards
-            Object.keys(broadlinkDevices).forEach(areaName => {
-                const deviceData = broadlinkDevices[areaName];
+            // Create device cards for all detected devices
+            Object.keys(devicesByArea).forEach(areaName => {
+                const deviceData = devicesByArea[areaName];
                 const deviceCard = document.createElement('div');
                 deviceCard.className = 'device-card';
                 
                 const deviceCount = Object.keys(deviceData.deviceGroups).length;
+                const commandCount = deviceData.totalCommands;
                 
                 deviceCard.innerHTML = `
                     <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
@@ -523,7 +556,9 @@
                         <div class="expand-icon">▶</div>
                     </div>
                     <div class="command-groups">
-                        ${Object.keys(deviceData.deviceGroups).map(devicePart => {
+                        ${commandCount === 0 ? 
+                            '<div style="padding: 20px; text-align: center; color: #9ca3af;">No learned commands yet. Use the "Add entry" button to learn commands for this device.</div>' :
+                            Object.keys(deviceData.deviceGroups).map(devicePart => {
                             const commands = deviceData.deviceGroups[devicePart];
                             return `
                                 <div class="command-group">

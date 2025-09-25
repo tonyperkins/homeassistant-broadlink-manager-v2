@@ -46,7 +46,6 @@ class BroadlinkWebServer:
     
     def _setup_routes(self):
         """Setup Flask routes"""
-        
         @self.app.route('/')
         def index():
             """Serve the main web interface"""
@@ -54,7 +53,7 @@ class BroadlinkWebServer:
         
         @self.app.route('/api/areas')
         def get_areas():
-            """Get Home Assistant areas"""
+            """Get Home Assistant areas from storage"""
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -190,6 +189,34 @@ class BroadlinkWebServer:
         @self.app.route('/api/debug/broadlink-full-data')
         def debug_broadlink_full_data():
             """Get all learned devices with area and command information for debugging"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Get all detected Broadlink devices
+                all_devices = loop.run_until_complete(self._get_broadlink_devices())
+                
+                # Get learned commands
+                learned_commands = loop.run_until_complete(self._get_learned_commands())
+                
+                # Get areas
+                areas = loop.run_until_complete(self._get_ha_areas())
+                
+                loop.close()
+                
+                return jsonify({
+                    'detected_broadlink_devices': all_devices,
+                    'learned_commands': learned_commands,
+                    'areas': areas,
+                    'summary': {
+                        'total_detected_devices': len(all_devices),
+                        'devices_with_commands': len(learned_commands),
+                        'total_areas': len(areas)
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Error getting debug data: {e}")
+                return jsonify({"error": str(e)}), 500
         
         
         @self.app.route('/api/delete', methods=['POST'])
@@ -321,58 +348,39 @@ class BroadlinkWebServer:
                         except:
                             logger.info("POST response was successful but not JSON, returning empty dict")
                             return {}
-                    else:
                         logger.error(f"POST API request failed with status {response.status}: {response_text}")
                         return None
     
     async def _get_ha_areas(self) -> List[Dict]:
-        """Get Home Assistant areas from storage files"""
+        """Get Home Assistant areas from storage file"""
         try:
-            # Read directly from storage file (primary method for add-on)
-            logger.info("Reading areas from storage file...")
-            registry_file = self.storage_path / "core.area_registry"
-            if registry_file.exists():
-                async with aiofiles.open(registry_file, 'r') as f:
+            areas_file = self.storage_path / "core.area_registry"
+            
+            if areas_file.exists():
+                logger.info("Reading areas from storage file...")
+                async with aiofiles.open(areas_file, 'r') as f:
                     content = await f.read()
                     data = json.loads(content)
                     areas = data.get('data', {}).get('areas', [])
-                    logger.info(f"Found {len(areas)} areas in storage file")
-                    
-                    # Handle different storage formats
-                    result_areas = []
-                    for area in areas:
-                        try:
-                            area_id = area.get('area_id') or area.get('id', '')
-                            name = area.get('name', '')
-                            if area_id and name:
-                                result_areas.append({'area_id': area_id, 'name': name})
-                        except Exception as e:
-                            logger.warning(f"Skipping malformed area entry: {area}, error: {e}")
-                    
-                    logger.info(f"Successfully processed {len(result_areas)} areas from storage")
-                    return result_areas
-            
-            # Fallback to API call if storage file doesn't exist
-            logger.info("Storage file not found, trying API call...")
-            areas_response = await self._make_ha_request('GET', 'config/area_registry')
-            
-            if areas_response and isinstance(areas_response, list):
-                logger.info(f"Found {len(areas_response)} areas via API")
-                return [{'area_id': area.get('area_id', area.get('id', '')), 'name': area.get('name', '')} for area in areas_response if area.get('name')]
-            
-            # If no areas found, return empty list
-            logger.warning("No areas found via storage or API")
-            return []
+                    logger.info(f"Found {len(areas)} areas from storage")
+                    return areas
+            else:
+                logger.warning("Areas storage file not found")
+                return []
             
         except Exception as e:
-            logger.error(f"Error getting areas: {e}")
+            logger.error(f"Error reading areas from storage: {e}")
             return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices from storage files"""
+        """Get Broadlink remote devices from storage files with area information"""
         try:
             # Read from storage files (primary method for add-on)
             logger.info("Reading Broadlink devices from storage files...")
+            
+            # Get area information first
+            areas_data = await self._get_ha_areas()
+            area_lookup = {area['area_id']: area['name'] for area in areas_data}
             
             # Get device registry
             device_registry_file = self.storage_path / "core.device_registry"
@@ -407,8 +415,9 @@ class BroadlinkWebServer:
                             
                             device_id = device.get('id')
                             area_id = device.get('area_id')
+                            area_name = area_lookup.get(area_id, 'Unknown Area')
                             
-                            logger.info(f"Found Broadlink device: {name} (ID: {device_id}, Manufacturer: {manufacturer})")
+                            logger.info(f"Found Broadlink device: {name} (ID: {device_id}, Area: {area_name})")
                             
                             # Find corresponding entities
                             for entity in entities:
@@ -420,7 +429,8 @@ class BroadlinkWebServer:
                                         'name': device.get('name', entity.get('entity_id')),
                                         'device_id': device_id,
                                         'unique_id': entity.get('unique_id'),
-                                        'area_id': area_id
+                                        'area_id': area_id,
+                                        'area_name': area_name
                                     })
                     except Exception as e:
                         logger.warning(f"Error processing device entry: {e}, device: {device}")
@@ -428,38 +438,9 @@ class BroadlinkWebServer:
                 
                 logger.info(f"Found {len(broadlink_devices)} Broadlink devices from storage")
                 return broadlink_devices
-            
-            # Fallback to API calls if storage files don't exist
-            logger.info("Storage files not found, trying API calls...")
-            device_registry = await self._make_ha_request('GET', 'config/device_registry')
-            entity_registry = await self._make_ha_request('GET', 'config/entity_registry')
-            
-            if isinstance(device_registry, list) and isinstance(entity_registry, list):
-                for device in device_registry:
-                    manufacturer = (device.get('manufacturer') or '').lower()
-                    name = (device.get('name') or '').lower()
-                    identifiers = device.get('identifiers', [])
-                    
-                    if (manufacturer == 'broadlink' or
-                        'broadlink' in name or
-                        any('broadlink' in str(identifier).lower() for identifier in identifiers)):
-                        
-                        device_id = device.get('id')
-                        
-                        for entity in entity_registry:
-                            if (entity.get('device_id') == device_id and 
-                                entity.get('entity_id', '').startswith('remote.')):
-                                
-                                broadlink_devices.append({
-                                    'entity_id': entity.get('entity_id'),
-                                    'name': device.get('name', entity.get('entity_id')),
-                                    'device_id': device_id,
-                                    'unique_id': entity.get('unique_id'),
-                                    'area_id': device.get('area_id')
-                                })
-            
-            logger.info(f"Returning {len(broadlink_devices)} Broadlink remote devices")
-            return broadlink_devices
+            else:
+                logger.warning("Device or entity registry storage files not found")
+                return []
 
         except Exception as e:
             logger.error(f"Error getting Broadlink devices: {e}")

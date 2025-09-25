@@ -545,34 +545,6 @@ class BroadlinkWebServer:
             else:
                 logger.error("Learn command service returned None")
                 return {'success': False, 'error': 'Failed to start learning process'}
-                
-        except Exception as e:
-            logger.error(f"Error learning command: {e}")
-            return {'success': False, 'error': str(e)}
-    
-    async def _send_command(self, data: Dict) -> Dict:
-        """Send a command"""
-        try:
-            entity_id = data.get('entity_id')
-            device = data.get('device')
-            command = data.get('command')
-            
-            payload = {
-                'entity_id': entity_id,
-                'device': device,
-                'command': command
-            }
-            
-            result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
-            return {'success': True, 'result': result}
-            
-        except Exception as e:
-            logger.error(f"Error sending command: {e}")
-            return {'success': False, 'error': str(e)}
-    
-    async def _get_notifications_http(self) -> List[Dict]:
-        """Get persistent notifications via HTTP (fallback when WebSocket fails)"""
-        try:
             # Get all states and filter for persistent notifications
             states = await self._make_ha_request('GET', 'states')
             if not isinstance(states, list):
@@ -814,6 +786,62 @@ class BroadlinkWebServer:
             logger.error(f"Error getting WebSocket notifications: {e}")
             return []
     
+    async def _send_command(self, data: Dict) -> Dict:
+        """Send a learned command"""
+        try:
+            entity_id = data.get('entity_id')
+            device = data.get('device')
+            command = data.get('command')
+            
+            logger.info(f"Sending command: {device}{command} to entity {entity_id}")
+            
+            payload = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command
+            }
+            
+            result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
+            
+            if result is not None:
+                logger.info(f"Command sent successfully: {device}{command}")
+                return {'success': True, 'message': f'Command {command} sent successfully'}
+            else:
+                logger.error(f"Failed to send command: {device}{command}")
+                return {'success': False, 'error': 'Failed to send command'}
+            
+        except Exception as e:
+            logger.error(f"Error sending command: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def _delete_command(self, data: Dict) -> Dict:
+        """Delete a learned command"""
+        try:
+            entity_id = data.get('entity_id')
+            device = data.get('device')
+            command = data.get('command')
+            
+            logger.info(f"Deleting command: {device}{command} from entity {entity_id}")
+            
+            service_data = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command
+            }
+            
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', service_data)
+            
+            if result is not None:
+                logger.info(f"Command deleted successfully: {device}{command}")
+                return {'success': True, 'message': f'Command {command} deleted successfully'}
+            else:
+                logger.error(f"Failed to delete command: {device}{command}")
+                return {'success': False, 'error': 'Failed to delete command'}
+            
+        except Exception as e:
+            logger.error(f"Error deleting command: {e}")
+            return {'success': False, 'error': str(e)}
+
     def run(self):
         """Run the Flask web server"""
         logger.info(f"Starting Broadlink Manager web server on port {self.port}")

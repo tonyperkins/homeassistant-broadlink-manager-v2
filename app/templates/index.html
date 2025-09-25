@@ -253,6 +253,7 @@
             font-size: 14px;
             color: #e1e5e9;
             flex: 1;
+            margin-left: 12px;
         }
 
         .command-type {
@@ -263,6 +264,8 @@
             font-size: 11px;
             text-transform: uppercase;
             font-weight: 500;
+            min-width: 28px;
+            text-align: center;
         }
 
         .command-type.rf {
@@ -570,12 +573,12 @@
                                     <div class="commands-list">
                                         ${commands.map(command => `
                                             <div class="command-item">
-                                                <div class="command-name">${command.command}</div>
                                                 <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
+                                                <div class="command-name">${command.command}</div>
                                                 <div class="command-actions">
                                                     <button class="btn btn-primary" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
-                                                    <button class="btn btn-secondary">🔄 Re-learn</button>
-                                                    <button class="btn btn-danger">🗑️</button>
+                                                    <button class="btn btn-secondary" onclick="relearnCommand('${command.device_name}', '${command.command}')">🔄 Re-learn</button>
+                                                    <button class="btn btn-danger" onclick="deleteCommand('${command.device_name}', '${command.command}')">🗑️</button>
                                                 </div>
                                             </div>
                                         `).join('')}
@@ -605,7 +608,154 @@
 
         async function testCommand(deviceName, commandName) {
             log(`Testing command: ${deviceName}_${commandName}`);
-            // TODO: Implement test command functionality
+            
+            try {
+                // Find the entity_id for this device
+                const allDevices = learnedData.allDevices || [];
+                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                if (!device) {
+                    showAlert(`Could not find device for ${deviceName}`, 'error');
+                    return;
+                }
+                
+                const response = await fetch(getApiUrl('/api/send'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: device.entity_id,
+                        device: deviceName,
+                        command: commandName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Command sent successfully: ${deviceName}_${commandName}`);
+                    showAlert(`✅ Command "${commandName}" sent successfully!`, 'success');
+                } else {
+                    log(`❌ Failed to send command: ${result.error}`, 'error');
+                    showAlert(`Failed to send command: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error sending command: ${error.message}`, 'error');
+                showAlert(`Error sending command: ${error.message}`, 'error');
+            }
+        }
+
+        async function relearnCommand(deviceName, commandName) {
+            if (!confirm(`Re-learn the command "${commandName}" from device "${deviceName}"?\n\nThis will delete the existing command and start learning a new one.`)) {
+                return;
+            }
+            
+            log(`Re-learning command: ${deviceName}_${commandName}`);
+            
+            try {
+                // Find the entity_id for this device
+                const allDevices = learnedData.allDevices || [];
+                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                if (!device) {
+                    showAlert(`Could not find device for ${deviceName}`, 'error');
+                    return;
+                }
+                
+                // First delete the existing command
+                const deleteResponse = await fetch(getApiUrl('/api/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: device.entity_id,
+                        device: deviceName,
+                        command: commandName
+                    })
+                });
+                
+                const deleteResult = await deleteResponse.json();
+                
+                if (deleteResult.success) {
+                    log(`✅ Existing command deleted: ${deviceName}_${commandName}`);
+                    
+                    // Then start learning the new command
+                    const learnResponse = await fetch(getApiUrl('/api/learn'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            entity_id: device.entity_id,
+                            device: deviceName,
+                            command: commandName,
+                            command_type: 'ir' // Default to IR, will be detected after learning
+                        })
+                    });
+                    
+                    const learnResult = await learnResponse.json();
+                    
+                    if (learnResult.success) {
+                        log(`✅ Re-learning started: ${deviceName}_${commandName}`);
+                        showAlert('✅ Re-learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
+                        
+                        // Reload data after a short delay
+                        setTimeout(async () => {
+                            await loadLearnedData();
+                        }, 2000);
+                    } else {
+                        log(`❌ Failed to start re-learning: ${learnResult.error}`, 'error');
+                        showAlert(`Failed to start re-learning: ${learnResult.error}`, 'error');
+                    }
+                } else {
+                    log(`❌ Failed to delete existing command: ${deleteResult.error}`, 'error');
+                    showAlert(`Failed to delete existing command: ${deleteResult.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error re-learning command: ${error.message}`, 'error');
+                showAlert(`Error re-learning command: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteCommand(deviceName, commandName) {
+            if (!confirm(`Are you sure you want to delete the command "${commandName}" from device "${deviceName}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+            
+            log(`Deleting command: ${deviceName}_${commandName}`);
+            
+            try {
+                // Find the entity_id for this device
+                const allDevices = learnedData.allDevices || [];
+                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                if (!device) {
+                    showAlert(`Could not find device for ${deviceName}`, 'error');
+                    return;
+                }
+                
+                const response = await fetch(getApiUrl('/api/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: device.entity_id,
+                        device: deviceName,
+                        command: commandName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Command deleted successfully: ${deviceName}_${commandName}`);
+                    showAlert(`✅ Command "${commandName}" deleted successfully!`, 'success');
+                    
+                    // Reload data to refresh the UI
+                    await loadLearnedData();
+                } else {
+                    log(`❌ Failed to delete command: ${result.error}`, 'error');
+                    showAlert(`Failed to delete command: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error deleting command: ${error.message}`, 'error');
+                showAlert(`Error deleting command: ${error.message}`, 'error');
+            }
         }
 
         function showAddDialog() {
@@ -638,8 +788,8 @@
                             </div>
                             <div class="commands-list">
                                 <div class="command-item">
-                                    <div class="command-name">fan_off</div>
                                     <div class="command-type rf">RF</div>
+                                    <div class="command-name">fan_off</div>
                                     <div class="command-actions">
                                         <button class="btn btn-primary">▶ Test</button>
                                         <button class="btn btn-secondary">🔄 Re-learn</button>
@@ -647,8 +797,8 @@
                                     </div>
                                 </div>
                                 <div class="command-item">
-                                    <div class="command-name">light_on</div>
                                     <div class="command-type ir">IR</div>
+                                    <div class="command-name">light_on</div>
                                     <div class="command-actions">
                                         <button class="btn btn-primary">▶ Test</button>
                                         <button class="btn btn-secondary">🔄 Re-learn</button>

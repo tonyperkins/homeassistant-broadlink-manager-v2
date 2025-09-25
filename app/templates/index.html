@@ -60,13 +60,22 @@
         }
 
         .add-button {
-            background: #059669;
+            background: #03a9f4;
             color: white;
-            transition: background-color 0.2s ease;
+            border: none;
+            border-radius: 18px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(3, 169, 244, 0.3);
         }
 
         .add-button:hover {
-            background: #047857;
+            background: #0288d1;
+            box-shadow: 0 4px 8px rgba(3, 169, 244, 0.4);
+            transform: translateY(-1px);
         }
 
         .container {
@@ -349,42 +358,42 @@
         }
 
         .alert {
-            padding: 12px 16px;
+            padding: 16px 24px;
             border-radius: 8px;
             font-weight: 500;
-            border-left: 4px solid;
             position: fixed;
-            top: 20px;
-            right: 20px;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
-            min-width: 300px;
-            max-width: 500px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            animation: slideInRight 0.3s ease-out;
+            min-width: 320px;
+            max-width: 600px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: slideInUp 0.3s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        @keyframes slideInRight {
+        @keyframes slideInUp {
             from {
-                transform: translateX(100%);
+                transform: translateX(-50%) translateY(100%);
                 opacity: 0;
             }
             to {
-                transform: translateX(0);
+                transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
         }
 
         .alert-success {
-            background: rgba(16, 185, 129, 0.1);
-            color: #6ee7b7;
-            animation: slideInRight 0.3s ease-out;
-            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.9);
+            color: #ffffff;
+            border-color: #10b981;
         }
 
         .alert-error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #fca5a5;
-            border-left-color: #ef4444;
+            background: rgba(239, 68, 68, 0.9);
+            color: #ffffff;
+            border-color: #ef4444;
         }
 
         /* Modal Styles */
@@ -528,6 +537,14 @@
             color: #3b82f6;
             font-weight: 500;
             font-size: 14px;
+        }
+
+        .preview-row {
+            margin-bottom: 8px;
+        }
+
+        .preview-row:last-child {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -1043,7 +1060,29 @@
                         </div>
                         <div class="form-group">
                             <label for="deviceName">Device Name:</label>
-                            <input type="text" id="deviceName" class="form-control" placeholder="e.g., workbench_lamp, ceiling_fan">
+                            <input type="text" id="deviceName" class="form-control" placeholder="e.g., ceiling_fan, workbench_lamp" list="deviceSuggestions">
+                            <datalist id="deviceSuggestions">
+                                <option value="ceiling_fan">
+                                <option value="workbench_lamp">
+                                <option value="table_lamp">
+                                <option value="floor_lamp">
+                                <option value="tv">
+                                <option value="air_conditioner">
+                                <option value="heater">
+                                <option value="fan">
+                                <option value="stereo">
+                                <option value="soundbar">
+                                <option value="projector">
+                                <option value="garage_door">
+                                <option value="blinds">
+                                <option value="curtains">
+                                <option value="fireplace">
+                                <option value="humidifier">
+                                <option value="dehumidifier">
+                                <option value="space_heater">
+                                <option value="window_ac">
+                                <option value="tower_fan">
+                            </datalist>
                             <small class="form-text">This will be combined with the area to create the full device name</small>
                         </div>
                         <div class="form-group">
@@ -1053,15 +1092,21 @@
                         <div class="form-group">
                             <label for="commandType">Command Type:</label>
                             <select id="commandType" class="form-control">
+                                <option value="rf" selected>RF (Radio Frequency)</option>
                                 <option value="ir">IR (Infrared)</option>
-                                <option value="rf">RF (Radio Frequency)</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Preview:</label>
                             <div id="devicePreview" class="device-preview">
-                                <span class="preview-label">Full Device Name:</span>
-                                <span id="fullDeviceName" class="preview-value">Select area and enter device name</span>
+                                <div class="preview-row">
+                                    <span class="preview-label">Full Device Name:</span>
+                                    <span id="fullDeviceName" class="preview-value">Select area and enter device name</span>
+                                </div>
+                                <div class="preview-row">
+                                    <span class="preview-label">Full Command:</span>
+                                    <span id="fullCommandName" class="preview-value">Enter command name</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1116,31 +1161,63 @@
         function setupAddDialogEventListeners() {
             const areaSelect = document.getElementById('areaSelect');
             const deviceNameInput = document.getElementById('deviceName');
+            const commandNameInput = document.getElementById('commandName');
             
-            // Update preview when area or device name changes
+            // Function to convert names to HA standard (e.g., "Tony's Ceiling Fan" -> "tony_s_ceiling_fan")
+            function convertToHAFormat(name) {
+                return name.toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '_')  // Replace non-alphanumeric with underscore
+                    .replace(/\s+/g, '_')          // Replace spaces with underscore
+                    .replace(/_+/g, '_')           // Replace multiple underscores with single
+                    .replace(/^_|_$/g, '');        // Remove leading/trailing underscores
+            }
+            
+            // Update preview when any field changes
             function updatePreview() {
                 const area = areaSelect.value;
                 const deviceName = deviceNameInput.value.trim();
+                const commandName = commandNameInput.value.trim();
                 const fullDeviceNameEl = document.getElementById('fullDeviceName');
+                const fullCommandNameEl = document.getElementById('fullCommandName');
                 
+                // Update device name preview
                 if (area && deviceName) {
-                    const fullDeviceName = `${area}_${deviceName}`;
+                    const convertedDeviceName = convertToHAFormat(deviceName);
+                    const fullDeviceName = `${area}_${convertedDeviceName}`;
                     fullDeviceNameEl.textContent = fullDeviceName;
                     fullDeviceNameEl.style.color = '#3b82f6';
                 } else if (area && !deviceName) {
                     fullDeviceNameEl.textContent = `${area}_[enter device name]`;
                     fullDeviceNameEl.style.color = '#9ca3af';
                 } else if (!area && deviceName) {
-                    fullDeviceNameEl.textContent = `[select area]_${deviceName}`;
+                    const convertedDeviceName = convertToHAFormat(deviceName);
+                    fullDeviceNameEl.textContent = `[select area]_${convertedDeviceName}`;
                     fullDeviceNameEl.style.color = '#9ca3af';
                 } else {
                     fullDeviceNameEl.textContent = 'Select area and enter device name';
                     fullDeviceNameEl.style.color = '#9ca3af';
                 }
+                
+                // Update command name preview
+                if (area && deviceName && commandName) {
+                    const convertedDeviceName = convertToHAFormat(deviceName);
+                    const convertedCommandName = convertToHAFormat(commandName);
+                    const fullCommand = `${area}_${convertedDeviceName}_${convertedCommandName}`;
+                    fullCommandNameEl.textContent = fullCommand;
+                    fullCommandNameEl.style.color = '#3b82f6';
+                } else if (commandName) {
+                    const convertedCommandName = convertToHAFormat(commandName);
+                    fullCommandNameEl.textContent = `[device]_${convertedCommandName}`;
+                    fullCommandNameEl.style.color = '#9ca3af';
+                } else {
+                    fullCommandNameEl.textContent = 'Enter command name';
+                    fullCommandNameEl.style.color = '#9ca3af';
+                }
             }
             
             areaSelect.addEventListener('change', updatePreview);
             deviceNameInput.addEventListener('input', updatePreview);
+            commandNameInput.addEventListener('input', updatePreview);
         }
 
         async function startLearning() {
@@ -1152,9 +1229,21 @@
             
             const broadlinkEntityId = broadlinkDeviceSelect.value;
             const areaValue = areaSelect.value;
-            const deviceName = deviceNameInput.value.trim();
-            const commandName = commandNameInput.value.trim();
+            const deviceNameRaw = deviceNameInput.value.trim();
+            const commandNameRaw = commandNameInput.value.trim();
             const commandType = commandTypeSelect.value;
+            
+            // Convert names to HA format
+            function convertToHAFormat(name) {
+                return name.toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '_')
+                    .replace(/\s+/g, '_')
+                    .replace(/_+/g, '_')
+                    .replace(/^_|_$/g, '');
+            }
+            
+            const deviceName = convertToHAFormat(deviceNameRaw);
+            const commandName = convertToHAFormat(commandNameRaw);
             
             // Validation
             if (!broadlinkEntityId) {
@@ -1302,7 +1391,7 @@
             setTimeout(() => {
                 alertEl.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                 alertEl.style.opacity = '0';
-                alertEl.style.transform = 'translateX(100%)';
+                alertEl.style.transform = 'translateX(-50%) translateY(100%)';
                 setTimeout(() => alertEl.remove(), 500);
             }, 5000);
         }

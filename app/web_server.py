@@ -1280,6 +1280,100 @@ class BroadlinkWebServer:
         .action-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Button styles from mock */
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #374151;
+            color: #e1e5e9;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Expand icon styling */
+        .expand-icon {
+            width: 24px;
+            height: 24px;
+            color: #6b7280;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .device-card.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        /* Group icon styling */
+        .group-icon {
+            width: 16px;
+            height: 16px;
+            color: #6b7280;
+            transition: transform 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .command-group.expanded .group-icon {
+            transform: rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="header-icon">📡</div>
+            <div class="header-info">
+                <h1>Broadlink</h1>
+                <div class="header-stats">2 devices • 15 entities</div>
+            </div>
+        </div>
+        <button class="add-button" onclick="showAddDialog()">Add entry</button>
+    </header>
+
+    <div class="container">
+        <div class="section-header">Integration entities</div>
+        
+        <!-- Broadlink Devices -->
+        <div id="broadlinkDevices">
+            <!-- Devices will be populated here -->
+        </div>
+
+        <!-- Activity Log -->
+        <div class="config-section">
+            <h2>📊 Activity Log</h2>
             <div class="log-area" id="logArea">
                 <div>🚀 Broadlink Manager initialized...</div>
             </div>
@@ -1303,51 +1397,42 @@ class BroadlinkWebServer:
         }
 
         // Initialize the application  
-        document.addEventListener('DOMContentLoaded', function() {
-            loadAreas();
-            loadBroadlinkDevices();
-            loadLearnedData();
-            setMode('filter'); // Start in filter mode
-            log('Application initialized - Filter mode active');
-        });
-
-        function setMode(mode) {
-            currentMode = mode;
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Broadlink Manager initialized...');
             
-            const filterBtn = document.getElementById('filterModeBtn');
-            const addBtn = document.getElementById('addModeBtn');
-            const modeDesc = document.getElementById('modeDescription');
-            const addModeFields = document.getElementById('addModeFields');
-            const filterModeControls = document.getElementById('filterModeControls');
-            const addModeControls = document.getElementById('addModeControls');
-            
-            if (mode === 'filter') {
-                filterBtn.className = 'btn btn-primary';
-                addBtn.className = 'btn btn-secondary';
-                modeDesc.textContent = 'Filter existing commands by area and device';
-                addModeFields.style.display = 'none';
-                filterModeControls.style.display = 'flex';
-                addModeControls.style.display = 'none';
-                
-                // Reset dropdowns to show all
-                document.getElementById('areaName').value = '';
-                document.getElementById('deviceName').value = '';
-                
-                // Load and display all commands
-                loadCommands();
+            // Test if container exists
+            const container = document.getElementById('broadlinkDevices');
+            if (container) {
+                log('✅ broadlinkDevices container found');
             } else {
-                filterBtn.className = 'btn btn-secondary';
-                addBtn.className = 'btn btn-primary';
-                modeDesc.textContent = 'Add new commands by selecting area, device, and command details';
-                addModeFields.style.display = 'block';
-                filterModeControls.style.display = 'none';
-                addModeControls.style.display = 'flex';
-                
-                // Clear command list in add mode
-                document.getElementById('commandList').innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Select area, device, and command details above, then click Learn Command</div>';
+                log('❌ broadlinkDevices container NOT found', 'error');
             }
             
-            log(`Switched to ${mode} mode`);
+            try {
+                await loadLearnedData();
+                log('✅ Initial data loaded successfully');
+            } catch (error) {
+                log(`❌ Failed to load initial data: ${error.message}`, 'error');
+                
+                // Fallback: render with test data to show UI structure
+                log('🔧 Rendering with test data for debugging');
+                renderTestData();
+            }
+        });
+
+        function updateHeaderStats() {
+            try {
+                const deviceCount = Object.keys(learnedData.devices || {}).length;
+                const commandCount = (learnedData.commands || []).length;
+                const headerStats = document.querySelector('.header-stats');
+                if (headerStats) {
+                    headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
+                } else {
+                    console.warn('Header stats element not found');
+                }
+            } catch (error) {
+                console.error('Error updating header stats:', error);
+            }
         }
 
         async function loadAreas() {
@@ -1575,8 +1660,8 @@ class BroadlinkWebServer:
                             const safeDevicePart = devicePart.replace(/[^a-zA-Z0-9]/g, '_');
                             return `
                                 <div class="command-group">
-                                    <div class="group-header" onclick="toggleGroup('${safeAreaName}', '${safeDevicePart}')">
-                                        <div class="group-chevron" id="group-chevron-${safeAreaName}-${safeDevicePart}">▶</div>
+                                    <div class="group-header" onclick="event.stopPropagation(); toggleGroup(this)">
+                                        <div class="group-icon">▶</div>
                                         <div class="group-name">${devicePart}</div>
                                         <div class="group-count">${commands.length}</div>
                                     </div>
@@ -1609,19 +1694,11 @@ class BroadlinkWebServer:
             console.log(`Device ${deviceElement.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${deviceName}`);
         }
 
-        function toggleGroup(safeAreaName, safeDevicePart) {
-            const commands = document.getElementById(`commands-${safeAreaName}-${safeDevicePart}`);
-            const chevron = document.getElementById(`group-chevron-${safeAreaName}-${safeDevicePart}`);
-            
-            if (commands && chevron) {
-                if (commands.style.display === 'none') {
-                    commands.style.display = 'block';
-                    chevron.classList.add('expanded');
-                } else {
-                    commands.style.display = 'none';
-                    chevron.classList.remove('expanded');
-                }
-            }
+        function toggleGroup(groupElement) {
+            const group = groupElement.closest('.command-group');
+            group.classList.toggle('expanded');
+            const groupName = groupElement.querySelector('.group-name').textContent;
+            console.log(`Command group ${group.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${groupName}`);
         }
 
         async function learnNewCommand() {

@@ -396,6 +396,12 @@
             border-color: #ef4444;
         }
 
+        .alert-info {
+            background: rgba(59, 130, 246, 0.9);
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -932,6 +938,17 @@
                 // Use the existing command type, or default to 'ir' if not provided
                 const commandType = existingCommandType || 'ir';
                 
+                // Show immediate instruction message
+                if (commandType === 'rf') {
+                    showAlert('📡 RF re-learning initiated. Check Home Assistant notifications (🔔) for frequency sweep instructions.', 'info');
+                } else {
+                    showAlert('📡 IR re-learning initiated. Check Home Assistant notifications (🔔) for learning instructions.', 'info');
+                }
+                
+                // Set a timeout for the API call
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
+                
                 // Start learning the command (will overwrite existing)
                 const learnResponse = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
@@ -941,33 +958,39 @@
                         device: deviceName,
                         command: commandName,
                         command_type: commandType
-                    })
+                    }),
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
                 const learnResult = await learnResponse.json();
                 
                 if (learnResult.success) {
-                    log(`✅ Re-learning started: ${deviceName}_${commandName} (${commandTypeText})`);
+                    log(`✅ Re-learning completed: ${deviceName}_${commandName} (${commandTypeText})`);
                     
-                    if (commandType === 'rf') {
-                        showAlert('✅ RF learning started! Check Home Assistant notifications (🔔) for frequency sweep instructions.', 'success');
-                    } else {
-                        showAlert('✅ IR learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
-                    }
-                    
-                    // Reload data after a short delay
+                    // Reload data after successful re-learning
                     setTimeout(async () => {
                         await loadLearnedData();
                     }, 2000);
                 } else {
-                    const errorMsg = `Failed to start re-learning: ${learnResult.error || 'Unknown error'}`;
+                    const errorMsg = `Re-learning failed: ${learnResult.error || 'Unknown error'}`;
                     log(`❌ ${errorMsg}`, 'error');
-                    showAlert(errorMsg, 'error');
+                    showAlert(`❌ ${errorMsg}`, 'error');
                 }
             } catch (error) {
-                const errorMsg = `Error re-learning command: ${error.message}`;
-                log(`❌ ${errorMsg}`, 'error');
-                showAlert(errorMsg, 'error');
+                if (error.name === 'AbortError') {
+                    const timeoutMsg = `Re-learning timed out after 35 seconds. The command may still be learned - check your devices.`;
+                    log(`⏰ ${timeoutMsg}`, 'error');
+                    showAlert(`⏰ ${timeoutMsg}`, 'error');
+                } else if (error.message.includes('fetch')) {
+                    const networkMsg = `Network error: Unable to connect to Home Assistant. Check your connection.`;
+                    log(`🌐 ${networkMsg}`, 'error');
+                    showAlert(`🌐 ${networkMsg}`, 'error');
+                } else {
+                    const errorMsg = `Re-learning error: ${error.message}`;
+                    log(`❌ ${errorMsg}`, 'error');
+                    showAlert(`❌ ${errorMsg}`, 'error');
+                }
             }
         }
 
@@ -1283,7 +1306,21 @@
             
             log(`Starting to learn new command: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
             
+            // Show immediate instruction message
+            if (commandType === 'rf') {
+                showAlert('📡 RF learning initiated. Check Home Assistant notifications (🔔) for frequency sweep instructions.', 'info');
+            } else {
+                showAlert('📡 IR learning initiated. Check Home Assistant notifications (🔔) for learning instructions.', 'info');
+            }
+            
+            // Close dialog immediately to show user the process has started
+            closeAddDialog();
+            
             try {
+                // Set a timeout for the API call
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
+                
                 const response = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1292,35 +1329,39 @@
                         device: fullDeviceName,
                         command: commandName,
                         command_type: commandType
-                    })
+                    }),
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
                 const result = await response.json();
                 
                 if (result.success) {
-                    log(`✅ Learning started: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
+                    log(`✅ Learning completed: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
                     
-                    if (commandType === 'rf') {
-                        showAlert('✅ RF learning started! Check Home Assistant notifications (🔔) for frequency sweep instructions.', 'success');
-                    } else {
-                        showAlert('✅ IR learning started! Check Home Assistant notifications (🔔) for instructions.', 'success');
-                    }
-                    
-                    closeAddDialog();
-                    
-                    // Reload data after a short delay
+                    // Reload data after successful learning
                     setTimeout(async () => {
                         await loadLearnedData();
                     }, 2000);
                 } else {
-                    const errorMsg = `Failed to start learning: ${result.error || 'Unknown error'}`;
+                    const errorMsg = `Learning failed: ${result.error || 'Unknown error'}`;
                     log(`❌ ${errorMsg}`, 'error');
-                    showAlert(errorMsg, 'error');
+                    showAlert(`❌ ${errorMsg}`, 'error');
                 }
             } catch (error) {
-                const errorMsg = `Error starting learning: ${error.message}`;
-                log(`❌ ${errorMsg}`, 'error');
-                showAlert(errorMsg, 'error');
+                if (error.name === 'AbortError') {
+                    const timeoutMsg = `Learning timed out after 35 seconds. The command may still be learned - check your devices.`;
+                    log(`⏰ ${timeoutMsg}`, 'error');
+                    showAlert(`⏰ ${timeoutMsg}`, 'error');
+                } else if (error.message.includes('fetch')) {
+                    const networkMsg = `Network error: Unable to connect to Home Assistant. Check your connection.`;
+                    log(`🌐 ${networkMsg}`, 'error');
+                    showAlert(`🌐 ${networkMsg}`, 'error');
+                } else {
+                    const errorMsg = `Learning error: ${error.message}`;
+                    log(`❌ ${errorMsg}`, 'error');
+                    showAlert(`❌ ${errorMsg}`, 'error');
+                }
             }
         }
 

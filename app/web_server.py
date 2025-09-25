@@ -1071,6 +1071,7 @@ class BroadlinkWebServer:
             border-radius: var(--radius);
             margin-bottom: 16px;
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
         .device-header {
@@ -1271,7 +1272,7 @@ class BroadlinkWebServer:
     </style>
 </head>
 <body>
-1    <div class="container">
+    <div class="container">
         <!-- Header with Add Button -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div>
@@ -1392,6 +1393,7 @@ class BroadlinkWebServer:
                 const response = await fetch(getApiUrl('/api/learned-devices'));
                 learnedData = await response.json();
                 
+                console.log('Loaded learned data:', learnedData);
                 log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
                 
                 // Update the device count in header
@@ -1401,16 +1403,23 @@ class BroadlinkWebServer:
                 renderBroadlinkDevices();
                 
             } catch (error) {
+                console.error('Error loading learned data:', error);
                 log(`Error loading learned data: ${error.message}`, 'error');
             }
         }
 
         function updateHeaderStats() {
-            const deviceCount = Object.keys(learnedData.devices || {}).length;
-            const commandCount = (learnedData.commands || []).length;
-            const headerStats = document.querySelector('.container > div:first-child p');
-            if (headerStats) {
-                headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
+            try {
+                const deviceCount = Object.keys(learnedData.devices || {}).length;
+                const commandCount = (learnedData.commands || []).length;
+                const headerStats = document.querySelector('.container > div:first-child p');
+                if (headerStats) {
+                    headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
+                } else {
+                    console.warn('Header stats element not found');
+                }
+            } catch (error) {
+                console.error('Error updating header stats:', error);
             }
         }
 
@@ -1520,60 +1529,73 @@ class BroadlinkWebServer:
         function renderBroadlinkDevices() {
             const container = document.getElementById('broadlinkDevices');
             
+            if (!container) {
+                console.error('broadlinkDevices container not found');
+                return;
+            }
+            
             if (!learnedData || !learnedData.commands || learnedData.commands.length === 0) {
                 container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No learned commands found</div>';
                 return;
             }
             
-            // Group commands by area and device
-            const deviceGroups = {};
+            // Group commands by Broadlink device (area) and then by device type
+            const broadlinkDevices = {};
             
             learnedData.commands.forEach(command => {
                 const areaName = command.area_name || 'Unknown Area';
                 const devicePart = command.device_part;
                 
-                if (!deviceGroups[areaName]) {
-                    deviceGroups[areaName] = {};
+                // Create Broadlink device entry if it doesn't exist
+                if (!broadlinkDevices[areaName]) {
+                    broadlinkDevices[areaName] = {
+                        deviceGroups: {},
+                        totalCommands: 0
+                    };
                 }
                 
-                if (!deviceGroups[areaName][devicePart]) {
-                    deviceGroups[areaName][devicePart] = [];
+                // Group by device type within the Broadlink device
+                if (!broadlinkDevices[areaName].deviceGroups[devicePart]) {
+                    broadlinkDevices[areaName].deviceGroups[devicePart] = [];
                 }
                 
-                deviceGroups[areaName][devicePart].push(command);
+                broadlinkDevices[areaName].deviceGroups[devicePart].push(command);
+                broadlinkDevices[areaName].totalCommands++;
             });
             
             container.innerHTML = '';
             
-            // Create device cards for each area
-            Object.keys(deviceGroups).forEach(areaName => {
+            // Create device cards for each Broadlink device
+            Object.keys(broadlinkDevices).forEach(areaName => {
+                const deviceData = broadlinkDevices[areaName];
                 const deviceCard = document.createElement('div');
                 deviceCard.className = 'device-card';
                 
-                const totalCommands = Object.values(deviceGroups[areaName]).reduce((sum, commands) => sum + commands.length, 0);
-                const deviceCount = Object.keys(deviceGroups[areaName]).length;
+                const deviceCount = Object.keys(deviceData.deviceGroups).length;
+                const safeAreaName = areaName.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 deviceCard.innerHTML = `
-                    <div class="device-header" onclick="toggleDevice('${areaName}')">
+                    <div class="device-header" onclick="toggleDevice('${safeAreaName}')">
                         <div class="device-icon">📡</div>
                         <div class="device-info">
                             <div class="device-name">${areaName} RM4 Pro</div>
                             <div class="device-details">Broadlink • ${areaName} • ${deviceCount} entities</div>
                         </div>
                         <div class="device-status"></div>
-                        <div class="device-chevron" id="chevron-${areaName}">▶</div>
+                        <div class="device-chevron" id="chevron-${safeAreaName}">▶</div>
                     </div>
-                    <div class="command-groups" id="groups-${areaName}" style="display: none;">
-                        ${Object.keys(deviceGroups[areaName]).map(devicePart => {
-                            const commands = deviceGroups[areaName][devicePart];
+                    <div class="command-groups" id="groups-${safeAreaName}" style="display: none;">
+                        ${Object.keys(deviceData.deviceGroups).map(devicePart => {
+                            const commands = deviceData.deviceGroups[devicePart];
+                            const safeDevicePart = devicePart.replace(/[^a-zA-Z0-9]/g, '_');
                             return `
                                 <div class="command-group">
-                                    <div class="group-header" onclick="toggleGroup('${areaName}', '${devicePart}')">
-                                        <div class="group-chevron" id="group-chevron-${areaName}-${devicePart}">▶</div>
+                                    <div class="group-header" onclick="toggleGroup('${safeAreaName}', '${safeDevicePart}')">
+                                        <div class="group-chevron" id="group-chevron-${safeAreaName}-${safeDevicePart}">▶</div>
                                         <div class="group-name">${devicePart}</div>
                                         <div class="group-count">${commands.length}</div>
                                     </div>
-                                    <div class="commands-list" id="commands-${areaName}-${devicePart}" style="display: none;">
+                                    <div class="commands-list" id="commands-${safeAreaName}-${safeDevicePart}" style="display: none;">
                                         ${commands.map(command => `
                                             <div class="command-row">
                                                 <div class="command-info">
@@ -1598,29 +1620,33 @@ class BroadlinkWebServer:
             });
         }
 
-        function toggleDevice(areaName) {
-            const groups = document.getElementById(`groups-${areaName}`);
-            const chevron = document.getElementById(`chevron-${areaName}`);
+        function toggleDevice(safeAreaName) {
+            const groups = document.getElementById(`groups-${safeAreaName}`);
+            const chevron = document.getElementById(`chevron-${safeAreaName}`);
             
-            if (groups.style.display === 'none') {
-                groups.style.display = 'block';
-                chevron.classList.add('expanded');
-            } else {
-                groups.style.display = 'none';
-                chevron.classList.remove('expanded');
+            if (groups && chevron) {
+                if (groups.style.display === 'none') {
+                    groups.style.display = 'block';
+                    chevron.classList.add('expanded');
+                } else {
+                    groups.style.display = 'none';
+                    chevron.classList.remove('expanded');
+                }
             }
         }
 
-        function toggleGroup(areaName, devicePart) {
-            const commands = document.getElementById(`commands-${areaName}-${devicePart}`);
-            const chevron = document.getElementById(`group-chevron-${areaName}-${devicePart}`);
+        function toggleGroup(safeAreaName, safeDevicePart) {
+            const commands = document.getElementById(`commands-${safeAreaName}-${safeDevicePart}`);
+            const chevron = document.getElementById(`group-chevron-${safeAreaName}-${safeDevicePart}`);
             
-            if (commands.style.display === 'none') {
-                commands.style.display = 'block';
-                chevron.classList.add('expanded');
-            } else {
-                commands.style.display = 'none';
-                chevron.classList.remove('expanded');
+            if (commands && chevron) {
+                if (commands.style.display === 'none') {
+                    commands.style.display = 'block';
+                    chevron.classList.add('expanded');
+                } else {
+                    commands.style.display = 'none';
+                    chevron.classList.remove('expanded');
+                }
             }
         }
 
@@ -1840,6 +1866,107 @@ class BroadlinkWebServer:
             showAlert('Add dialog coming soon!', 'info');
         }
 
+        function renderTestData() {
+            const container = document.getElementById('broadlinkDevices');
+            if (!container) return;
+            
+            // Test data matching your mockup
+            container.innerHTML = `
+                <div class="device-card">
+                    <div class="device-header" onclick="toggleDevice('tonys_office')">
+                        <div class="device-icon">📡</div>
+                        <div class="device-info">
+                            <div class="device-name">Tony's Office RM4 Pro</div>
+                            <div class="device-details">Broadlink • Tony's Office • 9 entities</div>
+                        </div>
+                        <div class="device-status"></div>
+                        <div class="device-chevron" id="chevron-tonys_office">▶</div>
+                    </div>
+                    <div class="command-groups" id="groups-tonys_office" style="display: none;">
+                        <div class="command-group">
+                            <div class="group-header" onclick="toggleGroup('tonys_office', 'ceiling_fan')">
+                                <div class="group-chevron" id="group-chevron-tonys_office-ceiling_fan">▶</div>
+                                <div class="group-name">ceiling_fan</div>
+                                <div class="group-count">5</div>
+                            </div>
+                            <div class="commands-list" id="commands-tonys_office-ceiling_fan" style="display: none;">
+                                <div class="command-row">
+                                    <div class="command-info">
+                                        <span class="command-name">fan_off</span>
+                                        <span class="command-type-badge command-type-rf">RF</span>
+                                    </div>
+                                    <div class="command-actions">
+                                        <button class="action-btn test">▶ Test</button>
+                                        <button class="action-btn relearn">🔄 Re-learn</button>
+                                        <button class="action-btn delete">🗑</button>
+                                    </div>
+                                </div>
+                                <div class="command-row">
+                                    <div class="command-info">
+                                        <span class="command-name">fan_speed_1</span>
+                                        <span class="command-type-badge command-type-rf">RF</span>
+                                    </div>
+                                    <div class="command-actions">
+                                        <button class="action-btn test">▶ Test</button>
+                                        <button class="action-btn relearn">🔄 Re-learn</button>
+                                        <button class="action-btn delete">🗑</button>
+                                    </div>
+                                </div>
+                                <div class="command-row">
+                                    <div class="command-info">
+                                        <span class="command-name">light_on</span>
+                                        <span class="command-type-badge command-type-ir">IR</span>
+                                    </div>
+                                    <div class="command-actions">
+                                        <button class="action-btn test">▶ Test</button>
+                                        <button class="action-btn relearn">🔄 Re-learn</button>
+                                        <button class="action-btn delete">🗑</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="command-group">
+                            <div class="group-header" onclick="toggleGroup('tonys_office', 'workbench_lamp')">
+                                <div class="group-chevron" id="group-chevron-tonys_office-workbench_lamp">▶</div>
+                                <div class="group-name">workbench_lamp</div>
+                                <div class="group-count">1</div>
+                            </div>
+                            <div class="commands-list" id="commands-tonys_office-workbench_lamp" style="display: none;">
+                                <div class="command-row">
+                                    <div class="command-info">
+                                        <span class="command-name">toggle</span>
+                                        <span class="command-type-badge command-type-ir">IR</span>
+                                    </div>
+                                    <div class="command-actions">
+                                        <button class="action-btn test">▶ Test</button>
+                                        <button class="action-btn relearn">🔄 Re-learn</button>
+                                        <button class="action-btn delete">🗑</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="device-card">
+                    <div class="device-header" onclick="toggleDevice('master_bedroom')">
+                        <div class="device-icon">📡</div>
+                        <div class="device-info">
+                            <div class="device-name">Master Bedroom RM4 Pro</div>
+                            <div class="device-details">Broadlink • Master Bedroom • 6 entities</div>
+                        </div>
+                        <div class="device-status"></div>
+                        <div class="device-chevron" id="chevron-master_bedroom">▶</div>
+                    </div>
+                    <div class="command-groups" id="groups-master_bedroom" style="display: none;">
+                        <!-- Master bedroom commands would go here -->
+                    </div>
+                </div>
+            `;
+            
+            log('🎨 Test UI rendered - try clicking on device headers to expand');
+        }
+
         function showAlert(message, type = 'error') {
             const container = document.querySelector('.container');
             const alertEl = document.createElement('div');
@@ -1869,11 +1996,23 @@ class BroadlinkWebServer:
         document.addEventListener('DOMContentLoaded', async function() {
             log('🚀 Broadlink Manager initialized...');
             
+            // Test if container exists
+            const container = document.getElementById('broadlinkDevices');
+            if (container) {
+                log('✅ broadlinkDevices container found');
+            } else {
+                log('❌ broadlinkDevices container NOT found', 'error');
+            }
+            
             try {
                 await loadLearnedData();
                 log('✅ Initial data loaded successfully');
             } catch (error) {
                 log(`❌ Failed to load initial data: ${error.message}`, 'error');
+                
+                // Fallback: render with test data to show UI structure
+                log('🔧 Rendering with test data for debugging');
+                renderTestData();
             }
         });
 

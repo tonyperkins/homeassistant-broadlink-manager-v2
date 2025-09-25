@@ -521,19 +521,88 @@ class BroadlinkWebServer:
             
             logger.info(f"Starting learning process for command: {command}")
             
-            # Prepare the service call payload
-            service_data = {
-                'entity_id': entity_id,
-                'device': device,
-                'command': command,
-                'command_type': command_type
+            # First, let's check what services are available
+            logger.info("Checking available services...")
+            services_result = await self._make_ha_request('GET', 'services')
+            if services_result:
+                remote_services = services_result.get('remote', {})
+                logger.info(f"Available remote services: {list(remote_services.keys()) if remote_services else 'None'}")
+                
+                # Check if learn_command exists
+                if 'learn_command' in remote_services:
+                    learn_service = remote_services['learn_command']
+                    logger.info(f"learn_command service details: {learn_service}")
+                else:
+                    logger.warning("learn_command service not found in remote services!")
+            
+            # Also check the entity state and attributes
+            entity_state = await self._make_ha_request('GET', f'states/{entity_id}')
+            if entity_state:
+                logger.info(f"Entity {entity_id} state: {entity_state.get('state')}")
+                logger.info(f"Entity attributes: {entity_state.get('attributes', {})}")
+            
+            # Prepare the service call payload using the correct HA format
+            # According to HA docs, the format should be:
+            # target: { entity_id: ... }
+            # data: { device: ..., command: ..., command_type: ... }
+            service_payload = {
+                'target': {
+                    'entity_id': entity_id
+                },
+                'data': {
+                    'device': device,
+                    'command': command
+                }
             }
             
-            # Start the learning process
-            logger.info(f"Calling learn_command service with data: {service_data}")
-            result = await self._make_ha_request('POST', 'services/remote/learn_command', service_data)
+            # Add command_type only for RF commands (IR is default)
+            if command_type == 'rf':
+                service_payload['data']['command_type'] = 'rf'
             
+            logger.info(f"Calling learn_command service with payload: {service_payload}")
+            
+            # Use the correct HA service call format
+            logger.info("Attempting service call to services/remote/learn_command with target/data format")
+            result = await self._make_ha_request('POST', 'services/remote/learn_command', service_payload)
             logger.info(f"Learn command service result: {result}")
+            
+            # If that didn't work, try different service approaches
+            if not result or result == []:
+                logger.info("Empty result, trying alternative service calls...")
+                
+                # Try broadlink-specific service
+                logger.info("Trying broadlink.learn service...")
+                broadlink_result = await self._make_ha_request('POST', 'services/broadlink/learn', {
+                    'host': entity_id.replace('remote.', '').replace('_', '.'),  # Convert entity_id to host format
+                    'packet': f"{device}_{command}"
+                })
+                logger.info(f"Broadlink service result: {broadlink_result}")
+                
+                # Try the service without entity_id in the path
+                logger.info("Trying service call without entity_id in path...")
+                alt_result = await self._make_ha_request('POST', 'services/remote/learn_command', {
+                    'entity_id': entity_id,
+                    'device': device,
+                    'command': command,
+                    'command_type': command_type
+                })
+                logger.info(f"Alternative service result: {alt_result}")
+                
+                # Try calling it as a script or automation trigger
+                logger.info("Trying to trigger learning via entity service call...")
+                trigger_result = await self._make_ha_request('POST', f'services/remote/learn_command', {
+                    'entity_id': entity_id,
+                    'device': device,
+                    'command': command,
+                    'command_type': command_type
+                })
+                logger.info(f"Trigger result: {trigger_result}")
+                
+                # Check entity state after all attempts
+                final_state = await self._make_ha_request('GET', f'states/{entity_id}')
+                logger.info(f"Final entity state: {final_state}")
+                
+                result = broadlink_result or alt_result or trigger_result
             
             if result is not None:
                 logger.info("Learn command service called successfully")
@@ -800,10 +869,15 @@ class BroadlinkWebServer:
             logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Sending command: {device}_{command} to entity {entity_id}")
             
+            # Use the correct HA service call format with target/data structure
             payload = {
-                'entity_id': entity_id,
-                'device': device,
-                'command': command
+                'target': {
+                    'entity_id': entity_id
+                },
+                'data': {
+                    'device': device,
+                    'command': command
+                }
             }
             
             result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
@@ -833,13 +907,18 @@ class BroadlinkWebServer:
             logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Deleting command: {device}_{command} from entity {entity_id}")
             
-            service_data = {
-                'entity_id': entity_id,
-                'device': device,
-                'command': command
+            # Use the correct HA service call format with target/data structure
+            service_payload = {
+                'target': {
+                    'entity_id': entity_id
+                },
+                'data': {
+                    'device': device,
+                    'command': command
+                }
             }
             
-            result = await self._make_ha_request('POST', 'services/remote/delete_command', service_data)
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', service_payload)
             
             if result is not None:
                 logger.info(f"Command deleted successfully: {device}{command}")

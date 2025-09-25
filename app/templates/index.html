@@ -610,20 +610,46 @@
             log(`Testing command: ${deviceName}_${commandName}`);
             
             try {
-                // Find the entity_id for this device
+                // Find the entity_id for this device by matching area
                 const allDevices = learnedData.allDevices || [];
-                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                // Extract area from device name (e.g., "tony_s_office_workbench_lamp" -> "tony_s_office")
+                const deviceParts = deviceName.split('_');
+                let areaName = '';
+                
+                // Try to match with known areas
+                if (deviceParts.length >= 3) {
+                    // Try "tony_s_office" format first
+                    areaName = deviceParts.slice(0, 3).join('_');
+                } else if (deviceParts.length >= 2) {
+                    // Try "master_bedroom" format
+                    areaName = deviceParts.slice(0, 2).join('_');
+                }
+                
+                const device = allDevices.find(d => d.area_name && 
+                    d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
                 if (!device) {
-                    showAlert(`Could not find device for ${deviceName}`, 'error');
-                    return;
+                    log(`Could not find device for area: ${areaName}, trying fallback...`);
+                    // Fallback: try to match by first part of device name
+                    const fallbackDevice = allDevices.find(d => d.name && 
+                        d.name.toLowerCase().includes(deviceParts[0]));
+                    
+                    if (!fallbackDevice) {
+                        showAlert(`Could not find device for ${deviceName}`, 'error');
+                        return;
+                    }
+                    
+                    log(`Using fallback device: ${fallbackDevice.name}`);
                 }
+                
+                const selectedDevice = device || fallbackDevice;
                 
                 const response = await fetch(getApiUrl('/api/send'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        entity_id: device.entity_id,
+                        entity_id: selectedDevice.entity_id,
                         device: deviceName,
                         command: commandName
                     })
@@ -652,21 +678,40 @@
             log(`Re-learning command: ${deviceName}_${commandName}`);
             
             try {
-                // Find the entity_id for this device
+                // Find the entity_id for this device by matching area
                 const allDevices = learnedData.allDevices || [];
-                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                // Extract area from device name
+                const deviceParts = deviceName.split('_');
+                let areaName = '';
+                
+                if (deviceParts.length >= 3) {
+                    areaName = deviceParts.slice(0, 3).join('_');
+                } else if (deviceParts.length >= 2) {
+                    areaName = deviceParts.slice(0, 2).join('_');
+                }
+                
+                const device = allDevices.find(d => d.area_name && 
+                    d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
                 if (!device) {
-                    showAlert(`Could not find device for ${deviceName}`, 'error');
-                    return;
+                    const fallbackDevice = allDevices.find(d => d.name && 
+                        d.name.toLowerCase().includes(deviceParts[0]));
+                    
+                    if (!fallbackDevice) {
+                        showAlert(`Could not find device for ${deviceName}`, 'error');
+                        return;
+                    }
                 }
+                
+                const selectedDevice = device || fallbackDevice;
                 
                 // First delete the existing command
                 const deleteResponse = await fetch(getApiUrl('/api/delete'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        entity_id: device.entity_id,
+                        entity_id: selectedDevice.entity_id,
                         device: deviceName,
                         command: commandName
                     })
@@ -682,7 +727,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            entity_id: device.entity_id,
+                            entity_id: selectedDevice.entity_id,
                             device: deviceName,
                             command: commandName,
                             command_type: 'ir' // Default to IR, will be detected after learning
@@ -721,20 +766,39 @@
             log(`Deleting command: ${deviceName}_${commandName}`);
             
             try {
-                // Find the entity_id for this device
+                // Find the entity_id for this device by matching area
                 const allDevices = learnedData.allDevices || [];
-                const device = allDevices.find(d => d.name && d.name.toLowerCase().includes(deviceName.split('_')[0]));
+                
+                // Extract area from device name
+                const deviceParts = deviceName.split('_');
+                let areaName = '';
+                
+                if (deviceParts.length >= 3) {
+                    areaName = deviceParts.slice(0, 3).join('_');
+                } else if (deviceParts.length >= 2) {
+                    areaName = deviceParts.slice(0, 2).join('_');
+                }
+                
+                const device = allDevices.find(d => d.area_name && 
+                    d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
                 if (!device) {
-                    showAlert(`Could not find device for ${deviceName}`, 'error');
-                    return;
+                    const fallbackDevice = allDevices.find(d => d.name && 
+                        d.name.toLowerCase().includes(deviceParts[0]));
+                    
+                    if (!fallbackDevice) {
+                        showAlert(`Could not find device for ${deviceName}`, 'error');
+                        return;
+                    }
                 }
+                
+                const selectedDevice = device || fallbackDevice;
                 
                 const response = await fetch(getApiUrl('/api/delete'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        entity_id: device.entity_id,
+                        entity_id: selectedDevice.entity_id,
                         device: deviceName,
                         command: commandName
                     })

@@ -552,8 +552,17 @@ class BroadlinkWebServer:
             # Also check the entity state and attributes
             entity_state = await self._make_ha_request('GET', f'states/{entity_id}')
             if entity_state:
-                logger.info(f"Entity {entity_id} state: {entity_state.get('state')}")
+                state = entity_state.get('state')
+                logger.info(f"Entity {entity_id} state: {state}")
                 logger.info(f"Entity attributes: {entity_state.get('attributes', {})}")
+                
+                # Check if device is available
+                if state == 'unavailable':
+                    logger.warning(f"Device {entity_id} is unavailable - learning may not work")
+                    return {
+                        'success': False, 
+                        'error': f'Broadlink device is unavailable. Please check that the device is powered on and connected to your network.'
+                    }
             
             # Prepare the service call payload using the correct HA format
             # According to HA docs, the format should be:
@@ -573,6 +582,9 @@ class BroadlinkWebServer:
             if command_type == 'rf':
                 service_payload['data']['command_type'] = 'rf'
             
+            # Add a timeout to prevent getting stuck
+            service_payload['data']['timeout'] = 30
+            
             logger.info(f"Calling learn_command service with payload: {service_payload}")
             
             # Use the correct HA service call format
@@ -588,7 +600,8 @@ class BroadlinkWebServer:
                 legacy_payload = {
                     'entity_id': entity_id,
                     'device': device,
-                    'command': command
+                    'command': command,
+                    'timeout': 30
                 }
                 if command_type == 'rf':
                     legacy_payload['command_type'] = 'rf'
@@ -597,54 +610,32 @@ class BroadlinkWebServer:
                 result = await self._make_ha_request('POST', 'services/remote/learn_command', legacy_payload)
                 logger.info(f"Legacy format result: {result}")
             
-            # If that didn't work, try different service approaches
-            if not result or result == []:
-                logger.info("Still empty result, trying alternative service calls...")
-                
-                # Try broadlink-specific service
-                logger.info("Trying broadlink.learn service...")
-                broadlink_result = await self._make_ha_request('POST', 'services/broadlink/learn', {
-                    'host': entity_id.replace('remote.', '').replace('_', '.'),  # Convert entity_id to host format
-                    'packet': f"{device}_{command}"
-                })
-                logger.info(f"Broadlink service result: {broadlink_result}")
-                
-                # Try the service without entity_id in the path
-                logger.info("Trying service call without entity_id in path...")
-                alt_result = await self._make_ha_request('POST', 'services/remote/learn_command', {
-                    'entity_id': entity_id,
-                    'device': device,
-                    'command': command,
-                    'command_type': command_type
-                })
-                logger.info(f"Alternative service result: {alt_result}")
-                
-                # Try calling it as a script or automation trigger
-                logger.info("Trying to trigger learning via entity service call...")
-                trigger_result = await self._make_ha_request('POST', f'services/remote/learn_command', {
-                    'entity_id': entity_id,
-                    'device': device,
-                    'command': command,
-                    'command_type': command_type
-                })
-                logger.info(f"Trigger result: {trigger_result}")
-                
-                # Check entity state after all attempts
-                final_state = await self._make_ha_request('GET', f'states/{entity_id}')
-                logger.info(f"Final entity state: {final_state}")
-                
-                result = broadlink_result or alt_result or trigger_result
-            
-            if result is not None:
+            # Check if the legacy format worked (empty array is actually success for learn_command)
+            if result == []:
+                logger.info("Legacy format returned empty array - this is normal for learn_command")
+                return {
+                    'success': True, 
+                    'message': 'Learning process started. Check Home Assistant notifications (🔔) for instructions.',
+                    'result': result
+                }
+            elif result is not None:
                 logger.info("Learn command service called successfully")
                 return {
                     'success': True, 
-                    'message': 'Learning process started. Please follow the learning instructions in Home Assistant\'s notification area (bell icon).',
+                    'message': 'Learning process started. Check Home Assistant notifications (🔔) for instructions.',
                     'result': result
                 }
             else:
-                logger.error("Learn command service returned None")
-                return {'success': False, 'error': 'Failed to start learning process'}
+                logger.error("Learn command service failed - all attempts returned None")
+                return {'success': False, 'error': 'Failed to start learning process - check that the Broadlink device is online and accessible'}
+                
+        except Exception as e:
+            logger.error(f"Error learning command: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    async def _get_notifications_http(self) -> List[Dict]:
+        """Get persistent notifications via HTTP (fallback when WebSocket fails)"""
+        try:
             # Get all states and filter for persistent notifications
             states = await self._make_ha_request('GET', 'states')
             if not isinstance(states, list):

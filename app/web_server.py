@@ -1068,6 +1068,7 @@ class BroadlinkWebServer:
             border-radius: 12px;
             margin-bottom: 16px;
             overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
 
         .device-header {
@@ -1439,20 +1440,11 @@ class BroadlinkWebServer:
             try {
                 const response = await fetch(getApiUrl('/api/areas'));
                 const areas = await response.json();
-                
-                const select = document.getElementById('areaName');
-                select.innerHTML = '<option value="">All Areas</option>';
-                
-                areas.forEach(area => {
-                    const option = document.createElement('option');
-                    option.value = area.area_id || area.name.toLowerCase().replace(/\\s+/g, '_');
-                    option.textContent = area.name;
-                    select.appendChild(option);
-                });
-                
                 log(`Loaded ${areas.length} areas`);
+                return areas;
             } catch (error) {
                 log(`Error loading areas: ${error.message}`, 'error');
+                return [];
             }
         }
 
@@ -1491,107 +1483,16 @@ class BroadlinkWebServer:
             }
         }
 
-        function updateAreaDropdown() {
-            const select = document.getElementById('areaName');
-            const currentValue = select.value;
-            
-            if (currentMode === 'filter') {
-                // In filter mode, only show areas with learned commands
-                select.innerHTML = '<option value="">All Areas</option>';
-                
-                Object.values(learnedData.areas).forEach(areaName => {
-                    const areaId = Object.keys(learnedData.areas).find(key => learnedData.areas[key] === areaName);
-                    const option = document.createElement('option');
-                    option.value = areaId;
-                    option.textContent = areaName;
-                    select.appendChild(option);
-                });
-            } else {
-                // In add mode, show all available areas
-                loadAreas();
-            }
-            
-            // Restore selection if still valid
-            if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
-                select.value = currentValue;
-            }
-        }
-
         async function loadBroadlinkDevices() {
             try {
                 const response = await fetch(getApiUrl('/api/devices'));
                 const devices = await response.json();
-                
-                const select = document.getElementById('broadlinkDevice');
-                select.innerHTML = '<option value="">Select a device...</option>';
-                
-                devices.forEach(device => {
-                    const option = document.createElement('option');
-                    option.value = device.entity_id;
-                    option.textContent = device.name;
-                    select.appendChild(option);
-                });
-                
                 log(`Loaded ${devices.length} Broadlink devices`);
+                return devices;
             } catch (error) {
                 log(`Error loading devices: ${error.message}`, 'error');
+                return [];
             }
-        }
-
-        function updateDeviceDropdown() {
-            const areaSelect = document.getElementById('areaName');
-            const deviceSelect = document.getElementById('deviceName');
-            const broadlinkSelect = document.getElementById('broadlinkDevice');
-            const selectedArea = areaSelect.value;
-            
-            if (currentMode === 'filter') {
-                deviceSelect.innerHTML = '<option value="">All Devices</option>';
-                
-                // Only show devices if area or broadlink device is selected
-                if (selectedArea || broadlinkSelect.value) {
-                    // Filter devices based on selected area
-                    const relevantDevices = Object.values(learnedData.devices).filter(device => 
-                        !selectedArea || device.area_id === selectedArea
-                    );
-                    
-                    relevantDevices.forEach(device => {
-                        const option = document.createElement('option');
-                        option.value = device.full_name;
-                        option.textContent = device.device_part;
-                        deviceSelect.appendChild(option);
-                    });
-                }
-            } else {
-                // In add mode, require area and broadlink device selection
-                if (!selectedArea || !broadlinkSelect.value) {
-                    deviceSelect.innerHTML = '<option value="">Select area and Broadlink device first</option>';
-                    deviceSelect.disabled = true;
-                } else {
-                    deviceSelect.innerHTML = '<option value="">Select or enter device name</option>';
-                    deviceSelect.disabled = false;
-                }
-            }
-        }
-
-        async function loadCommands() {
-            if (currentMode !== 'filter') return;
-            
-            const areaFilter = document.getElementById('areaName').value;
-            const deviceFilter = document.getElementById('deviceName').value;
-            
-            // Filter commands based on selections
-            let filteredCommands = learnedData.commands;
-            
-            if (areaFilter) {
-                filteredCommands = filteredCommands.filter(cmd => cmd.area_id === areaFilter);
-            }
-            
-            if (deviceFilter) {
-                filteredCommands = filteredCommands.filter(cmd => cmd.device_name === deviceFilter);
-            }
-            
-            updateCommandList(filteredCommands);
-            log(`Showing ${filteredCommands.length} commands (filtered from ${learnedData.commands.length} total)`);
         }
 
         function renderBroadlinkDevices() {
@@ -1837,28 +1738,12 @@ class BroadlinkWebServer:
             }
         }
 
-        // Event listeners for filtering
-        document.getElementById('areaName').addEventListener('change', function() {
-            currentArea = this.value;
-            updateDeviceDropdown();
-            loadCommands();
-        });
-
-        document.getElementById('deviceName').addEventListener('change', function() {
-            currentDeviceName = this.value;
-            loadCommands();
-        });
-
-        document.getElementById('broadlinkDevice').addEventListener('change', function() {
-            currentDevice = this.value;
-            updateDeviceDropdown();
-        });
-
         async function refreshData() {
             log('Refreshing data...');
             await loadLearnedData();
             log('Data refreshed');
         }
+{{ ... }}
 
         function detectCommandType(commandCode) {
             // If command starts with "sc", it's RF, otherwise IR

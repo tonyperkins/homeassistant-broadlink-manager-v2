@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broadlink Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1419;
+            color: #e1e5e9;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #111827;
+            border-bottom: 1px solid #374151;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon {
+            width: 48px;
+            height: 48px;
+            background: #3b82f6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .header-info h1 {
+            font-size: 28px;
+            font-weight: 400;
+            color: #e1e5e9;
+            margin: 0 0 2px 0;
+        }
+
+        .header-stats {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        .add-button {
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-button:hover {
+            background: #047857;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .section-header {
+            font-size: 16px;
+            color: #9ca3af;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        /* Device Cards */
+        .device-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .device-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .device-header:hover {
+            background: #252f3f;
+        }
+
+        .device-icon {
+            width: 56px;
+            height: 56px;
+            background: #374151;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .device-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .device-name {
+            font-size: 20px;
+            font-weight: 500;
+            color: #e1e5e9;
+            margin-bottom: 6px;
+        }
+
+        .device-meta {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 24px;
+        }
+
+        .expand-icon {
+            width: 24px;
+            height: 24px;
+            color: #6b7280;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .device-card.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        /* Command Groups */
+        .command-groups {
+            display: none;
+            background: #111827;
+            border-top: 1px solid #374151;
+        }
+
+        .device-card.expanded .command-groups {
+            display: block;
+        }
+
+        .command-group {
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .command-group:last-child {
+            border-bottom: none;
+        }
+
+        .group-header {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .group-header:hover {
+            background: #1f2937;
+        }
+
+        .group-icon {
+            width: 16px;
+            height: 16px;
+            color: #6b7280;
+            transition: transform 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .command-group.expanded .group-icon {
+            transform: rotate(90deg);
+        }
+
+        .group-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #e1e5e9;
+            flex: 1;
+        }
+
+        .group-count {
+            background: #374151;
+            color: #9ca3af;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Commands */
+        .commands-list {
+            display: none;
+            background: #0d1117;
+            padding: 16px 0;
+        }
+
+        .command-group.expanded .commands-list {
+            display: block;
+        }
+
+        .command-item {
+            padding: 16px 24px 16px 80px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: background-color 0.2s ease;
+            min-height: 56px;
+        }
+
+        .command-item:hover {
+            background: #1f2937;
+        }
+
+        .command-item:hover .command-actions {
+            opacity: 1;
+        }
+
+        .command-name {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #e1e5e9;
+            flex: 1;
+        }
+
+        .command-type {
+            background: #374151;
+            color: #9ca3af;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .command-type.rf {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .command-type.ir {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .command-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Button styles */
+        .btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #374151;
+            color: #e1e5e9;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Activity Log */
+        .config-section {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .config-section h2 {
+            color: #e1e5e9;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .log-area {
+            background: #0a0a0a;
+            color: #22c55e;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            padding: 16px;
+            border-radius: 8px;
+            height: 180px;
+            overflow-y: auto;
+            border: 1px solid #374151;
+            font-size: 0.8rem;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+            border-left-color: #10b981;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border-left-color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="header-icon">📡</div>
+            <div class="header-info">
+                <h1>Broadlink</h1>
+                <div class="header-stats">2 devices • 15 entities</div>
+            </div>
+        </div>
+        <button class="add-button" onclick="showAddDialog()">Add entry</button>
+    </header>
+
+    <div class="container">
+        <div class="section-header">Integration entities</div>
+        
+        <!-- Broadlink Devices -->
+        <div id="broadlinkDevices">
+            <!-- Devices will be populated here -->
+        </div>
+
+        <!-- Activity Log -->
+        <div class="config-section">
+            <h2>📊 Activity Log</h2>
+            <div class="log-area" id="logArea">
+                <div>🚀 Broadlink Manager initialized...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let learnedData = {};
+        let currentDevice = '';
+
+        // Helper function to get correct API URL
+        function getApiUrl(endpoint) {
+            const baseUrl = window.location.pathname.endsWith('/') ? 
+                window.location.pathname.slice(0, -1) : window.location.pathname;
+            return baseUrl.includes('/api/hassio_ingress/') ? 
+                `${baseUrl}${endpoint}` : endpoint;
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async function() {
+            log('🚀 Broadlink Manager initialized...');
+            
+            const container = document.getElementById('broadlinkDevices');
+            if (container) {
+                log('✅ broadlinkDevices container found');
+            } else {
+                log('❌ broadlinkDevices container NOT found', 'error');
+            }
+            
+            try {
+                await loadLearnedData();
+                log('✅ Initial data loaded successfully');
+            } catch (error) {
+                log(`❌ Failed to load initial data: ${error.message}`, 'error');
+                log('🔧 Rendering with test data for debugging');
+                renderTestData();
+            }
+        });
+
+        function updateHeaderStats() {
+            try {
+                const deviceCount = Object.keys(learnedData.devices || {}).length;
+                const commandCount = (learnedData.commands || []).length;
+                const headerStats = document.querySelector('.header-stats');
+                if (headerStats) {
+                    headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
+                }
+            } catch (error) {
+                console.error('Error updating header stats:', error);
+            }
+        }
+
+        async function loadLearnedData() {
+            try {
+                const response = await fetch(getApiUrl('/api/learned-devices'));
+                learnedData = await response.json();
+                
+                console.log('Loaded learned data:', learnedData);
+                log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
+                
+                updateHeaderStats();
+                renderBroadlinkDevices();
+                
+            } catch (error) {
+                console.error('Error loading learned data:', error);
+                log(`Error loading learned data: ${error.message}`, 'error');
+            }
+        }
+
+        function renderBroadlinkDevices() {
+            const container = document.getElementById('broadlinkDevices');
+            
+            if (!container) {
+                console.error('broadlinkDevices container not found');
+                return;
+            }
+            
+            if (!learnedData || !learnedData.commands || learnedData.commands.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #9ca3af;">No learned commands found</div>';
+                return;
+            }
+            
+            // Group commands by area and device
+            const broadlinkDevices = {};
+            
+            learnedData.commands.forEach(command => {
+                const areaName = command.area_name || 'Unknown Area';
+                const devicePart = command.device_part;
+                
+                if (!broadlinkDevices[areaName]) {
+                    broadlinkDevices[areaName] = {
+                        deviceGroups: {},
+                        totalCommands: 0
+                    };
+                }
+                
+                if (!broadlinkDevices[areaName].deviceGroups[devicePart]) {
+                    broadlinkDevices[areaName].deviceGroups[devicePart] = [];
+                }
+                
+                broadlinkDevices[areaName].deviceGroups[devicePart].push(command);
+                broadlinkDevices[areaName].totalCommands++;
+            });
+            
+            container.innerHTML = '';
+            
+            // Create device cards
+            Object.keys(broadlinkDevices).forEach(areaName => {
+                const deviceData = broadlinkDevices[areaName];
+                const deviceCard = document.createElement('div');
+                deviceCard.className = 'device-card';
+                
+                const deviceCount = Object.keys(deviceData.deviceGroups).length;
+                
+                deviceCard.innerHTML = `
+                    <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
+                        <div class="device-icon">📡</div>
+                        <div class="device-info">
+                            <div class="device-name">${areaName} RM4 Pro</div>
+                            <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
+                        </div>
+                        <div class="device-status">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></div>
+                        </div>
+                        <div class="expand-icon">▶</div>
+                    </div>
+                    <div class="command-groups">
+                        ${Object.keys(deviceData.deviceGroups).map(devicePart => {
+                            const commands = deviceData.deviceGroups[devicePart];
+                            return `
+                                <div class="command-group">
+                                    <div class="group-header" onclick="event.stopPropagation(); toggleGroup(this)">
+                                        <div class="group-icon">▶</div>
+                                        <div class="group-name">${devicePart}</div>
+                                        <div class="group-count">${commands.length}</div>
+                                    </div>
+                                    <div class="commands-list">
+                                        ${commands.map(command => `
+                                            <div class="command-item">
+                                                <div class="command-name">${command.command}</div>
+                                                <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
+                                                <div class="command-actions">
+                                                    <button class="btn btn-primary" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
+                                                    <button class="btn btn-secondary">🔄 Re-learn</button>
+                                                    <button class="btn btn-danger">🗑️</button>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(deviceCard);
+            });
+        }
+
+        function toggleDevice(deviceElement) {
+            deviceElement.classList.toggle('expanded');
+            const deviceName = deviceElement.querySelector('.device-name').textContent;
+            console.log(`Device ${deviceElement.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${deviceName}`);
+        }
+
+        function toggleGroup(groupElement) {
+            const group = groupElement.closest('.command-group');
+            group.classList.toggle('expanded');
+            const groupName = groupElement.querySelector('.group-name').textContent;
+            console.log(`Command group ${group.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${groupName}`);
+        }
+
+        async function testCommand(deviceName, commandName) {
+            log(`Testing command: ${deviceName}_${commandName}`);
+            // TODO: Implement test command functionality
+        }
+
+        function showAddDialog() {
+            showAlert('Add dialog coming soon!', 'info');
+        }
+
+        function renderTestData() {
+            const container = document.getElementById('broadlinkDevices');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="device-card expanded">
+                    <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
+                        <div class="device-icon">📡</div>
+                        <div class="device-info">
+                            <div class="device-name">Tony's Office RM4 Pro</div>
+                            <div class="device-meta">Broadlink • Tony's Office • 9 entities</div>
+                        </div>
+                        <div class="device-status">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></div>
+                        </div>
+                        <div class="expand-icon">▶</div>
+                    </div>
+                    <div class="command-groups">
+                        <div class="command-group expanded">
+                            <div class="group-header" onclick="event.stopPropagation(); toggleGroup(this)">
+                                <div class="group-icon">▶</div>
+                                <div class="group-name">ceiling_fan</div>
+                                <div class="group-count">5</div>
+                            </div>
+                            <div class="commands-list">
+                                <div class="command-item">
+                                    <div class="command-name">fan_off</div>
+                                    <div class="command-type rf">RF</div>
+                                    <div class="command-actions">
+                                        <button class="btn btn-primary">▶ Test</button>
+                                        <button class="btn btn-secondary">🔄 Re-learn</button>
+                                        <button class="btn btn-danger">🗑️</button>
+                                    </div>
+                                </div>
+                                <div class="command-item">
+                                    <div class="command-name">light_on</div>
+                                    <div class="command-type ir">IR</div>
+                                    <div class="command-actions">
+                                        <button class="btn btn-primary">▶ Test</button>
+                                        <button class="btn btn-secondary">🔄 Re-learn</button>
+                                        <button class="btn btn-danger">🗑️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            log('🎨 Test UI rendered - try clicking on device headers to expand');
+        }
+
+        function showAlert(message, type = 'error') {
+            const container = document.querySelector('.container');
+            const alertEl = document.createElement('div');
+            alertEl.className = `alert alert-${type}`;
+            alertEl.textContent = message;
+            
+            container.insertBefore(alertEl, container.children[1]);
+            
+            setTimeout(() => {
+                alertEl.style.transition = 'opacity 0.5s ease';
+                alertEl.style.opacity = '0';
+                setTimeout(() => alertEl.remove(), 500);
+            }, 5000);
+        }
+
+        function log(message, level = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            if (level === 'error') logEntry.style.color = '#ff4d4d';
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>

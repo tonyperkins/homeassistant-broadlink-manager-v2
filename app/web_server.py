@@ -343,20 +343,39 @@ class BroadlinkWebServer:
             return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices"""
+        """Get Broadlink remote devices by checking entity registry"""
         try:
-            states = await self._make_ha_request('GET', 'states')
-            broadlink_devices = []
+            # First, get the entity registry to find Broadlink remote entities
+            entity_registry = await self._make_ha_request('GET', 'config/entity_registry')
+            if not entity_registry or not isinstance(entity_registry, list):
+                logger.error("Failed to get entity registry or invalid response")
+                return []
             
-            for entity in states:
-                entity_id = entity.get('entity_id', '')
-                if entity_id.startswith('remote.') and 'broadlink' in entity_id.lower():
-                    attributes = entity.get('attributes', {})
-                    broadlink_devices.append({
-                        'entity_id': entity_id,
-                        'name': attributes.get('friendly_name', entity_id),
-                        'state': entity.get('state')
-                    })
+            # Filter for remote entities from the Broadlink integration
+            broadlink_entities = [
+                entity for entity in entity_registry
+                if (entity.get('platform') == 'broadlink' and 
+                    entity.get('entity_id', '').startswith('remote.'))
+            ]
+            
+            # Get current states for all found entities
+            states = await self._make_ha_request('GET', 'states')
+            states_map = {state['entity_id']: state for state in states if 'entity_id' in state}
+            
+            # Build the result with both registry and state information
+            broadlink_devices = []
+            for entity in broadlink_entities:
+                entity_id = entity.get('entity_id')
+                state = states_map.get(entity_id, {})
+                attributes = state.get('attributes', {})
+                
+                broadlink_devices.append({
+                    'entity_id': entity_id,
+                    'name': entity.get('name') or attributes.get('friendly_name', entity_id),
+                    'state': state.get('state', 'unknown'),
+                    'disabled': entity.get('disabled', False),
+                    'device_id': entity.get('device_id')
+                })
             
             return broadlink_devices
         except Exception as e:
@@ -923,10 +942,9 @@ class BroadlinkWebServer:
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏠 Broadlink Manager</h1>
-            <p>Manage your Broadlink devices from Home Assistant</p>
+1    <div class="container">
+        <div class="header" style="text-align: left;">
+            <h1>🏠 Broadlink Remote Manager</h1>
         </div>
 
         <!-- Device Selection -->

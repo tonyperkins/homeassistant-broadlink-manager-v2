@@ -343,25 +343,120 @@ class BroadlinkWebServer:
             return []
     
     async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices"""
+        """Get Broadlink remote devices by finding remote entities that belong to Broadlink devices"""
         try:
+            # Get all states and device registry
             states = await self._make_ha_request('GET', 'states')
+            device_registry = await self._make_ha_request('GET', 'config/device_registry')
+            entity_registry = await self._make_ha_request('GET', 'config/entity_registry')
+            
             broadlink_devices = []
+            broadlink_device_ids = set()
             
-            for entity in states:
-                entity_id = entity.get('entity_id', '')
-                if entity_id.startswith('remote.') and 'broadlink' in entity_id.lower():
-                    attributes = entity.get('attributes', {})
-                    broadlink_devices.append({
-                        'entity_id': entity_id,
-                        'name': attributes.get('friendly_name', entity_id),
-                        'state': entity.get('state')
-                    })
+            # First, find all Broadlink devices in the device registry
+            if isinstance(device_registry, list):
+                for device in device_registry:
+                    manufacturer = device.get('manufacturer', '').lower()
+                    model = device.get('model', '').lower()
+                    # Check if this is a Broadlink device
+                    if 'broadlink' in manufacturer or 'broadlink' in model:
+                        device_id = device.get('id')
+                        if device_id:
+                            broadlink_device_ids.add(device_id)
+                            logger.info(f"Found Broadlink device: {device.get('name', 'Unknown')} (ID: {device_id}, Manufacturer: {manufacturer}, Model: {model})")
             
+            # If no device registry data, fall back to entity ID pattern matching
+            if not broadlink_device_ids:
+                logger.warning("No device registry data available, falling back to entity ID pattern matching")
+                for entity in states:
+                    entity_id = entity.get('entity_id', '')
+                    if entity_id.startswith('remote.') and 'broadlink' in entity_id.lower():
+                        attributes = entity.get('attributes', {})
+                        broadlink_devices.append({
+                            'entity_id': entity_id,
+                            'name': attributes.get('friendly_name', entity_id),
+                            'state': entity.get('state')
+                        })
+                return broadlink_devices
+            
+            # Now find remote entities that belong to these Broadlink devices
+            if isinstance(entity_registry, list):
+                for entity_reg in entity_registry:
+                    entity_id = entity_reg.get('entity_id', '')
+                    device_id = entity_reg.get('device_id')
+                    platform = entity_reg.get('platform', '')
+                    
+                    # Check if this is a remote entity belonging to a Broadlink device
+                    if (entity_id.startswith('remote.') and 
+                        device_id in broadlink_device_ids and
+                        platform == 'broadlink'):
+                        
+                        # Find the corresponding state information
+                        entity_state = None
+                        for state in states:
+                            if state.get('entity_id') == entity_id:
+                                entity_state = state
+                                break
+                        
+                        if entity_state:
+                            attributes = entity_state.get('attributes', {})
+                            broadlink_devices.append({
+                                'entity_id': entity_id,
+                                'name': attributes.get('friendly_name', entity_id),
+                                'state': entity_state.get('state'),
+                                'device_id': device_id
+                            })
+                            logger.info(f"Found Broadlink remote entity: {entity_id}")
+            
+            # If entity registry approach didn't work, try direct state inspection
+            if not broadlink_devices:
+                logger.warning("Entity registry approach found no devices, trying state inspection")
+                for entity in states:
+                    entity_id = entity.get('entity_id', '')
+                    if entity_id.startswith('remote.'):
+                        attributes = entity.get('attributes', {})
+                        
+                        # Check various attributes that might indicate this is a Broadlink device
+                        device_class = attributes.get('device_class', '').lower()
+                        integration = attributes.get('integration', '').lower()
+                        attribution = attributes.get('attribution', '').lower()
+                        
+                        if ('broadlink' in integration or 
+                            'broadlink' in attribution or
+                            any('broadlink' in str(v).lower() for v in attributes.values() if isinstance(v, str))):
+                            
+                            broadlink_devices.append({
+                                'entity_id': entity_id,
+                                'name': attributes.get('friendly_name', entity_id),
+                                'state': entity.get('state')
+                            })
+                            logger.info(f"Found Broadlink remote via state inspection: {entity_id}")
+            
+            logger.info(f"Found {len(broadlink_devices)} Broadlink remote devices")
             return broadlink_devices
+            
         except Exception as e:
             logger.error(f"Error getting Broadlink devices: {e}")
-            return []
+            # Fallback to original method if everything fails
+            try:
+                states = await self._make_ha_request('GET', 'states')
+                broadlink_devices = []
+                
+                for entity in states:
+                    entity_id = entity.get('entity_id', '')
+                    if entity_id.startswith('remote.') and 'broadlink' in entity_id.lower():
+                        attributes = entity.get('attributes', {})
+                        broadlink_devices.append({
+                            'entity_id': entity_id,
+                            'name': attributes.get('friendly_name', entity_id),
+                            'state': entity.get('state')
+                        })
+                
+                logger.info(f"Fallback method found {len(broadlink_devices)} devices")
+                return broadlink_devices
+            except Exception as fallback_error:
+                logger.error(f"Fallback method also failed: {fallback_error}")
+                return []
     
     async def _get_learned_commands(self, device_id: str) -> Dict:
         """Get learned commands for a specific device by reading storage files"""

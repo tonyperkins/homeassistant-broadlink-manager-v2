@@ -873,22 +873,19 @@ class BroadlinkWebServer:
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--background);
-            min-height: 100vh;
-            color: var(--text-primary);
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1419;
+            color: #e1e5e9;
+            margin: 0;
+            padding: 0;
             line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 16px;
+            min-height: 100vh;
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 24px;
+            background: #111827;
+            border-bottom: 1px solid #374151;
+            padding: 16px 24px;
             padding: 24px 0;
         }
 
@@ -1064,53 +1061,55 @@ class BroadlinkWebServer:
             border-left-color: var(--danger);
         }
 
-        /* Device Cards */
+        /* Device Cards - Match mock.html exactly */
         .device-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 12px;
             margin-bottom: 16px;
             overflow: hidden;
-            box-shadow: var(--shadow);
         }
 
         .device-header {
+            padding: 24px;
             display: flex;
             align-items: center;
-            padding: 16px 20px;
+            gap: 16px;
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
 
         .device-header:hover {
-            background: var(--surface-light);
+            background: #252f3f;
         }
 
         .device-icon {
-            width: 40px;
-            height: 40px;
-            background: #3b82f6;
-            border-radius: 8px;
+            width: 56px;
+            height: 56px;
+            background: #374151;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
-            font-size: 20px;
+            font-size: 24px;
+            flex-shrink: 0;
         }
 
         .device-info {
             flex: 1;
+            min-width: 0;
         }
 
         .device-name {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 2px;
+            font-size: 20px;
+            font-weight: 500;
+            color: #e1e5e9;
+            margin-bottom: 6px;
         }
 
-        .device-details {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
+        .device-meta {
+            font-size: 14px;
+            color: #9ca3af;
         }
 
         .device-status {
@@ -1132,12 +1131,17 @@ class BroadlinkWebServer:
 
         /* Command Groups */
         .command-groups {
-            border-top: 1px solid var(--border);
-            background: var(--background);
+            display: none;
+            background: #111827;
+            border-top: 1px solid #374151;
+        }
+
+        .device-card.expanded .command-groups {
+            display: block;
         }
 
         .command-group {
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid #1f2937;
         }
 
         .command-group:last-child {
@@ -1145,15 +1149,16 @@ class BroadlinkWebServer:
         }
 
         .group-header {
+            padding: 20px 24px;
             display: flex;
             align-items: center;
-            padding: 12px 20px;
+            gap: 16px;
             cursor: pointer;
             transition: background-color 0.2s ease;
         }
 
         .group-header:hover {
-            background: var(--surface-light);
+            background: #1f2937;
         }
 
         .group-chevron {
@@ -1182,27 +1187,30 @@ class BroadlinkWebServer:
 
         /* Commands */
         .commands-list {
-            background: var(--surface);
+            display: none;
+            background: #0d1117;
+            padding: 16px 0;
         }
 
-        .command-row {
+        .command-group.expanded .commands-list {
+            display: block;
+        }
+
+        .command-item {
+            padding: 16px 24px 16px 80px;
             display: flex;
             align-items: center;
-            padding: 8px 48px;
-            border-bottom: 1px solid var(--border);
+            gap: 16px;
             transition: background-color 0.2s ease;
+            min-height: 56px;
         }
 
-        .command-row:hover {
-            background: var(--surface-light);
+        .command-item:hover {
+            background: #1f2937;
         }
 
-        .command-row:hover .command-actions {
+        .command-item:hover .command-actions {
             opacity: 1;
-        }
-
-        .command-row:last-child {
-            border-bottom: none;
         }
 
         .command-info {
@@ -1212,24 +1220,28 @@ class BroadlinkWebServer:
         }
 
         .command-name {
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-right: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            color: #e1e5e9;
+            flex: 1;
         }
 
-        .command-type-badge {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
+        .command-type {
+            background: #374151;
+            color: #9ca3af;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            text-transform: uppercase;
             font-weight: 500;
         }
 
-        .command-type-ir {
-            background: #10b981;
+        .command-type.rf {
+            background: #3b82f6;
             color: white;
         }
 
-        .command-type-rf {
+        .command-type.ir {
             background: #f59e0b;
             color: white;
         }
@@ -1268,35 +1280,6 @@ class BroadlinkWebServer:
         .action-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header with Add Button -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <div>
-                <h1 style="margin: 0; font-size: 1.5rem;">Broadlink</h1>
-                <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">2 devices • 13 entities</p>
-            </div>
-            <button class="btn btn-primary" onclick="showAddDialog()" style="background: #10b981; border: none;">
-                Add entry
-            </button>
-        </div>
-
-        <!-- Integration Entities Header -->
-        <div style="margin-bottom: 16px;">
-            <h3 style="color: #3b82f6; font-size: 0.875rem; font-weight: 500; margin: 0;">Integration entities</h3>
-        </div>
-
-        <!-- Broadlink Devices -->
-        <div id="broadlinkDevices">
-            <!-- Devices will be populated here -->
-        </div>
-
-        <!-- Activity Log -->
-        <div class="config-section">
-            <h2>📊 Activity Log</h2>
             <div class="log-area" id="logArea">
                 <div>🚀 Broadlink Manager initialized...</div>
             </div>
@@ -1575,14 +1558,16 @@ class BroadlinkWebServer:
                 const safeAreaName = areaName.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 deviceCard.innerHTML = `
-                    <div class="device-header" onclick="toggleDevice('${safeAreaName}')">
+                    <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
                         <div class="device-icon">📡</div>
                         <div class="device-info">
                             <div class="device-name">${areaName} RM4 Pro</div>
-                            <div class="device-details">Broadlink • ${areaName} • ${deviceCount} entities</div>
+                            <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
                         </div>
-                        <div class="device-status"></div>
-                        <div class="device-chevron" id="chevron-${safeAreaName}">▶</div>
+                        <div class="device-status">
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></div>
+                        </div>
+                        <div class="expand-icon">▶</div>
                     </div>
                     <div class="command-groups" id="groups-${safeAreaName}" style="display: none;">
                         ${Object.keys(deviceData.deviceGroups).map(devicePart => {
@@ -1597,15 +1582,13 @@ class BroadlinkWebServer:
                                     </div>
                                     <div class="commands-list" id="commands-${safeAreaName}-${safeDevicePart}" style="display: none;">
                                         ${commands.map(command => `
-                                            <div class="command-row">
-                                                <div class="command-info">
-                                                    <span class="command-name">${command.command}</span>
-                                                    <span class="command-type-badge command-type-${command.command_type}">${command.command_type.toUpperCase()}</span>
-                                                </div>
+                                            <div class="command-item">
+                                                <div class="command-name">${command.command}</div>
+                                                <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
                                                 <div class="command-actions">
-                                                    <button class="action-btn test" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
-                                                    <button class="action-btn relearn" onclick="relearnCommand('${command.device_name}', '${command.command}')">🔄 Re-learn</button>
-                                                    <button class="action-btn delete" onclick="deleteCommand('${command.device_name}', '${command.command}')">🗑</button>
+                                                    <button class="btn btn-primary" onclick="testCommand('${command.device_name}', '${command.command}')">▶ Test</button>
+                                                    <button class="btn btn-secondary">🔄 Re-learn</button>
+                                                    <button class="btn btn-danger">🗑️</button>
                                                 </div>
                                             </div>
                                         `).join('')}
@@ -1620,19 +1603,10 @@ class BroadlinkWebServer:
             });
         }
 
-        function toggleDevice(safeAreaName) {
-            const groups = document.getElementById(`groups-${safeAreaName}`);
-            const chevron = document.getElementById(`chevron-${safeAreaName}`);
-            
-            if (groups && chevron) {
-                if (groups.style.display === 'none') {
-                    groups.style.display = 'block';
-                    chevron.classList.add('expanded');
-                } else {
-                    groups.style.display = 'none';
-                    chevron.classList.remove('expanded');
-                }
-            }
+        function toggleDevice(deviceElement) {
+            deviceElement.classList.toggle('expanded');
+            const deviceName = deviceElement.querySelector('.device-name').textContent;
+            console.log(`Device ${deviceElement.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${deviceName}`);
         }
 
         function toggleGroup(safeAreaName, safeDevicePart) {

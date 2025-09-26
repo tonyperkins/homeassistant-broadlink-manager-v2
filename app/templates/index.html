@@ -917,7 +917,9 @@
                         <div class="device-actions">
                             <button class="add-command-button" 
                                     ${!device?.entity_id ? 'disabled title="No valid device entity found"' : ''} 
-                                    onclick="event.stopPropagation(); ${device?.entity_id ? `openAddDialog('${device.entity_id}', '${areaName}')` : 'return false;'}">
+                                    data-entity-id="${device?.entity_id || ''}"
+                                    data-area-name="${areaName}"
+                                    onclick="event.stopPropagation(); handleAddCommand(this)">
                                 Add Command
                             </button>
                         </div>
@@ -1208,6 +1210,18 @@
                 log(`❌ Error deleting command: ${error.message}`, 'error');
                 showAlert(`Error deleting command: ${error.message}`, 'error');
             }
+        }
+
+        function handleAddCommand(button) {
+            const entityId = button.getAttribute('data-entity-id');
+            const areaName = button.getAttribute('data-area-name');
+            
+            if (!entityId || entityId === '') {
+                showAlert('No valid Broadlink device found for this area. Please check your device configuration.', 'error');
+                return;
+            }
+            
+            openAddDialog(entityId, areaName);
         }
 
         function openAddDialog(entityId, areaName) {

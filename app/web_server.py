@@ -424,13 +424,19 @@ class BroadlinkWebServer:
                                 if (entity.get('device_id') == device_id and 
                                     entity.get('entity_id', '').startswith('remote.')):
                                     
+                                    entity_id = entity.get('entity_id')
+                                    
+                                    # Get device status
+                                    status = await self._get_device_status(entity_id)
+                                    
                                     broadlink_devices.append({
-                                        'entity_id': entity.get('entity_id'),
-                                        'name': device.get('name', entity.get('entity_id')),
+                                        'entity_id': entity_id,
+                                        'name': device.get('name', entity_id),
                                         'device_id': device_id,
                                         'unique_id': entity.get('unique_id'),
                                         'area_id': area_id,
-                                        'area_name': area_name
+                                        'area_name': area_name,
+                                        'status': status
                                     })
                     except Exception as e:
                         logger.warning(f"Error processing device entry: {e}, device: {device}")
@@ -445,6 +451,62 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error getting Broadlink devices: {e}")
             return []
+    
+    async def _get_device_status(self, entity_id: str) -> dict:
+        """Determine the actual status of a Broadlink device"""
+        try:
+            # Get current entity state from Home Assistant
+            entity_state = await self._make_ha_request('GET', f'states/{entity_id}')
+            
+            if not entity_state:
+                return {
+                    'status': 'unknown',
+                    'label': 'Unknown',
+                    'color': '#6b7280',  # Gray
+                    'method': 'no_response'
+                }
+            
+            state = entity_state.get('state', 'unknown')
+            attributes = entity_state.get('attributes', {})
+            
+            # Primary: Check Home Assistant entity state
+            if state == 'on':
+                return {
+                    'status': 'online',
+                    'label': 'Online',
+                    'color': '#10b981',  # Green
+                    'method': 'entity_state'
+                }
+            elif state == 'off':
+                return {
+                    'status': 'idle',
+                    'label': 'Idle', 
+                    'color': '#f59e0b',  # Yellow/Orange
+                    'method': 'entity_state'
+                }
+            elif state == 'unavailable':
+                return {
+                    'status': 'offline',
+                    'label': 'Offline',
+                    'color': '#ef4444',  # Red
+                    'method': 'entity_unavailable'
+                }
+            else:
+                return {
+                    'status': 'unknown',
+                    'label': 'Unknown',
+                    'color': '#6b7280',  # Gray
+                    'method': 'unknown_state'
+                }
+                
+        except Exception as e:
+            logger.error(f"Error determining device status for {entity_id}: {e}")
+            return {
+                'status': 'error',
+                'label': 'Error',
+                'color': '#ef4444',  # Red
+                'method': 'error'
+            }
     
     async def _get_learned_commands(self, device_id: str = None) -> Dict:
         """Get learned commands from storage files with filtering and area information"""

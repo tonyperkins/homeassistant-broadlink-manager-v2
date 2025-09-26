@@ -150,6 +150,15 @@
             margin-right: 24px;
         }
 
+        .status-indicator {
+            cursor: help;
+            transition: transform 0.2s ease;
+        }
+
+        .status-indicator:hover {
+            transform: scale(1.2);
+        }
+
         .expand-icon {
             width: 24px;
             height: 24px;
@@ -762,6 +771,8 @@
                 
                 const deviceCount = Object.keys(deviceData.deviceGroups).length;
                 const commandCount = deviceData.totalCommands;
+                const device = deviceData.device;
+                const status = device?.status || { color: '#6b7280', label: 'Unknown' };
                 
                 deviceCard.innerHTML = `
                     <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
@@ -771,7 +782,7 @@
                             <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
                         </div>
                         <div class="device-status">
-                            <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></div>
+                            <div class="status-indicator" style="width: 10px; height: 10px; border-radius: 50%; background: ${status.color};" title="${status.label}"></div>
                         </div>
                         <div class="expand-icon">▶</div>
                     </div>

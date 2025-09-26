@@ -651,25 +651,6 @@
             }
         }
 
-        // Load and apply Home Assistant theme
-        async function loadHATheme() {
-                log('❌ broadlinkDevices container NOT found', 'error');
-            }
-            
-            try {
-                await loadLearnedData();
-                log('✅ Initial data loaded successfully');
-            } catch (error) {
-                log(`❌ Failed to load initial data: ${error.message}`, 'error');
-                
-                // Fallback: render with test data to show UI structure
-                log('🔧 Rendering with test data for debugging');
-                renderTestData();
-                
-                // Setup event listeners after rendering test data
-                setupCommandEventListeners();
-            }
-        });
         function updateHeaderStats() {
             try {
                 const deviceCount = Object.keys(learnedData.devices || {}).length;

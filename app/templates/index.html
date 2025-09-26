@@ -1,10 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Broadlink Manager</title>
     <style>
+        :root {
+            /* Default theme colors - will be overridden by HA theme */
+            --ha-primary-color: #03a9f4;
+            --ha-accent-color: #ff9800;
+            --ha-background-color: #111111;
+            --ha-surface-color: #1c1c1c;
+            --ha-text-primary-color: #ffffff;
+            --ha-text-secondary-color: #9ca3af;
+            --ha-border-color: #2c2c2c;
+            --ha-success-color: #10b981;
+            --ha-warning-color: #f59e0b;
+            --ha-error-color: #ef4444;
+            --ha-info-color: #3b82f6;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,22 +26,20 @@
         }
 
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f1419;
-            color: #e1e5e9;
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--ha-background-color);
+            color: var(--ha-text-primary-color);
             line-height: 1.6;
-            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-
         .header {
-            background: #111827;
-            border-bottom: 1px solid #374151;
+            background: var(--ha-surface-color);
+            border-bottom: 1px solid var(--ha-border-color);
             padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
 
         .header-left {
@@ -60,7 +72,7 @@
         }
 
         .add-button {
-            background: #03a9f4;
+            background: var(--ha-primary-color);
             color: white;
             border: none;
             border-radius: 18px;
@@ -73,7 +85,7 @@
         }
 
         .add-button:hover {
-            background: #0288d1;
+            filter: brightness(0.9);
             box-shadow: 0 4px 8px rgba(3, 169, 244, 0.4);
             transform: translateY(-1px);
         }
@@ -87,17 +99,17 @@
         .section-header {
             font-size: 16px;
             color: #9ca3af;
-            margin-bottom: 24px;
             font-weight: 500;
         }
 
         /* Device Cards */
         .device-card {
-            background: #1f2937;
-            border: 1px solid #374151;
+            background: var(--ha-surface-color);
+            border: 1px solid var(--ha-border-color);
             border-radius: 12px;
             margin-bottom: 16px;
             overflow: hidden;
+            transition: all 0.2s ease;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
 
@@ -134,13 +146,13 @@
         .device-name {
             font-size: 20px;
             font-weight: 500;
-            color: #e1e5e9;
+            color: var(--ha-text-primary-color);
             margin-bottom: 6px;
         }
 
         .device-meta {
             font-size: 14px;
-            color: #9ca3af;
+            color: var(--ha-text-secondary-color);
         }
 
         .device-status {
@@ -394,21 +406,21 @@
         }
 
         .alert-success {
-            background: rgba(16, 185, 129, 0.9);
+            background: var(--ha-success-color);
             color: #ffffff;
-            border-color: #10b981;
+            border-color: var(--ha-success-color);
         }
 
         .alert-error {
-            background: rgba(239, 68, 68, 0.9);
+            background: var(--ha-error-color);
             color: #ffffff;
-            border-color: #ef4444;
+            border-color: var(--ha-error-color);
         }
 
         .alert-info {
-            background: rgba(59, 130, 246, 0.9);
+            background: var(--ha-info-color);
             color: #ffffff;
-            border-color: #3b82f6;
+            border-color: var(--ha-info-color);
         }
 
         /* Modal Styles */
@@ -422,7 +434,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
+            z-index: 1000;
             animation: fadeIn 0.3s ease-out;
         }
 
@@ -431,12 +443,14 @@
             to { opacity: 1; }
         }
 
-        .modal-dialog {
-            background: #1f2937;
+        .modal {
+            background: var(--ha-surface-color);
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             animation: slideInUp 0.3s ease-out;
         }
 
@@ -595,6 +609,7 @@
     <script>
         let learnedData = {};
         let currentDevice = '';
+        let currentTheme = null;
 
         // Helper function to get correct API URL
         function getApiUrl(endpoint) {
@@ -636,14 +651,8 @@
             }
         }
 
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', async function() {
-            log('🚀 Broadlink Manager initialized...');
-            
-            const container = document.getElementById('broadlinkDevices');
-            if (container) {
-                log('✅ broadlinkDevices container found');
-            } else {
+        // Load and apply Home Assistant theme
+        async function loadHATheme() {
                 log('❌ broadlinkDevices container NOT found', 'error');
             }
             
@@ -672,6 +681,64 @@
             } catch (error) {
                 console.error('Error updating header stats:', error);
             }
+        }
+
+        // Load and apply Home Assistant theme
+        async function loadHATheme() {
+            try {
+                const response = await fetch(getApiUrl('/api/theme'));
+                const themeData = await response.json();
+                
+                if (themeData && themeData.colors) {
+                    applyTheme(themeData);
+                    currentTheme = themeData;
+                    log(`Applied HA theme: ${themeData.theme_name}`);
+                } else {
+                    log('Using default theme');
+                }
+            } catch (error) {
+                console.error('Error loading HA theme:', error);
+                log('Failed to load HA theme, using default');
+            }
+        }
+
+        function applyTheme(themeData) {
+            const root = document.documentElement;
+            const colors = themeData.colors;
+            
+            // Apply theme colors to CSS variables
+            root.style.setProperty('--ha-primary-color', colors.primary);
+            root.style.setProperty('--ha-accent-color', colors.accent);
+            root.style.setProperty('--ha-background-color', colors.background);
+            root.style.setProperty('--ha-surface-color', colors.surface);
+            root.style.setProperty('--ha-text-primary-color', colors.text_primary);
+            root.style.setProperty('--ha-text-secondary-color', colors.text_secondary);
+            root.style.setProperty('--ha-border-color', colors.border);
+            root.style.setProperty('--ha-success-color', colors.success);
+            root.style.setProperty('--ha-warning-color', colors.warning);
+            root.style.setProperty('--ha-error-color', colors.error);
+            root.style.setProperty('--ha-info-color', colors.info);
+            
+            // Add theme class to body for additional styling if needed
+            document.body.className = themeData.is_dark ? 'theme-dark' : 'theme-light';
+        }
+
+        // Check for theme changes periodically
+        function startThemeWatcher() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch(getApiUrl('/api/theme'));
+                    const newThemeData = await response.json();
+                    
+                    if (newThemeData && newThemeData.theme_name !== currentTheme?.theme_name) {
+                        log(`Theme changed from ${currentTheme?.theme_name || 'default'} to ${newThemeData.theme_name}`);
+                        applyTheme(newThemeData);
+                        currentTheme = newThemeData;
+                    }
+                } catch (error) {
+                    // Silently fail - don't spam logs
+                }
+            }, 5000); // Check every 5 seconds
         }
 
         async function loadLearnedData() {
@@ -1519,6 +1586,13 @@
             logArea.appendChild(logEntry);
             logArea.scrollTop = logArea.scrollHeight;
         }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHATheme();
+            loadLearnedData();
+            startThemeWatcher();
+        });
     </script>
 </body>
 </html>

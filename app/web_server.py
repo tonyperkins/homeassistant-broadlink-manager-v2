@@ -104,6 +104,19 @@ class BroadlinkWebServer:
                 logger.error(f"Error learning command: {e}")
                 return jsonify({"error": str(e)}), 500
         
+        @self.app.route('/api/theme')
+        def get_theme():
+            """Get current Home Assistant theme information"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                theme_info = loop.run_until_complete(self._get_ha_theme())
+                loop.close()
+                return jsonify(theme_info)
+            except Exception as e:
+                logger.error(f"Error getting theme: {e}")
+                return jsonify({"error": str(e)}), 500
+
         @self.app.route('/api/send', methods=['POST'])
         def send_command():
             """Send a command"""
@@ -507,6 +520,75 @@ class BroadlinkWebServer:
                 'color': '#ef4444',  # Red
                 'method': 'error'
             }
+    
+    async def _get_ha_theme(self) -> dict:
+        """Get current Home Assistant theme and configuration"""
+        try:
+            # Get frontend configuration which includes theme info
+            config = await self._make_ha_request('GET', 'config')
+            if not config:
+                return self._get_default_theme()
+            
+            # Get current user's theme preference
+            current_user = await self._make_ha_request('GET', 'auth/current_user')
+            
+            # Try to get theme from user preferences or config
+            theme_name = 'default'
+            if current_user and 'theme' in current_user:
+                theme_name = current_user.get('theme', 'default')
+            
+            # Get theme data from frontend themes
+            themes = await self._make_ha_request('GET', 'themes')
+            theme_data = {}
+            
+            if themes and 'themes' in themes:
+                if theme_name in themes['themes']:
+                    theme_data = themes['themes'][theme_name]
+                elif 'default' in themes['themes']:
+                    theme_data = themes['themes']['default']
+            
+            # Extract common theme colors with fallbacks
+            return {
+                'theme_name': theme_name,
+                'colors': {
+                    'primary': theme_data.get('primary-color', '#03a9f4'),
+                    'accent': theme_data.get('accent-color', '#ff9800'),
+                    'background': theme_data.get('primary-background-color', '#111111'),
+                    'surface': theme_data.get('card-background-color', '#1c1c1c'),
+                    'text_primary': theme_data.get('primary-text-color', '#ffffff'),
+                    'text_secondary': theme_data.get('secondary-text-color', '#9ca3af'),
+                    'border': theme_data.get('divider-color', '#2c2c2c'),
+                    'success': theme_data.get('success-color', '#4caf50'),
+                    'warning': theme_data.get('warning-color', '#ff9800'),
+                    'error': theme_data.get('error-color', '#f44336'),
+                    'info': theme_data.get('info-color', '#2196f3')
+                },
+                'is_dark': theme_data.get('dark-primary-color') is not None or 'dark' in theme_name.lower()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting HA theme: {e}")
+            return self._get_default_theme()
+    
+    def _get_default_theme(self) -> dict:
+        """Get default dark theme colors matching current design"""
+        return {
+            'theme_name': 'default_dark',
+            'colors': {
+                'primary': '#03a9f4',
+                'accent': '#ff9800', 
+                'background': '#111111',
+                'surface': '#1c1c1c',
+                'text_primary': '#ffffff',
+                'text_secondary': '#9ca3af',
+                'border': '#2c2c2c',
+                'success': '#10b981',
+                'warning': '#f59e0b',
+                'error': '#ef4444',
+                'info': '#3b82f6'
+            },
+            'is_dark': True
+        }
     
     async def _get_learned_commands(self, device_id: str = None) -> Dict:
         """Get learned commands from storage files with filtering and area information"""

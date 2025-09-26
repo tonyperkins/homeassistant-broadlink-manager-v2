@@ -1588,10 +1588,15 @@
         }
 
         // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            loadHATheme();
-            loadLearnedData();
-            startThemeWatcher();
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                await loadHATheme();
+                await loadLearnedData();
+                startThemeWatcher();
+            } catch (error) {
+                console.error('Error initializing application:', error);
+                log('❌ Failed to initialize application', 'error');
+            }
         });
     </script>
 </body>

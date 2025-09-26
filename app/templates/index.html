@@ -1237,7 +1237,7 @@
                                 </div>
                             </div>
                             <input type="hidden" id="selectedEntityId" value="${entityId}">
-                            <input type="hidden" id="selectedAreaName" value="${areaName}">
+                            <input type="hidden" id="selectedAreaName" value="${areaName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')}">`
                         </div>
                         <div class="form-group">
                             <label for="deviceName">Device Name:</label>
@@ -1357,8 +1357,7 @@
             
             document.body.appendChild(overlay);
             
-            // Populate dropdowns and setup event listeners
-            populateAddDialogDropdowns();
+            // Setup event listeners for the dialog
             setupAddDialogEventListeners();
         }
 
@@ -1369,32 +1368,7 @@
             }
         }
 
-        function populateAddDialogDropdowns() {
-            const broadlinkDeviceSelect = document.getElementById('broadlinkDeviceSelect');
-            const areaSelect = document.getElementById('areaSelect');
-            const allDevices = learnedData.allDevices || [];
-            
-            // Populate Broadlink devices
-            broadlinkDeviceSelect.innerHTML = '<option value="">Select a Broadlink device...</option>';
-            allDevices.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.entity_id;
-                option.textContent = `${device.area_name || 'Unknown Area'} - ${device.name}`;
-                broadlinkDeviceSelect.appendChild(option);
-            });
-            
-            // Get unique areas from devices
-            const areas = [...new Set(allDevices.map(device => device.area_name).filter(Boolean))];
-            
-            // Populate areas
-            areaSelect.innerHTML = '<option value="">Select an area...</option>';
-            areas.forEach(area => {
-                const option = document.createElement('option');
-                option.value = area.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-                option.textContent = area;
-                areaSelect.appendChild(option);
-            });
-        }
+        // populateAddDialogDropdowns function removed - no longer needed with new dialog structure
 
         function setupAddDialogEventListeners() {
             const selectedAreaName = document.getElementById('selectedAreaName');

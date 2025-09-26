@@ -145,9 +145,15 @@
             transition: all 0.2s ease;
         }
 
-        .add-command-button:hover {
+        .add-command-button:hover:not(:disabled) {
             filter: brightness(0.9);
             transform: translateY(-1px);
+        }
+
+        .add-command-button:disabled {
+            background: var(--ha-text-secondary-color);
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .device-header:hover {
@@ -853,6 +859,9 @@
                         deviceGroups: {},
                         totalCommands: 0
                     };
+                } else if (!devicesByArea[areaName].device || !devicesByArea[areaName].device.entity_id) {
+                    // If we don't have a valid device yet, use this one
+                    devicesByArea[areaName].device = device;
                 }
             });
             
@@ -906,7 +915,11 @@
                             <div class="expand-icon">▶</div>
                         </div>
                         <div class="device-actions">
-                            <button class="add-command-button" onclick="event.stopPropagation(); openAddDialog('${device?.entity_id}', '${areaName}')">Add Command</button>
+                            <button class="add-command-button" 
+                                    ${!device?.entity_id ? 'disabled title="No valid device entity found"' : ''} 
+                                    onclick="event.stopPropagation(); ${device?.entity_id ? `openAddDialog('${device.entity_id}', '${areaName}')` : 'return false;'}">
+                                Add Command
+                            </button>
                         </div>
                     </div>
                     <div class="command-groups">
@@ -1198,6 +1211,12 @@
         }
 
         function openAddDialog(entityId, areaName) {
+            // Validate inputs
+            if (!entityId || entityId === 'undefined') {
+                showAlert('No valid Broadlink device found for this area. Please check your device configuration.', 'error');
+                return;
+            }
+            
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';

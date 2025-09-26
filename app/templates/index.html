@@ -865,6 +865,8 @@
                 const device = allDevices.find(d => d.area_name && 
                     d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
+                let selectedDevice = device;
+                
                 if (!device) {
                     log(`Could not find device for area: ${areaName}, trying fallback...`);
                     // Fallback: try to match by first part of device name
@@ -877,9 +879,8 @@
                     }
                     
                     log(`Using fallback device: ${fallbackDevice.name}`);
+                    selectedDevice = fallbackDevice;
                 }
-                
-                const selectedDevice = device || fallbackDevice;
                 
                 const response = await fetch(getApiUrl('/api/send'), {
                     method: 'POST',
@@ -932,6 +933,8 @@
                 const device = allDevices.find(d => d.area_name && 
                     d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
+                let selectedDevice = device;
+                
                 if (!device) {
                     const fallbackDevice = allDevices.find(d => d.name && 
                         d.name.toLowerCase().includes(deviceParts[0]));
@@ -942,9 +945,9 @@
                         showAlert(errorMsg, 'error');
                         return;
                     }
+                    
+                    selectedDevice = fallbackDevice;
                 }
-                
-                const selectedDevice = device || fallbackDevice;
                 
                 // Use the existing command type, or default to 'ir' if not provided
                 const commandType = existingCommandType || 'ir';
@@ -1029,6 +1032,8 @@
                 const device = allDevices.find(d => d.area_name && 
                     d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
+                let selectedDevice = device;
+                
                 if (!device) {
                     const fallbackDevice = allDevices.find(d => d.name && 
                         d.name.toLowerCase().includes(deviceParts[0]));
@@ -1037,9 +1042,9 @@
                         showAlert(`Could not find device for ${deviceName}`, 'error');
                         return;
                     }
+                    
+                    selectedDevice = fallbackDevice;
                 }
-                
-                const selectedDevice = device || fallbackDevice;
                 
                 const response = await fetch(getApiUrl('/api/delete'), {
                     method: 'POST',

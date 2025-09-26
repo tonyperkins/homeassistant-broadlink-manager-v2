@@ -117,9 +117,37 @@
             padding: 24px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s ease;
+        }
+
+        .device-main {
+            display: flex;
+            align-items: center;
             gap: 16px;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            flex: 1;
+        }
+
+        .device-actions {
+            margin-left: 16px;
+        }
+
+        .add-command-button {
+            background: var(--ha-primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .add-command-button:hover {
+            filter: brightness(0.9);
+            transform: translateY(-1px);
         }
 
         .device-header:hover {
@@ -430,7 +458,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -575,6 +604,45 @@
         .preview-row:last-child {
             margin-bottom: 0;
         }
+
+        /* Device Display in Modal */
+        .device-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--ha-background-color);
+            border: 1px solid var(--ha-border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .device-icon-small {
+            width: 32px;
+            height: 32px;
+            background: var(--ha-primary-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .device-info-small {
+            flex: 1;
+        }
+
+        .device-name-small {
+            font-weight: 500;
+            color: var(--ha-text-primary-color);
+            margin-bottom: 2px;
+        }
+
+        .device-id-small {
+            font-size: 12px;
+            color: var(--ha-text-secondary-color);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+        }
     </style>
 </head>
 <body>
@@ -586,7 +654,9 @@
                 <div class="header-stats">2 devices • 15 entities</div>
             </div>
         </div>
-        <button class="add-button" onclick="showAddDialog()">Add entry</button>
+        <div class="header-right">
+            <!-- Add Command buttons are now on each device -->
+        </div>
     </header>
 
     <div class="container">
@@ -823,16 +893,21 @@
                 const status = device?.status || { color: '#6b7280', label: 'Unknown' };
                 
                 deviceCard.innerHTML = `
-                    <div class="device-header" onclick="toggleDevice(this.closest('.device-card'))">
-                        <div class="device-icon">📡</div>
-                        <div class="device-info">
-                            <div class="device-name">${areaName} RM4 Pro</div>
-                            <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
+                    <div class="device-header">
+                        <div class="device-main" onclick="toggleDevice(this.closest('.device-card'))">
+                            <div class="device-icon">📡</div>
+                            <div class="device-info">
+                                <div class="device-name">${areaName} RM4 Pro</div>
+                                <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
+                            </div>
+                            <div class="device-status">
+                                <div class="status-indicator" style="width: 10px; height: 10px; border-radius: 50%; background: ${status.color};" title="${status.label}"></div>
+                            </div>
+                            <div class="expand-icon">▶</div>
                         </div>
-                        <div class="device-status">
-                            <div class="status-indicator" style="width: 10px; height: 10px; border-radius: 50%; background: ${status.color};" title="${status.label}"></div>
+                        <div class="device-actions">
+                            <button class="add-command-button" onclick="event.stopPropagation(); openAddDialog('${device?.entity_id}', '${areaName}')">Add Command</button>
                         </div>
-                        <div class="expand-icon">▶</div>
                     </div>
                     <div class="command-groups">
                         ${commandCount === 0 ? 
@@ -1122,7 +1197,7 @@
             }
         }
 
-        function showAddDialog() {
+        function openAddDialog(entityId, areaName) {
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
@@ -1134,16 +1209,16 @@
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="broadlinkDeviceSelect">Broadlink Device:</label>
-                            <select id="broadlinkDeviceSelect" class="form-control">
-                                <option value="">Select a Broadlink device...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="areaSelect">Area:</label>
-                            <select id="areaSelect" class="form-control">
-                                <option value="">Select an area...</option>
-                            </select>
+                            <label>Broadlink Device:</label>
+                            <div class="device-display">
+                                <div class="device-icon-small">📡</div>
+                                <div class="device-info-small">
+                                    <div class="device-name-small">${areaName} RM4 Pro</div>
+                                    <div class="device-id-small">${entityId}</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="selectedEntityId" value="${entityId}">
+                            <input type="hidden" id="selectedAreaName" value="${areaName}">
                         </div>
                         <div class="form-group">
                             <label for="deviceName">Device Name:</label>
@@ -1303,7 +1378,7 @@
         }
 
         function setupAddDialogEventListeners() {
-            const areaSelect = document.getElementById('areaSelect');
+            const selectedAreaName = document.getElementById('selectedAreaName');
             const deviceNameInput = document.getElementById('deviceName');
             const commandNameInput = document.getElementById('commandName');
             
@@ -1318,7 +1393,7 @@
             
             // Update preview when any field changes
             function updatePreview() {
-                const area = areaSelect.value;
+                const area = selectedAreaName.value;
                 const deviceName = deviceNameInput.value.trim();
                 const commandName = commandNameInput.value.trim();
                 const fullDeviceNameEl = document.getElementById('fullDeviceName');
@@ -1335,10 +1410,10 @@
                     fullDeviceNameEl.style.color = '#9ca3af';
                 } else if (!area && deviceName) {
                     const convertedDeviceName = convertToHAFormat(deviceName);
-                    fullDeviceNameEl.textContent = `[select area]_${convertedDeviceName}`;
+                    fullDeviceNameEl.textContent = `[area]_${convertedDeviceName}`;
                     fullDeviceNameEl.style.color = '#9ca3af';
                 } else {
-                    fullDeviceNameEl.textContent = 'Select area and enter device name';
+                    fullDeviceNameEl.textContent = 'Enter device name';
                     fullDeviceNameEl.style.color = '#9ca3af';
                 }
                 
@@ -1359,20 +1434,22 @@
                 }
             }
             
-            areaSelect.addEventListener('change', updatePreview);
             deviceNameInput.addEventListener('input', updatePreview);
             commandNameInput.addEventListener('input', updatePreview);
+            
+            // Initial preview update
+            updatePreview();
         }
 
         async function startLearning() {
-            const broadlinkDeviceSelect = document.getElementById('broadlinkDeviceSelect');
-            const areaSelect = document.getElementById('areaSelect');
+            const selectedEntityId = document.getElementById('selectedEntityId');
+            const selectedAreaName = document.getElementById('selectedAreaName');
             const deviceNameInput = document.getElementById('deviceName');
             const commandNameInput = document.getElementById('commandName');
             const commandTypeSelect = document.getElementById('commandType');
             
-            const broadlinkEntityId = broadlinkDeviceSelect.value;
-            const areaValue = areaSelect.value;
+            const broadlinkEntityId = selectedEntityId.value;
+            const areaValue = selectedAreaName.value;
             const deviceNameRaw = deviceNameInput.value.trim();
             const commandNameRaw = commandNameInput.value.trim();
             const commandType = commandTypeSelect.value;
@@ -1391,12 +1468,7 @@
             
             // Validation
             if (!broadlinkEntityId) {
-                showAlert('Please select a Broadlink device', 'error');
-                return;
-            }
-            
-            if (!areaValue) {
-                showAlert('Please select an area', 'error');
+                showAlert('No Broadlink device selected', 'error');
                 return;
             }
             

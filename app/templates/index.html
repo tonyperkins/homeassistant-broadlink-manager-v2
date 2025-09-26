@@ -1217,6 +1217,9 @@
                 return;
             }
             
+            // Convert area name to HA format
+            const areaNameFormatted = areaName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+            
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
@@ -1237,7 +1240,7 @@
                                 </div>
                             </div>
                             <input type="hidden" id="selectedEntityId" value="${entityId}">
-                            <input type="hidden" id="selectedAreaName" value="${areaName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')}">`
+                            <input type="hidden" id="selectedAreaName" value="${areaNameFormatted}">
                         </div>
                         <div class="form-group">
                             <label for="deviceName">Device Name:</label>

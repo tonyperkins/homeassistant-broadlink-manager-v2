@@ -11,6 +11,7 @@ This add-on provides a comprehensive solution for managing Broadlink devices in 
 - **Web Interface**: Modern, responsive web UI for device management
 - **Command Learning**: Easy IR/RF command learning with real-time feedback
 - **Command Management**: View, test, and organize learned commands
+- **Entity Auto-Generation**: Automatically create Home Assistant entities (lights, fans, switches) from learned commands
 - **Storage Integration**: Direct access to Home Assistant's command storage
 - **Multi-Device Support**: Manage multiple Broadlink devices from one interface
 - **No External Dependencies**: Works entirely within Home Assistant
@@ -57,6 +58,8 @@ Enables automatic discovery of Broadlink devices on your network. Default is tru
 
 ## Usage
 
+### Learning Commands
+
 1. **Access the Web Interface**: After starting the add-on, navigate to `http://homeassistant.local:8099` in your web browser
 2. **Select Device**: Choose your Broadlink device from the dropdown
 3. **Choose Room and Device**: Select the room and device name for organizing commands
@@ -66,6 +69,40 @@ Enables automatic discovery of Broadlink devices on your network. Default is tru
    - Follow the on-screen instructions to press your remote buttons
 5. **Test Commands**: Use the "Test" button to verify learned commands work correctly
 6. **Manage Commands**: View all learned commands and organize them by device
+
+### Auto-Generating Home Assistant Entities
+
+The add-on can automatically create Home Assistant entities from your learned commands:
+
+1. **Learn your commands** with descriptive names (e.g., `light_on`, `light_off`, `fan_speed_1`, etc.)
+2. **Configure entities** via the web interface:
+   - The add-on will auto-detect entity types based on command names
+   - You can manually adjust entity types and command roles
+3. **Generate entity files** by clicking the "Generate Entities" button
+4. **Add to configuration.yaml**:
+   ```yaml
+   light: !include broadlink_manager/entities.yaml
+   fan: !include broadlink_manager/entities.yaml
+   switch: !include broadlink_manager/entities.yaml
+   input_boolean: !include broadlink_manager/helpers.yaml
+   input_select: !include broadlink_manager/helpers.yaml
+   ```
+5. **Restart Home Assistant** and your entities will appear!
+
+#### Supported Entity Types
+
+- **Light**: Requires `light_on` and `light_off` commands (or `light_toggle`)
+- **Fan**: Requires `fan_speed_X` commands and optionally `fan_off`, `fan_reverse`
+- **Switch**: Requires `on` and `off` commands (or `toggle`)
+- **Media Player**: Coming soon
+
+#### Command Naming Conventions
+
+For best auto-detection results, use these naming patterns:
+
+- **Lights**: `light_on`, `light_off`, `light_toggle`
+- **Fans**: `fan_speed_1`, `fan_speed_2`, `fan_speed_3`, `fan_off`, `fan_reverse`
+- **Switches**: `on`, `off`, `toggle`, `power`
 
 ## Support
 

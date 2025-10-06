@@ -19,6 +19,10 @@ import aiohttp
 import aiofiles
 import websockets
 
+from storage_manager import StorageManager
+from entity_detector import EntityDetector
+from entity_generator import EntityGenerator
+
 logger = logging.getLogger(__name__)
 
 class BroadlinkWebServer:
@@ -37,6 +41,10 @@ class BroadlinkWebServer:
         # Simple notification cache
         self.cached_notifications = []
         self.last_notification_check = 0
+        
+        # Initialize entity management components
+        self.storage_manager = StorageManager()
+        self.entity_detector = EntityDetector()
         
         self._setup_routes()
         # Initialize WebSocket variables
@@ -327,6 +335,133 @@ class BroadlinkWebServer:
                 })
             except Exception as e:
                 logger.error(f"Error testing service: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        # Entity Management Routes
+        
+        @self.app.route('/api/entities')
+        def get_entities():
+            """Get all configured entities"""
+            try:
+                entities = self.storage_manager.get_all_entities()
+                stats = self.storage_manager.get_stats()
+                return jsonify({
+                    'entities': entities,
+                    'stats': stats
+                })
+            except Exception as e:
+                logger.error(f"Error getting entities: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/<entity_id>')
+        def get_entity(entity_id):
+            """Get a specific entity"""
+            try:
+                entity = self.storage_manager.get_entity(entity_id)
+                if entity:
+                    return jsonify(entity)
+                return jsonify({"error": "Entity not found"}), 404
+            except Exception as e:
+                logger.error(f"Error getting entity: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities', methods=['POST'])
+        def save_entity():
+            """Save or update an entity"""
+            try:
+                data = request.get_json()
+                entity_id = data.get('entity_id')
+                entity_data = data.get('entity_data')
+                
+                if not entity_id or not entity_data:
+                    return jsonify({"error": "Missing entity_id or entity_data"}), 400
+                
+                self.storage_manager.save_entity(entity_id, entity_data)
+                return jsonify({
+                    'success': True,
+                    'message': f'Entity {entity_id} saved successfully',
+                    'entity_id': entity_id
+                })
+            except Exception as e:
+                logger.error(f"Error saving entity: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/<entity_id>', methods=['DELETE'])
+        def delete_entity(entity_id):
+            """Delete an entity"""
+            try:
+                success = self.storage_manager.delete_entity(entity_id)
+                if success:
+                    return jsonify({
+                        'success': True,
+                        'message': f'Entity {entity_id} deleted successfully'
+                    })
+                return jsonify({"error": "Entity not found"}), 404
+            except Exception as e:
+                logger.error(f"Error deleting entity: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/detect', methods=['POST'])
+        def detect_entities():
+            """Auto-detect entities from commands"""
+            try:
+                data = request.get_json()
+                device_name = data.get('device_name')
+                commands = data.get('commands')
+                
+                if not device_name or not commands:
+                    return jsonify({"error": "Missing device_name or commands"}), 400
+                
+                detected = self.entity_detector.group_commands_by_entity(device_name, commands)
+                return jsonify({
+                    'success': True,
+                    'detected_entities': detected,
+                    'count': len(detected)
+                })
+            except Exception as e:
+                logger.error(f"Error detecting entities: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/generate', methods=['POST'])
+        def generate_entities():
+            """Generate YAML entity files"""
+            try:
+                data = request.get_json()
+                device_id = data.get('device_id')
+                
+                if not device_id:
+                    return jsonify({"error": "Missing device_id"}), 400
+                
+                # Get all Broadlink commands
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                broadlink_commands = loop.run_until_complete(self._get_all_broadlink_commands())
+                loop.close()
+                
+                # Generate entities
+                generator = EntityGenerator(self.storage_manager, device_id)
+                result = generator.generate_all(broadlink_commands)
+                
+                return jsonify(result)
+            except Exception as e:
+                logger.error(f"Error generating entities: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/types')
+        def get_entity_types():
+            """Get supported entity types and their command roles"""
+            try:
+                types = self.entity_detector.get_entity_types()
+                roles = {}
+                for entity_type in types:
+                    roles[entity_type] = self.entity_detector.get_command_roles_for_type(entity_type)
+                
+                return jsonify({
+                    'types': types,
+                    'roles': roles
+                })
+            except Exception as e:
+                logger.error(f"Error getting entity types: {e}")
                 return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
@@ -653,6 +788,33 @@ class BroadlinkWebServer:
             
         except Exception as e:
             logger.error(f"Error getting learned commands: {e}")
+            return {}
+    
+    async def _get_all_broadlink_commands(self) -> Dict[str, Dict[str, str]]:
+        """Get all Broadlink commands in simple format for entity generator"""
+        try:
+            storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
+            all_commands = {}
+            
+            for storage_file in storage_files:
+                try:
+                    async with aiofiles.open(storage_file, 'r') as f:
+                        content = await f.read()
+                        data = json.loads(content)
+                        
+                        # Extract device commands
+                        for device_name, commands in data.get('data', {}).items():
+                            if isinstance(commands, dict):
+                                all_commands[device_name] = commands
+                
+                except Exception as e:
+                    logger.warning(f"Error reading storage file {storage_file}: {e}")
+                    continue
+            
+            return all_commands
+            
+        except Exception as e:
+            logger.error(f"Error getting Broadlink commands: {e}")
             return {}
     
     async def _learn_command(self, data: Dict) -> Dict:

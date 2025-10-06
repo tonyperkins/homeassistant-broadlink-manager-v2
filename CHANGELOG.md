@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Entity Auto-Generation Feature**: Automatically create Home Assistant entities from learned commands
+  - Storage manager for entity metadata in `/config/broadlink_manager/`
+  - Entity detector with pattern matching for lights, fans, switches, and media players
+  - YAML entity generator for template lights, fans, and switches
+  - Auto-generated helper entities (input_boolean, input_select)
+  - REST API endpoints for entity management:
+    - `GET /api/entities` - List all configured entities
+    - `POST /api/entities` - Save/update entity configuration
+    - `DELETE /api/entities/<id>` - Delete entity
+    - `POST /api/entities/detect` - Auto-detect entities from commands
+    - `POST /api/entities/generate` - Generate YAML files
+    - `GET /api/entities/types` - Get supported entity types
+  - Automatic README generation in `/config/broadlink_manager/`
+  - Command naming convention detection (e.g., `light_on`, `fan_speed_1`)
+
+### Changed
+- Updated documentation with entity auto-generation usage guide
+- Added entity management section to README
+
 ## [1.0.0] - 2023-09-22
 
 ### Added

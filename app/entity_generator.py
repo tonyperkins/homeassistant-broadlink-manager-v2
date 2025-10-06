@@ -303,11 +303,20 @@ class EntityGenerator:
             ]
         
         # Set percentage
-        set_percentage_conditions = []
+        set_percentage_option_conditions = []  # For input_select (speed numbers)
+        set_percentage_command_conditions = []  # For remote commands
+        
         for i in range(1, speed_count + 1):
             percentage = int((i / speed_count) * 100)
-            prev_percentage = int(((i - 1) / speed_count) * 100) if i > 1 else 0
-            set_percentage_conditions.append(
+            
+            # Template for input_select option (just the number)
+            set_percentage_option_conditions.append(
+                f"{{%- elif percentage <= {percentage} -%}}\n"
+                f"  {i}"
+            )
+            
+            # Template for remote command (the actual command name)
+            set_percentage_command_conditions.append(
                 f"{{%- elif percentage <= {percentage} -%}}\n"
                 f"  {commands.get(f'speed_{i}', '')}"
             )
@@ -320,7 +329,7 @@ class EntityGenerator:
                     'option': (
                         "{% if percentage == 0 %}\n"
                         "  off\n" +
-                        '\n'.join(set_percentage_conditions) +
+                        '\n'.join(set_percentage_option_conditions) +
                         "\n{% endif %}"
                     )
                 }
@@ -333,7 +342,7 @@ class EntityGenerator:
                     'command': (
                         "{% if percentage == 0 %}\n"
                         f"  {commands.get('turn_off', '')}\n" +
-                        '\n'.join(set_percentage_conditions) +
+                        '\n'.join(set_percentage_command_conditions) +
                         "\n{% endif %}"
                     )
                 }

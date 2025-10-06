@@ -954,10 +954,10 @@
                                     onclick="event.stopPropagation(); handleGenerateEntities(this)">
                                 🎯 Generate Entities
                             </button>
-                            <button class="btn btn-success" 
-                                    style="margin-left: 8px;"
+                            <button class="generate-entities-button" 
+                                    style="margin-left: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
                                     onclick="event.stopPropagation(); handleAutoAssignAreas(this)">
-                                Auto-Assign Areas
+                                ✨ Auto-Assign Areas
                             </button>
                         </div>
                     </div>
@@ -1777,12 +1777,12 @@
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
             overlay.innerHTML = `
-                <div class="modal-dialog" style="max-width: 600px;">
+                <div class="modal-dialog" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
                     <div class="modal-header">
                         <h3>✅ Entities Generated Successfully!</h3>
                         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body" style="overflow-y: auto; flex: 1;">
                         <div style="margin-bottom: 20px;">
                             <strong>Generated:</strong> ${result.entities_count} entities
                             <br>

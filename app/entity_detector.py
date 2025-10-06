@@ -120,6 +120,7 @@ class EntityDetector:
                     "entity_type": entity_type,
                     "device": device_name,
                     "commands": dict(command_roles),
+                    "friendly_name": self.generate_friendly_name(device_name, entity_type),
                     "enabled": True,
                     "auto_detected": True
                 }
@@ -139,6 +140,40 @@ class EntityDetector:
         if entity_type not in clean_name:
             return f"{clean_name}_{entity_type}"
         return clean_name
+    
+    def generate_friendly_name(self, device_name: str, entity_type: str) -> str:
+        """
+        Generate a human-friendly name from device name
+        
+        Handles possessives: tony_s_office → Tony's Office
+        """
+        # Split by underscores
+        parts = device_name.split('_')
+        
+        # Process each part
+        friendly_parts = []
+        i = 0
+        while i < len(parts):
+            part = parts[i]
+            
+            # Check if next part is 's' (possessive)
+            if i + 1 < len(parts) and parts[i + 1] == 's':
+                # This is a possessive: tony_s → Tony's
+                friendly_parts.append(part.title() + "'s")
+                i += 2  # Skip the 's' part
+            else:
+                # Regular word
+                friendly_parts.append(part.title())
+                i += 1
+        
+        friendly_name = ' '.join(friendly_parts)
+        
+        # Add entity type suffix if not already in the name
+        entity_type_title = entity_type.replace('_', ' ').title()
+        if entity_type_title.lower() not in friendly_name.lower():
+            friendly_name = f"{friendly_name} {entity_type_title}"
+        
+        return friendly_name
     
     def _is_valid_entity(self, entity_type: str, command_roles: Dict[str, str]) -> bool:
         """

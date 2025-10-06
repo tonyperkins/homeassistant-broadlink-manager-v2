@@ -1796,12 +1796,39 @@
                         </div>
                         
                         <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                            <strong>📝 Next Steps:</strong>
-                            <ol style="margin: 8px 0 0 20px; line-height: 1.8;">
-                                <li>Add these lines to your <code>configuration.yaml</code>:</li>
-                            </ol>
-                            <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 12px 0; overflow-x: auto; font-size: 12px;">${result.instructions?.code || 'light: !include broadlink_manager/entities.yaml'}</pre>
-                            <ol start="2" style="margin: 8px 0 0 20px; line-height: 1.8;">
+                            <strong>📝 Next Steps - Choose ONE option:</strong>
+                            
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                                <strong>Option 1: Packages (Recommended)</strong>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">homeassistant:
+  packages:
+    broadlink_manager: !include broadlink_manager/entities.yaml</pre>
+                                <small>✅ Works with existing configs • No conflicts</small>
+                            </div>
+                            
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                                <strong>Option 2: List Format</strong>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light:
+  - platform: existing_platform  # Your existing config
+  - !include broadlink_manager/entities.yaml
+
+fan:
+  - platform: existing_platform  # Your existing config
+  - !include broadlink_manager/entities.yaml</pre>
+                                <small>✅ If you already have light:, fan:, etc.</small>
+                            </div>
+                            
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                                <strong>Option 3: Direct Include (New configs only)</strong>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light: !include broadlink_manager/entities.yaml
+fan: !include broadlink_manager/entities.yaml
+input_boolean: !include broadlink_manager/helpers.yaml
+input_select: !include broadlink_manager/helpers.yaml</pre>
+                                <small>⚠️ Only if you DON'T have these sections yet</small>
+                            </div>
+                            
+                            <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
+                                <li>Add ONE of the options above to <code>configuration.yaml</code></li>
                                 <li>Check your configuration (Developer Tools → YAML)</li>
                                 <li>Restart Home Assistant</li>
                                 <li>Your entities will appear! 🎉</li>

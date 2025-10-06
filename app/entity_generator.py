@@ -53,8 +53,11 @@ class EntityGenerator:
             entities_yaml = self._build_entities_yaml(entities, broadlink_commands)
             helpers_yaml = self._build_helpers_yaml(entities)
             
+            # Merge entities and helpers for packages compatibility
+            combined_yaml = {**entities_yaml, **helpers_yaml}
+            
             # Write files
-            self._write_yaml_file(self.storage.entities_file, entities_yaml)
+            self._write_yaml_file(self.storage.entities_file, combined_yaml)
             self._write_yaml_file(self.storage.helpers_file, helpers_yaml)
             
             # Update last generated timestamp
@@ -153,7 +156,7 @@ class EntityGenerator:
             light_config['turn_on'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'device_id': self.device_id},
+                    'target': {'entity_id': self.device_id},
                     'data': {
                         'device': device,
                         'command': commands['turn_on']
@@ -168,7 +171,7 @@ class EntityGenerator:
             light_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'device_id': self.device_id},
+                    'target': {'entity_id': self.device_id},
                     'data': {
                         'device': device,
                         'command': commands['turn_off']
@@ -184,7 +187,7 @@ class EntityGenerator:
             light_config['turn_on'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'device_id': self.device_id},
+                    'target': {'entity_id': self.device_id},
                     'data': {
                         'device': device,
                         'command': commands['toggle']
@@ -199,7 +202,7 @@ class EntityGenerator:
             light_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'device_id': self.device_id},
+                    'target': {'entity_id': self.device_id},
                     'data': {
                         'device': device,
                         'command': commands['toggle']
@@ -259,7 +262,7 @@ class EntityGenerator:
         fan_config['turn_on'] = [
             {
                 'service': 'remote.send_command',
-                'target': {'device_id': self.device_id},
+                'target': {'entity_id': self.device_id},
                 'data': {
                     'device': device,
                     'command': commands.get(f'speed_{default_speed}', list(speed_commands.values())[0])
@@ -281,7 +284,7 @@ class EntityGenerator:
             fan_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'device_id': self.device_id},
+                    'target': {'entity_id': self.device_id},
                     'data': {
                         'device': device,
                         'command': commands['turn_off']
@@ -323,7 +326,7 @@ class EntityGenerator:
             },
             {
                 'service': 'remote.send_command',
-                'target': {'device_id': self.device_id},
+                'target': {'entity_id': self.device_id},
                 'data': {
                     'device': device,
                     'command': (

@@ -239,31 +239,29 @@ class AreaManager:
     
     async def reload_config(self) -> bool:
         """
-        Reload Home Assistant configuration to pick up new entities
+        Reload Home Assistant YAML configuration to pick up new template entities
         
         Returns:
             True if successful, False otherwise
         """
         try:
-            logger.info("Reloading Home Assistant configuration...")
-            result = await self._send_ws_command('reload_config_entry', entry_id='core')
+            logger.info("Reloading Home Assistant YAML configuration...")
+            
+            # Use call_service to reload core config (template entities)
+            result = await self._send_ws_command(
+                'call_service',
+                domain='homeassistant',
+                service='reload_core_config',
+                service_data={},
+                return_response=False
+            )
             
             if result is not None:
-                logger.info("Configuration reload initiated successfully")
+                logger.info("Core configuration reload initiated successfully")
                 return True
             else:
-                # Try alternative reload method
-                logger.info("Trying alternative reload method...")
-                result = await self._send_ws_command('call_service', 
-                                                     domain='homeassistant',
-                                                     service='reload_config_entry',
-                                                     service_data={})
-                if result is not None:
-                    logger.info("Configuration reloaded successfully")
-                    return True
-                else:
-                    logger.warning("Config reload may have failed")
-                    return False
+                logger.warning("Config reload may have failed")
+                return False
                     
         except Exception as e:
             logger.error(f"Error reloading config: {e}")

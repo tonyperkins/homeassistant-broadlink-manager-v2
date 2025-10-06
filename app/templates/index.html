@@ -954,6 +954,11 @@
                                     onclick="event.stopPropagation(); handleGenerateEntities(this)">
                                 🎯 Generate Entities
                             </button>
+                            <button class="btn btn-success" 
+                                    style="margin-left: 8px;"
+                                    onclick="event.stopPropagation(); handleAutoAssignAreas(this)">
+                                Auto-Assign Areas
+                            </button>
                         </div>
                     </div>
                     <div class="command-groups">
@@ -1837,21 +1842,6 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                             </ol>
                         </div>
                         
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
-                            <h3 style="margin: 0 0 12px 0; font-size: 18px;">📍 Assigning Areas</h3>
-                            <p style="margin: 0 0 12px 0; line-height: 1.6; opacity: 0.95;">
-                                After restarting Home Assistant, assign your entities to areas:
-                            </p>
-                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-                                <strong>Settings → Devices & Services → Entities</strong><br>
-                                Find your entities → Click gear icon → Select area
-                            </div>
-                            <div style="font-size: 13px; opacity: 0.9;">
-                                <strong>💡 Suggested areas from your devices:</strong><br>
-                                ${[...new Set(Object.values(result.entity_metadata || {}).map(e => e.area).filter(Boolean))].join(', ')}
-                            </div>
-                        </div>
-                        
                         <div style="text-align: center;">
                             <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()" style="padding: 12px 32px;">Got it!</button>
                         </div>
@@ -1861,40 +1851,13 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
             document.body.appendChild(overlay);
         }
 
-        async function assignAreasAutomatically(button) {
+        async function handleAutoAssignAreas(button) {
             const originalText = button.innerHTML;
             button.disabled = true;
-            button.innerHTML = '⏳ Reloading config...';
+            button.innerHTML = 'Assigning...';
             
             try {
-                // Step 1: Reload Home Assistant configuration to create entities
-                log('🔄 Reloading Home Assistant configuration...');
-                
-                const reloadResponse = await fetch(getApiUrl('/api/entities/reload-config'), {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                
-                if (!reloadResponse.ok) {
-                    throw new Error(`Config reload failed: ${reloadResponse.statusText}`);
-                }
-                
-                const reloadResult = await reloadResponse.json();
-                
-                if (!reloadResult.success) {
-                    throw new Error('Failed to reload configuration');
-                }
-                
-                log('✅ Configuration reloaded');
-                
-                // Step 2: Wait for entities to register (5 seconds)
-                button.innerHTML = '⏳ Waiting for entities to register...';
-                log('⏳ Waiting 5 seconds for entities to register...');
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                
-                // Step 3: Assign areas
-                button.innerHTML = '⏳ Assigning areas...';
-                log('✨ Auto-assigning entities to areas...');
+                log('Auto-assigning entities to areas...');
                 
                 const response = await fetch(getApiUrl('/api/entities/assign-areas'), {
                     method: 'POST',
@@ -1913,31 +1876,27 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                     const failed = result.results.failed;
                     
                     if (assigned > 0) {
-                        log(`✅ Assigned ${assigned} entities to areas!`);
+                        log(`Assigned ${assigned} entities to areas!`);
                         showAlert(`Successfully assigned ${assigned} entities to areas!`, 'success');
                     }
                     
                     if (skipped > 0) {
-                        log(`⚠️ ${skipped} entities skipped (not in registry yet)`, 'error');
-                        showAlert(`${skipped} entities not ready yet. Try again in a moment or assign manually.`, 'error');
+                        log(`${skipped} entities skipped (not in registry yet)`);
+                        showAlert(`${skipped} entities not ready yet. Restart HA first, then try again.`, 'warning');
                     }
                     
                     if (failed > 0) {
-                        log(`❌ ${failed} entities failed to assign`, 'error');
+                        log(`${failed} entities failed to assign`);
                     }
-                    
-                    // Close modal after delay
-                    setTimeout(() => {
-                        button.closest('.modal-overlay').remove();
-                    }, assigned > 0 ? 2000 : 4000);
                 } else {
                     throw new Error(result.message || 'Assignment failed');
                 }
                 
             } catch (error) {
                 console.error('Error assigning areas:', error);
-                log(`❌ Error: ${error.message}`, 'error');
+                log(`Error: ${error.message}`, 'error');
                 showAlert(`Failed to assign areas: ${error.message}`, 'error');
+            } finally {
                 button.disabled = false;
                 button.innerHTML = originalText;
             }

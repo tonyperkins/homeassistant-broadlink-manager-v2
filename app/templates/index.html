@@ -1874,11 +1874,12 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                     throw new Error('Failed to reload configuration');
                 }
                 
-                log('✅ Configuration reloaded, entities created');
+                log('✅ Configuration reloaded');
                 
-                // Step 2: Wait a moment for entities to register
-                button.innerHTML = '⏳ Waiting for entities...';
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Step 2: Wait for entities to register (5 seconds)
+                button.innerHTML = '⏳ Waiting for entities to register...';
+                log('⏳ Waiting 5 seconds for entities to register...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 
                 // Step 3: Assign areas
                 button.innerHTML = '⏳ Assigning areas...';

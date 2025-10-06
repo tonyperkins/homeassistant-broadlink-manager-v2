@@ -1777,7 +1777,7 @@
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
             overlay.innerHTML = `
-                <div class="modal-dialog" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
+                <div class="modal-dialog" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column; resize: both; overflow: auto; min-width: 400px; min-height: 400px;">
                     <div class="modal-header">
                         <h3>✅ Entities Generated Successfully!</h3>
                         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
@@ -1791,7 +1791,7 @@
                             ).join('')}
                         </div>
                         
-                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
                             <strong>📁 Files Created:</strong>
                             <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
                                 <li>/config/broadlink_manager/package.yaml (for packages method)</li>

@@ -20,6 +20,7 @@ class StorageManager:
         self.metadata_file = self.base_path / "metadata.json"
         self.entities_file = self.base_path / "entities.yaml"
         self.helpers_file = self.base_path / "helpers.yaml"
+        self.package_file = self.base_path / "package.yaml"
         self.readme_file = self.base_path / "README.md"
         
         self._ensure_directory()

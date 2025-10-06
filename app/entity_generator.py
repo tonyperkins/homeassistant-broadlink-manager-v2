@@ -54,11 +54,12 @@ class EntityGenerator:
             helpers_yaml = self._build_helpers_yaml(entities)
             
             # Merge entities and helpers for packages compatibility
-            combined_yaml = {**entities_yaml, **helpers_yaml}
+            package_yaml = {**entities_yaml, **helpers_yaml}
             
             # Write files
-            self._write_yaml_file(self.storage.entities_file, combined_yaml)
+            self._write_yaml_file(self.storage.entities_file, entities_yaml)
             self._write_yaml_file(self.storage.helpers_file, helpers_yaml)
+            self._write_yaml_file(self.storage.package_file, package_yaml)
             
             # Update last generated timestamp
             timestamp = datetime.now().isoformat()

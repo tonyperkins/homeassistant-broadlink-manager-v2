@@ -1788,8 +1788,9 @@
                         <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
                             <strong>📁 Files Created:</strong>
                             <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
-                                <li>/config/broadlink_manager/entities.yaml</li>
-                                <li>/config/broadlink_manager/helpers.yaml</li>
+                                <li>/config/broadlink_manager/package.yaml (for packages method)</li>
+                                <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
+                                <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
                                 <li>/config/broadlink_manager/metadata.json</li>
                                 <li>/config/broadlink_manager/README.md</li>
                             </ul>
@@ -1802,8 +1803,8 @@
                                 <strong>Option 1: Packages (Recommended)</strong>
                                 <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">homeassistant:
   packages:
-    broadlink_manager: !include broadlink_manager/entities.yaml</pre>
-                                <small>✅ Works with existing configs • No conflicts</small>
+    broadlink_manager: !include broadlink_manager/package.yaml</pre>
+                                <small>✅ Works with existing configs • No conflicts • Everything in one file</small>
                             </div>
                             
                             <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">

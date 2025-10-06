@@ -71,22 +71,54 @@ class AreaManager:
             True if successful, False otherwise
         """
         try:
-            url = f"{self.ha_url}/api/config/entity_registry/{entity_id}"
+            # First, get the entity to find its entry_id
+            get_url = f"{self.ha_url}/api/config/entity_registry"
             headers = {
                 'Authorization': f'Bearer {self.ha_token}',
                 'Content-Type': 'application/json'
             }
             
             async with aiohttp.ClientSession() as session:
-                # Update entity with area_id
-                async with session.post(url, headers=headers, json={'area_id': area_id}) as response:
-                    if response.status == 200:
-                        logger.info(f"Assigned {entity_id} to area {area_id}")
-                        return True
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Failed to assign {entity_id} to area: {response.status} - {error_text}")
+                # Get all entities to find the entry_id
+                async with session.get(get_url, headers=headers) as response:
+                    if response.status != 200:
+                        logger.error(f"Failed to get entity registry: {response.status}")
                         return False
+                    
+                    entities = await response.json()
+                    
+                    # Find the entity
+                    entity_entry = None
+                    if isinstance(entities, list):
+                        for entity in entities:
+                            if entity.get('entity_id') == entity_id:
+                                entity_entry = entity
+                                break
+                    elif isinstance(entities, dict) and 'entities' in entities:
+                        for entity in entities['entities']:
+                            if entity.get('entity_id') == entity_id:
+                                entity_entry = entity
+                                break
+                    
+                    if not entity_entry:
+                        logger.warning(f"Entity {entity_id} not found in registry (may not exist yet)")
+                        return False
+                    
+                    entry_id = entity_entry.get('id') or entity_entry.get('entry_id')
+                    if not entry_id:
+                        logger.error(f"No entry_id found for {entity_id}")
+                        return False
+                    
+                    # Update the entity with area_id
+                    update_url = f"{self.ha_url}/api/config/entity_registry/{entry_id}"
+                    async with session.post(update_url, headers=headers, json={'area_id': area_id}) as update_response:
+                        if update_response.status == 200:
+                            logger.info(f"Assigned {entity_id} to area {area_id}")
+                            return True
+                        else:
+                            error_text = await update_response.text()
+                            logger.error(f"Failed to assign {entity_id} to area: {update_response.status} - {error_text}")
+                            return False
                         
         except Exception as e:
             logger.error(f"Error assigning entity {entity_id} to area: {e}")
@@ -174,18 +206,31 @@ class AreaManager:
     async def _get_areas(self) -> List[Dict[str, Any]]:
         """Get all areas from Home Assistant"""
         try:
-            url = f"{self.ha_url}/api/config/area_registry/list"
-            headers = {
-                'Authorization': f'Bearer {self.ha_token}',
-                'Content-Type': 'application/json'
-            }
+            # Use WebSocket API to get areas
+            url = f"{self.ha_url}/api/websocket"
             
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, headers=headers) as response:
+                # First try REST API endpoint
+                rest_url = f"{self.ha_url}/api/config/area_registry"
+                headers = {
+                    'Authorization': f'Bearer {self.ha_token}',
+                    'Content-Type': 'application/json'
+                }
+                
+                async with session.get(rest_url, headers=headers) as response:
                     if response.status == 200:
-                        return await response.json()
+                        result = await response.json()
+                        # Result might be a list or dict with 'areas' key
+                        if isinstance(result, list):
+                            return result
+                        elif isinstance(result, dict) and 'areas' in result:
+                            return result['areas']
+                        else:
+                            logger.warning(f"Unexpected areas response format: {type(result)}")
+                            return []
                     else:
-                        logger.error(f"Failed to get areas: {response.status}")
+                        error_text = await response.text()
+                        logger.error(f"Failed to get areas: {response.status} - {error_text}")
                         return []
                         
         except Exception as e:
@@ -195,29 +240,23 @@ class AreaManager:
     async def _create_area(self, area_name: str) -> Optional[Dict[str, Any]]:
         """Create a new area in Home Assistant"""
         try:
-            url = f"{self.ha_url}/api/config/area_registry/create"
+            url = f"{self.ha_url}/api/config/area_registry"
             headers = {
                 'Authorization': f'Bearer {self.ha_token}',
                 'Content-Type': 'application/json'
             }
             
-            # Generate area_id from name (lowercase, underscores)
-            import re
-            area_id = area_name.lower()
-            area_id = re.sub(r"['\"]", '', area_id)  # Remove quotes
-            area_id = re.sub(r'[^a-z0-9_]', '_', area_id)
-            area_id = re.sub(r'_+', '_', area_id)
-            area_id = area_id.strip('_')
-            
+            # Just send the name, HA will generate the area_id
             data = {
-                'name': area_name,
-                'area_id': area_id
+                'name': area_name
             }
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, headers=headers, json=data) as response:
-                    if response.status == 200:
-                        return await response.json()
+                    if response.status in [200, 201]:
+                        result = await response.json()
+                        logger.info(f"Created area successfully: {result}")
+                        return result
                     else:
                         error_text = await response.text()
                         logger.error(f"Failed to create area: {response.status} - {error_text}")

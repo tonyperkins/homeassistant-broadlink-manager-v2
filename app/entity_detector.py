@@ -86,13 +86,14 @@ class EntityDetector:
         logger.debug(f"No pattern match for command: {command_name}")
         return None, None
     
-    def group_commands_by_entity(self, device_name: str, commands: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
+    def group_commands_by_entity(self, device_name: str, commands: Dict[str, str], area_name: str = None) -> Dict[str, Dict[str, Any]]:
         """
         Group commands into potential entities
         
         Args:
             device_name: Name of the device
             commands: Dict of {command_name: command_code}
+            area_name: Optional area name to assign to entities
             
         Returns:
             Dict of potential entities with their commands
@@ -106,6 +107,10 @@ class EntityDetector:
             if entity_type:
                 # Use entity type as key (e.g., "light", "fan")
                 grouped[entity_type][command_role] = command_name
+        
+        # Extract area from device name if not provided
+        if not area_name:
+            area_name = self._extract_area_from_device_name(device_name)
         
         # Convert to entity configurations
         entities = {}
@@ -121,10 +126,11 @@ class EntityDetector:
                     "device": device_name,
                     "commands": dict(command_roles),
                     "friendly_name": self.generate_friendly_name(device_name, entity_type),
+                    "area": area_name,
                     "enabled": True,
                     "auto_detected": True
                 }
-                logger.info(f"Detected {entity_type} entity: {entity_id} with {len(command_roles)} commands")
+                logger.info(f"Detected {entity_type} entity: {entity_id} (area: {area_name}) with {len(command_roles)} commands")
         
         return entities
     
@@ -140,6 +146,50 @@ class EntityDetector:
         if entity_type not in clean_name:
             return f"{clean_name}_{entity_type}"
         return clean_name
+    
+    def _extract_area_from_device_name(self, device_name: str) -> str:
+        """
+        Extract area name from device name
+        
+        Examples:
+            tony_s_office_ceiling_fan → Tony's Office
+            master_bedroom_lamp → Master Bedroom
+            living_room_tv → Living Room
+        """
+        parts = device_name.split('_')
+        
+        # Common device types to remove from area name
+        device_types = ['ceiling', 'fan', 'lamp', 'light', 'tv', 'workbench', 
+                       'table', 'floor', 'desk', 'wall', 'pendant']
+        
+        # Find where the device type starts
+        area_parts = []
+        for i, part in enumerate(parts):
+            if part.lower() in device_types:
+                # Everything before this is the area
+                area_parts = parts[:i]
+                break
+        
+        # If no device type found, assume last 1-2 words are device name
+        if not area_parts:
+            # Take all but last word as area
+            area_parts = parts[:-1] if len(parts) > 1 else parts
+        
+        # Convert to friendly format with possessives
+        friendly_parts = []
+        i = 0
+        while i < len(area_parts):
+            part = area_parts[i]
+            
+            # Check if next part is 's' (possessive)
+            if i + 1 < len(area_parts) and area_parts[i + 1] == 's':
+                friendly_parts.append(part.title() + "'s")
+                i += 2
+            else:
+                friendly_parts.append(part.title())
+                i += 1
+        
+        return ' '.join(friendly_parts) if friendly_parts else 'Unknown'
     
     def generate_friendly_name(self, device_name: str, entity_type: str) -> str:
         """

@@ -22,6 +22,7 @@ import websockets
 from storage_manager import StorageManager
 from entity_detector import EntityDetector
 from entity_generator import EntityGenerator
+from area_manager import AreaManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class BroadlinkWebServer:
         # Initialize entity management components
         self.storage_manager = StorageManager()
         self.entity_detector = EntityDetector()
+        self.area_manager = AreaManager(self.ha_url, self.ha_token)
         
         self._setup_routes()
         # Initialize WebSocket variables
@@ -408,11 +410,12 @@ class BroadlinkWebServer:
                 data = request.get_json()
                 device_name = data.get('device_name')
                 commands = data.get('commands')
+                area_name = data.get('area_name')
                 
                 if not device_name or not commands:
                     return jsonify({"error": "Missing device_name or commands"}), 400
                 
-                detected = self.entity_detector.group_commands_by_entity(device_name, commands)
+                detected = self.entity_detector.group_commands_by_entity(device_name, commands, area_name)
                 return jsonify({
                     'success': True,
                     'detected_entities': detected,
@@ -462,6 +465,35 @@ class BroadlinkWebServer:
                 })
             except Exception as e:
                 logger.error(f"Error getting entity types: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/entities/assign-areas', methods=['POST'])
+        def assign_areas():
+            """Assign entities to areas automatically"""
+            try:
+                # Get all entities from metadata
+                entities = self.storage_manager.get_all_entities()
+                
+                if not entities:
+                    return jsonify({
+                        "success": False,
+                        "message": "No entities found to assign"
+                    })
+                
+                # Assign areas asynchronously
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                results = loop.run_until_complete(self.area_manager.assign_entities_to_areas(entities))
+                loop.close()
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Assigned {results['assigned']} entities to areas",
+                    "results": results
+                })
+                
+            except Exception as e:
+                logger.error(f"Error assigning areas: {e}")
                 return jsonify({"error": str(e)}), 500
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:

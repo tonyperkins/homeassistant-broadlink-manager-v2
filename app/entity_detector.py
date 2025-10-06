@@ -6,7 +6,7 @@ Detects entity types and roles from command names
 
 import re
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)

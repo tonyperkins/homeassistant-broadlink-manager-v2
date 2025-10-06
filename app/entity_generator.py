@@ -144,6 +144,7 @@ class EntityGenerator:
             'platform': 'template',
             'lights': {
                 entity_id: {
+                    'unique_id': entity_id,
                     'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
                     'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                 }
@@ -235,6 +236,7 @@ class EntityGenerator:
             'platform': 'template',
             'fans': {
                 entity_id: {
+                    'unique_id': entity_id,
                     'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
                     'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                     'speed_count': speed_count,

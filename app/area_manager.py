@@ -158,6 +158,36 @@ class AreaManager:
             logger.error(f"Error assigning entity {entity_id} to area: {e}")
             return False
     
+    async def check_entity_exists(self, entity_id: str) -> bool:
+        """
+        Check if an entity exists in the registry
+        
+        Args:
+            entity_id: Full entity ID to check
+            
+        Returns:
+            True if entity exists, False otherwise
+        """
+        try:
+            # List all entities and search for ours
+            result = await self._send_ws_command('config/entity_registry/list')
+            
+            if result and isinstance(result, list):
+                for entity in result:
+                    if entity.get('entity_id') == entity_id:
+                        logger.info(f"Found entity {entity_id} in registry")
+                        return True
+                
+                logger.warning(f"Entity {entity_id} not found in registry (checked {len(result)} entities)")
+                return False
+            else:
+                logger.error(f"Unexpected result from entity registry list: {type(result)}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error checking entity {entity_id}: {e}")
+            return False
+    
     async def assign_entities_to_areas(self, entities_metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Assign multiple entities to their areas based on metadata
@@ -215,6 +245,20 @@ class AreaManager:
                 entity_data = entities_metadata[entity_id]
                 entity_type = entity_data.get('entity_type', 'light')
                 full_entity_id = f"{entity_type}.{entity_id}"
+                
+                # Check if entity exists first
+                exists = await self.check_entity_exists(full_entity_id)
+                
+                if not exists:
+                    logger.warning(f"Entity {full_entity_id} not in registry yet, skipping")
+                    results['skipped'] += 1
+                    results['details'].append({
+                        'entity_id': full_entity_id,
+                        'area': area_name,
+                        'status': 'skipped',
+                        'reason': 'Entity not in registry yet (template entities need time to register)'
+                    })
+                    continue
                 
                 success = await self.assign_entity_to_area(full_entity_id, area_id)
                 

@@ -1837,12 +1837,23 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                             </ol>
                         </div>
                         
-                        <div style="text-align: center; display: flex; gap: 12px; justify-content: center;">
-                            <button class="btn btn-success" onclick="assignAreasAutomatically(this)" style="padding: 12px 32px;">✨ Auto-Assign Areas</button>
-                            <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()" style="padding: 12px 32px;">Done</button>
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; color: white;">
+                            <h3 style="margin: 0 0 12px 0; font-size: 18px;">📍 Assigning Areas</h3>
+                            <p style="margin: 0 0 12px 0; line-height: 1.6; opacity: 0.95;">
+                                After restarting Home Assistant, assign your entities to areas:
+                            </p>
+                            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                                <strong>Settings → Devices & Services → Entities</strong><br>
+                                Find your entities → Click gear icon → Select area
+                            </div>
+                            <div style="font-size: 13px; opacity: 0.9;">
+                                <strong>💡 Suggested areas from your devices:</strong><br>
+                                ${[...new Set(Object.values(result.entity_metadata || {}).map(e => e.area).filter(Boolean))].join(', ')}
+                            </div>
                         </div>
-                        <div style="text-align: center; margin-top: 12px;">
-                            <small style="color: var(--ha-text-secondary-color);">Auto-assign will create areas if needed and assign all entities automatically</small>
+                        
+                        <div style="text-align: center;">
+                            <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()" style="padding: 12px 32px;">Got it!</button>
                         </div>
                     </div>
                 </div>
@@ -1897,17 +1908,28 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                 const result = await response.json();
                 
                 if (result.success) {
-                    log(`✅ Assigned ${result.results.assigned} entities to areas!`);
-                    if (result.results.failed > 0) {
-                        log(`⚠️ ${result.results.failed} entities failed to assign`, 'error');
+                    const assigned = result.results.assigned;
+                    const skipped = result.results.skipped;
+                    const failed = result.results.failed;
+                    
+                    if (assigned > 0) {
+                        log(`✅ Assigned ${assigned} entities to areas!`);
+                        showAlert(`Successfully assigned ${assigned} entities to areas!`, 'success');
                     }
                     
-                    showAlert(`Successfully assigned ${result.results.assigned} entities to areas!`, 'success');
+                    if (skipped > 0) {
+                        log(`⚠️ ${skipped} entities skipped (not in registry yet)`, 'error');
+                        showAlert(`${skipped} entities not ready yet. Try again in a moment or assign manually.`, 'error');
+                    }
                     
-                    // Close modal after short delay
+                    if (failed > 0) {
+                        log(`❌ ${failed} entities failed to assign`, 'error');
+                    }
+                    
+                    // Close modal after delay
                     setTimeout(() => {
                         button.closest('.modal-overlay').remove();
-                    }, 2000);
+                    }, assigned > 0 ? 2000 : 4000);
                 } else {
                     throw new Error(result.message || 'Assignment failed');
                 }

@@ -1782,7 +1782,7 @@
                         <h3>✅ Entities Generated Successfully!</h3>
                         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
                     </div>
-                    <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                    <div class="modal-body">
                         <div style="margin-bottom: 20px;">
                             <strong>Generated:</strong> ${result.entities_count} entities
                             <br>
@@ -1802,7 +1802,7 @@
                             </ul>
                         </div>
                         
-                        <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                        <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
                             <strong>📝 Next Steps - Choose ONE option:</strong>
                             
                             <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">

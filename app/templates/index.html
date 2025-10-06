@@ -948,7 +948,8 @@
                             </button>
                             <button class="generate-entities-button" 
                                     ${commandCount === 0 ? 'disabled title="No commands to generate entities from"' : ''} 
-                                    data-device-id="${device?.id || ''}"
+                                    data-device-id="${device?.entity_id || ''}"
+                                    data-entity-id="${device?.entity_id || ''}"
                                     data-area-name="${areaName}"
                                     onclick="event.stopPropagation(); handleGenerateEntities(this)">
                                 🎯 Generate Entities
@@ -1652,11 +1653,11 @@
         }
 
         async function handleGenerateEntities(button) {
-            const deviceId = button.getAttribute('data-device-id');
+            const entityId = button.getAttribute('data-entity-id');
             const areaName = button.getAttribute('data-area-name');
             
-            if (!deviceId || deviceId === '') {
-                showAlert('No valid device ID found. Please check your device configuration.', 'error');
+            if (!entityId || entityId === '') {
+                showAlert('No valid device entity found. Please check your device configuration.', 'error');
                 return;
             }
             
@@ -1667,6 +1668,12 @@
             
             try {
                 log(`🎯 Generating entities for ${areaName}...`);
+                
+                // Get the device ID from the devices list
+                const device = learnedData.allDevices?.find(d => d.entity_id === entityId);
+                const deviceId = device?.id || entityId; // Fallback to entity_id if no device ID found
+                
+                log(`Using device ID: ${deviceId}`);
                 
                 // Step 1: Auto-detect entities from commands
                 const deviceCommands = {};

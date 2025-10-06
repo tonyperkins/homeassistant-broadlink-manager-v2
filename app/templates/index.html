@@ -1853,9 +1853,35 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
         async function assignAreasAutomatically(button) {
             const originalText = button.innerHTML;
             button.disabled = true;
-            button.innerHTML = '⏳ Assigning...';
+            button.innerHTML = '⏳ Reloading config...';
             
             try {
+                // Step 1: Reload Home Assistant configuration to create entities
+                log('🔄 Reloading Home Assistant configuration...');
+                
+                const reloadResponse = await fetch(getApiUrl('/api/entities/reload-config'), {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                
+                if (!reloadResponse.ok) {
+                    throw new Error(`Config reload failed: ${reloadResponse.statusText}`);
+                }
+                
+                const reloadResult = await reloadResponse.json();
+                
+                if (!reloadResult.success) {
+                    throw new Error('Failed to reload configuration');
+                }
+                
+                log('✅ Configuration reloaded, entities created');
+                
+                // Step 2: Wait a moment for entities to register
+                button.innerHTML = '⏳ Waiting for entities...';
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Step 3: Assign areas
+                button.innerHTML = '⏳ Assigning areas...';
                 log('✨ Auto-assigning entities to areas...');
                 
                 const response = await fetch(getApiUrl('/api/entities/assign-areas'), {

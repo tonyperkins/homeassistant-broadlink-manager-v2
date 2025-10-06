@@ -236,3 +236,35 @@ class AreaManager:
         
         logger.info(f"Area assignment complete: {results['assigned']} assigned, {results['failed']} failed, {results['skipped']} skipped")
         return results
+    
+    async def reload_config(self) -> bool:
+        """
+        Reload Home Assistant configuration to pick up new entities
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info("Reloading Home Assistant configuration...")
+            result = await self._send_ws_command('reload_config_entry', entry_id='core')
+            
+            if result is not None:
+                logger.info("Configuration reload initiated successfully")
+                return True
+            else:
+                # Try alternative reload method
+                logger.info("Trying alternative reload method...")
+                result = await self._send_ws_command('call_service', 
+                                                     domain='homeassistant',
+                                                     service='reload_config_entry',
+                                                     service_data={})
+                if result is not None:
+                    logger.info("Configuration reloaded successfully")
+                    return True
+                else:
+                    logger.warning("Config reload may have failed")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error reloading config: {e}")
+            return False

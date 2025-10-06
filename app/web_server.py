@@ -467,6 +467,30 @@ class BroadlinkWebServer:
                 logger.error(f"Error getting entity types: {e}")
                 return jsonify({"error": str(e)}), 500
         
+        @self.app.route('/api/entities/reload-config', methods=['POST'])
+        def reload_config():
+            """Reload Home Assistant configuration to pick up new entities"""
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                success = loop.run_until_complete(self.area_manager.reload_config())
+                loop.close()
+                
+                if success:
+                    return jsonify({
+                        "success": True,
+                        "message": "Configuration reloaded successfully"
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "message": "Configuration reload may have failed"
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Error reloading config: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.app.route('/api/entities/assign-areas', methods=['POST'])
         def assign_areas():
             """Assign entities to areas automatically"""

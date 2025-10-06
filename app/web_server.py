@@ -689,30 +689,57 @@ class BroadlinkWebServer:
             }
     
     async def _get_ha_theme(self) -> dict:
-        """Get current Home Assistant theme and configuration"""
+        """Get current Home Assistant theme from storage files"""
         try:
-            # Get frontend configuration which includes theme info
-            config = await self._make_ha_request('GET', 'config')
-            if not config:
-                return self._get_default_theme()
+            # Read frontend storage to get theme configuration
+            frontend_file = self.storage_path / "frontend.user_data"
             
-            # Get current user's theme preference
-            current_user = await self._make_ha_request('GET', 'auth/current_user')
-            
-            # Try to get theme from user preferences or config
             theme_name = 'default'
-            if current_user and 'theme' in current_user:
-                theme_name = current_user.get('theme', 'default')
+            theme_mode = 'dark'
             
-            # Get theme data from frontend themes
-            themes = await self._make_ha_request('GET', 'themes')
+            # Try to get user's theme preference from frontend storage
+            if frontend_file.exists():
+                try:
+                    async with aiofiles.open(frontend_file, 'r') as f:
+                        content = await f.read()
+                        frontend_data = json.loads(content)
+                        
+                        # Look for theme settings in user data
+                        data = frontend_data.get('data', {})
+                        for user_id, user_data in data.items():
+                            if isinstance(user_data, dict):
+                                # Get theme from user preferences
+                                if 'selectedTheme' in user_data:
+                                    theme_name = user_data['selectedTheme']
+                                if 'selectedDarkTheme' in user_data:
+                                    theme_mode = 'dark'
+                                elif 'selectedLightTheme' in user_data:
+                                    theme_mode = 'light'
+                                break
+                        
+                        logger.info(f"Found theme from frontend storage: {theme_name} ({theme_mode})")
+                except Exception as e:
+                    logger.warning(f"Could not read frontend storage: {e}")
+            
+            # Try to read theme definitions from themes storage
+            themes_file = self.storage_path / "frontend.themes"
             theme_data = {}
             
-            if themes and 'themes' in themes:
-                if theme_name in themes['themes']:
-                    theme_data = themes['themes'][theme_name]
-                elif 'default' in themes['themes']:
-                    theme_data = themes['themes']['default']
+            if themes_file.exists():
+                try:
+                    async with aiofiles.open(themes_file, 'r') as f:
+                        content = await f.read()
+                        themes_storage = json.loads(content)
+                        
+                        # Get theme data
+                        themes = themes_storage.get('data', {}).get('themes', {})
+                        if theme_name in themes:
+                            theme_data = themes[theme_name]
+                            logger.info(f"Loaded theme data for: {theme_name}")
+                        elif theme_name != 'default':
+                            logger.warning(f"Theme {theme_name} not found, using default")
+                except Exception as e:
+                    logger.warning(f"Could not read themes storage: {e}")
             
             # Extract common theme colors with fallbacks
             return {
@@ -730,7 +757,7 @@ class BroadlinkWebServer:
                     'error': theme_data.get('error-color', '#f44336'),
                     'info': theme_data.get('info-color', '#2196f3')
                 },
-                'is_dark': theme_data.get('dark-primary-color') is not None or 'dark' in theme_name.lower()
+                'is_dark': theme_mode == 'dark' or 'dark' in theme_name.lower()
             }
             
         except Exception as e:

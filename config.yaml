@@ -1,5 +1,5 @@
 name: Broadlink Manager
-version: "1.10.10"
+version: "1.10.11"
 slug: broadlink-manager
 description: A Home Assistant add-on for managing Broadlink devices with web interface
 arch:

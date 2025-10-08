@@ -356,6 +356,9 @@ class EntityGenerator:
         
         # Add direction support if reverse/direction command exists
         if has_direction:
+            # Supported features: 1 (speed) + 8 (direction) = 9
+            fan_config['supported_features'] = 9
+            
             # Direction template
             fan_config['direction_template'] = f"{{{{ states('input_select.{entity_id}_direction') }}}}"
             
@@ -384,6 +387,9 @@ class EntityGenerator:
                     }
                 }
             ]
+        else:
+            # Only speed support: 1
+            fan_config['supported_features'] = 1
         
         return config
     

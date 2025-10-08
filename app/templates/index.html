@@ -1791,19 +1791,20 @@
                             ).join('')}
                         </div>
                         
-                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 20px; max-height: 150px; overflow-y: auto;">
-                            <strong>📁 Files Created:</strong>
-                            <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
-                                <li>/config/broadlink_manager/package.yaml (for packages method)</li>
-                                <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
-                                <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
-                                <li>/config/broadlink_manager/metadata.json</li>
-                                <li>/config/broadlink_manager/README.md</li>
-                            </ul>
-                        </div>
-                        
-                        <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 300px; overflow-y: auto;">
-                            <strong>📝 Next Steps - Choose ONE option:</strong>
+                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto;">
+                            <div style="margin-bottom: 20px;">
+                                <strong>📁 Files Created:</strong>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>/config/broadlink_manager/package.yaml (for packages method)</li>
+                                    <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
+                                    <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
+                                    <li>/config/broadlink_manager/metadata.json</li>
+                                    <li>/config/broadlink_manager/README.md</li>
+                                </ul>
+                            </div>
+                            
+                            <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px;">
+                                <strong>📝 Next Steps - Choose ONE option:</strong>
                             
                             <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
                                 <strong>Option 1: Packages (Recommended)</strong>
@@ -1834,15 +1835,16 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                                 <small>⚠️ Only if you DON'T have these sections yet</small>
                             </div>
                             
-                            <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
-                                <li>Add ONE of the options above to <code>configuration.yaml</code></li>
-                                <li>Check your configuration (Developer Tools → YAML)</li>
-                                <li>Restart Home Assistant</li>
-                                <li>Your entities will appear! 🎉</li>
-                            </ol>
+                                <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
+                                    <li>Add ONE of the options above to <code>configuration.yaml</code></li>
+                                    <li>Check your configuration (Developer Tools → YAML)</li>
+                                    <li>Restart Home Assistant</li>
+                                    <li>Your entities will appear! 🎉</li>
+                                </ol>
+                            </div>
                         </div>
                         
-                        <div style="text-align: center;">
+                        <div style="text-align: center; margin-top: 16px;">
                             <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()" style="padding: 12px 32px;">Got it!</button>
                         </div>
                     </div>

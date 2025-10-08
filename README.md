@@ -1,8 +1,29 @@
 # Broadlink Manager Add-on
 
-![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield] ![Supports armhf Architecture][armhf-shield] ![Supports armv7 Architecture][armv7-shield] ![Supports i386 Architecture][i386-shield]
 
 A Home Assistant add-on for managing Broadlink devices with a built-in web interface for easy IR/RF command learning and management.
+
+## Screenshots
+
+<img src="images/main-interface.png" alt="Main Interface - Command Management" width="600">
+
+*Main interface showing currently active broadlink devices*
+
+<img src="images/command-list.png" alt="Command List" width="600">
+
+*Command list interface showing all learned commands and their associated devices and rooms*
+
+<img src="images/command-learning.png" alt="Command Learning" width="600">
+
+*Easy command learning with real-time feedback*
+
+<img src="images/entity-management.png" alt="Entity Management" width="600">
+
+*Auto-generate Home Assistant entities from learned commands*
+
+<img src="images/command-management.png" alt="Command Management" width="600">
+
+*Command management interface*
 
 ## About
 
@@ -18,10 +39,59 @@ This add-on provides a comprehensive solution for managing Broadlink devices in 
 
 ## Installation
 
-1. Add this repository to your Home Assistant Supervisor add-on store
-2. Install the "Broadlink Manager" add-on
-3. Configure the add-on options (see Configuration section)
-4. Start the add-on
+### Prerequisites
+
+Before installing this add-on, ensure you have:
+- Home Assistant OS or Supervised installation
+- At least one Broadlink device configured in Home Assistant
+- The official Broadlink integration installed and working
+
+### Step 1: Add the Repository
+
+1. Navigate to **Settings** → **Add-ons** in your Home Assistant interface
+2. Click the **Add-on Store** button (bottom right)
+3. Click the **⋮** menu (top right) and select **Repositories**
+4. Add this repository URL:
+   ```
+   https://github.com/tonyperkins/homeassistant-broadlink-manager
+   ```
+5. Click **Add** and wait for the repository to load
+
+### Step 2: Install the Add-on
+
+1. Refresh the Add-on Store page
+2. Find **Broadlink Manager** in the list (may be at the bottom)
+3. Click on **Broadlink Manager**
+4. Click the **Install** button
+5. Wait for the installation to complete (this may take a few minutes)
+
+### Step 3: Configure the Add-on
+
+1. After installation, go to the **Configuration** tab
+2. Adjust settings as needed (see Configuration section below)
+3. Click **Save**
+
+### Step 4: Start the Add-on
+
+1. Go to the **Info** tab
+2. Click **Start**
+3. Optionally, enable:
+   - **Start on boot** - Auto-start the add-on when Home Assistant starts
+   - **Watchdog** - Automatically restart if the add-on crashes
+   - **Show in sidebar** - Add a quick link to the sidebar (uses Ingress)
+
+### Step 5: Access the Web Interface
+
+Once started, access the interface in one of two ways:
+
+**Option 1: Via Sidebar** (if enabled)
+- Click **Broadlink Manager** in the Home Assistant sidebar
+
+**Option 2: Direct URL**
+- Navigate to: `http://homeassistant.local:8099`
+- Or use your Home Assistant IP: `http://192.168.1.100:8099` (replace with your IP)
+
+You should now see the Broadlink Manager interface with your devices listed!
 
 ## Configuration
 

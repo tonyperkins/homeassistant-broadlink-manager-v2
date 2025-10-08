@@ -104,6 +104,15 @@ For best auto-detection results, use these naming patterns:
 - **Fans**: `fan_speed_1`, `fan_speed_2`, `fan_speed_3`, `fan_off`, `fan_reverse`
 - **Switches**: `on`, `off`, `toggle`, `power`
 
+## Documentation
+
+- **[API Reference](API.md)** - Complete REST API documentation
+- **[Entity Generation Guide](ENTITY_GENERATION.md)** - Technical details on entity auto-generation
+- **[Deployment Guide](DEPLOYMENT.md)** - Installation and deployment instructions
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Contributing](CONTRIBUTING.md)** - How to contribute to this project
+
 ## Support
 
 Got questions?
@@ -115,7 +124,7 @@ You have several options to get them answered:
 - The Home Assistant [Community Forum][forum].
 - Join the [Reddit subreddit][reddit] in [/r/homeassistant][reddit]
 
-You could also [open an issue here][issue] GitHub.
+You could also [open an issue here][issue] on GitHub.
 
 ## Contributing
 

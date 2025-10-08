@@ -232,6 +232,9 @@ class EntityGenerator:
             logger.warning(f"Fan {entity_id} has no speed commands")
             return None
         
+        # Check if reverse/direction command exists
+        has_direction = 'reverse' in commands or 'direction' in commands
+        
         config = {
             'platform': 'template',
             'fans': {
@@ -351,6 +354,37 @@ class EntityGenerator:
             }
         ]
         
+        # Add direction support if reverse/direction command exists
+        if has_direction:
+            # Direction template
+            fan_config['direction_template'] = f"{{{{ states('input_select.{entity_id}_direction') }}}}"
+            
+            # Set direction action
+            direction_command = commands.get('reverse') or commands.get('direction')
+            fan_config['set_direction'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': self.device_id},
+                    'data': {
+                        'device': device,
+                        'command': direction_command
+                    }
+                },
+                {
+                    'service': 'input_select.select_option',
+                    'target': {'entity_id': f'input_select.{entity_id}_direction'},
+                    'data': {
+                        'option': (
+                            "{% if direction == 'forward' %}\n"
+                            "  reverse\n"
+                            "{% else %}\n"
+                            "  forward\n"
+                            "{% endif %}"
+                        )
+                    }
+                }
+            ]
+        
         return config
     
     def _generate_switch(self, entity_id: str, entity_data: Dict[str, Any],
@@ -396,6 +430,15 @@ class EntityGenerator:
                     'options': options,
                     'initial': 'off'
                 }
+                
+                # Add direction selector if reverse/direction command exists
+                commands = entity_data.get('commands', {})
+                if 'reverse' in commands or 'direction' in commands:
+                    helpers['input_select'][f'{entity_id}_direction'] = {
+                        'name': f"{entity_data.get('friendly_name', entity_id)} Direction",
+                        'options': ['forward', 'reverse'],
+                        'initial': 'forward'
+                    }
         
         return helpers
     

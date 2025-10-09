@@ -193,7 +193,15 @@ class BroadlinkWebServer:
                     command_data = device_info.get('command_data', {})
                     for command in device_info.get('commands', []):
                         command_code = command_data.get(command, '')
-                        command_type = 'rf' if command_code.startswith('sc') else 'ir'
+                        # Handle both string and list command codes
+                        if isinstance(command_code, list):
+                            # If it's a list, check the first element
+                            command_type = 'rf' if (command_code and isinstance(command_code[0], str) and command_code[0].startswith('sc')) else 'ir'
+                        elif isinstance(command_code, str):
+                            command_type = 'rf' if command_code.startswith('sc') else 'ir'
+                        else:
+                            command_type = 'ir'  # Default to IR if unknown type
+                        
                         result['commands'].append({
                             'device_name': device_name,
                             'device_part': device_part,

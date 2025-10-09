@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.15] - 2025-10-09
+
+### Fixed
+- Added detailed logging for theme API endpoint debugging
+- Try multiple API endpoints (/api/frontend/themes and /api/themes) for theme detection
+- Better error handling and reporting when theme APIs fail
+
 ## [1.10.14] - 2025-10-09
 
 ### Fixed

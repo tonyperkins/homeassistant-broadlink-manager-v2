@@ -738,39 +738,78 @@ class BroadlinkWebServer:
                             theme_name = config.get('theme', 'default')
                             logger.info(f"Got theme from HA API config: {theme_name}")
                             
-                            # Now try to get the actual theme colors
-                            themes_url = f"{self.ha_url}/api/themes"
-                            async with session.get(themes_url, headers=headers) as themes_response:
-                                if themes_response.status == 200:
-                                    themes_data = await themes_response.json()
-                                    logger.info(f"Available themes from API: {list(themes_data.get('themes', {}).keys())}")
-                                    
-                                    if theme_name in themes_data.get('themes', {}):
-                                        theme_colors = themes_data['themes'][theme_name]
-                                        logger.info(f"Loaded theme colors for '{theme_name}' from API")
+                            # Now try to get the actual theme colors from frontend API
+                            # Try multiple endpoints to get theme data
+                            theme_colors = None
+                            
+                            # Try /api/frontend/themes first
+                            try:
+                                frontend_themes_url = f"{self.ha_url}/api/frontend/themes"
+                                logger.info(f"Trying frontend themes API: {frontend_themes_url}")
+                                async with session.get(frontend_themes_url, headers=headers) as themes_response:
+                                    logger.info(f"Frontend themes API response status: {themes_response.status}")
+                                    if themes_response.status == 200:
+                                        themes_data = await themes_response.json()
+                                        logger.info(f"Frontend themes data keys: {list(themes_data.keys())}")
                                         
-                                        # Determine if dark theme
-                                        is_dark = 'dark' in theme_name.lower() or \
-                                                 theme_colors.get('dark-primary-color') is not None or \
-                                                 theme_colors.get('primary-background-color', '#ffffff')[1:3] in ['00', '01', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f', '20']
-                                        
-                                        return {
-                                            'theme_name': theme_name,
-                                            'colors': {
-                                                'primary': theme_colors.get('primary-color', '#03a9f4'),
-                                                'accent': theme_colors.get('accent-color', '#ff9800'),
-                                                'background': theme_colors.get('primary-background-color', '#111111'),
-                                                'surface': theme_colors.get('card-background-color', theme_colors.get('primary-background-color', '#1c1c1c')),
-                                                'text_primary': theme_colors.get('primary-text-color', '#ffffff'),
-                                                'text_secondary': theme_colors.get('secondary-text-color', '#9ca3af'),
-                                                'border': theme_colors.get('divider-color', '#2c2c2c'),
-                                                'success': theme_colors.get('success-color', '#4caf50'),
-                                                'warning': theme_colors.get('warning-color', '#ff9800'),
-                                                'error': theme_colors.get('error-color', '#f44336'),
-                                                'info': theme_colors.get('info-color', '#2196f3')
-                                            },
-                                            'is_dark': is_dark
-                                        }
+                                        # Check different possible structures
+                                        if 'themes' in themes_data and theme_name in themes_data['themes']:
+                                            theme_colors = themes_data['themes'][theme_name]
+                                            logger.info(f"Found theme '{theme_name}' in frontend API")
+                                        elif theme_name in themes_data:
+                                            theme_colors = themes_data[theme_name]
+                                            logger.info(f"Found theme '{theme_name}' directly in frontend API")
+                            except Exception as e:
+                                logger.warning(f"Frontend themes API failed: {e}")
+                            
+                            # Try /api/themes as fallback
+                            if not theme_colors:
+                                try:
+                                    themes_url = f"{self.ha_url}/api/themes"
+                                    logger.info(f"Trying themes API: {themes_url}")
+                                    async with session.get(themes_url, headers=headers) as themes_response:
+                                        logger.info(f"Themes API response status: {themes_response.status}")
+                                        if themes_response.status == 200:
+                                            themes_data = await themes_response.json()
+                                            logger.info(f"Themes data keys: {list(themes_data.keys())}")
+                                            logger.info(f"Available themes: {list(themes_data.get('themes', {}).keys())}")
+                                            
+                                            if 'themes' in themes_data and theme_name in themes_data['themes']:
+                                                theme_colors = themes_data['themes'][theme_name]
+                                                logger.info(f"Found theme '{theme_name}' in themes API")
+                                except Exception as e:
+                                    logger.warning(f"Themes API failed: {e}")
+                            
+                            # If we found theme colors, return them
+                            if theme_colors:
+                                logger.info(f"Theme colors keys: {list(theme_colors.keys())}")
+                                logger.info(f"Sample colors: primary={theme_colors.get('primary-color')}, background={theme_colors.get('primary-background-color')}")
+                                
+                                # Determine if dark theme
+                                is_dark = 'dark' in theme_name.lower() or \
+                                         theme_colors.get('dark-primary-color') is not None or \
+                                         (theme_colors.get('primary-background-color', '#ffffff').startswith('#') and \
+                                          theme_colors.get('primary-background-color', '#ffffff')[1:3] in ['00', '01', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f', '20'])
+                                
+                                return {
+                                    'theme_name': theme_name,
+                                    'colors': {
+                                        'primary': theme_colors.get('primary-color', '#03a9f4'),
+                                        'accent': theme_colors.get('accent-color', '#ff9800'),
+                                        'background': theme_colors.get('primary-background-color', '#111111'),
+                                        'surface': theme_colors.get('card-background-color', theme_colors.get('primary-background-color', '#1c1c1c')),
+                                        'text_primary': theme_colors.get('primary-text-color', '#ffffff'),
+                                        'text_secondary': theme_colors.get('secondary-text-color', '#9ca3af'),
+                                        'border': theme_colors.get('divider-color', '#2c2c2c'),
+                                        'success': theme_colors.get('success-color', '#4caf50'),
+                                        'warning': theme_colors.get('warning-color', '#ff9800'),
+                                        'error': theme_colors.get('error-color', '#f44336'),
+                                        'info': theme_colors.get('info-color', '#2196f3')
+                                    },
+                                    'is_dark': is_dark
+                                }
+                            else:
+                                logger.warning(f"Could not find theme colors for '{theme_name}' in any API endpoint")
             except Exception as e:
                 logger.warning(f"Could not get theme from HA API: {e}")
             

@@ -5,23 +5,23 @@ A Home Assistant add-on for managing Broadlink devices with a built-in web inter
 
 ## Screenshots
 
-<img src="images/main-interface.png" alt="Main Interface - Command Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/main-interface.png" alt="Main Interface - Command Management" width="600">
 
 *Main interface showing currently active broadlink devices*
 
-<img src="images/command-list.png" alt="Command List" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-list.png" alt="Command List" width="600">
 
 *Command list interface showing all learned commands and their associated devices and rooms*
 
-<img src="images/command-learning.png" alt="Command Learning" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-learning.png" alt="Command Learning" width="600">
 
 *Easy command learning with real-time feedback*
 
-<img src="images/entity-management.png" alt="Entity Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/entity-management.png" alt="Entity Management" width="600">
 
 *Auto-generate Home Assistant entities from learned commands*
 
-<img src="images/command-management.png" alt="Command Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-management.png" alt="Command Management" width="600">
 
 *Command management interface*
 
@@ -204,7 +204,7 @@ Thank you for being involved! :heart_eyes:
 
 ## Authors & contributors
 
-The original setup of this repository is by [Your Name][yourname].
+The original setup of this repository is by [Tony Perkins](https://github.com/tonyperkins).
 
 For a full list of all authors and contributors, check [the contributor's page][contributors].
 
@@ -212,7 +212,7 @@ For a full list of all authors and contributors, check [the contributor's page][
 
 MIT License
 
-Copyright (c) 2023 [Your Name]
+Copyright (c) 2025 Tony Perkins
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -225,11 +225,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 [armhf-shield]: https://img.shields.io/badge/armhf-yes-green.svg
 [armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
 [i386-shield]: https://img.shields.io/badge/i386-yes-green.svg
-[contributors]: https://github.com/yourusername/broadlink-manager-addon/graphs/contributors
+[contributors]: https://github.com/tonyperkins/homeassistant-broadlink-manager/graphs/contributors
 [discord-ha]: https://discord.gg/c5DvZ4e
 [discord]: https://discord.me/hassioaddons
 [forum]: https://community.home-assistant.io/t/repository-community-hass-io-add-ons/24705?u=frenck
-[yourname]: https://github.com/yourusername
-[issue]: https://github.com/yourusername/broadlink-manager-addon/issues
+[issue]: https://github.com/tonyperkins/homeassistant-broadlink-manager/issues
 [reddit]: https://reddit.com/r/homeassistant
-[repository]: https://github.com/yourusername/broadlink-manager-addon
+[repository]: https://github.com/tonyperkins/homeassistant-broadlink-manager

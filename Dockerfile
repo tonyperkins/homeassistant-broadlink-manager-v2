@@ -41,8 +41,8 @@ LABEL \
     io.hass.description="A Home Assistant add-on for managing Broadlink devices with web interface" \
     io.hass.arch="armhf|aarch64|amd64|armv7|i386" \
     io.hass.type="addon" \
-    io.hass.version="1.0.0" \
-    io.hass.url="https://github.com/yourusername/broadlink-manager-addon" \
-    io.hass.maintainer="Your Name <your.email@example.com>"
+    io.hass.version="1.10.12" \
+    io.hass.url="https://github.com/tonyperkins/homeassistant-broadlink-manager" \
+    io.hass.maintainer="Tony Perkins"
 
 CMD [ "/run.sh" ]

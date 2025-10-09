@@ -30,8 +30,8 @@ This guide helps you diagnose and fix common issues with the Broadlink Manager a
 3. **Check repository.yaml** format:
    ```yaml
    name: "Broadlink Manager Add-ons"
-   url: "https://github.com/yourusername/homeassistant-broadlink-manager"
-   maintainer: "Your Name"
+   url: "https://github.com/tonyperkins/homeassistant-broadlink-manager"
+   maintainer: "Tony Perkins"
    ```
 4. **Check Home Assistant logs** for repository errors
 5. **Try local installation** method (see DEPLOYMENT.md)
@@ -512,7 +512,7 @@ When reporting issues, include:
 
 ### Where to Get Help
 
-1. **GitHub Issues**: [Report a bug](https://github.com/yourusername/broadlink-manager-addon/issues)
+1. **GitHub Issues**: [Report a bug](https://github.com/tonyperkins/homeassistant-broadlink-manager/issues)
 2. **Home Assistant Community**: [Community Forums](https://community.home-assistant.io/)
 3. **Discord**: Home Assistant Discord server
 4. **Documentation**: Review all documentation files

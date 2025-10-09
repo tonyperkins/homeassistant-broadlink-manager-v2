@@ -280,4 +280,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 Thank you for using Broadlink Manager! 🎉
 
-For the latest documentation, visit the [GitHub repository](https://github.com/yourusername/broadlink-manager-addon).
+For the latest documentation, visit the [GitHub repository](https://github.com/tonyperkins/homeassistant-broadlink-manager).

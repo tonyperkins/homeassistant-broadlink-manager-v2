@@ -53,5 +53,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - N/A
 
-[Unreleased]: https://github.com/yourusername/broadlink-manager-addon/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourusername/broadlink-manager-addon/releases/tag/v1.0.0
+[Unreleased]: https://github.com/tonyperkins/homeassistant-broadlink-manager/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/tonyperkins/homeassistant-broadlink-manager/releases/tag/v1.0.0

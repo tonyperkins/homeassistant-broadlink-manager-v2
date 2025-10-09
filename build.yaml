@@ -7,7 +7,7 @@ build_from:
 labels:
   org.opencontainers.image.title: "Broadlink Manager"
   org.opencontainers.image.description: "A Home Assistant add-on for managing Broadlink devices"
-  org.opencontainers.image.source: "https://github.com/yourusername/broadlink-manager-addon"
+  org.opencontainers.image.source: "https://github.com/tonyperkins/homeassistant-broadlink-manager"
   org.opencontainers.image.licenses: "MIT"
 args:
   TEMPIO_VERSION: "2021.09.0"

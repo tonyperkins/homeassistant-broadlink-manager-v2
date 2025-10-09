@@ -1,4 +1,4 @@
 name: "Broadlink Manager Add-ons"
-url: "https://github.com/yourusername/homeassistant-broadlink-manager"
-maintainer: "Tony Perkinson <perkins.tony@gmail.com>"
+url: "https://github.com/tonyperkins/homeassistant-broadlink-manager"
+maintainer: "Tony Perkins <perkins.tony@gmail.com>"
 description: "Home Assistant add-on for Broadlink device management"

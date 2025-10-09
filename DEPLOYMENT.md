@@ -86,8 +86,8 @@ Create a `repository.yaml` file in the root of your GitHub repository:
 
 ```yaml
 name: "Broadlink Manager Add-ons"
-url: "https://github.com/yourusername/homeassistant-broadlink-manager"
-maintainer: "Your Name <your.email@example.com>"
+url: "https://github.com/tonyperkins/homeassistant-broadlink-manager"
+maintainer: "Tony Perkins"
 ```
 
 #### Step 3: Add Repository to Home Assistant
@@ -97,7 +97,7 @@ maintainer: "Your Name <your.email@example.com>"
 3. **Click "Add-on Store"**
 4. **Click the three dots (⋮) in the top right**
 5. **Select "Repositories"**
-6. **Add your GitHub repository URL**: `https://github.com/yourusername/homeassistant-broadlink-manager`
+6. **Add your GitHub repository URL**: `https://github.com/tonyperkins/homeassistant-broadlink-manager`
 7. **Refresh the add-on store**
 8. **Install the add-on**
 

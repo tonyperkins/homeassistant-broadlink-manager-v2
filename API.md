@@ -569,4 +569,4 @@ Currently, there is no rate limiting. Use responsibly to avoid overwhelming your
 For issues or questions about the API:
 - Check the [main documentation](README.md)
 - Review [entity generation docs](ENTITY_GENERATION.md)
-- Open an [issue on GitHub](https://github.com/yourusername/broadlink-manager-addon/issues)
+- Open an [issue on GitHub](https://github.com/tonyperkins/homeassistant-broadlink-manager/issues)

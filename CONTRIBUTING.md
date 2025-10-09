@@ -14,7 +14,7 @@ Thank you for your interest in contributing to the Broadlink Manager add-on! Thi
 ### Reporting Bugs
 
 Before creating a bug report:
-1. Check the [existing issues](https://github.com/yourusername/broadlink-manager-addon/issues) to avoid duplicates
+1. Check the [existing issues](https://github.com/tonyperkins/homeassistant-broadlink-manager/issues) to avoid duplicates
 2. Verify you're using the latest version
 3. Check the troubleshooting section in the documentation
 
@@ -70,8 +70,8 @@ Enhancement suggestions are welcome! Please include:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/broadlink-manager-addon.git
-   cd broadlink-manager-addon
+   git clone https://github.com/tonyperkins/homeassistant-broadlink-manager.git
+   cd homeassistant-broadlink-manager
    ```
 
 2. **Install dependencies**:

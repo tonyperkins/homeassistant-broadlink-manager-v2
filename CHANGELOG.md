@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.14] - 2025-10-09
+
+### Fixed
+- Enhanced theme detection to use Home Assistant API for better theme support
+- Added comprehensive logging for theme detection debugging
+- Improved fallback to storage files when API is unavailable
+- Better detection of dark vs light themes
+
 ### Added
 - **Entity Auto-Generation Feature**: Automatically create Home Assistant entities from learned commands
   - Storage manager for entity metadata in `/config/broadlink_manager/`
@@ -27,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated documentation with entity auto-generation usage guide
 - Added entity management section to README
 
-## [1.0.0] - 2023-09-22
+## [1.0.0] - 2025-09-22
 
 ### Added
 - Initial release of Broadlink Manager Add-on

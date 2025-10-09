@@ -721,13 +721,67 @@ class BroadlinkWebServer:
             }
     
     async def _get_ha_theme(self) -> dict:
-        """Get current Home Assistant theme from storage files"""
+        """Get current Home Assistant theme from storage files or API"""
         try:
-            # Read frontend storage to get theme configuration
+            # First try to get theme from HA API
+            try:
+                url = f"{self.ha_url}/api/config"
+                headers = {
+                    'Authorization': f'Bearer {self.ha_token}',
+                    'Content-Type': 'application/json'
+                }
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers=headers) as response:
+                        if response.status == 200:
+                            config = await response.json()
+                            theme_name = config.get('theme', 'default')
+                            logger.info(f"Got theme from HA API config: {theme_name}")
+                            
+                            # Now try to get the actual theme colors
+                            themes_url = f"{self.ha_url}/api/themes"
+                            async with session.get(themes_url, headers=headers) as themes_response:
+                                if themes_response.status == 200:
+                                    themes_data = await themes_response.json()
+                                    logger.info(f"Available themes from API: {list(themes_data.get('themes', {}).keys())}")
+                                    
+                                    if theme_name in themes_data.get('themes', {}):
+                                        theme_colors = themes_data['themes'][theme_name]
+                                        logger.info(f"Loaded theme colors for '{theme_name}' from API")
+                                        
+                                        # Determine if dark theme
+                                        is_dark = 'dark' in theme_name.lower() or \
+                                                 theme_colors.get('dark-primary-color') is not None or \
+                                                 theme_colors.get('primary-background-color', '#ffffff')[1:3] in ['00', '01', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1a', '1b', '1c', '1d', '1e', '1f', '20']
+                                        
+                                        return {
+                                            'theme_name': theme_name,
+                                            'colors': {
+                                                'primary': theme_colors.get('primary-color', '#03a9f4'),
+                                                'accent': theme_colors.get('accent-color', '#ff9800'),
+                                                'background': theme_colors.get('primary-background-color', '#111111'),
+                                                'surface': theme_colors.get('card-background-color', theme_colors.get('primary-background-color', '#1c1c1c')),
+                                                'text_primary': theme_colors.get('primary-text-color', '#ffffff'),
+                                                'text_secondary': theme_colors.get('secondary-text-color', '#9ca3af'),
+                                                'border': theme_colors.get('divider-color', '#2c2c2c'),
+                                                'success': theme_colors.get('success-color', '#4caf50'),
+                                                'warning': theme_colors.get('warning-color', '#ff9800'),
+                                                'error': theme_colors.get('error-color', '#f44336'),
+                                                'info': theme_colors.get('info-color', '#2196f3')
+                                            },
+                                            'is_dark': is_dark
+                                        }
+            except Exception as e:
+                logger.warning(f"Could not get theme from HA API: {e}")
+            
+            # Fallback: Read frontend storage to get theme configuration
             frontend_file = self.storage_path / "frontend.user_data"
             
             theme_name = 'default'
             theme_mode = 'dark'
+            
+            logger.info(f"Checking for frontend storage at: {frontend_file}")
+            logger.info(f"Frontend file exists: {frontend_file.exists()}")
             
             # Try to get user's theme preference from frontend storage
             if frontend_file.exists():
@@ -738,24 +792,35 @@ class BroadlinkWebServer:
                         
                         # Look for theme settings in user data
                         data = frontend_data.get('data', {})
+                        logger.info(f"Frontend data keys: {list(data.keys())}")
+                        
                         for user_id, user_data in data.items():
                             if isinstance(user_data, dict):
+                                logger.info(f"User {user_id} data keys: {list(user_data.keys())}")
                                 # Get theme from user preferences
                                 if 'selectedTheme' in user_data:
                                     theme_name = user_data['selectedTheme']
+                                    logger.info(f"Found selectedTheme: {theme_name}")
                                 if 'selectedDarkTheme' in user_data:
                                     theme_mode = 'dark'
+                                    logger.info(f"Found selectedDarkTheme")
                                 elif 'selectedLightTheme' in user_data:
                                     theme_mode = 'light'
+                                    logger.info(f"Found selectedLightTheme")
                                 break
                         
                         logger.info(f"Found theme from frontend storage: {theme_name} ({theme_mode})")
                 except Exception as e:
                     logger.warning(f"Could not read frontend storage: {e}")
+            else:
+                logger.warning(f"Frontend storage file not found at {frontend_file}")
             
             # Try to read theme definitions from themes storage
             themes_file = self.storage_path / "frontend.themes"
             theme_data = {}
+            
+            logger.info(f"Checking for themes storage at: {themes_file}")
+            logger.info(f"Themes file exists: {themes_file.exists()}")
             
             if themes_file.exists():
                 try:
@@ -765,16 +830,21 @@ class BroadlinkWebServer:
                         
                         # Get theme data
                         themes = themes_storage.get('data', {}).get('themes', {})
+                        logger.info(f"Available themes in storage: {list(themes.keys())}")
+                        
                         if theme_name in themes:
                             theme_data = themes[theme_name]
                             logger.info(f"Loaded theme data for: {theme_name}")
+                            logger.info(f"Theme data keys: {list(theme_data.keys())}")
                         elif theme_name != 'default':
-                            logger.warning(f"Theme {theme_name} not found, using default")
+                            logger.warning(f"Theme {theme_name} not found in storage, using default")
                 except Exception as e:
                     logger.warning(f"Could not read themes storage: {e}")
+            else:
+                logger.warning(f"Themes storage file not found at {themes_file}")
             
             # Extract common theme colors with fallbacks
-            return {
+            result = {
                 'theme_name': theme_name,
                 'colors': {
                     'primary': theme_data.get('primary-color', '#03a9f4'),
@@ -792,8 +862,11 @@ class BroadlinkWebServer:
                 'is_dark': theme_mode == 'dark' or 'dark' in theme_name.lower()
             }
             
+            logger.info(f"Returning theme: {result['theme_name']} with colors: {result['colors']}")
+            return result
+            
         except Exception as e:
-            logger.error(f"Error getting HA theme: {e}")
+            logger.error(f"Error getting HA theme: {e}", exc_info=True)
             return self._get_default_theme()
     
     def _get_default_theme(self) -> dict:

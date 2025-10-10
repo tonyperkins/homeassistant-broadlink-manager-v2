@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.23] - 2025-10-09
+
+### Fixed
+- Improved text contrast in light mode
+- Secondary text color changed from `#5f6368` to `#424242` (darker, more readable)
+- Section headers now use theme variable and are bolder (600 weight)
+
 ## [1.10.22] - 2025-10-09
 
 ### Fixed

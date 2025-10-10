@@ -767,6 +767,42 @@
         // Load and apply Home Assistant theme
         async function loadHATheme() {
             try {
+                // First try to get theme from parent window (ingress mode)
+                if (window.parent && window.parent !== window) {
+                    try {
+                        const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
+                        const haTheme = {
+                            theme_name: 'ha_inherited',
+                            colors: {
+                                primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
+                                accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
+                                background: parentStyles.getPropertyValue('--primary-background-color').trim() || '#111111',
+                                surface: parentStyles.getPropertyValue('--card-background-color').trim() || '#1c1c1c',
+                                text_primary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#ffffff',
+                                text_secondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#9ca3af',
+                                border: parentStyles.getPropertyValue('--divider-color').trim() || '#2c2c2c',
+                                success: parentStyles.getPropertyValue('--success-color').trim() || '#4caf50',
+                                warning: parentStyles.getPropertyValue('--warning-color').trim() || '#ff9800',
+                                error: parentStyles.getPropertyValue('--error-color').trim() || '#f44336',
+                                info: parentStyles.getPropertyValue('--info-color').trim() || '#2196f3'
+                            },
+                            is_dark: parentStyles.getPropertyValue('--primary-background-color').trim().startsWith('#') && 
+                                    parseInt(parentStyles.getPropertyValue('--primary-background-color').trim().substring(1, 3), 16) < 50
+                        };
+                        
+                        // Check if we got valid colors (not empty)
+                        if (haTheme.colors.primary && haTheme.colors.primary !== '#03a9f4') {
+                            applyTheme(haTheme);
+                            currentTheme = haTheme;
+                            log(`Applied HA theme from parent window`);
+                            return;
+                        }
+                    } catch (e) {
+                        console.log('Could not access parent window theme:', e);
+                    }
+                }
+                
+                // Fallback: try API
                 const response = await fetch(getApiUrl('/api/theme'));
                 const themeData = await response.json();
                 

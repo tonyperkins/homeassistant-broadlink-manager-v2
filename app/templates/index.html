@@ -546,7 +546,8 @@
             to { opacity: 1; }
         }
 
-        .modal {
+        .modal,
+        .modal-dialog {
             background: var(--ha-surface-color);
             border-radius: 12px;
             width: 90%;
@@ -1826,19 +1827,21 @@
                         <h3>✅ Entities Generated Successfully!</h3>
                         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
                     </div>
-                    <div class="modal-body">
-                        <div style="margin-bottom: 20px;">
+                    <div class="modal-body" style="color: var(--ha-text-primary-color);">
+                        <div style="margin-bottom: 20px; background: var(--ha-background-color); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
                             <strong>Generated:</strong> ${result.entities_count} entities
                             <br>
+                            <div style="margin-top: 8px;">
                             ${Object.entries(result.entity_counts || {}).map(([type, count]) => 
-                                `<span style="display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: var(--ha-primary-color); border-radius: 12px; font-size: 12px;">${count} ${type}${count > 1 ? 's' : ''}</span>`
+                                `<span style="display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: var(--ha-primary-color); color: white; border-radius: 12px; font-size: 12px;">${count} ${type}${count > 1 ? 's' : ''}</span>`
                             ).join('')}
+                            </div>
                         </div>
                         
-                        <div style="background: var(--ha-background-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto; color: var(--ha-text-primary-color);">
+                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto;">
                             <div style="margin-bottom: 20px;">
-                                <strong>📁 Files Created:</strong>
-                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                <strong style="color: var(--ha-text-primary-color);">📁 Files Created:</strong>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8; color: var(--ha-text-primary-color);">
                                     <li>/config/broadlink_manager/package.yaml (for packages method)</li>
                                     <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
                                     <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
@@ -1850,37 +1853,37 @@
                             <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; color: white;">
                                 <strong>📝 Next Steps - Choose ONE option:</strong>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 1: Packages (Recommended)</strong>
-                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">homeassistant:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">homeassistant:
   packages:
     broadlink_manager: !include broadlink_manager/package.yaml</pre>
-                                <small>✅ Works with existing configs • No conflicts • Everything in one file</small>
+                                <small style="opacity: 0.95;">✅ Works with existing configs • No conflicts • Everything in one file</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 2: List Format</strong>
-                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">light:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light:
   - platform: existing_platform  # Your existing config
   - !include broadlink_manager/entities.yaml
 
 fan:
   - platform: existing_platform  # Your existing config
   - !include broadlink_manager/entities.yaml</pre>
-                                <small>✅ If you already have light:, fan:, etc.</small>
+                                <small style="opacity: 0.95;">✅ If you already have light:, fan:, etc.</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 3: Direct Include (New configs only)</strong>
-                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">light: !include broadlink_manager/entities.yaml
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light: !include broadlink_manager/entities.yaml
 fan: !include broadlink_manager/entities.yaml
 input_boolean: !include broadlink_manager/helpers.yaml
 input_select: !include broadlink_manager/helpers.yaml</pre>
-                                <small>⚠️ Only if you DON'T have these sections yet</small>
+                                <small style="opacity: 0.95;">⚠️ Only if you DON'T have these sections yet</small>
                             </div>
                             
                                 <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
-                                    <li>Add ONE of the options above to <code>configuration.yaml</code></li>
+                                    <li>Add ONE of the options above to <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">configuration.yaml</code></li>
                                     <li>Check your configuration (Developer Tools → YAML)</li>
                                     <li>Restart Home Assistant</li>
                                     <li>Your entities will appear! 🎉</li>

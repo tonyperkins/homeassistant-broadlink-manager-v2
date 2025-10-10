@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.20] - 2025-10-09
+
+### Fixed
+- **Completely removed all HA theme auto-detection** - was causing constant switching
+- **Simplified to manual toggle only** - exactly like Everything Presence add-on
+- Removed theme watcher that was overriding manual selection
+- Removed parent window theme detection
+- Removed API theme polling
+- Default is now light mode, toggle to dark mode manually
+- Theme preference persists in localStorage
+
 ## [1.10.19] - 2025-10-09
 
 ### Added

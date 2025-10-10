@@ -19,19 +19,17 @@
             --ha-info-color: #2196f3;
         }
         
-        /* Dark theme using CSS media query */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --ha-background-color: #111111;
-                --ha-surface-color: #1c1c1c;
-                --ha-text-primary-color: #ffffff;
-                --ha-text-secondary-color: #9ca3af;
-                --ha-border-color: #2c2c2c;
-                --ha-success-color: #10b981;
-                --ha-warning-color: #f59e0b;
-                --ha-error-color: #ef4444;
-                --ha-info-color: #3b82f6;
-            }
+        /* Dark mode class */
+        body.dark-mode {
+            --ha-background-color: #111111;
+            --ha-surface-color: #1c1c1c;
+            --ha-text-primary-color: #ffffff;
+            --ha-text-secondary-color: #9ca3af;
+            --ha-border-color: #2c2c2c;
+            --ha-success-color: #10b981;
+            --ha-warning-color: #f59e0b;
+            --ha-error-color: #ef4444;
+            --ha-info-color: #3b82f6;
         }
 
         * {
@@ -715,30 +713,6 @@
             transform: scale(0.95);
         }
 
-        /* Manual dark mode class */
-        body.manual-dark-mode {
-            --ha-background-color: #111111;
-            --ha-surface-color: #1c1c1c;
-            --ha-text-primary-color: #ffffff;
-            --ha-text-secondary-color: #9ca3af;
-            --ha-border-color: #2c2c2c;
-            --ha-success-color: #10b981;
-            --ha-warning-color: #f59e0b;
-            --ha-error-color: #ef4444;
-            --ha-info-color: #3b82f6;
-        }
-
-        body.manual-light-mode {
-            --ha-background-color: #fafafa;
-            --ha-surface-color: #ffffff;
-            --ha-text-primary-color: #212121;
-            --ha-text-secondary-color: #727272;
-            --ha-border-color: #e0e0e0;
-            --ha-success-color: #4caf50;
-            --ha-warning-color: #ff9800;
-            --ha-error-color: #f44336;
-            --ha-info-color: #2196f3;
-        }
     </style>
 </head>
 <body>
@@ -775,8 +749,6 @@
     <script>
         let learnedData = {};
         let currentDevice = '';
-        let currentTheme = null;
-        let manualThemeOverride = null; // null = auto, 'light' or 'dark' = manual
 
         // Helper function to get correct API URL
         function getApiUrl(endpoint) {
@@ -786,56 +758,33 @@
                 `${baseUrl}${endpoint}` : endpoint;
         }
 
-        // Theme toggle functionality
-        function initThemeToggle() {
+        // Simple dark mode toggle - exactly like Everything Presence add-on
+        function initDarkModeToggle() {
             const toggleBtn = document.getElementById('theme-toggle');
             
-            // Load saved preference
-            const savedTheme = localStorage.getItem('broadlink-theme-preference');
-            if (savedTheme) {
-                manualThemeOverride = savedTheme;
-                applyManualTheme(savedTheme);
-            }
-            
-            toggleBtn.addEventListener('click', () => {
-                // Cycle through: auto -> light -> dark -> auto
-                if (manualThemeOverride === null) {
-                    // Currently auto, switch to light
-                    manualThemeOverride = 'light';
-                    applyManualTheme('light');
-                    log('Theme: Manual light mode');
-                } else if (manualThemeOverride === 'light') {
-                    // Currently light, switch to dark
-                    manualThemeOverride = 'dark';
-                    applyManualTheme('dark');
-                    log('Theme: Manual dark mode');
-                } else {
-                    // Currently dark, switch to auto
-                    manualThemeOverride = null;
-                    localStorage.removeItem('broadlink-theme-preference');
-                    document.body.classList.remove('manual-light-mode', 'manual-dark-mode');
-                    toggleBtn.textContent = '🌙';
-                    log('Theme: Auto (follows HA theme)');
-                    // Reload HA theme
-                    loadHATheme();
-                    return;
-                }
-                
-                localStorage.setItem('broadlink-theme-preference', manualThemeOverride);
-            });
-        }
-
-        function applyManualTheme(theme) {
-            const toggleBtn = document.getElementById('theme-toggle');
-            document.body.classList.remove('manual-light-mode', 'manual-dark-mode');
-            
-            if (theme === 'light') {
-                document.body.classList.add('manual-light-mode');
+            // Check for saved preference or default to light mode
+            const savedMode = localStorage.getItem('darkMode');
+            if (savedMode === 'enabled') {
+                document.body.classList.add('dark-mode');
                 toggleBtn.textContent = '☀️';
-            } else if (theme === 'dark') {
-                document.body.classList.add('manual-dark-mode');
+            } else {
                 toggleBtn.textContent = '🌙';
             }
+            
+            // Toggle on click
+            toggleBtn.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                
+                if (document.body.classList.contains('dark-mode')) {
+                    localStorage.setItem('darkMode', 'enabled');
+                    toggleBtn.textContent = '☀️';
+                    log('Dark mode enabled');
+                } else {
+                    localStorage.setItem('darkMode', 'disabled');
+                    toggleBtn.textContent = '🌙';
+                    log('Light mode enabled');
+                }
+            });
         }
 
         // Setup event listeners for command buttons
@@ -883,106 +832,6 @@
             }
         }
 
-        // Load and apply Home Assistant theme
-        async function loadHATheme() {
-            // Skip if manual override is active
-            if (manualThemeOverride !== null) {
-                log(`Using manual ${manualThemeOverride} mode (theme auto-detection disabled)`);
-                return;
-            }
-            
-            try {
-                // First try to get theme from parent window (ingress mode)
-                if (window.parent && window.parent !== window) {
-                    try {
-                        const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
-                        const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
-                        
-                        // Only proceed if we got a valid background color
-                        if (bgColor && bgColor.startsWith('#') && bgColor.length >= 4) {
-                            const haTheme = {
-                                theme_name: 'ha_inherited',
-                                colors: {
-                                    primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
-                                    accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
-                                    background: bgColor,
-                                    surface: parentStyles.getPropertyValue('--card-background-color').trim() || bgColor,
-                                    text_primary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#212121',
-                                    text_secondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#727272',
-                                    border: parentStyles.getPropertyValue('--divider-color').trim() || '#e0e0e0',
-                                    success: parentStyles.getPropertyValue('--success-color').trim() || '#4caf50',
-                                    warning: parentStyles.getPropertyValue('--warning-color').trim() || '#ff9800',
-                                    error: parentStyles.getPropertyValue('--error-color').trim() || '#f44336',
-                                    info: parentStyles.getPropertyValue('--info-color').trim() || '#2196f3'
-                                },
-                                is_dark: parseInt(bgColor.substring(1, 3), 16) < 50
-                            };
-                            
-                            applyTheme(haTheme);
-                            currentTheme = haTheme;
-                            log(`Applied HA theme from parent window (${haTheme.is_dark ? 'dark' : 'light'} mode)`);
-                            return;
-                        }
-                    } catch (e) {
-                        console.log('Could not access parent window theme:', e);
-                    }
-                }
-                
-                // Fallback: try API
-                const response = await fetch(getApiUrl('/api/theme'));
-                const themeData = await response.json();
-                
-                if (themeData && themeData.colors) {
-                    applyTheme(themeData);
-                    currentTheme = themeData;
-                    log(`Applied HA theme: ${themeData.theme_name}`);
-                } else {
-                    log('Using default theme (respects system dark mode preference)');
-                }
-            } catch (error) {
-                console.error('Error loading HA theme:', error);
-                log('Failed to load HA theme, using default');
-            }
-        }
-
-        function applyTheme(themeData) {
-            const root = document.documentElement;
-            const colors = themeData.colors;
-            
-            // Apply theme colors to CSS variables
-            root.style.setProperty('--ha-primary-color', colors.primary);
-            root.style.setProperty('--ha-accent-color', colors.accent);
-            root.style.setProperty('--ha-background-color', colors.background);
-            root.style.setProperty('--ha-surface-color', colors.surface);
-            root.style.setProperty('--ha-text-primary-color', colors.text_primary);
-            root.style.setProperty('--ha-text-secondary-color', colors.text_secondary);
-            root.style.setProperty('--ha-border-color', colors.border);
-            root.style.setProperty('--ha-success-color', colors.success);
-            root.style.setProperty('--ha-warning-color', colors.warning);
-            root.style.setProperty('--ha-error-color', colors.error);
-            root.style.setProperty('--ha-info-color', colors.info);
-            
-            // Add theme class to body for additional styling if needed
-            document.body.className = themeData.is_dark ? 'theme-dark' : 'theme-light';
-        }
-
-        // Check for theme changes periodically
-        function startThemeWatcher() {
-            setInterval(async () => {
-                try {
-                    const response = await fetch(getApiUrl('/api/theme'));
-                    const newThemeData = await response.json();
-                    
-                    if (newThemeData && newThemeData.theme_name !== currentTheme?.theme_name) {
-                        log(`Theme changed from ${currentTheme?.theme_name || 'default'} to ${newThemeData.theme_name}`);
-                        applyTheme(newThemeData);
-                        currentTheme = newThemeData;
-                    }
-                } catch (error) {
-                    // Silently fail - don't spam logs
-                }
-            }, 5000); // Check every 5 seconds
-        }
 
         async function loadLearnedData() {
             try {
@@ -2099,10 +1948,8 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                initThemeToggle();
-                await loadHATheme();
+                initDarkModeToggle();
                 await loadLearnedData();
-                startThemeWatcher();
             } catch (error) {
                 console.error('Error initializing application:', error);
                 log('❌ Failed to initialize application', 'error');

@@ -194,19 +194,24 @@
         }
 
         .device-header:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        
+        body.dark-mode .device-header:hover {
             background: #252f3f;
         }
 
         .device-icon {
             width: 56px;
             height: 56px;
-            background: #374151;
+            background: var(--ha-primary-color);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             flex-shrink: 0;
+            opacity: 0.9;
         }
 
         .device-info {
@@ -257,6 +262,11 @@
         /* Command Groups */
         .command-groups {
             display: none;
+            background: rgba(0, 0, 0, 0.02);
+            border-top: 1px solid var(--ha-border-color);
+        }
+        
+        body.dark-mode .command-groups {
             background: #111827;
             border-top: 1px solid #374151;
         }
@@ -266,6 +276,10 @@
         }
 
         .command-group {
+            border-bottom: 1px solid var(--ha-border-color);
+        }
+        
+        body.dark-mode .command-group {
             border-bottom: 1px solid #1f2937;
         }
 
@@ -283,6 +297,10 @@
         }
 
         .group-header:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        
+        body.dark-mode .group-header:hover {
             background: #1f2937;
         }
 
@@ -301,13 +319,13 @@
         .group-name {
             font-size: 16px;
             font-weight: 500;
-            color: #e1e5e9;
+            color: var(--ha-text-primary-color);
             flex: 1;
         }
 
         .group-count {
-            background: #374151;
-            color: #9ca3af;
+            background: var(--ha-border-color);
+            color: var(--ha-text-secondary-color);
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
@@ -317,6 +335,10 @@
         /* Commands */
         .commands-list {
             display: none;
+            background: rgba(0, 0, 0, 0.01);
+        }
+        
+        body.dark-mode .commands-list {
             background: #0d1117;
             padding: 16px 0;
         }
@@ -335,6 +357,10 @@
         }
 
         .command-item:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        
+        body.dark-mode .command-item:hover {
             background: #1f2937;
         }
 
@@ -351,8 +377,8 @@
         }
 
         .command-type {
-            background: #374151;
-            color: #9ca3af;
+            background: var(--ha-border-color);
+            color: var(--ha-text-secondary-color);
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 11px;
@@ -404,8 +430,8 @@
         }
 
         .btn-secondary {
-            background: #374151;
-            color: #e1e5e9;
+            background: var(--ha-border-color);
+            color: var(--ha-text-primary-color);
         }
 
         .btn-secondary:hover {
@@ -423,30 +449,35 @@
 
         /* Activity Log */
         .config-section {
-            background: #1f2937;
-            border: 1px solid #374151;
+            background: var(--ha-surface-color);
+            border: 1px solid var(--ha-border-color);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 16px;
         }
 
         .config-section h2 {
-            color: #e1e5e9;
+            color: var(--ha-text-primary-color);
             margin-bottom: 16px;
             font-size: 1.1rem;
             font-weight: 600;
         }
 
         .log-area {
-            background: #0a0a0a;
-            color: #22c55e;
+            background: var(--ha-background-color);
+            color: var(--ha-success-color);
             font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
             padding: 16px;
             border-radius: 8px;
             height: 180px;
             overflow-y: auto;
-            border: 1px solid #374151;
+            border: 1px solid var(--ha-border-color);
             font-size: 0.8rem;
+        }
+        
+        body.dark-mode .log-area {
+            background: #0a0a0a;
+            color: #22c55e;
         }
 
         .alert {
@@ -758,44 +789,19 @@
                 `${baseUrl}${endpoint}` : endpoint;
         }
 
-        // Simple dark mode toggle - with initial HA theme detection
+        // Simple dark mode toggle - manual only, no auto-detection
         function initDarkModeToggle() {
             const toggleBtn = document.getElementById('theme-toggle');
             
-            // Check for saved preference first
+            // Check for saved preference
             const savedMode = localStorage.getItem('darkMode');
             
-            if (savedMode === 'enabled' || savedMode === 'disabled') {
-                // User has manually set preference - use it
-                if (savedMode === 'enabled') {
-                    document.body.classList.add('dark-mode');
-                    toggleBtn.textContent = '☀️';
-                } else {
-                    toggleBtn.textContent = '🌙';
-                }
+            if (savedMode === 'enabled') {
+                document.body.classList.add('dark-mode');
+                toggleBtn.textContent = '☀️';
             } else {
-                // No saved preference - detect from HA parent window (one time only)
-                try {
-                    if (window.parent && window.parent !== window) {
-                        const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
-                        const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
-                        
-                        if (bgColor && bgColor.startsWith('#')) {
-                            const isDark = parseInt(bgColor.substring(1, 3), 16) < 50;
-                            if (isDark) {
-                                document.body.classList.add('dark-mode');
-                                toggleBtn.textContent = '☀️';
-                                log('Detected dark theme from HA');
-                            } else {
-                                toggleBtn.textContent = '🌙';
-                                log('Detected light theme from HA');
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // Can't access parent, use default light mode
-                    toggleBtn.textContent = '🌙';
-                }
+                // Default to light mode
+                toggleBtn.textContent = '🌙';
             }
             
             // Toggle on click

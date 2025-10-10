@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.22] - 2025-10-09
+
+### Fixed
+- **Removed ALL auto-detection** - manual toggle only, no exceptions
+- **Fixed all hardcoded dark colors** in light mode:
+  - Device card backgrounds now white
+  - Command group backgrounds now light
+  - Hover effects now subtle light gray
+  - Device icons now use primary color
+  - All text colors use theme variables
+  - Log area uses theme colors
+- Default is light mode, persists in localStorage
+- No automatic theme switching whatsoever
+
 ## [1.10.21] - 2025-10-09
 
 ### Fixed

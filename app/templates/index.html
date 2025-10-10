@@ -5,14 +5,14 @@
     <title>Broadlink Manager</title>
     <style>
         :root {
-            /* Light theme (default) */
+            /* Light theme (default) - matches HA light theme */
             --ha-primary-color: #03a9f4;
             --ha-accent-color: #ff9800;
-            --ha-background-color: #fafafa;
+            --ha-background-color: #f5f5f5;
             --ha-surface-color: #ffffff;
-            --ha-text-primary-color: #212121;
-            --ha-text-secondary-color: #727272;
-            --ha-border-color: #e0e0e0;
+            --ha-text-primary-color: #111111;
+            --ha-text-secondary-color: #5f6368;
+            --ha-border-color: #d3d3d3;
             --ha-success-color: #4caf50;
             --ha-warning-color: #ff9800;
             --ha-error-color: #f44336;
@@ -22,10 +22,10 @@
         /* Dark mode class */
         body.dark-mode {
             --ha-background-color: #111111;
-            --ha-surface-color: #1c1c1c;
-            --ha-text-primary-color: #ffffff;
-            --ha-text-secondary-color: #9ca3af;
-            --ha-border-color: #2c2c2c;
+            --ha-surface-color: #1e1e1e;
+            --ha-text-primary-color: #e1e1e1;
+            --ha-text-secondary-color: #9e9e9e;
+            --ha-border-color: #3a3a3a;
             --ha-success-color: #10b981;
             --ha-warning-color: #f59e0b;
             --ha-error-color: #ef4444;
@@ -758,17 +758,44 @@
                 `${baseUrl}${endpoint}` : endpoint;
         }
 
-        // Simple dark mode toggle - exactly like Everything Presence add-on
+        // Simple dark mode toggle - with initial HA theme detection
         function initDarkModeToggle() {
             const toggleBtn = document.getElementById('theme-toggle');
             
-            // Check for saved preference or default to light mode
+            // Check for saved preference first
             const savedMode = localStorage.getItem('darkMode');
-            if (savedMode === 'enabled') {
-                document.body.classList.add('dark-mode');
-                toggleBtn.textContent = '☀️';
+            
+            if (savedMode === 'enabled' || savedMode === 'disabled') {
+                // User has manually set preference - use it
+                if (savedMode === 'enabled') {
+                    document.body.classList.add('dark-mode');
+                    toggleBtn.textContent = '☀️';
+                } else {
+                    toggleBtn.textContent = '🌙';
+                }
             } else {
-                toggleBtn.textContent = '🌙';
+                // No saved preference - detect from HA parent window (one time only)
+                try {
+                    if (window.parent && window.parent !== window) {
+                        const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
+                        const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
+                        
+                        if (bgColor && bgColor.startsWith('#')) {
+                            const isDark = parseInt(bgColor.substring(1, 3), 16) < 50;
+                            if (isDark) {
+                                document.body.classList.add('dark-mode');
+                                toggleBtn.textContent = '☀️';
+                                log('Detected dark theme from HA');
+                            } else {
+                                toggleBtn.textContent = '🌙';
+                                log('Detected light theme from HA');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Can't access parent, use default light mode
+                    toggleBtn.textContent = '🌙';
+                }
             }
             
             // Toggle on click

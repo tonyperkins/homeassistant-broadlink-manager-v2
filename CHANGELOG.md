@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.21] - 2025-10-09
+
+### Fixed
+- Improved light mode colors for better contrast and readability
+- Added one-time HA theme detection on initial load (no polling/watching)
+- If no manual preference saved, detects if HA is in dark/light mode and matches it
+- Once user manually toggles, their preference is saved and used instead
+- Better color scheme: lighter backgrounds, darker text for light mode
+
 ## [1.10.20] - 2025-10-09
 
 ### Fixed

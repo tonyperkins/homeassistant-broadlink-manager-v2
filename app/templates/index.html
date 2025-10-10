@@ -3,59 +3,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Broadlink Manager</title>
-    <script>
-        // Detect and apply theme IMMEDIATELY before page renders to prevent flash
-        (function() {
-            try {
-                if (window.parent && window.parent !== window) {
-                    const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
-                    const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
-                    
-                    // If we got a valid color, apply it immediately
-                    if (bgColor && bgColor.startsWith('#')) {
-                        const colors = {
-                            primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
-                            accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
-                            background: bgColor,
-                            surface: parentStyles.getPropertyValue('--card-background-color').trim() || '#1c1c1c',
-                            textPrimary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#ffffff',
-                            textSecondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#9ca3af',
-                            border: parentStyles.getPropertyValue('--divider-color').trim() || '#2c2c2c'
-                        };
-                        
-                        // Apply immediately to prevent flash
-                        const style = document.createElement('style');
-                        style.textContent = `:root {
-                            --ha-primary-color: ${colors.primary};
-                            --ha-accent-color: ${colors.accent};
-                            --ha-background-color: ${colors.background};
-                            --ha-surface-color: ${colors.surface};
-                            --ha-text-primary-color: ${colors.textPrimary};
-                            --ha-text-secondary-color: ${colors.textSecondary};
-                            --ha-border-color: ${colors.border};
-                        }`;
-                        document.head.appendChild(style);
-                    }
-                }
-            } catch (e) {
-                // Silently fail - will use default theme
-            }
-        })();
-    </script>
     <style>
         :root {
-            /* Default theme colors - will be overridden by HA theme */
+            /* Light theme (default) */
             --ha-primary-color: #03a9f4;
             --ha-accent-color: #ff9800;
-            --ha-background-color: #111111;
-            --ha-surface-color: #1c1c1c;
-            --ha-text-primary-color: #ffffff;
-            --ha-text-secondary-color: #9ca3af;
-            --ha-border-color: #2c2c2c;
-            --ha-success-color: #10b981;
-            --ha-warning-color: #f59e0b;
-            --ha-error-color: #ef4444;
-            --ha-info-color: #3b82f6;
+            --ha-background-color: #fafafa;
+            --ha-surface-color: #ffffff;
+            --ha-text-primary-color: #212121;
+            --ha-text-secondary-color: #727272;
+            --ha-border-color: #e0e0e0;
+            --ha-success-color: #4caf50;
+            --ha-warning-color: #ff9800;
+            --ha-error-color: #f44336;
+            --ha-info-color: #2196f3;
+        }
+        
+        /* Dark theme using CSS media query */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ha-background-color: #111111;
+                --ha-surface-color: #1c1c1c;
+                --ha-text-primary-color: #ffffff;
+                --ha-text-secondary-color: #9ca3af;
+                --ha-border-color: #2c2c2c;
+                --ha-success-color: #10b981;
+                --ha-warning-color: #f59e0b;
+                --ha-error-color: #ef4444;
+                --ha-info-color: #3b82f6;
+            }
         }
 
         * {
@@ -712,6 +688,57 @@
             color: var(--ha-text-secondary-color);
             font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
         }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: var(--ha-surface-color);
+            border: 1px solid var(--ha-border-color);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .theme-toggle:hover {
+            background: var(--ha-primary-color);
+            border-color: var(--ha-primary-color);
+            transform: scale(1.05);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.95);
+        }
+
+        /* Manual dark mode class */
+        body.manual-dark-mode {
+            --ha-background-color: #111111;
+            --ha-surface-color: #1c1c1c;
+            --ha-text-primary-color: #ffffff;
+            --ha-text-secondary-color: #9ca3af;
+            --ha-border-color: #2c2c2c;
+            --ha-success-color: #10b981;
+            --ha-warning-color: #f59e0b;
+            --ha-error-color: #ef4444;
+            --ha-info-color: #3b82f6;
+        }
+
+        body.manual-light-mode {
+            --ha-background-color: #fafafa;
+            --ha-surface-color: #ffffff;
+            --ha-text-primary-color: #212121;
+            --ha-text-secondary-color: #727272;
+            --ha-border-color: #e0e0e0;
+            --ha-success-color: #4caf50;
+            --ha-warning-color: #ff9800;
+            --ha-error-color: #f44336;
+            --ha-info-color: #2196f3;
+        }
     </style>
 </head>
 <body>
@@ -724,7 +751,7 @@
             </div>
         </div>
         <div class="header-right">
-            <!-- Add Command buttons are now on each device -->
+            <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark mode">🌙</button>
         </div>
     </header>
 
@@ -749,6 +776,7 @@
         let learnedData = {};
         let currentDevice = '';
         let currentTheme = null;
+        let manualThemeOverride = null; // null = auto, 'light' or 'dark' = manual
 
         // Helper function to get correct API URL
         function getApiUrl(endpoint) {
@@ -756,6 +784,58 @@
                 window.location.pathname.slice(0, -1) : window.location.pathname;
             return baseUrl.includes('/api/hassio_ingress/') ? 
                 `${baseUrl}${endpoint}` : endpoint;
+        }
+
+        // Theme toggle functionality
+        function initThemeToggle() {
+            const toggleBtn = document.getElementById('theme-toggle');
+            
+            // Load saved preference
+            const savedTheme = localStorage.getItem('broadlink-theme-preference');
+            if (savedTheme) {
+                manualThemeOverride = savedTheme;
+                applyManualTheme(savedTheme);
+            }
+            
+            toggleBtn.addEventListener('click', () => {
+                // Cycle through: auto -> light -> dark -> auto
+                if (manualThemeOverride === null) {
+                    // Currently auto, switch to light
+                    manualThemeOverride = 'light';
+                    applyManualTheme('light');
+                    log('Theme: Manual light mode');
+                } else if (manualThemeOverride === 'light') {
+                    // Currently light, switch to dark
+                    manualThemeOverride = 'dark';
+                    applyManualTheme('dark');
+                    log('Theme: Manual dark mode');
+                } else {
+                    // Currently dark, switch to auto
+                    manualThemeOverride = null;
+                    localStorage.removeItem('broadlink-theme-preference');
+                    document.body.classList.remove('manual-light-mode', 'manual-dark-mode');
+                    toggleBtn.textContent = '🌙';
+                    log('Theme: Auto (follows HA theme)');
+                    // Reload HA theme
+                    loadHATheme();
+                    return;
+                }
+                
+                localStorage.setItem('broadlink-theme-preference', manualThemeOverride);
+            });
+        }
+
+        function applyManualTheme(theme) {
+            const toggleBtn = document.getElementById('theme-toggle');
+            document.body.classList.remove('manual-light-mode', 'manual-dark-mode');
+            
+            if (theme === 'light') {
+                document.body.classList.add('manual-light-mode');
+                toggleBtn.textContent = '☀️';
+            } else if (theme === 'dark') {
+                document.body.classList.add('manual-dark-mode');
+                toggleBtn.textContent = '🌙';
+            }
         }
 
         // Setup event listeners for command buttons
@@ -805,35 +885,42 @@
 
         // Load and apply Home Assistant theme
         async function loadHATheme() {
+            // Skip if manual override is active
+            if (manualThemeOverride !== null) {
+                log(`Using manual ${manualThemeOverride} mode (theme auto-detection disabled)`);
+                return;
+            }
+            
             try {
                 // First try to get theme from parent window (ingress mode)
                 if (window.parent && window.parent !== window) {
                     try {
                         const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
-                        const haTheme = {
-                            theme_name: 'ha_inherited',
-                            colors: {
-                                primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
-                                accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
-                                background: parentStyles.getPropertyValue('--primary-background-color').trim() || '#111111',
-                                surface: parentStyles.getPropertyValue('--card-background-color').trim() || '#1c1c1c',
-                                text_primary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#ffffff',
-                                text_secondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#9ca3af',
-                                border: parentStyles.getPropertyValue('--divider-color').trim() || '#2c2c2c',
-                                success: parentStyles.getPropertyValue('--success-color').trim() || '#4caf50',
-                                warning: parentStyles.getPropertyValue('--warning-color').trim() || '#ff9800',
-                                error: parentStyles.getPropertyValue('--error-color').trim() || '#f44336',
-                                info: parentStyles.getPropertyValue('--info-color').trim() || '#2196f3'
-                            },
-                            is_dark: parentStyles.getPropertyValue('--primary-background-color').trim().startsWith('#') && 
-                                    parseInt(parentStyles.getPropertyValue('--primary-background-color').trim().substring(1, 3), 16) < 50
-                        };
+                        const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
                         
-                        // Check if we got valid colors (not empty)
-                        if (haTheme.colors.primary && haTheme.colors.primary !== '#03a9f4') {
+                        // Only proceed if we got a valid background color
+                        if (bgColor && bgColor.startsWith('#') && bgColor.length >= 4) {
+                            const haTheme = {
+                                theme_name: 'ha_inherited',
+                                colors: {
+                                    primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
+                                    accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
+                                    background: bgColor,
+                                    surface: parentStyles.getPropertyValue('--card-background-color').trim() || bgColor,
+                                    text_primary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#212121',
+                                    text_secondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#727272',
+                                    border: parentStyles.getPropertyValue('--divider-color').trim() || '#e0e0e0',
+                                    success: parentStyles.getPropertyValue('--success-color').trim() || '#4caf50',
+                                    warning: parentStyles.getPropertyValue('--warning-color').trim() || '#ff9800',
+                                    error: parentStyles.getPropertyValue('--error-color').trim() || '#f44336',
+                                    info: parentStyles.getPropertyValue('--info-color').trim() || '#2196f3'
+                                },
+                                is_dark: parseInt(bgColor.substring(1, 3), 16) < 50
+                            };
+                            
                             applyTheme(haTheme);
                             currentTheme = haTheme;
-                            log(`Applied HA theme from parent window`);
+                            log(`Applied HA theme from parent window (${haTheme.is_dark ? 'dark' : 'light'} mode)`);
                             return;
                         }
                     } catch (e) {
@@ -850,7 +937,7 @@
                     currentTheme = themeData;
                     log(`Applied HA theme: ${themeData.theme_name}`);
                 } else {
-                    log('Using default theme');
+                    log('Using default theme (respects system dark mode preference)');
                 }
             } catch (error) {
                 console.error('Error loading HA theme:', error);
@@ -2012,6 +2099,7 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
             try {
+                initThemeToggle();
                 await loadHATheme();
                 await loadLearnedData();
                 startThemeWatcher();

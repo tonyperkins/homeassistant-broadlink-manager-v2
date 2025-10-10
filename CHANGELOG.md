@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.19] - 2025-10-09
+
+### Added
+- **Manual theme toggle button** in header (🌙/☀️)
+- Three-way toggle: Auto (follows HA) → Light → Dark → Auto
+- Theme preference saved in localStorage
+- Visual feedback with icon changes (🌙 for dark, ☀️ for light)
+- Manual override disables automatic HA theme detection
+
+## [1.10.18] - 2025-10-09
+
+### Fixed
+- Changed default theme to proper light theme with good contrast
+- Added CSS `@media (prefers-color-scheme: dark)` for automatic dark mode
+- Improved theme detection logic with better validation
+- Light mode now has appropriate colors (light backgrounds, dark text)
+- Dark mode automatically applies based on system/HA preference
+- Removed non-functional inline script that was causing CORS issues
+
 ## [1.10.17] - 2025-10-09
 
 ### Fixed

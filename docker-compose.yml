@@ -11,18 +11,20 @@ services:
     
     # Network mode - choose one:
     # Option 1: Host network (recommended for device discovery)
-    network_mode: host
+    # Note: On Windows/WSL, host networking doesn't expose ports to Windows
+    # Use bridge mode instead for Windows access
+    # network_mode: host
     
-    # Option 2: Bridge network with port mapping (uncomment if not using host mode)
-    # ports:
-    #   - "8099:8099"
+    # Option 2: Bridge network with port mapping (recommended for Windows/WSL)
+    ports:
+      - "8099:8099"
     
     environment:
       # REQUIRED: Home Assistant URL
       # Use the internal Docker network name if HA is also in Docker
-      - HA_URL=http://homeassistant:8123
+      # - HA_URL=http://homeassistant:8123
       # Or use host IP if using host network mode
-      # - HA_URL=http://192.168.1.100:8123
+      - HA_URL=${HA_URL}
       
       # REQUIRED: Long-lived access token from Home Assistant
       # Create one in your HA profile settings
@@ -39,11 +41,14 @@ services:
     
     volumes:
       # REQUIRED: Mount your Home Assistant config directory
-      # Update the path on the left to match your HA config location
-      - /path/to/homeassistant/config:/config
-      
-      # Optional: Persist Broadlink Manager data
-      # - ./broadlink_manager_data:/config/broadlink_manager
+      # Set HA_CONFIG_PATH in .env file to match your setup
+      # Examples:
+      #   Linux: /home/user/homeassistant
+      #   Windows local: C:/homeassistant/config
+      #   Windows network (UNC): //homeassistant/config
+      #   Windows mapped drive: H:/
+      #   Docker network: homeassistant-config (named volume)
+      - ${HA_CONFIG_PATH:-/path/to/homeassistant/config}:/config
     
     # Health check
     healthcheck:

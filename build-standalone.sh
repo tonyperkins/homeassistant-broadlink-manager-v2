@@ -7,8 +7,8 @@ echo "=========================================="
 echo "Building Broadlink Manager Standalone"
 echo "=========================================="
 
-# Get version from config.yaml
-VERSION=$(grep "^version:" config.yaml | awk '{print $2}' | tr -d '"')
+# Get version from config.yaml and strip Windows line endings
+VERSION=$(grep "^version:" config.yaml | awk '{print $2}' | tr -d '"\r')
 echo "Version: $VERSION"
 
 # Image name

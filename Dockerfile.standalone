@@ -3,10 +3,7 @@
 
 FROM python:3.11-alpine
 
-# Set shell
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-# Install system requirements
+# Install system requirements (including bash first)
 RUN apk add --no-cache \
     bash \
     gcc \
@@ -16,6 +13,9 @@ RUN apk add --no-cache \
     cargo \
     rust \
     curl
+
+# Set shell (after bash is installed)
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Set working directory
 WORKDIR /app

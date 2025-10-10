@@ -1835,7 +1835,7 @@
                             ).join('')}
                         </div>
                         
-                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto;">
+                        <div style="background: var(--ha-background-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto; color: var(--ha-text-primary-color);">
                             <div style="margin-bottom: 20px;">
                                 <strong>📁 Files Created:</strong>
                                 <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
@@ -1847,20 +1847,20 @@
                                 </ul>
                             </div>
                             
-                            <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px;">
+                            <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; color: white;">
                                 <strong>📝 Next Steps - Choose ONE option:</strong>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
                                 <strong>Option 1: Packages (Recommended)</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">homeassistant:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">homeassistant:
   packages:
     broadlink_manager: !include broadlink_manager/package.yaml</pre>
                                 <small>✅ Works with existing configs • No conflicts • Everything in one file</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
                                 <strong>Option 2: List Format</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">light:
   - platform: existing_platform  # Your existing config
   - !include broadlink_manager/entities.yaml
 
@@ -1870,9 +1870,9 @@ fan:
                                 <small>✅ If you already have light:, fan:, etc.</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 4px;">
                                 <strong>Option 3: Direct Include (New configs only)</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light: !include broadlink_manager/entities.yaml
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: white;">light: !include broadlink_manager/entities.yaml
 fan: !include broadlink_manager/entities.yaml
 input_boolean: !include broadlink_manager/helpers.yaml
 input_select: !include broadlink_manager/helpers.yaml</pre>

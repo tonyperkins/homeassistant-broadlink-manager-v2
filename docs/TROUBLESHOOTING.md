@@ -495,9 +495,10 @@ When reporting issues, include:
 3. **Architecture**: Settings → System → Hardware
 4. **Device model**: Broadlink device model
 5. **Configuration**: Your add-on configuration (remove sensitive data)
-6. **Logs**: Relevant log excerpts (enable debug mode)
-7. **Steps to reproduce**: Detailed steps
-8. **Expected vs actual behavior**
+6. **Broadlink commands file**: Located in /config/.storage/broadlink_remote_***_codes (if you are comfortable with the file contents)
+7. **Logs**: Relevant log excerpts (enable debug mode)
+8. **Steps to reproduce**: Detailed steps
+9. **Expected vs actual behavior**
 
 ---
 

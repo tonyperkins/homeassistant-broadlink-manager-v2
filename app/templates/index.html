@@ -3,6 +3,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Broadlink Manager</title>
+    <script>
+        // Detect and apply theme IMMEDIATELY before page renders to prevent flash
+        (function() {
+            try {
+                if (window.parent && window.parent !== window) {
+                    const parentStyles = window.parent.getComputedStyle(window.parent.document.documentElement);
+                    const bgColor = parentStyles.getPropertyValue('--primary-background-color').trim();
+                    
+                    // If we got a valid color, apply it immediately
+                    if (bgColor && bgColor.startsWith('#')) {
+                        const colors = {
+                            primary: parentStyles.getPropertyValue('--primary-color').trim() || '#03a9f4',
+                            accent: parentStyles.getPropertyValue('--accent-color').trim() || '#ff9800',
+                            background: bgColor,
+                            surface: parentStyles.getPropertyValue('--card-background-color').trim() || '#1c1c1c',
+                            textPrimary: parentStyles.getPropertyValue('--primary-text-color').trim() || '#ffffff',
+                            textSecondary: parentStyles.getPropertyValue('--secondary-text-color').trim() || '#9ca3af',
+                            border: parentStyles.getPropertyValue('--divider-color').trim() || '#2c2c2c'
+                        };
+                        
+                        // Apply immediately to prevent flash
+                        const style = document.createElement('style');
+                        style.textContent = `:root {
+                            --ha-primary-color: ${colors.primary};
+                            --ha-accent-color: ${colors.accent};
+                            --ha-background-color: ${colors.background};
+                            --ha-surface-color: ${colors.surface};
+                            --ha-text-primary-color: ${colors.textPrimary};
+                            --ha-text-secondary-color: ${colors.textSecondary};
+                            --ha-border-color: ${colors.border};
+                        }`;
+                        document.head.appendChild(style);
+                    }
+                }
+            } catch (e) {
+                // Silently fail - will use default theme
+            }
+        })();
+    </script>
     <style>
         :root {
             /* Default theme colors - will be overridden by HA theme */

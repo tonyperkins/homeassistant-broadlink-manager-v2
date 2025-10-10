@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.17] - 2025-10-09
+
+### Fixed
+- Eliminated theme flash on page load by detecting HA theme in `<head>` before rendering
+- Theme now applies immediately, preventing light-to-dark flash
+- Inline script runs synchronously before CSS loads
+
 ## [1.10.16] - 2025-10-09
 
 ### Fixed

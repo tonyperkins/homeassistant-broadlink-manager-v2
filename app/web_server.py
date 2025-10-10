@@ -23,21 +23,28 @@ from storage_manager import StorageManager
 from entity_detector import EntityDetector
 from entity_generator import EntityGenerator
 from area_manager import AreaManager
+from config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
 class BroadlinkWebServer:
     """Web server for Broadlink device management"""
     
-    def __init__(self, port: int = 8099):
+    def __init__(self, port: int = 8099, config_loader: Optional[ConfigLoader] = None):
         self.port = port
         self.app = Flask(__name__, template_folder='templates')
         CORS(self.app)
         
-        # Home Assistant configuration
-        self.ha_url = "http://supervisor/core"
-        self.ha_token = os.environ.get('SUPERVISOR_TOKEN')
-        self.storage_path = Path("/config/.storage")
+        # Load configuration using ConfigLoader
+        self.config_loader = config_loader or ConfigLoader()
+        
+        # Home Assistant configuration (from ConfigLoader)
+        self.ha_url = self.config_loader.get_ha_url()
+        self.ha_token = self.config_loader.get_ha_token()
+        self.storage_path = self.config_loader.get_storage_path()
+        
+        logger.info(f"Web server initialized in {self.config_loader.mode} mode")
+        logger.info(f"Home Assistant URL: {self.ha_url}")
         
         # Simple notification cache
         self.cached_notifications = []
@@ -560,6 +567,7 @@ class BroadlinkWebServer:
                         except:
                             logger.info("POST response was successful but not JSON, returning empty dict")
                             return {}
+                    else:
                         logger.error(f"POST API request failed with status {response.status}: {response_text}")
                         return None
     
@@ -1119,19 +1127,12 @@ class BroadlinkWebServer:
                 result = await self._make_ha_request('POST', 'services/remote/learn_command', legacy_payload)
                 logger.info(f"Legacy format result: {result}")
             
-            # Check if the legacy format worked (empty array is actually success for learn_command)
-            if result == []:
-                logger.info("Legacy format returned empty array - this is normal for learn_command")
-                return {
-                    'success': True, 
-                    'message': 'Learning process started. Check Home Assistant notifications (🔔) for instructions.',
-                    'result': result
-                }
-            elif result is not None:
+            # Check if the service call succeeded
+            if result == [] or result is not None:
                 logger.info("Learn command service called successfully")
                 return {
                     'success': True, 
-                    'message': 'Learning process started. Check Home Assistant notifications (🔔) for instructions.',
+                    'message': '⚠️ Learning request sent to device. Check Home Assistant notifications (🔔) for instructions. Note: If the device is offline or times out, you will see a notification but this dialog will still show success.',
                     'result': result
                 }
             else:
@@ -1400,37 +1401,56 @@ class BroadlinkWebServer:
             logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Sending command: {device}_{command} to entity {entity_id}")
             
-            # Use the correct HA service call format with target/data structure
+            # Broadlink integration expects command as an array
+            command_list = [command] if isinstance(command, str) else command
+            
+            # Try the working format first: flat structure with command as array
+            # This is what the Broadlink integration actually expects
             payload = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command_list
+            }
+            
+            logger.info(f"Sending command with payload: {payload}")
+            result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
+            
+            if result is not None:
+                logger.info(f"✅ Command sent successfully: {device}_{command}")
+                return {'success': True, 'message': f'Command {command} sent successfully'}
+            
+            # Fallback: Try modern format with target/data structure (for newer HA versions)
+            logger.info("Trying modern format with target/data structure...")
+            modern_payload = {
                 'target': {
                     'entity_id': entity_id
                 },
                 'data': {
                     'device': device,
-                    'command': command
+                    'command': command_list
                 }
             }
-            
-            result = await self._make_ha_request('POST', 'services/remote/send_command', payload)
-            
-            # If we got a 400 error, try the legacy format
-            if result is None:
-                logger.info("Got None result for send_command, trying legacy format...")
-                legacy_payload = {
-                    'entity_id': entity_id,
-                    'device': device,
-                    'command': command
-                }
-                logger.info(f"Trying legacy send format: {legacy_payload}")
-                result = await self._make_ha_request('POST', 'services/remote/send_command', legacy_payload)
-                logger.info(f"Legacy send result: {result}")
+            result = await self._make_ha_request('POST', 'services/remote/send_command', modern_payload)
             
             if result is not None:
-                logger.info(f"Command sent successfully: {device}_{command}")
+                logger.info(f"✅ Command sent successfully with modern format: {device}_{command}")
+                return {'success': True, 'message': f'Command {command} sent successfully'}
+            
+            # Last resort: Try with command as string (very old format)
+            logger.info("Trying string command format...")
+            string_payload = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command
+            }
+            result = await self._make_ha_request('POST', 'services/remote/send_command', string_payload)
+            
+            if result is not None:
+                logger.info(f"✅ Command sent successfully with string format: {device}_{command}")
                 return {'success': True, 'message': f'Command {command} sent successfully'}
             else:
-                logger.error(f"Failed to send command: {device}_{command}")
-                return {'success': False, 'error': 'Failed to send command'}
+                logger.error(f"❌ FAILED: All formats failed for command: {device}_{command}")
+                return {'success': False, 'error': 'Failed to send command - all formats rejected by Home Assistant'}
             
         except Exception as e:
             logger.error(f"Error sending command: {e}")
@@ -1450,37 +1470,56 @@ class BroadlinkWebServer:
             logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Deleting command: {device}_{command} from entity {entity_id}")
             
-            # Use the correct HA service call format with target/data structure
-            service_payload = {
+            # Broadlink integration expects command as an array
+            command_list = [command] if isinstance(command, str) else command
+            
+            # Try the working format first: flat structure with command as array
+            # This is what the Broadlink integration actually expects
+            payload = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command_list
+            }
+            
+            logger.info(f"Deleting command with payload: {payload}")
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', payload)
+            
+            if result is not None:
+                logger.info(f"✅ Command deleted successfully: {device}_{command}")
+                return {'success': True, 'message': f'Command {command} deleted successfully'}
+            
+            # Fallback: Try modern format with target/data structure (for newer HA versions)
+            logger.info("Trying modern format with target/data structure...")
+            modern_payload = {
                 'target': {
                     'entity_id': entity_id
                 },
                 'data': {
                     'device': device,
-                    'command': command
+                    'command': command_list
                 }
             }
-            
-            result = await self._make_ha_request('POST', 'services/remote/delete_command', service_payload)
-            
-            # If we got a 400 error, try the legacy format
-            if result is None:
-                logger.info("Got None result for delete_command, trying legacy format...")
-                legacy_payload = {
-                    'entity_id': entity_id,
-                    'device': device,
-                    'command': command
-                }
-                logger.info(f"Trying legacy delete format: {legacy_payload}")
-                result = await self._make_ha_request('POST', 'services/remote/delete_command', legacy_payload)
-                logger.info(f"Legacy delete result: {result}")
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', modern_payload)
             
             if result is not None:
-                logger.info(f"Command deleted successfully: {device}_{command}")
+                logger.info(f"✅ Command deleted successfully with modern format: {device}_{command}")
+                return {'success': True, 'message': f'Command {command} deleted successfully'}
+            
+            # Last resort: Try with command as string (very old format)
+            logger.info("Trying string command format...")
+            string_payload = {
+                'entity_id': entity_id,
+                'device': device,
+                'command': command
+            }
+            result = await self._make_ha_request('POST', 'services/remote/delete_command', string_payload)
+            
+            if result is not None:
+                logger.info(f"✅ Command deleted successfully with string format: {device}_{command}")
                 return {'success': True, 'message': f'Command {command} deleted successfully'}
             else:
-                logger.error(f"Failed to delete command: {device}_{command}")
-                return {'success': False, 'error': 'Failed to delete command'}
+                logger.error(f"❌ FAILED: All formats failed for command: {device}_{command}")
+                return {'success': False, 'error': 'Failed to delete command - all formats rejected by Home Assistant'}
             
         except Exception as e:
             logger.error(f"Error deleting command: {e}")

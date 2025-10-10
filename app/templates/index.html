@@ -546,7 +546,8 @@
             to { opacity: 1; }
         }
 
-        .modal {
+        .modal,
+        .modal-dialog {
             background: var(--ha-surface-color);
             border-radius: 12px;
             width: 90%;
@@ -565,6 +566,15 @@
             to {
                 transform: translateY(0);
                 opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
             }
         }
 
@@ -615,18 +625,18 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #e1e5e9;
-            font-weight: 500;
+            color: var(--ha-text-primary-color);
+            font-weight: 600;
             font-size: 14px;
         }
 
         .form-control {
             width: 100%;
             padding: 12px 16px;
-            background: #374151;
-            border: 1px solid #4b5563;
+            background: var(--ha-surface-color);
+            border: 1px solid var(--ha-border-color);
             border-radius: 8px;
-            color: #e1e5e9;
+            color: var(--ha-text-primary-color);
             font-size: 14px;
             transition: border-color 0.2s ease;
         }
@@ -646,27 +656,27 @@
 
         .form-text {
             font-size: 12px;
-            color: #9ca3af;
+            color: var(--ha-text-secondary-color);
             margin-top: 4px;
         }
 
         .device-preview {
-            background: #374151;
-            border: 1px solid #4b5563;
+            background: var(--ha-background-color);
+            border: 1px solid var(--ha-border-color);
             border-radius: 6px;
             padding: 12px;
             font-family: 'JetBrains Mono', 'Courier New', monospace;
         }
 
         .preview-label {
-            color: #9ca3af;
+            color: var(--ha-text-secondary-color);
             font-size: 12px;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         .preview-value {
-            color: #3b82f6;
+            color: var(--ha-primary-color);
             font-weight: 500;
             font-size: 14px;
         }
@@ -780,6 +790,24 @@
     <script>
         let learnedData = {};
         let currentDevice = '';
+        
+        // Cache of recently deleted commands to filter them out even if they appear in the data
+        // Format: { "device_name_command_name": timestamp }
+        // Persisted in localStorage so it survives page refreshes
+        const DELETED_CACHE_KEY = 'broadlink_deleted_commands_cache';
+        const DELETED_CACHE_DURATION = 45000; // 45 seconds - enough time for HA to persist changes
+        
+        // Load cache from localStorage on startup
+        let deletedCommandsCache = {};
+        try {
+            const stored = localStorage.getItem(DELETED_CACHE_KEY);
+            if (stored) {
+                deletedCommandsCache = JSON.parse(stored);
+                console.log('📦 Loaded deleted commands cache from localStorage:', deletedCommandsCache);
+            }
+        } catch (e) {
+            console.error('Error loading deleted cache from localStorage:', e);
+        }
 
         // Helper function to get correct API URL
         function getApiUrl(endpoint) {
@@ -852,13 +880,60 @@
             }
         }
 
+        // Save cache to localStorage
+        function saveDeletedCache() {
+            try {
+                localStorage.setItem(DELETED_CACHE_KEY, JSON.stringify(deletedCommandsCache));
+            } catch (e) {
+                console.error('Error saving deleted cache to localStorage:', e);
+            }
+        }
+        
+        // Clean up expired entries from the deleted commands cache
+        function cleanDeletedCache() {
+            const now = Date.now();
+            let changed = false;
+            Object.keys(deletedCommandsCache).forEach(key => {
+                if (now - deletedCommandsCache[key] > DELETED_CACHE_DURATION) {
+                    console.log(`⏰ Cache expired for: ${key}`);
+                    delete deletedCommandsCache[key];
+                    changed = true;
+                }
+            });
+            if (changed) {
+                saveDeletedCache();
+            }
+        }
+        
+        // Check if a command is in the deleted cache
+        function isCommandDeleted(deviceName, commandName) {
+            const key = `${deviceName}_${commandName}`;
+            return deletedCommandsCache[key] !== undefined;
+        }
+        
+        // Add a command to the deleted cache
+        function markCommandAsDeleted(deviceName, commandName) {
+            const key = `${deviceName}_${commandName}`;
+            deletedCommandsCache[key] = Date.now();
+            saveDeletedCache();
+            console.log(`✅ Marked as deleted: ${key}, cache will expire in ${DELETED_CACHE_DURATION/1000}s`);
+        }
+
         function updateHeaderStats() {
             try {
-                const deviceCount = Object.keys(learnedData.devices || {}).length;
+                // Count unique devices that currently have commands (after filtering)
+                const devicesWithCommands = new Set();
+                (learnedData.commands || []).forEach(cmd => {
+                    if (cmd.device_name) {
+                        devicesWithCommands.add(cmd.device_name);
+                    }
+                });
+                const deviceCount = devicesWithCommands.size;
                 const commandCount = (learnedData.commands || []).length;
                 const headerStats = document.querySelector('.header-stats');
                 if (headerStats) {
                     headerStats.textContent = `${deviceCount} devices • ${commandCount} entities`;
+                    console.log(`📊 Updated header stats: ${deviceCount} devices • ${commandCount} entities`);
                 }
             } catch (error) {
                 console.error('Error updating header stats:', error);
@@ -868,6 +943,15 @@
 
         async function loadLearnedData() {
             try {
+                // Clean up expired deleted commands first
+                cleanDeletedCache();
+                
+                // Debug: Show current cache state
+                const cacheKeys = Object.keys(deletedCommandsCache);
+                if (cacheKeys.length > 0) {
+                    console.log(`📋 Deleted commands cache (${cacheKeys.length} items):`, deletedCommandsCache);
+                }
+                
                 // Load both learned commands and all detected devices
                 const [learnedResponse, devicesResponse] = await Promise.all([
                     fetch(getApiUrl('/api/learned-devices')),
@@ -876,6 +960,25 @@
                 
                 learnedData = await learnedResponse.json();
                 const allDevices = await devicesResponse.json();
+                
+                // Filter out commands that are in the deleted cache
+                // This prevents them from reappearing while HA writes to disk
+                if (learnedData.commands && learnedData.commands.length > 0) {
+                    const originalCount = learnedData.commands.length;
+                    console.log(`🔍 Checking ${originalCount} commands against deleted cache...`);
+                    
+                    learnedData.commands = learnedData.commands.filter(cmd => {
+                        const isDeleted = isCommandDeleted(cmd.device_name, cmd.command);
+                        if (isDeleted) {
+                            console.log(`🚫 Filtering out deleted command: ${cmd.device_name}_${cmd.command}`);
+                        }
+                        return !isDeleted;
+                    });
+                    
+                    if (originalCount !== learnedData.commands.length) {
+                        log(`Filtered ${originalCount - learnedData.commands.length} recently deleted command(s) from display`);
+                    }
+                }
                 
                 console.log('Loaded learned data:', learnedData);
                 console.log('All detected devices:', allDevices);
@@ -1227,6 +1330,57 @@
             }
         }
 
+        function removeCommandFromUI(deviceName, commandName) {
+            // Remove the command from the learnedData object
+            if (learnedData.byDevice && learnedData.byDevice[deviceName]) {
+                const deviceCommands = learnedData.byDevice[deviceName].commands;
+                const commandIndex = deviceCommands.findIndex(cmd => cmd.command === commandName);
+                if (commandIndex !== -1) {
+                    deviceCommands.splice(commandIndex, 1);
+                }
+                
+                // If no commands left, remove the device
+                if (deviceCommands.length === 0) {
+                    delete learnedData.byDevice[deviceName];
+                }
+            }
+            
+            // Find and remove the command element from the DOM
+            const commandElements = document.querySelectorAll('.command-item');
+            let removedElement = null;
+            commandElements.forEach(element => {
+                const testBtn = element.querySelector('.command-test-btn');
+                if (testBtn && 
+                    testBtn.getAttribute('data-device') === deviceName && 
+                    testBtn.getAttribute('data-command') === commandName) {
+                    removedElement = element;
+                    element.remove();
+                }
+            });
+            
+            // Check if the device group is now empty and update accordingly
+            if (removedElement) {
+                const deviceGroup = removedElement.closest('.device-group');
+                if (deviceGroup) {
+                    const remainingCommands = deviceGroup.querySelectorAll('.command-item');
+                    if (remainingCommands.length === 0) {
+                        // Remove the entire device group
+                        deviceGroup.remove();
+                        
+                        // Check if the area card is now empty
+                        const commandGroups = removedElement.closest('.command-groups');
+                        if (commandGroups && commandGroups.querySelectorAll('.device-group').length === 0) {
+                            // Show "no commands" message
+                            commandGroups.innerHTML = '<div style="padding: 20px; text-align: center; color: #9ca3af;">No learned commands yet. Use the "Add entry" button to learn commands for this device.</div>';
+                        }
+                    }
+                }
+            }
+            
+            // Update the header stats to reflect the new count
+            updateHeaderStats();
+        }
+
         async function deleteCommand(deviceName, commandName) {
             if (!confirm(`Are you sure you want to delete the command "${commandName}" from device "${deviceName}"?\n\nThis action cannot be undone.`)) {
                 return;
@@ -1281,8 +1435,18 @@
                     log(`✅ Command deleted successfully: ${deviceName}_${commandName}`);
                     showAlert(`✅ Command "${commandName}" deleted successfully!`, 'success');
                     
-                    // Reload data to refresh the UI
-                    await loadLearnedData();
+                    // Mark the command as deleted in our cache
+                    // This prevents it from reappearing even if we reload before HA writes to disk
+                    markCommandAsDeleted(deviceName, commandName);
+                    
+                    // Optimistically remove the command from the UI immediately
+                    removeCommandFromUI(deviceName, commandName);
+                    
+                    // Reload after a short delay to sync with any other changes
+                    // The deleted cache will filter out this command even if it's still in the file
+                    setTimeout(async () => {
+                        await loadLearnedData();
+                    }, 2000);
                 } else {
                     log(`❌ Failed to delete command: ${result.error}`, 'error');
                     showAlert(`Failed to delete command: ${result.error}`, 'error');
@@ -1590,20 +1754,69 @@
             
             log(`Starting to learn new command: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
             
-            // Show immediate instruction message
-            if (commandType === 'rf') {
-                showAlert('📡 RF learning initiated. Check Home Assistant notifications (🔔) for frequency sweep instructions.', 'info');
-            } else {
-                showAlert('📡 IR learning initiated. Check Home Assistant notifications (🔔) for learning instructions.', 'info');
-            }
-            
-            // Close dialog immediately to show user the process has started
+            // Close the add command dialog
             closeAddDialog();
             
+            // Show the instruction modal IMMEDIATELY so user doesn't navigate away
+            const instructionType = commandType === 'rf' ? 'RF' : 'IR';
+            let instructionText = '';
+            
+            if (commandType === 'rf') {
+                instructionText = `
+                    <p style="margin-bottom: 12px;">RF learning is a <strong>two-step process</strong>:</p>
+                    <ol style="margin-left: 20px; margin-bottom: 16px; line-height: 1.8;">
+                        <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
+                        <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
+                    </ol>
+                    <p style="margin-bottom: 16px;">Follow the Home Assistant notifications (🔔) for real-time instructions.</p>
+                `;
+            } else {
+                instructionText = `
+                    <p style="margin-bottom: 16px;">Follow the learning instructions in Home Assistant notifications (🔔).</p>
+                `;
+            }
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'learningInstructionModal';
+            overlay.innerHTML = `
+                <div class="modal-dialog" style="max-width: 550px;">
+                    <div class="modal-header">
+                        <h3>📡 ${instructionType} Learning In Progress...</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px; font-size: 15px;">
+                            <strong>Learning request sent to device.</strong>
+                        </p>
+                        ${instructionText}
+                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <strong>⚠️ Important:</strong> Check Home Assistant notifications (🔔) to see if learning succeeded or timed out. 
+                            This dialog cannot detect timeouts automatically.
+                        </div>
+                        <p style="font-size: 14px; color: var(--ha-text-secondary-color);">
+                            Command: <code style="background: var(--ha-background-color); padding: 2px 6px; border-radius: 4px;">${fullDeviceName}_${commandName}</code>
+                        </p>
+                        <div id="learningStatus" style="margin-top: 16px; padding: 12px; background: var(--ha-background-color); border: 1px solid var(--ha-border-color); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; border: 2px solid var(--ha-primary-color); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span>Waiting for device response...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelLearningBtn" onclick="window.learningController?.abort(); this.closest('.modal-overlay').remove();">Cancel</button>
+                        <button class="btn btn-primary" id="doneLearningBtn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                            <span id="doneBtnText">Please wait...</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
             try {
-                // Set a timeout for the API call
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
+                // Set a timeout for the API call (RF can take 30+ seconds)
+                window.learningController = new AbortController();
+                const timeoutId = setTimeout(() => window.learningController.abort(), 40000); // 40 second timeout
                 
                 const response = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
@@ -1614,37 +1827,134 @@
                         command: commandName,
                         command_type: commandType
                     }),
-                    signal: controller.signal
+                    signal: window.learningController.signal
                 });
                 
                 clearTimeout(timeoutId);
                 const result = await response.json();
                 
-                if (result.success) {
-                    log(`✅ Learning completed: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
-                    
-                    // Reload data after successful learning
-                    setTimeout(async () => {
-                        await loadLearnedData();
-                    }, 2000);
-                } else {
-                    const errorMsg = `Learning failed: ${result.error || 'Unknown error'}`;
-                    log(`❌ ${errorMsg}`, 'error');
-                    showAlert(`❌ ${errorMsg}`, 'error');
+                // Update the status in the existing modal
+                const statusDiv = document.getElementById('learningStatus');
+                const doneBtn = document.getElementById('doneLearningBtn');
+                const doneBtnText = document.getElementById('doneBtnText');
+                const cancelBtn = document.getElementById('cancelLearningBtn');
+                
+                if (statusDiv && doneBtn) {
+                    if (result.success) {
+                        log(`✅ Learning API call completed, verifying command was learned...`);
+                        
+                        // Show checking status
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; border: 2px solid var(--ha-primary-color); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span>Verifying command was learned...</span>
+                            </div>
+                        `;
+                        
+                        // Wait a moment for HA to save the command
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Reload learned data to check if command exists
+                        const learnedResponse = await fetch(getApiUrl('/api/learned-devices'));
+                        const learnedData = await learnedResponse.json();
+                        
+                        // Check if the command exists in the learned commands
+                        const commandExists = learnedData.commands?.some(cmd => 
+                            cmd.device_name === fullDeviceName && cmd.command === commandName
+                        );
+                        
+                        if (commandExists) {
+                            log(`✅ SUCCESS: Command ${fullDeviceName}_${commandName} was learned successfully!`);
+                            statusDiv.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-success-color);">
+                                    <span style="font-size: 20px;">✅</span>
+                                    <span><strong>Success!</strong> Command was learned and saved.</span>
+                                </div>
+                            `;
+                            doneBtnText.textContent = 'Done';
+                        } else {
+                            log(`⚠️ WARNING: Command not found in learned commands. May have timed out.`);
+                            statusDiv.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-warning-color);">
+                                    <span style="font-size: 20px;">⚠️</span>
+                                    <span><strong>Not learned.</strong> The command was not saved. It may have timed out or no signal was received.</span>
+                                </div>
+                            `;
+                            doneBtnText.textContent = 'Close';
+                        }
+                        
+                        // Enable the done button
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtn.onclick = () => {
+                            document.getElementById('learningInstructionModal')?.remove();
+                            loadLearnedData();
+                        };
+                        
+                        // Hide cancel button since we're done
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                        
+                    } else {
+                        const errorMsg = result.error || 'Unknown error';
+                        log(`❌ Learning failed: ${errorMsg}`, 'error');
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
+                                <span style="font-size: 20px;">❌</span>
+                                <span><strong>Failed:</strong> ${errorMsg}</span>
+                            </div>
+                        `;
+                        
+                        // Enable done button to close
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtnText.textContent = 'Close';
+                        doneBtn.onclick = () => {
+                            document.getElementById('learningInstructionModal')?.remove();
+                        };
+                        
+                        // Hide cancel button
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                    }
                 }
             } catch (error) {
+                const statusDiv = document.getElementById('learningStatus');
+                const doneBtn = document.getElementById('doneLearningBtn');
+                const doneBtnText = document.getElementById('doneBtnText');
+                const cancelBtn = document.getElementById('cancelLearningBtn');
+                
                 if (error.name === 'AbortError') {
-                    const timeoutMsg = `Learning timed out after 35 seconds. The command may still be learned - check your devices.`;
-                    log(`⏰ ${timeoutMsg}`, 'error');
-                    showAlert(`⏰ ${timeoutMsg}`, 'error');
-                } else if (error.message.includes('fetch')) {
-                    const networkMsg = `Network error: Unable to connect to Home Assistant. Check your connection.`;
-                    log(`🌐 ${networkMsg}`, 'error');
-                    showAlert(`🌐 ${networkMsg}`, 'error');
+                    log(`🚫 Learning cancelled by user`);
+                    // Modal already removed by cancel button, nothing more to do
                 } else {
-                    const errorMsg = `Learning error: ${error.message}`;
+                    // Handle other errors
+                    const errorMsg = error.message.includes('fetch') 
+                        ? 'Network error: Unable to connect to Home Assistant'
+                        : `Error: ${error.message}`;
+                    
                     log(`❌ ${errorMsg}`, 'error');
-                    showAlert(`❌ ${errorMsg}`, 'error');
+                    
+                    if (statusDiv && doneBtn) {
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
+                                <span style="font-size: 20px;">❌</span>
+                                <span><strong>Error:</strong> ${errorMsg}</span>
+                            </div>
+                        `;
+                        
+                        // Enable done button to close
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtnText.textContent = 'Close';
+                        doneBtn.onclick = () => {
+                            document.getElementById('learningInstructionModal')?.remove();
+                        };
+                        
+                        // Hide cancel button
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                    }
                 }
             }
         }
@@ -1826,19 +2136,21 @@
                         <h3>✅ Entities Generated Successfully!</h3>
                         <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
                     </div>
-                    <div class="modal-body">
-                        <div style="margin-bottom: 20px;">
+                    <div class="modal-body" style="color: var(--ha-text-primary-color);">
+                        <div style="margin-bottom: 20px; background: var(--ha-background-color); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
                             <strong>Generated:</strong> ${result.entities_count} entities
                             <br>
+                            <div style="margin-top: 8px;">
                             ${Object.entries(result.entity_counts || {}).map(([type, count]) => 
-                                `<span style="display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: var(--ha-primary-color); border-radius: 12px; font-size: 12px;">${count} ${type}${count > 1 ? 's' : ''}</span>`
+                                `<span style="display: inline-block; margin: 4px 8px 4px 0; padding: 4px 12px; background: var(--ha-primary-color); color: white; border-radius: 12px; font-size: 12px;">${count} ${type}${count > 1 ? 's' : ''}</span>`
                             ).join('')}
+                            </div>
                         </div>
                         
-                        <div style="background: var(--ha-surface-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto;">
+                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; max-height: 450px; overflow-y: auto;">
                             <div style="margin-bottom: 20px;">
-                                <strong>📁 Files Created:</strong>
-                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                <strong style="color: var(--ha-text-primary-color);">📁 Files Created:</strong>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8; color: var(--ha-text-primary-color);">
                                     <li>/config/broadlink_manager/package.yaml (for packages method)</li>
                                     <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
                                     <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
@@ -1847,40 +2159,40 @@
                                 </ul>
                             </div>
                             
-                            <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px;">
+                            <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; color: white;">
                                 <strong>📝 Next Steps - Choose ONE option:</strong>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 1: Packages (Recommended)</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">homeassistant:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">homeassistant:
   packages:
     broadlink_manager: !include broadlink_manager/package.yaml</pre>
-                                <small>✅ Works with existing configs • No conflicts • Everything in one file</small>
+                                <small style="opacity: 0.95;">✅ Works with existing configs • No conflicts • Everything in one file</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 2: List Format</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light:
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light:
   - platform: existing_platform  # Your existing config
   - !include broadlink_manager/entities.yaml
 
 fan:
   - platform: existing_platform  # Your existing config
   - !include broadlink_manager/entities.yaml</pre>
-                                <small>✅ If you already have light:, fan:, etc.</small>
+                                <small style="opacity: 0.95;">✅ If you already have light:, fan:, etc.</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
                                 <strong>Option 3: Direct Include (New configs only)</strong>
-                                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px;">light: !include broadlink_manager/entities.yaml
+                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light: !include broadlink_manager/entities.yaml
 fan: !include broadlink_manager/entities.yaml
 input_boolean: !include broadlink_manager/helpers.yaml
 input_select: !include broadlink_manager/helpers.yaml</pre>
-                                <small>⚠️ Only if you DON'T have these sections yet</small>
+                                <small style="opacity: 0.95;">⚠️ Only if you DON'T have these sections yet</small>
                             </div>
                             
                                 <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
-                                    <li>Add ONE of the options above to <code>configuration.yaml</code></li>
+                                    <li>Add ONE of the options above to <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">configuration.yaml</code></li>
                                     <li>Check your configuration (Developer Tools → YAML)</li>
                                     <li>Restart Home Assistant</li>
                                     <li>Your entities will appear! 🎉</li>

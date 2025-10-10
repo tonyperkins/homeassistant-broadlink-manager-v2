@@ -14,6 +14,7 @@ from typing import Dict, Any
 from pathlib import Path
 
 from web_server import BroadlinkWebServer
+from config_loader import ConfigLoader
 
 # Configure logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'info').upper()
@@ -30,7 +31,17 @@ class BroadlinkManager:
     
     def __init__(self):
         self.running = True
-        self.config = self._load_config()
+        
+        # Initialize configuration loader
+        self.config_loader = ConfigLoader()
+        self.config = self.config_loader.load_options()
+        
+        # Validate configuration
+        if not self.config_loader.validate_configuration():
+            logger.error("Configuration validation failed")
+            logger.error("Please check your configuration and try again")
+            sys.exit(1)
+        
         self.web_server = None
         self.web_thread = None
         
@@ -38,27 +49,6 @@ class BroadlinkManager:
         signal.signal(signal.SIGTERM, self._signal_handler)
         signal.signal(signal.SIGINT, self._signal_handler)
     
-    def _load_config(self) -> Dict[str, Any]:
-        """Load configuration from add-on options"""
-        config = {
-            'log_level': os.getenv('LOG_LEVEL', 'info'),
-            'web_port': 8099,
-            'auto_discover': True
-        }
-        
-        # Try to load from options.json (Supervisor add-on configuration)
-        options_file = Path('/data/options.json')
-        if options_file.exists():
-            try:
-                with open(options_file, 'r') as f:
-                    options = json.load(f)
-                    config.update(options)
-                    logger.info("Loaded configuration from options.json")
-            except Exception as e:
-                logger.warning(f"Could not load options.json: {e}")
-        
-        logger.info(f"Configuration: {config}")
-        return config
     
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -73,7 +63,7 @@ class BroadlinkManager:
         """Start the web server in a separate thread"""
         try:
             port = self.config.get('web_port', 8099)
-            self.web_server = BroadlinkWebServer(port=port)
+            self.web_server = BroadlinkWebServer(port=port, config_loader=self.config_loader)
             logger.info(f"Starting web server on port {port}")
             self.web_server.run()
         except Exception as e:
@@ -116,11 +106,14 @@ class BroadlinkManager:
 
 def main():
     """Main entry point"""
-    logger.info("Initializing Broadlink Manager Add-on")
+    logger.info("Initializing Broadlink Manager")
     
-    # Verify we have the required environment
-    if not os.environ.get('SUPERVISOR_TOKEN'):
-        logger.warning("SUPERVISOR_TOKEN not found - some features may not work")
+    # Detect environment and log info
+    config_loader = ConfigLoader()
+    env_info = config_loader.get_environment_info()
+    logger.info(f"Running in {env_info['mode']} mode")
+    logger.info(f"Home Assistant URL: {env_info['ha_url']}")
+    logger.info(f"Config path: {env_info['config_path']}")
     
     try:
         manager = BroadlinkManager()

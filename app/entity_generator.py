@@ -396,8 +396,160 @@ class EntityGenerator:
     def _generate_media_player(self, entity_id: str, entity_data: Dict[str, Any],
                                broadlink_commands: Dict[str, Dict[str, str]]) -> Optional[Dict[str, Any]]:
         """Generate template media player configuration"""
-        logger.info(f"Media player generation not yet implemented for {entity_id}")
-        return None
+        device = entity_data['device']
+        commands = entity_data['commands']
+        
+        # Build the media player configuration
+        config = {
+            'platform': 'template',
+            'media_players': {
+                entity_id: {
+                    'unique_id': entity_id,
+                    'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                }
+            }
+        }
+        
+        media_player_config = config['media_players'][entity_id]
+        
+        # Turn on command
+        if 'turn_on' in commands or 'power_on' in commands:
+            turn_on_cmd = commands.get('turn_on') or commands.get('power_on')
+            media_player_config['turn_on'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': self.device_id},
+                    'data': {
+                        'device': device,
+                        'command': turn_on_cmd
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_on',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        
+        # Turn off command
+        if 'turn_off' in commands or 'power_off' in commands:
+            turn_off_cmd = commands.get('turn_off') or commands.get('power_off')
+            media_player_config['turn_off'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': self.device_id},
+                    'data': {
+                        'device': device,
+                        'command': turn_off_cmd
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_off',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        
+        # Volume up command
+        if 'volume_up' in commands:
+            media_player_config['volume_up'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['volume_up']
+                }
+            }
+        
+        # Volume down command
+        if 'volume_down' in commands:
+            media_player_config['volume_down'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['volume_down']
+                }
+            }
+        
+        # Mute command
+        if 'mute' in commands or 'volume_mute' in commands:
+            mute_cmd = commands.get('mute') or commands.get('volume_mute')
+            media_player_config['volume_mute'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': mute_cmd
+                }
+            }
+        
+        # Play/Pause commands
+        if 'play' in commands:
+            media_player_config['media_play'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['play']
+                }
+            }
+        
+        if 'pause' in commands:
+            media_player_config['media_pause'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['pause']
+                }
+            }
+        
+        if 'play_pause' in commands:
+            media_player_config['media_play_pause'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['play_pause']
+                }
+            }
+        
+        # Stop command
+        if 'stop' in commands:
+            media_player_config['media_stop'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': commands['stop']
+                }
+            }
+        
+        # Next/Previous track
+        if 'next' in commands or 'next_track' in commands:
+            next_cmd = commands.get('next') or commands.get('next_track')
+            media_player_config['media_next_track'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': next_cmd
+                }
+            }
+        
+        if 'previous' in commands or 'previous_track' in commands:
+            prev_cmd = commands.get('previous') or commands.get('previous_track')
+            media_player_config['media_previous_track'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': self.device_id},
+                'data': {
+                    'device': device,
+                    'command': prev_cmd
+                }
+            }
+        
+        logger.info(f"Generated media player configuration for {entity_id} with {len(commands)} commands")
+        return config
     
     def _build_helpers_yaml(self, entities: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """Build helper entities (input_boolean, input_select)"""
@@ -465,6 +617,7 @@ class EntityGenerator:
                 "light: !include broadlink_manager/entities.yaml\n"
                 "fan: !include broadlink_manager/entities.yaml\n"
                 "switch: !include broadlink_manager/entities.yaml\n"
+                "media_player: !include broadlink_manager/entities.yaml\n"
                 "input_boolean: !include broadlink_manager/helpers.yaml\n"
                 "input_select: !include broadlink_manager/helpers.yaml"
             ),

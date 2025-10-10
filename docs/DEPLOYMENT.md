@@ -25,7 +25,7 @@ This method creates a local add-on repository that you can install directly in H
    
 3. **Create a local repository directory**:
    ```bash
-   mkdir -p local-addons/broadlink-manager
+   mkdir -p local/broadlink-manager
    ```
 
 #### Step 2: Copy Add-on Files
@@ -35,26 +35,38 @@ Copy all the add-on files to the local repository:
 ```bash
 # Copy all files from your development directory to the addons directory
 # Replace the source path with your actual project path
-cp -r /path/to/broadlink_manager_addon/* /addons/local-addons/broadlink-manager/
+cp -r /path/to/broadlink_manager_addon/* /addons/local/broadlink-manager/
 ```
 
 **Alternative: Using Windows/File Manager**
 If you're on Windows, you can copy the files using:
 - Navigate to `\\homeassistant.local\addons` (or your HA IP)
-- Create folder: `local-addons\broadlink-manager`
+- Create folder: `local\broadlink-manager`
 - Copy all files from your project directory to this folder
+
+**Alternative: Using PowerShell Deployment Script (Windows)**
+For Windows users, use the included deployment script:
+```powershell
+# From your project directory
+.\deploy-to-haos.ps1
+```
+This script automatically:
+- Validates paths and connectivity
+- Creates the correct directory structure
+- Copies all necessary files
+- Excludes unnecessary files (cache, logs, etc.)
+- Provides deployment status and next steps
 
 #### Step 3: Install the Add-on
 
 1. **Open Home Assistant web interface**
 2. **Go to Settings → Add-ons**
 3. **Click "Add-on Store"**
-4. **Click the three dots (⋮) in the top right**
-5. **Select "Repositories"**
-6. **Add local repository**: `/addons/local-addons`
-7. **Refresh the add-on store**
-8. **Find "Broadlink Manager"** in the local add-ons section
-9. **Click "Install"**
+4. **Refresh the add-on store** (Click the three dots ⋮ in the top right, then "Check for updates")
+5. **Find "Broadlink Manager"** in the "Local add-ons" section at the top of the page
+6. **Click "Install"**
+
+**Note:** Local add-ons in `/addons/local/` are automatically detected by Home Assistant. You do NOT need to add a repository URL.
 
 ### Method 2: GitHub Repository (Recommended for Production)
 
@@ -239,6 +251,6 @@ If you encounter issues:
 Ensure proper file permissions after copying:
 
 ```bash
-chmod +x /addons/local-addons/broadlink-manager/run.sh
-chown -R root:root /addons/local-addons/broadlink-manager/
+chmod +x /addons/local/broadlink-manager/run.sh
+chown -R root:root /addons/local/broadlink-manager/
 ```

@@ -39,7 +39,18 @@ This add-on provides a comprehensive solution for managing Broadlink devices in 
 
 ## Installation
 
-### Prerequisites
+**Choose your installation method based on your Home Assistant setup:**
+
+- **[Home Assistant OS / Supervised](#supervisor-add-on-installation)** - Use the add-on (recommended)
+- **[Home Assistant Container / Docker](#standalone-docker-installation)** - Use standalone Docker
+
+---
+
+### Supervisor Add-on Installation
+
+For Home Assistant OS and Supervised installations.
+
+#### Prerequisites
 
 Before installing this add-on, ensure you have:
 - Home Assistant OS or Supervised installation
@@ -92,6 +103,74 @@ Once started, access the interface in one of two ways:
 - Or use your Home Assistant IP: `http://192.168.1.100:8099` (replace with your IP)
 
 You should now see the Broadlink Manager interface with your devices listed!
+
+---
+
+### Standalone Docker Installation
+
+For Home Assistant installations that don't support add-ons (Container, Core, or any non-Supervisor setup).
+
+#### Prerequisites
+
+- **Home Assistant** (any installation type: Container, Core, etc.)
+- **Docker and Docker Compose** installed on your host
+- **Network access** to Home Assistant
+- **Access to Home Assistant's config folder** (for reading/writing command storage)
+- **Long-lived access token** from Home Assistant
+- At least one **Broadlink device** configured in Home Assistant
+
+#### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/tonyperkins/homeassistant-broadlink-manager.git
+cd homeassistant-broadlink-manager
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and set your HA_URL and HA_TOKEN
+nano .env
+
+# Update docker-compose.yml with your HA config path
+nano docker-compose.yml
+
+# Start the container
+docker-compose up -d
+```
+
+Access the web interface at `http://your-host-ip:8099`
+
+#### Creating a Long-Lived Access Token
+
+1. Open Home Assistant and click your **profile** (your name in the sidebar)
+2. Scroll to **"Long-Lived Access Tokens"**
+3. Click **"Create Token"**
+4. Name it `Broadlink Manager` and copy the token
+5. Add it to your `.env` file as `HA_TOKEN`
+
+#### Configuration
+
+Edit `.env` with your settings:
+
+```env
+HA_URL=http://192.168.1.100:8123  # Your Home Assistant URL
+HA_TOKEN=your_long_lived_token_here
+LOG_LEVEL=info
+WEB_PORT=8099
+AUTO_DISCOVER=true
+```
+
+Update `docker-compose.yml` volume mount:
+
+```yaml
+volumes:
+  - /path/to/homeassistant/config:/config  # Update this path!
+```
+
+**📖 For detailed Docker installation instructions, see [DOCKER.md](docs/DOCKER.md)**
+
+---
 
 ## Configuration
 
@@ -176,12 +255,22 @@ For best auto-detection results, use these naming patterns:
 
 ## Documentation
 
-- **[API Reference](API.md)** - Complete REST API documentation
-- **[Entity Generation Guide](ENTITY_GENERATION.md)** - Technical details on entity auto-generation
-- **[Deployment Guide](DEPLOYMENT.md)** - Installation and deployment instructions
-- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
+### 📘 User Guides
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Installation and deployment instructions
+- **[Windows Deployment](docs/DEPLOYMENT_WINDOWS.md)** - Windows-specific deployment guide
+- **[Standalone Docker Guide](docs/DOCKER.md)** - Complete guide for Docker/Container installations
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Entity Generation Guide](docs/ENTITY_GENERATION.md)** - Technical details on entity auto-generation
+
+### 🔧 Developer Resources
+- **[API Reference](docs/API.md)** - Complete REST API documentation
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and testing
+- **[Contributing Guidelines](docs/CONTRIBUTING.md)** - How to contribute to this project
+- **[Dual Mode Implementation](docs/DUAL_MODE_IMPLEMENTATION.md)** - Technical architecture details
+
+### 📚 Additional Resources
+- **[Documentation Index](docs/DOCS.md)** - Complete documentation overview
 - **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Contributing](CONTRIBUTING.md)** - How to contribute to this project
 
 ## Support
 
@@ -198,7 +287,7 @@ You could also [open an issue here][issue] on GitHub.
 
 This is an active open-source project. We are always open to people who want to use the code or contribute to it.
 
-We have set up a separate document containing our [contribution guidelines](CONTRIBUTING.md).
+We have set up a separate document containing our [contribution guidelines](docs/CONTRIBUTING.md).
 
 Thank you for being involved! :heart_eyes:
 

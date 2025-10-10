@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.24] - 2025-10-09
+
+### Fixed
+- Fixed washed out header title "Broadlink" - now uses primary text color
+- Fixed washed out command names - now uses primary text color
+- Both now properly adapt to light/dark mode
+
 ## [1.10.23] - 2025-10-09
 
 ### Fixed

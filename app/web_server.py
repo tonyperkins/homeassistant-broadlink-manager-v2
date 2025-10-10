@@ -23,21 +23,28 @@ from storage_manager import StorageManager
 from entity_detector import EntityDetector
 from entity_generator import EntityGenerator
 from area_manager import AreaManager
+from config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
 class BroadlinkWebServer:
     """Web server for Broadlink device management"""
     
-    def __init__(self, port: int = 8099):
+    def __init__(self, port: int = 8099, config_loader: Optional[ConfigLoader] = None):
         self.port = port
         self.app = Flask(__name__, template_folder='templates')
         CORS(self.app)
         
-        # Home Assistant configuration
-        self.ha_url = "http://supervisor/core"
-        self.ha_token = os.environ.get('SUPERVISOR_TOKEN')
-        self.storage_path = Path("/config/.storage")
+        # Load configuration using ConfigLoader
+        self.config_loader = config_loader or ConfigLoader()
+        
+        # Home Assistant configuration (from ConfigLoader)
+        self.ha_url = self.config_loader.get_ha_url()
+        self.ha_token = self.config_loader.get_ha_token()
+        self.storage_path = self.config_loader.get_storage_path()
+        
+        logger.info(f"Web server initialized in {self.config_loader.mode} mode")
+        logger.info(f"Home Assistant URL: {self.ha_url}")
         
         # Simple notification cache
         self.cached_notifications = []

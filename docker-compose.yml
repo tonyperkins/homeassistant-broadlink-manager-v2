@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  broadlink-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.standalone
+    image: broadlink-manager:standalone
+    container_name: broadlink-manager
+    restart: unless-stopped
+    
+    # Network mode - choose one:
+    # Option 1: Host network (recommended for device discovery)
+    network_mode: host
+    
+    # Option 2: Bridge network with port mapping (uncomment if not using host mode)
+    # ports:
+    #   - "8099:8099"
+    
+    environment:
+      # REQUIRED: Home Assistant URL
+      # Use the internal Docker network name if HA is also in Docker
+      - HA_URL=http://homeassistant:8123
+      # Or use host IP if using host network mode
+      # - HA_URL=http://192.168.1.100:8123
+      
+      # REQUIRED: Long-lived access token from Home Assistant
+      # Create one in your HA profile settings
+      - HA_TOKEN=${HA_TOKEN}
+      
+      # Optional: Logging level
+      - LOG_LEVEL=info
+      
+      # Optional: Web interface port (default: 8099)
+      - WEB_PORT=8099
+      
+      # Optional: Auto-discover Broadlink devices (default: true)
+      - AUTO_DISCOVER=true
+    
+    volumes:
+      # REQUIRED: Mount your Home Assistant config directory
+      # Update the path on the left to match your HA config location
+      - /path/to/homeassistant/config:/config
+      
+      # Optional: Persist Broadlink Manager data
+      # - ./broadlink_manager_data:/config/broadlink_manager
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Example configuration for running alongside Home Assistant in Docker
+# Uncomment this section if you want to run both services together
+#
+# networks:
+#   homeassistant:
+#     name: homeassistant
+#     driver: bridge
+#
+# services:
+#   homeassistant:
+#     image: homeassistant/home-assistant:latest
+#     container_name: homeassistant
+#     restart: unless-stopped
+#     network_mode: host
+#     volumes:
+#       - /path/to/homeassistant/config:/config
+#       - /etc/localtime:/etc/localtime:ro
+#   
+#   broadlink-manager:
+#     # ... (same as above)
+#     depends_on:
+#       - homeassistant

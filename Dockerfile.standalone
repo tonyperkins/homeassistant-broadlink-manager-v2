@@ -1,0 +1,57 @@
+# Dockerfile for Broadlink Manager - Standalone Docker Mode
+# This version runs without Home Assistant Supervisor
+
+FROM python:3.11-alpine
+
+# Set shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Install system requirements
+RUN apk add --no-cache \
+    bash \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    cargo \
+    rust \
+    curl
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python requirements and install
+COPY requirements.txt /tmp/
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy application files
+COPY app/ /app/
+COPY run-standalone.sh /run.sh
+
+# Make startup script executable
+RUN chmod +x /run.sh
+
+# Expose the web interface port
+EXPOSE 8099
+
+# Environment variables with defaults
+ENV LOG_LEVEL=info \
+    WEB_PORT=8099 \
+    AUTO_DISCOVER=true \
+    CONFIG_PATH=/config
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${WEB_PORT}/ || exit 1
+
+# Labels
+LABEL \
+    org.opencontainers.image.title="Broadlink Manager (Standalone)" \
+    org.opencontainers.image.description="Broadlink device manager for Home Assistant Docker installations" \
+    org.opencontainers.image.url="https://github.com/tonyperkins/homeassistant-broadlink-manager" \
+    org.opencontainers.image.source="https://github.com/tonyperkins/homeassistant-broadlink-manager" \
+    org.opencontainers.image.authors="Tony Perkins" \
+    org.opencontainers.image.licenses="MIT"
+
+# Run the application
+CMD ["/run.sh"]

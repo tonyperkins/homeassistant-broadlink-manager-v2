@@ -39,7 +39,18 @@ This add-on provides a comprehensive solution for managing Broadlink devices in 
 
 ## Installation
 
-### Prerequisites
+**Choose your installation method based on your Home Assistant setup:**
+
+- **[Home Assistant OS / Supervised](#supervisor-add-on-installation)** - Use the add-on (recommended)
+- **[Home Assistant Container / Docker](#standalone-docker-installation)** - Use standalone Docker
+
+---
+
+### Supervisor Add-on Installation
+
+For Home Assistant OS and Supervised installations.
+
+#### Prerequisites
 
 Before installing this add-on, ensure you have:
 - Home Assistant OS or Supervised installation
@@ -92,6 +103,72 @@ Once started, access the interface in one of two ways:
 - Or use your Home Assistant IP: `http://192.168.1.100:8099` (replace with your IP)
 
 You should now see the Broadlink Manager interface with your devices listed!
+
+---
+
+### Standalone Docker Installation
+
+For Home Assistant Container/Docker installations that don't support add-ons.
+
+#### Prerequisites
+
+- Home Assistant running in Docker/Container mode
+- Docker and Docker Compose installed
+- At least one Broadlink device configured in Home Assistant
+- Long-lived access token from Home Assistant
+
+#### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/tonyperkins/homeassistant-broadlink-manager.git
+cd homeassistant-broadlink-manager
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and set your HA_URL and HA_TOKEN
+nano .env
+
+# Update docker-compose.yml with your HA config path
+nano docker-compose.yml
+
+# Start the container
+docker-compose up -d
+```
+
+Access the web interface at `http://your-host-ip:8099`
+
+#### Creating a Long-Lived Access Token
+
+1. Open Home Assistant and click your **profile** (your name in the sidebar)
+2. Scroll to **"Long-Lived Access Tokens"**
+3. Click **"Create Token"**
+4. Name it `Broadlink Manager` and copy the token
+5. Add it to your `.env` file as `HA_TOKEN`
+
+#### Configuration
+
+Edit `.env` with your settings:
+
+```env
+HA_URL=http://192.168.1.100:8123  # Your Home Assistant URL
+HA_TOKEN=your_long_lived_token_here
+LOG_LEVEL=info
+WEB_PORT=8099
+AUTO_DISCOVER=true
+```
+
+Update `docker-compose.yml` volume mount:
+
+```yaml
+volumes:
+  - /path/to/homeassistant/config:/config  # Update this path!
+```
+
+**📖 For detailed Docker installation instructions, see [DOCKER.md](DOCKER.md)**
+
+---
 
 ## Configuration
 
@@ -176,6 +253,7 @@ For best auto-detection results, use these naming patterns:
 
 ## Documentation
 
+- **[Standalone Docker Guide](DOCKER.md)** - Complete guide for Docker/Container installations
 - **[API Reference](API.md)** - Complete REST API documentation
 - **[Entity Generation Guide](ENTITY_GENERATION.md)** - Technical details on entity auto-generation
 - **[Deployment Guide](DEPLOYMENT.md)** - Installation and deployment instructions

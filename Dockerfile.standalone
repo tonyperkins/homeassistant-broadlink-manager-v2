@@ -28,8 +28,8 @@ RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 COPY app/ /app/
 COPY run-standalone.sh /run.sh
 
-# Make startup script executable
-RUN chmod +x /run.sh
+# Fix line endings and make startup script executable
+RUN sed -i 's/\r$//' /run.sh && chmod +x /run.sh
 
 # Expose the web interface port
 EXPOSE 8099

@@ -22,9 +22,14 @@ This guide covers deploying Broadlink Manager as a standalone Docker container f
 Broadlink Manager can run in two modes:
 
 1. **Supervisor Add-on Mode** - For Home Assistant OS and Supervised installations
-2. **Standalone Docker Mode** - For Home Assistant Container/Docker installations (this guide)
+2. **Standalone Docker Mode** - For any Home Assistant installation without Supervisor (this guide)
 
-The standalone mode requires manual configuration of the Home Assistant connection but provides the same functionality as the add-on version.
+The standalone mode works with:
+- **Home Assistant Container** (Docker)
+- **Home Assistant Core** (Python venv)
+- **Any other non-Supervisor setup**
+
+It requires manual configuration of the Home Assistant connection but provides the same functionality as the add-on version.
 
 ---
 
@@ -32,10 +37,14 @@ The standalone mode requires manual configuration of the Home Assistant connecti
 
 ### Required
 
-- **Home Assistant** running in Docker/Container mode
-- **Docker** and **Docker Compose** installed on your host
+- **Home Assistant** (any installation type: Container, Core, etc.)
+- **Docker** and **Docker Compose** installed on your host machine
+- **Network access** to your Home Assistant instance
+- **Access to Home Assistant's config folder** (for mounting as a volume)
 - **Broadlink devices** configured in Home Assistant
 - **Long-lived access token** from Home Assistant
+
+**Note:** Home Assistant itself does NOT need to be running in Docker. The standalone Broadlink Manager runs in Docker, but it can connect to any Home Assistant installation as long as it has network access and can mount the config folder.
 
 ### Creating a Long-Lived Access Token
 

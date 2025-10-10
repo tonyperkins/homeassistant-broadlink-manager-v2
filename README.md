@@ -108,14 +108,16 @@ You should now see the Broadlink Manager interface with your devices listed!
 
 ### Standalone Docker Installation
 
-For Home Assistant Container/Docker installations that don't support add-ons.
+For Home Assistant installations that don't support add-ons (Container, Core, or any non-Supervisor setup).
 
 #### Prerequisites
 
-- Home Assistant running in Docker/Container mode
-- Docker and Docker Compose installed
-- At least one Broadlink device configured in Home Assistant
-- Long-lived access token from Home Assistant
+- **Home Assistant** (any installation type: Container, Core, etc.)
+- **Docker and Docker Compose** installed on your host
+- **Network access** to Home Assistant
+- **Access to Home Assistant's config folder** (for reading/writing command storage)
+- **Long-lived access token** from Home Assistant
+- At least one **Broadlink device** configured in Home Assistant
 
 #### Quick Start
 
@@ -166,7 +168,7 @@ volumes:
   - /path/to/homeassistant/config:/config  # Update this path!
 ```
 
-**📖 For detailed Docker installation instructions, see [DOCKER.md](DOCKER.md)**
+**📖 For detailed Docker installation instructions, see [DOCKER.md](docs/DOCKER.md)**
 
 ---
 
@@ -253,13 +255,22 @@ For best auto-detection results, use these naming patterns:
 
 ## Documentation
 
-- **[Standalone Docker Guide](DOCKER.md)** - Complete guide for Docker/Container installations
-- **[API Reference](API.md)** - Complete REST API documentation
-- **[Entity Generation Guide](ENTITY_GENERATION.md)** - Technical details on entity auto-generation
-- **[Deployment Guide](DEPLOYMENT.md)** - Installation and deployment instructions
-- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues and solutions
+### 📘 User Guides
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Installation and deployment instructions
+- **[Windows Deployment](docs/DEPLOYMENT_WINDOWS.md)** - Windows-specific deployment guide
+- **[Standalone Docker Guide](docs/DOCKER.md)** - Complete guide for Docker/Container installations
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Entity Generation Guide](docs/ENTITY_GENERATION.md)** - Technical details on entity auto-generation
+
+### 🔧 Developer Resources
+- **[API Reference](docs/API.md)** - Complete REST API documentation
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and testing
+- **[Contributing Guidelines](docs/CONTRIBUTING.md)** - How to contribute to this project
+- **[Dual Mode Implementation](docs/DUAL_MODE_IMPLEMENTATION.md)** - Technical architecture details
+
+### 📚 Additional Resources
+- **[Documentation Index](docs/DOCS.md)** - Complete documentation overview
 - **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Contributing](CONTRIBUTING.md)** - How to contribute to this project
 
 ## Support
 
@@ -276,7 +287,7 @@ You could also [open an issue here][issue] on GitHub.
 
 This is an active open-source project. We are always open to people who want to use the code or contribute to it.
 
-We have set up a separate document containing our [contribution guidelines](CONTRIBUTING.md).
+We have set up a separate document containing our [contribution guidelines](docs/CONTRIBUTING.md).
 
 Thank you for being involved! :heart_eyes:
 

@@ -149,16 +149,18 @@ git push origin dev
 ssh root@homeassistant.local
 
 # Create local add-on directory
-mkdir -p /addons/broadlink-manager-dev
-cd /addons
+mkdir -p /addons/local
+cd /addons/local
 
 # Clone your repository
-git clone https://github.com/tonyperkins/homeassistant-broadlink-manager.git broadlink-manager-dev
-cd broadlink-manager-dev
+git clone https://github.com/tonyperkins/homeassistant-broadlink-manager.git broadlink-manager
+cd broadlink-manager
 
 # Checkout dev branch
 git checkout dev
 ```
+
+**Note:** Local add-ons must be in `/addons/local/` to be automatically detected by Home Assistant.
 
 #### In Home Assistant UI
 
@@ -178,7 +180,7 @@ git push origin dev
 
 # 2. SSH to Home Assistant and pull changes
 ssh root@homeassistant.local
-cd /addons/broadlink-manager-dev
+cd /addons/local/broadlink-manager
 git pull origin dev
 
 # 3. Restart the add-on in HA UI
@@ -239,7 +241,7 @@ docker-compose up -d  # Test locally
 # Day 4: Add-on testing
 git push origin dev
 ssh root@homeassistant.local
-cd /addons/broadlink-manager-dev
+cd /addons/local/broadlink-manager
 git pull
 # Restart add-on in UI, test thoroughly
 
@@ -296,7 +298,7 @@ docker-compose up -d
 
 # Test as local add-on
 ssh root@homeassistant.local
-cd /addons/broadlink-manager-dev
+cd /addons/local/broadlink-manager
 git pull
 # Restart and test in HA
 ```
@@ -486,13 +488,13 @@ git commit -m "docs: update README with Docker instructions"
 ssh root@homeassistant.local
 
 # Check directory exists
-ls -la /addons/broadlink-manager-dev
+ls -la /addons/local/broadlink-manager
 
 # Check config.yaml is valid
-cat /addons/broadlink-manager-dev/config.yaml
+cat /addons/local/broadlink-manager/config.yaml
 
 # Reload add-on store in HA UI
-# Settings → Add-ons → ⋮ → Reload
+# Settings → Add-ons → ⋮ → Check for updates
 ```
 
 ### Docker Build Fails
@@ -521,12 +523,19 @@ docker-compose up -d
 **Add-on:**
 ```bash
 # Ensure you pulled latest
-cd /addons/broadlink-manager-dev
+cd /addons/local/broadlink-manager
 git status
 git pull origin dev
 
 # Restart add-on (not just reload)
 # Use HA UI: Stop → Start
+```
+
+**Windows Deployment Script:**
+```powershell
+# From your development machine
+.\deploy-to-haos.ps1
+# Then restart the add-on in HA UI
 ```
 
 ### Can't Connect to Home Assistant

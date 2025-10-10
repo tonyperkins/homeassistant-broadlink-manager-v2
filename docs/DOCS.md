@@ -6,12 +6,16 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 ### Getting Started
 
-- **[README.md](README.md)** - Start here! Main documentation with features, installation, and usage
+- **[README.md](../README.md)** - Start here! Main documentation with features, installation, and usage
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Detailed deployment and installation guide
   - Local add-on repository setup
   - GitHub repository deployment
   - Manual Docker builds
   - Post-installation configuration
+- **[DEPLOYMENT_WINDOWS.md](DEPLOYMENT_WINDOWS.md)** - Windows-specific deployment guide
+  - PowerShell deployment script
+  - Network share setup
+  - Troubleshooting Windows issues
 
 ### User Guides
 
@@ -50,8 +54,8 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 ### Project Information
 
-- **[Changelog](CHANGELOG.md)** - Version history and release notes
-- **[LICENSE](LICENSE)** - MIT License terms
+- **[Changelog](../CHANGELOG.md)** - Version history and release notes
+- **[LICENSE](../LICENSE)** - MIT License terms
 
 ---
 
@@ -60,16 +64,17 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 ### I want to...
 
 #### Install the Add-on
-1. Read [README.md](README.md) - Installation section
+1. Read [README.md](../README.md) - Installation section
 2. Follow [DEPLOYMENT.md](DEPLOYMENT.md) - Detailed instructions
-3. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Installation Issues
+3. Windows users: [DEPLOYMENT_WINDOWS.md](DEPLOYMENT_WINDOWS.md) - Windows guide
+4. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Installation Issues
 
 #### Learn IR/RF Commands
-1. Read [README.md](README.md) - Learning Commands section
+1. Read [README.md](../README.md) - Learning Commands section
 2. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Command Learning Issues
 
 #### Auto-Generate Entities
-1. Read [README.md](README.md) - Auto-Generating Entities section
+1. Read [README.md](../README.md) - Auto-Generating Entities section
 2. Read [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Complete guide
 3. Check [API.md](API.md) - Entity Management endpoints
 4. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Entity Generation Issues
@@ -80,8 +85,9 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 #### Contribute Code
 1. Read [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
-2. Check [API.md](API.md) - API structure
-3. Review [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Architecture
+2. Check [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
+3. Check [API.md](API.md) - API structure
+4. Review [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture
 
 #### Fix a Problem
 1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues
@@ -95,19 +101,22 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 ### For End Users
 
 **Essential Reading:**
-- [README.md](README.md) - Features and basic usage
+- [README.md](../README.md) - Features and basic usage
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Installation
+- [DEPLOYMENT_WINDOWS.md](DEPLOYMENT_WINDOWS.md) - Windows deployment
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Problem solving
 
 **Optional Reading:**
 - [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Advanced entity configuration
 - [API.md](API.md) - API usage for automation
+- [DOCKER.md](DOCKER.md) - Standalone Docker deployment
 
 ### For Developers
 
 **Essential Reading:**
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development setup and standards
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Architecture and components
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow and testing
+- [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture and components
 - [API.md](API.md) - API reference
 
 **Optional Reading:**
@@ -118,8 +127,9 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 **Essential Reading:**
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Installation and configuration
+- [DOCKER.md](DOCKER.md) - Docker deployment
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - System issues
-- [README.md](README.md) - Configuration options
+- [README.md](../README.md) - Configuration options
 
 **Optional Reading:**
 - [API.md](API.md) - API for monitoring and automation
@@ -130,27 +140,29 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 ## 🔍 Documentation by Topic
 
 ### Installation & Setup
-- [README.md](README.md) - Installation section
+- [README.md](../README.md) - Installation section
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Complete deployment guide
+- [DEPLOYMENT_WINDOWS.md](DEPLOYMENT_WINDOWS.md) - Windows deployment
+- [DOCKER.md](DOCKER.md) - Standalone Docker deployment
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Installation issues
 
 ### Configuration
-- [README.md](README.md) - Configuration section
+- [README.md](../README.md) - Configuration section
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Configuration options
-- [config.yaml](config.yaml) - Add-on configuration file
+- [config.yaml](../config.yaml) - Add-on configuration file
 
 ### Device Management
-- [README.md](README.md) - Usage section
+- [README.md](../README.md) - Usage section
 - [API.md](API.md) - Device management endpoints
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Device discovery issues
 
 ### Command Learning
-- [README.md](README.md) - Learning commands section
+- [README.md](../README.md) - Learning commands section
 - [API.md](API.md) - Command management endpoints
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Command learning issues
 
 ### Entity Generation
-- [README.md](README.md) - Auto-generating entities section
+- [README.md](../README.md) - Auto-generating entities section
 - [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Complete technical guide
 - [API.md](API.md) - Entity management endpoints
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Entity generation issues
@@ -162,8 +174,9 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 ### Development
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Architecture
-- [CHANGELOG.md](CHANGELOG.md) - Version history
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
+- [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture
+- [../CHANGELOG.md](../CHANGELOG.md) - Version history
 
 ---
 
@@ -172,30 +185,40 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 ```
 broadlink_manager_addon/
 ├── README.md                    # Main documentation
-├── DOCS.md                      # This file - documentation index
-├── DEPLOYMENT.md                # Installation and deployment
-├── ENTITY_GENERATION.md         # Entity generation technical guide
-├── API.md                       # REST API reference
-├── TROUBLESHOOTING.md           # Problem solving guide
-├── CONTRIBUTING.md              # Contribution guidelines
 ├── CHANGELOG.md                 # Version history
 ├── LICENSE                      # MIT License
 ├── config.yaml                  # Add-on configuration
-├── Dockerfile                   # Docker image definition
-├── run.sh                       # Startup script
+├── Dockerfile                   # Docker image definition (add-on)
+├── Dockerfile.standalone        # Docker image (standalone)
+├── run.sh                       # Startup script (add-on)
+├── run-standalone.sh            # Startup script (standalone)
 ├── requirements.txt             # Python dependencies
 ├── build.yaml                   # Build configuration
 ├── repository.yaml              # Repository metadata
+├── deploy-to-haos.ps1           # Windows deployment script
+├── docker-compose.yml           # Standalone Docker compose
+├── .env.example                 # Environment template
 ├── app/                         # Application source code
 │   ├── main.py                  # Entry point
 │   ├── web_server.py            # Flask web server
+│   ├── config_loader.py         # Configuration abstraction
 │   ├── storage_manager.py       # Entity metadata storage
 │   ├── entity_detector.py       # Command pattern detection
 │   ├── entity_generator.py      # YAML entity generation
 │   ├── area_manager.py          # Area/room management
 │   └── templates/               # HTML templates
 │       └── index.html           # Web interface
-└── reference/                   # Reference materials
+└── docs/                        # Documentation
+    ├── DOCS.md                  # Documentation index
+    ├── DEPLOYMENT.md            # Installation and deployment
+    ├── DEPLOYMENT_WINDOWS.md    # Windows deployment guide
+    ├── DEVELOPMENT.md           # Development workflow
+    ├── DOCKER.md                # Standalone Docker guide
+    ├── DUAL_MODE_IMPLEMENTATION.md  # Architecture details
+    ├── ENTITY_GENERATION.md     # Entity generation guide
+    ├── API.md                   # REST API reference
+    ├── TROUBLESHOOTING.md       # Problem solving guide
+    └── CONTRIBUTING.md          # Contribution guidelines
 ```
 
 ---

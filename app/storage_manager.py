@@ -60,6 +60,7 @@ Add these lines to your `configuration.yaml`:
 light: !include broadlink_manager/entities.yaml
 fan: !include broadlink_manager/entities.yaml
 switch: !include broadlink_manager/entities.yaml
+media_player: !include broadlink_manager/entities.yaml
 input_boolean: !include broadlink_manager/helpers.yaml
 input_select: !include broadlink_manager/helpers.yaml
 ```

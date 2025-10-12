@@ -1018,58 +1018,72 @@
                 return;
             }
             
-            // Group all detected devices by area, then add learned commands
-            const devicesByArea = {};
+            // Group all detected devices by device entity_id (unique identifier)
+            // This ensures that when a device's area changes, it's still recognized as the same device
+            const devicesById = {};
             
-            // First, add all detected devices
+            // First, add all detected devices using entity_id as the key
             allDevices.forEach(device => {
-                const areaName = device.area_name || 'Unknown Area';
-                if (!devicesByArea[areaName]) {
-                    devicesByArea[areaName] = {
-                        device: device,
-                        deviceGroups: {},
-                        totalCommands: 0
-                    };
-                } else if (!devicesByArea[areaName].device || !devicesByArea[areaName].device.entity_id) {
-                    // If we don't have a valid device yet, use this one
-                    devicesByArea[areaName].device = device;
-                }
+                const deviceKey = device.entity_id || device.device_id || `unknown_${device.name}`;
+                devicesById[deviceKey] = {
+                    device: device,
+                    deviceGroups: {},
+                    totalCommands: 0
+                };
             });
             
             // Then add learned commands to the appropriate devices
+            // Match commands to devices by area_id
             if (hasCommands) {
                 learnedData.commands.forEach(command => {
-                    const areaName = command.area_name || 'Unknown Area';
+                    const commandAreaId = command.area_id;
                     const devicePart = command.device_part;
                     
-                    if (!devicesByArea[areaName]) {
-                        devicesByArea[areaName] = {
-                            device: null,
-                            deviceGroups: {},
-                            totalCommands: 0
-                        };
+                    // Find the device that matches this command's area
+                    let matchedDeviceKey = null;
+                    for (const [deviceKey, deviceData] of Object.entries(devicesById)) {
+                        if (deviceData.device.area_id === commandAreaId) {
+                            matchedDeviceKey = deviceKey;
+                            break;
+                        }
                     }
                     
-                    if (!devicesByArea[areaName].deviceGroups[devicePart]) {
-                        devicesByArea[areaName].deviceGroups[devicePart] = [];
+                    // If no match by area_id, try to match by area_name (for backwards compatibility)
+                    if (!matchedDeviceKey) {
+                        const commandAreaName = command.area_name || 'Unknown Area';
+                        for (const [deviceKey, deviceData] of Object.entries(devicesById)) {
+                            const deviceAreaName = deviceData.device.area_name || 'Unknown Area';
+                            if (deviceAreaName === commandAreaName) {
+                                matchedDeviceKey = deviceKey;
+                                break;
+                            }
+                        }
                     }
                     
-                    devicesByArea[areaName].deviceGroups[devicePart].push(command);
-                    devicesByArea[areaName].totalCommands++;
+                    // If we found a matching device, add the command to it
+                    if (matchedDeviceKey) {
+                        const deviceData = devicesById[matchedDeviceKey];
+                        if (!deviceData.deviceGroups[devicePart]) {
+                            deviceData.deviceGroups[devicePart] = [];
+                        }
+                        deviceData.deviceGroups[devicePart].push(command);
+                        deviceData.totalCommands++;
+                    }
                 });
             }
             
             container.innerHTML = '';
             
             // Create device cards for all detected devices
-            Object.keys(devicesByArea).forEach(areaName => {
-                const deviceData = devicesByArea[areaName];
+            Object.keys(devicesById).forEach(deviceKey => {
+                const deviceData = devicesById[deviceKey];
                 const deviceCard = document.createElement('div');
                 deviceCard.className = 'device-card';
                 
                 const deviceCount = Object.keys(deviceData.deviceGroups).length;
                 const commandCount = deviceData.totalCommands;
                 const device = deviceData.device;
+                const areaName = device?.area_name || 'Unknown';
                 const status = device?.status || { color: '#6b7280', label: 'Unknown' };
                 
                 deviceCard.innerHTML = `
@@ -1171,6 +1185,11 @@
                 // Find the entity_id for this device by matching area
                 const allDevices = learnedData.allDevices || [];
                 
+                if (allDevices.length === 0) {
+                    showAlert('No Broadlink devices found. Please ensure your Broadlink device is configured in Home Assistant.', 'error');
+                    return;
+                }
+                
                 // Extract area from device name (e.g., "tony_s_office_workbench_lamp" -> "tony_s_office")
                 const deviceParts = deviceName.split('_');
                 let areaName = '';
@@ -1184,24 +1203,60 @@
                     areaName = deviceParts.slice(0, 2).join('_');
                 }
                 
-                const device = allDevices.find(d => d.area_name && 
+                log(`Extracted area name: "${areaName}" from device name: "${deviceName}"`);
+                
+                // Try multiple matching strategies
+                let selectedDevice = null;
+                
+                // Strategy 1: Match by area name
+                selectedDevice = allDevices.find(d => d.area_name && 
                     d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
-                let selectedDevice = device;
+                if (selectedDevice) {
+                    log(`✓ Found device by area match: ${selectedDevice.name} (${selectedDevice.area_name})`);
+                }
                 
-                if (!device) {
-                    log(`Could not find device for area: ${areaName}, trying fallback...`);
-                    // Fallback: try to match by first part of device name
-                    const fallbackDevice = allDevices.find(d => d.name && 
-                        d.name.toLowerCase().includes(deviceParts[0]));
+                // Strategy 2: Match by partial area name (e.g., "living_room" matches "Living Room")
+                if (!selectedDevice && areaName) {
+                    selectedDevice = allDevices.find(d => d.area_name && 
+                        d.area_name.toLowerCase().replace(/\s+/g, '_').includes(areaName));
                     
-                    if (!fallbackDevice) {
-                        showAlert(`Could not find device for ${deviceName}`, 'error');
-                        return;
+                    if (selectedDevice) {
+                        log(`✓ Found device by partial area match: ${selectedDevice.name} (${selectedDevice.area_name})`);
                     }
+                }
+                
+                // Strategy 3: Match by device name containing any part of the learned device name
+                if (!selectedDevice) {
+                    for (const part of deviceParts) {
+                        if (part.length > 2) { // Skip very short parts
+                            selectedDevice = allDevices.find(d => d.name && 
+                                d.name.toLowerCase().includes(part.toLowerCase()));
+                            
+                            if (selectedDevice) {
+                                log(`✓ Found device by name part match: ${selectedDevice.name} (matched on "${part}")`);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Strategy 4: If only one Broadlink device exists, use it
+                if (!selectedDevice && allDevices.length === 1) {
+                    selectedDevice = allDevices[0];
+                    log(`✓ Using the only available Broadlink device: ${selectedDevice.name}`);
+                }
+                
+                // Strategy 5: Let user choose from available devices
+                if (!selectedDevice) {
+                    log(`❌ Could not auto-detect Broadlink device for "${deviceName}"`);
+                    log(`Available Broadlink devices: ${allDevices.map(d => `${d.name} (${d.area_name || 'No area'})`).join(', ')}`);
                     
-                    log(`Using fallback device: ${fallbackDevice.name}`);
-                    selectedDevice = fallbackDevice;
+                    selectedDevice = await promptDeviceSelection(allDevices, deviceName);
+                    
+                    if (!selectedDevice) {
+                        return; // User cancelled
+                    }
                 }
                 
                 const response = await fetch(getApiUrl('/api/send'), {
@@ -1229,6 +1284,63 @@
             }
         }
 
+        async function promptDeviceSelection(devices, deviceName) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-dialog" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3>Select Broadlink Device</h3>
+                            <button class="modal-close" onclick="this.closest('.modal-overlay').remove(); window.deviceSelectionResolve(null);">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="margin-bottom: 16px; color: var(--ha-text-secondary-color);">
+                                Could not automatically determine which Broadlink device to use for <strong>"${deviceName}"</strong>.
+                                <br><br>
+                                Please select the Broadlink device that learned these commands:
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${devices.map(device => `
+                                    <button class="device-select-btn" 
+                                            data-device-id="${device.entity_id}"
+                                            style="padding: 12px 16px; background: var(--ha-surface-color); border: 2px solid var(--ha-border-color); border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s;">
+                                        <div style="font-weight: 600; color: var(--ha-text-primary-color);">${device.name}</div>
+                                        <div style="font-size: 12px; color: var(--ha-text-secondary-color); margin-top: 4px;">
+                                            ${device.area_name || 'No area assigned'} • ${device.entity_id}
+                                        </div>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(overlay);
+                
+                // Store resolve function globally so button can access it
+                window.deviceSelectionResolve = resolve;
+                
+                // Add click handlers to device buttons
+                overlay.querySelectorAll('.device-select-btn').forEach(btn => {
+                    btn.addEventListener('mouseenter', function() {
+                        this.style.borderColor = 'var(--ha-primary-color)';
+                        this.style.background = 'var(--ha-background-color)';
+                    });
+                    btn.addEventListener('mouseleave', function() {
+                        this.style.borderColor = 'var(--ha-border-color)';
+                        this.style.background = 'var(--ha-surface-color)';
+                    });
+                    btn.addEventListener('click', function() {
+                        const entityId = this.getAttribute('data-device-id');
+                        const selectedDevice = devices.find(d => d.entity_id === entityId);
+                        overlay.remove();
+                        resolve(selectedDevice);
+                    });
+                });
+            });
+        }
+
         async function relearnCommand(deviceName, commandName, existingCommandType) {
             const commandTypeText = existingCommandType ? existingCommandType.toUpperCase() : 'IR/RF';
             
@@ -1242,6 +1354,11 @@
                 // Find the entity_id for this device by matching area
                 const allDevices = learnedData.allDevices || [];
                 
+                if (allDevices.length === 0) {
+                    showAlert('No Broadlink devices found. Please ensure your Broadlink device is configured in Home Assistant.', 'error');
+                    return;
+                }
+                
                 // Extract area from device name
                 const deviceParts = deviceName.split('_');
                 let areaName = '';
@@ -1252,23 +1369,58 @@
                     areaName = deviceParts.slice(0, 2).join('_');
                 }
                 
-                const device = allDevices.find(d => d.area_name && 
+                log(`Extracted area name: "${areaName}" from device name: "${deviceName}"`);
+                
+                // Try multiple matching strategies (same as testCommand)
+                let selectedDevice = null;
+                
+                // Strategy 1: Match by area name
+                selectedDevice = allDevices.find(d => d.area_name && 
                     d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
                 
-                let selectedDevice = device;
+                if (selectedDevice) {
+                    log(`✓ Found device by area match: ${selectedDevice.name} (${selectedDevice.area_name})`);
+                }
                 
-                if (!device) {
-                    const fallbackDevice = allDevices.find(d => d.name && 
-                        d.name.toLowerCase().includes(deviceParts[0]));
+                // Strategy 2: Match by partial area name
+                if (!selectedDevice && areaName) {
+                    selectedDevice = allDevices.find(d => d.area_name && 
+                        d.area_name.toLowerCase().replace(/\s+/g, '_').includes(areaName));
                     
-                    if (!fallbackDevice) {
-                        const errorMsg = `Could not find device for ${deviceName}`;
-                        log(`❌ ${errorMsg}`, 'error');
-                        showAlert(errorMsg, 'error');
-                        return;
+                    if (selectedDevice) {
+                        log(`✓ Found device by partial area match: ${selectedDevice.name} (${selectedDevice.area_name})`);
                     }
+                }
+                
+                // Strategy 3: Match by device name containing any part
+                if (!selectedDevice) {
+                    for (const part of deviceParts) {
+                        if (part.length > 2) {
+                            selectedDevice = allDevices.find(d => d.name && 
+                                d.name.toLowerCase().includes(part.toLowerCase()));
+                            
+                            if (selectedDevice) {
+                                log(`✓ Found device by name part match: ${selectedDevice.name} (matched on "${part}")`);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Strategy 4: If only one device, use it
+                if (!selectedDevice && allDevices.length === 1) {
+                    selectedDevice = allDevices[0];
+                    log(`✓ Using the only available Broadlink device: ${selectedDevice.name}`);
+                }
+                
+                // Strategy 5: Let user choose
+                if (!selectedDevice) {
+                    log(`❌ Could not auto-detect Broadlink device for "${deviceName}"`);
+                    selectedDevice = await promptDeviceSelection(allDevices, deviceName);
                     
-                    selectedDevice = fallbackDevice;
+                    if (!selectedDevice) {
+                        return; // User cancelled
+                    }
                 }
                 
                 // Use the existing command type, or default to 'ir' if not provided

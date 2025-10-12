@@ -944,9 +944,26 @@ class BroadlinkWebServer:
             
             all_commands = {}
             
-            # Also get area information for filtering
+            # Get area information and Broadlink devices
             areas_data = await self._get_ha_areas()
             area_lookup = {area['id']: area['name'] for area in areas_data}
+            
+            # Get all Broadlink devices to map storage files to device areas
+            broadlink_devices = await self._get_broadlink_devices()
+            
+            # Create a mapping from storage file to device area
+            # Storage files are named like: broadlink_remote_<unique_id>_codes
+            storage_to_device = {}
+            for device in broadlink_devices:
+                unique_id = device.get('unique_id', '')
+                if unique_id:
+                    # Match storage file pattern
+                    storage_pattern = f"broadlink_remote_{unique_id}_codes"
+                    storage_to_device[storage_pattern] = {
+                        'area_id': device.get('area_id'),
+                        'area_name': device.get('area_name', 'Unknown'),
+                        'entity_id': device.get('entity_id')
+                    }
             
             for storage_file in storage_files:
                 try:
@@ -954,41 +971,26 @@ class BroadlinkWebServer:
                         content = await f.read()
                         data = json.loads(content)
                         
+                        # Get the device info for this storage file
+                        storage_filename = storage_file.name
+                        device_info = storage_to_device.get(storage_filename, {})
+                        file_area_id = device_info.get('area_id')
+                        file_area_name = device_info.get('area_name', 'Unknown')
+                        
                         # The data structure contains device names as keys
                         for device_name, commands in data.get('data', {}).items():
                             if isinstance(commands, dict):
-                                # Parse the device name to extract area and device info
-                                # Format: {area}_{device} e.g., "tony_s_office_ceiling_fan"
-                                parts = device_name.split('_')
-                                if len(parts) >= 2:
-                                    # Try to match area from the beginning of the device name
-                                    area_id = None
-                                    device_part = device_name
-                                    
-                                    # Check if device name starts with a known area
-                                    for aid, aname in area_lookup.items():
-                                        if device_name.startswith(aid + '_'):
-                                            area_id = aid
-                                            device_part = device_name[len(aid) + 1:]
-                                            break
-                                    
-                                    all_commands[device_name] = {
-                                        'commands': list(commands.keys()),
-                                        'command_data': commands,  # Include actual command codes
-                                        'area_id': area_id,
-                                        'area_name': area_lookup.get(area_id, 'Unknown'),
-                                        'device_part': device_part,
-                                        'full_name': device_name
-                                    }
-                                else:
-                                    all_commands[device_name] = {
-                                        'commands': list(commands.keys()),
-                                        'command_data': commands,  # Include actual command codes
-                                        'area_id': None,
-                                        'area_name': 'Unknown',
-                                        'device_part': device_name,
-                                        'full_name': device_name
-                                    }
+                                # Use the area from the Broadlink device that owns this storage file
+                                # This ensures commands are always associated with the current device area
+                                all_commands[device_name] = {
+                                    'commands': list(commands.keys()),
+                                    'command_data': commands,  # Include actual command codes
+                                    'area_id': file_area_id,
+                                    'area_name': file_area_name,
+                                    'device_part': device_name,
+                                    'full_name': device_name,
+                                    'storage_file': storage_filename
+                                }
                 
                 except Exception as e:
                     logger.warning(f"Error reading storage file {storage_file}: {e}")

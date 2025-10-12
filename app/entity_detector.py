@@ -42,6 +42,8 @@ class EntityDetector:
         (r'^off$', 'switch', 'turn_off'),
         
         # Media player patterns
+        (r'^power_on$', 'media_player', 'turn_on'),
+        (r'^power_off$', 'media_player', 'turn_off'),
         (r'^(power|power_toggle)$', 'media_player', 'power'),
         (r'^vol_up$', 'media_player', 'volume_up'),
         (r'^vol_down$', 'media_player', 'volume_down'),
@@ -256,7 +258,7 @@ class EntityDetector:
         
         elif entity_type == 'media_player':
             # Media player needs at least power or volume control
-            has_power = 'power' in command_roles
+            has_power = 'power' in command_roles or ('turn_on' in command_roles and 'turn_off' in command_roles)
             has_volume = 'volume_up' in command_roles or 'volume_down' in command_roles
             return has_power or has_volume
         

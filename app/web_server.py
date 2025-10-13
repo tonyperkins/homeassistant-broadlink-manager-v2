@@ -510,7 +510,11 @@ class BroadlinkWebServer:
                     logger.info("🔄 Reloading Broadlink configuration...")
                     reload_success = loop.run_until_complete(self._reload_broadlink_config())
                     
-                    if reload_success:
+                    # Reload YAML configuration to pick up new template entities
+                    logger.info("🔄 Reloading Home Assistant YAML configuration...")
+                    yaml_reload_success = loop.run_until_complete(self.area_manager.reload_config())
+                    
+                    if reload_success and yaml_reload_success:
                         result['config_reloaded'] = True
                         result['message'] = f"{result.get('message', '')} Configuration reloaded successfully."
                     else:
@@ -1853,6 +1857,12 @@ class BroadlinkWebServer:
                     entity_commands['toggle'] = cmd_name
                 elif cmd_name.startswith('speed_') or cmd_name.startswith('fan_speed_'):
                     # Fan speed commands
+                    entity_commands[cmd_name] = cmd_name
+                elif cmd_name.startswith('fan_'):
+                    # Other fan-specific commands (fan_off, fan_reverse, etc.)
+                    entity_commands[cmd_name] = cmd_name
+                elif cmd_lower in ['reverse', 'direction']:
+                    # Direction/reverse commands for fans
                     entity_commands[cmd_name] = cmd_name
         
         return entity_commands

@@ -280,6 +280,10 @@ class EntityGenerator:
         # Check if reverse/direction command exists (support fan_reverse too)
         has_direction = 'reverse' in commands or 'direction' in commands or 'fan_reverse' in commands
         
+        # For now, always enable direction support for fans (even if no command exists yet)
+        # This allows the UI to show direction controls
+        has_direction = True
+        
         config = {
             'platform': 'template',
             'fans': {
@@ -319,7 +323,7 @@ class EntityGenerator:
                 'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
-                    'command': commands.get(f'speed_{default_speed}', list(speed_commands.values())[0])
+                    'command': speed_commands.get(f'speed_{default_speed}', list(speed_commands.values())[0])
                 }
             },
             {
@@ -334,8 +338,8 @@ class EntityGenerator:
         ]
         
         # Turn off (required for fan entities)
-        # Use turn_off command if available, otherwise use speed_1 to lowest speed
-        turn_off_command = commands.get('turn_off', commands.get('speed_1', list(speed_commands.values())[0]))
+        # Prefer fan_off, then turn_off, then fallback to lowest speed
+        turn_off_command = commands.get('fan_off') or commands.get('turn_off', speed_commands.get('speed_1', list(speed_commands.values())[0]))
         fan_config['turn_off'] = [
             {
                 'service': 'remote.send_command',
@@ -372,7 +376,7 @@ class EntityGenerator:
             # Template for remote command (the actual command name)
             set_percentage_command_conditions.append(
                 f"{{%- elif percentage <= {percentage} -%}}\n"
-                f"  {commands.get(f'speed_{i}', '')}"
+                f"  {speed_commands.get(f'speed_{i}', '')}"
             )
         
         fan_config['set_percentage'] = [
@@ -395,7 +399,7 @@ class EntityGenerator:
                     'device': device,
                     'command': (
                         "{% if percentage == 0 %}\n"
-                        f"  {commands.get('turn_off', '')}\n" +
+                        f"  {commands.get('fan_off') or commands.get('turn_off', '')}\n" +
                         '\n'.join(set_percentage_command_conditions) +
                         "\n{% endif %}"
                     )
@@ -410,29 +414,37 @@ class EntityGenerator:
             
             # Set direction action
             direction_command = commands.get('reverse') or commands.get('direction') or commands.get('fan_reverse')
-            fan_config['set_direction'] = [
-                {
+            
+            # Build set_direction actions
+            set_direction_actions = []
+            
+            # Only send remote command if direction command exists
+            if direction_command:
+                set_direction_actions.append({
                     'service': 'remote.send_command',
                     'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': direction_command
                     }
-                },
-                {
-                    'service': 'input_select.select_option',
-                    'target': {'entity_id': f'input_select.{entity_id}_direction'},
-                    'data': {
-                        'option': (
-                            "{% if direction == 'forward' %}\n"
-                            "  reverse\n"
-                            "{% else %}\n"
-                            "  forward\n"
-                            "{% endif %}"
-                        )
-                    }
+                })
+            
+            # Always update the input_select to track direction state
+            set_direction_actions.append({
+                'service': 'input_select.select_option',
+                'target': {'entity_id': f'input_select.{entity_id}_direction'},
+                'data': {
+                    'option': (
+                        "{% if direction == 'forward' %}\n"
+                        "  reverse\n"
+                        "{% else %}\n"
+                        "  forward\n"
+                        "{% endif %}"
+                    )
                 }
-            ]
+            })
+            
+            fan_config['set_direction'] = set_direction_actions
         
         return config
     
@@ -975,8 +987,18 @@ class EntityGenerator:
             
             # Fans need speed selector
             if entity_type == 'fan':
-                speed_commands = {k: v for k, v in entity_data['commands'].items() if k.startswith('speed_')}
-                speed_count = len(speed_commands)
+                # Count speed commands - support both 'speed_N' and 'fan_speed_N' patterns
+                speed_count = 0
+                for k in entity_data['commands'].keys():
+                    if k.startswith('speed_') or k.startswith('fan_speed_'):
+                        # Extract speed number from command name
+                        if k.startswith('fan_speed_'):
+                            speed_num = k.replace('fan_speed_', '')
+                        else:
+                            speed_num = k.replace('speed_', '')
+                        
+                        if speed_num.isdigit():
+                            speed_count += 1
                 
                 options = ['off'] + [str(i) for i in range(1, speed_count + 1)]
                 
@@ -988,7 +1010,7 @@ class EntityGenerator:
                 
                 # Add direction selector if reverse/direction command exists
                 commands = entity_data.get('commands', {})
-                if 'reverse' in commands or 'direction' in commands:
+                if 'reverse' in commands or 'direction' in commands or 'fan_reverse' in commands:
                     helpers['input_select'][f'{entity_id}_direction'] = {
                         'name': f"{display_name} Direction",
                         'options': ['forward', 'reverse'],

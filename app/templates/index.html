@@ -1161,12 +1161,20 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="closeAddDeviceDialog()">Cancel</button>
-                        <button class="btn btn-primary" id="createDeviceBtn" onclick="createNewDevice('${broadlinkEntityId}', '${broadlinkAreaName}')">Create Device</button>
+                        <button class="btn btn-primary" id="createDeviceBtn" data-broadlink-id="${broadlinkEntityId}" data-broadlink-area="${broadlinkAreaName.replace(/"/g, '&quot;')}">Create Device</button>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(overlay);
+            
+            // Add event listener for create button
+            const createBtn = document.getElementById('createDeviceBtn');
+            createBtn.addEventListener('click', function() {
+                const broadlinkId = this.dataset.broadlinkId;
+                const broadlinkArea = this.dataset.broadlinkArea;
+                createNewDevice(broadlinkId, broadlinkArea);
+            });
             
             // Setup the dialog
             await setupAddDeviceDialog(broadlinkAreaName);

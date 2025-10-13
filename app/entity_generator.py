@@ -27,6 +27,19 @@ class EntityGenerator:
         self.storage = storage_manager
         self.default_device_id = broadlink_device_id
     
+    def _get_broadlink_entity(self, entity_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Get the Broadlink entity ID from entity data.
+        Checks both 'broadlink_entity' and 'device_id' fields for compatibility.
+        
+        Args:
+            entity_data: Entity configuration dictionary
+            
+        Returns:
+            Broadlink entity ID or None if not found
+        """
+        return entity_data.get('broadlink_entity') or entity_data.get('device_id') or self.default_device_id
+    
     def generate_all(self, broadlink_commands: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
         """
         Generate all entity YAML files
@@ -137,7 +150,7 @@ class EntityGenerator:
         commands = entity_data['commands']
         
         # Get the Broadlink entity to use (from entity data or default)
-        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
             logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
             return None
@@ -239,21 +252,33 @@ class EntityGenerator:
         commands = entity_data['commands']
         
         # Get the Broadlink entity to use (from entity data or default)
-        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
             logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
             return None
         
-        # Count speed commands
-        speed_commands = {k: v for k, v in commands.items() if k.startswith('speed_')}
+        # Count speed commands - support both 'speed_N' and 'fan_speed_N' patterns
+        speed_commands = {}
+        for k, v in commands.items():
+            if k.startswith('speed_') or k.startswith('fan_speed_'):
+                # Extract speed number from command name
+                if k.startswith('fan_speed_'):
+                    speed_num = k.replace('fan_speed_', '')
+                else:
+                    speed_num = k.replace('speed_', '')
+                
+                # Store with normalized key 'speed_N'
+                if speed_num.isdigit():
+                    speed_commands[f'speed_{speed_num}'] = v
+        
         speed_count = len(speed_commands)
         
         if speed_count == 0:
             logger.warning(f"Fan {entity_id} has no speed commands")
             return None
         
-        # Check if reverse/direction command exists
-        has_direction = 'reverse' in commands or 'direction' in commands
+        # Check if reverse/direction command exists (support fan_reverse too)
+        has_direction = 'reverse' in commands or 'direction' in commands or 'fan_reverse' in commands
         
         config = {
             'platform': 'template',
@@ -384,7 +409,7 @@ class EntityGenerator:
             fan_config['direction_template'] = f"{{{{ states('input_select.{entity_id}_direction') }}}}"
             
             # Set direction action
-            direction_command = commands.get('reverse') or commands.get('direction')
+            direction_command = commands.get('reverse') or commands.get('direction') or commands.get('fan_reverse')
             fan_config['set_direction'] = [
                 {
                     'service': 'remote.send_command',
@@ -414,8 +439,104 @@ class EntityGenerator:
     def _generate_switch(self, entity_id: str, entity_data: Dict[str, Any],
                         broadlink_commands: Dict[str, Dict[str, str]]) -> Optional[Dict[str, Any]]:
         """Generate template switch configuration"""
-        # Similar to light but simpler
-        return self._generate_light(entity_id, entity_data, broadlink_commands)
+        device = entity_data['device']
+        commands = entity_data['commands']
+        
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
+        # Check if we have the required commands
+        has_on_off = 'turn_on' in commands and 'turn_off' in commands
+        has_toggle = 'toggle' in commands
+        
+        if not (has_on_off or has_toggle):
+            logger.warning(f"Switch {entity_id} missing required commands")
+            return None
+        
+        config = {
+            'platform': 'template',
+            'switches': {
+                entity_id: {
+                    'unique_id': entity_id,
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                }
+            }
+        }
+        
+        switch_config = config['switches'][entity_id]
+        
+        # Add icon if specified
+        if entity_data.get('icon'):
+            switch_config['icon_template'] = entity_data['icon']
+        
+        if has_on_off:
+            # Separate on/off commands
+            switch_config['turn_on'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['turn_on']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_on',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+            
+            switch_config['turn_off'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['turn_off']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_off',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        else:
+            # Toggle command
+            switch_config['turn_on'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['toggle']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_on',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+            
+            switch_config['turn_off'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['toggle']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_off',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        
+        return config
     
     def _generate_media_player(self, entity_id: str, entity_data: Dict[str, Any],
                                broadlink_commands: Dict[str, Dict[str, str]]) -> Optional[Dict[str, Any]]:
@@ -424,7 +545,7 @@ class EntityGenerator:
         commands = entity_data['commands']
         
         # Get the Broadlink entity to use (from entity data or default)
-        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
             logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
             return None
@@ -592,7 +713,7 @@ class EntityGenerator:
         commands = entity_data['commands']
         
         # Get the Broadlink entity to use (from entity data or default)
-        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
             logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
             return None
@@ -692,7 +813,7 @@ class EntityGenerator:
         commands = entity_data['commands']
         
         # Get the Broadlink entity to use (from entity data or default)
-        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
             logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
             return None

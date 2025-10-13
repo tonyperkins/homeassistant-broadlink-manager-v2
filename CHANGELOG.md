@@ -18,9 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolves "ModuleNotFoundError: No module named 'homeassistant.components.template.media_player'" error
   - Media players now generate as `platform: universal` with companion switches for power control
   - Supports volume control, play/pause, source selection, and other media commands
+- **CRITICAL**: Removed climate entity type - template.climate platform removed from Home Assistant
+  - Climate entity type no longer available in UI
+  - Users should use SmartIR custom integration for AC/Heater control
+  - Added documentation link to SmartIR in the UI
 - **CRITICAL**: Fixed template platform configuration generating multiple platform entries instead of grouping entities together
   - Multiple entities of same type now correctly grouped under single `platform: template` entry
-  - Applies to light, fan, switch, climate, and cover entity types
+  - Applies to light, fan, switch, and cover entity types
 - Fixed entity generation to include `fan_off` command in turn_off action instead of lowest speed
 - Fixed entity generation to include `fan_off` in set_percentage when percentage is 0
 - Fixed command mapping to include all `fan_*` prefixed commands during metadata sync

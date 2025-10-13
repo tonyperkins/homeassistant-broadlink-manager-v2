@@ -406,7 +406,7 @@
                                 html += '<div style="font-weight: 600; color: var(--ha-text-primary-color); margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px;"><i class="mdi mdi-devices" style="font-size: 18px;"></i> Managed Devices</div>';
                                 broadlinkManagedDevices.forEach(([deviceId, managedDev]) => {
                                     const commandCount = Object.keys(managedDev.commands || {}).length;
-                                    const typeIcons = { light: 'lightbulb', fan: 'fan', switch: 'light-switch', media_player: 'television', climate: 'thermostat', cover: 'window-shutter' };
+                                    const typeIcons = { light: 'lightbulb', fan: 'fan', switch: 'light-switch', media_player: 'television', cover: 'window-shutter' };
                                     const iconName = typeIcons[managedDev.entity_type] || 'devices';
                                     
                                     html += `
@@ -1118,10 +1118,9 @@
                                 <option value="fan">Fan</option>
                                 <option value="switch">Switch</option>
                                 <option value="media_player">Media Player</option>
-                                <option value="climate">Climate (AC/Heater)</option>
                                 <option value="cover">Cover (Blinds/Curtains)</option>
                             </select>
-                            <small class="form-text">What type of device is it?</small>
+                            <small class="form-text">What type of device is it? <strong>Note:</strong> For AC/Heater control, use <a href="https://github.com/smartHomeHub/SmartIR" target="_blank">SmartIR</a> custom integration.</small>
                         </div>
                         
                         <div class="form-group">
@@ -1258,7 +1257,7 @@
                 
                 // Entity Type
                 if (entityType) {
-                    const typeNames = { 'light': 'Light', 'fan': 'Fan', 'switch': 'Switch', 'media_player': 'Media Player', 'climate': 'Climate (AC/Heater)', 'cover': 'Cover (Blinds/Curtains)' };
+                    const typeNames = { 'light': 'Light', 'fan': 'Fan', 'switch': 'Switch', 'media_player': 'Media Player', 'cover': 'Cover (Blinds/Curtains)' };
                     previewDeviceType.textContent = typeNames[entityType];
                     previewDeviceType.style.color = '#3b82f6';
                 } else {
@@ -1695,7 +1694,6 @@
                                     <option value="light" ${detectedEntityType === 'light' ? 'selected' : ''}>Light</option>
                                     <option value="switch" ${detectedEntityType === 'switch' ? 'selected' : ''}>Switch</option>
                                     <option value="media_player" ${detectedEntityType === 'media_player' ? 'selected' : ''}>Media Player</option>
-                                    <option value="climate" ${detectedEntityType === 'climate' ? 'selected' : ''}>Climate (AC/Heater)</option>
                                     <option value="cover" ${detectedEntityType === 'cover' ? 'selected' : ''}>Cover (Blinds/Curtains)</option>
                                 </select>
                             </div>
@@ -2020,42 +2018,8 @@
                     { value: 'pause', label: 'Pause', required: false },
                     { value: 'stop', label: 'Stop', required: false }
                 ],
-                'climate': [
-                    { value: 'turn_on', label: 'Turn On (required)', required: true },
-                    { value: 'turn_off', label: 'Turn Off (required)', required: true },
-                    { value: 'temperature_16', label: 'Temperature 16°C', required: false },
-                    { value: 'temperature_17', label: 'Temperature 17°C', required: false },
-                    { value: 'temperature_18', label: 'Temperature 18°C', required: false },
-                    { value: 'temperature_19', label: 'Temperature 19°C', required: false },
-                    { value: 'temperature_20', label: 'Temperature 20°C', required: false },
-                    { value: 'temperature_21', label: 'Temperature 21°C', required: false },
-                    { value: 'temperature_22', label: 'Temperature 22°C', required: false },
-                    { value: 'temperature_23', label: 'Temperature 23°C', required: false },
-                    { value: 'temperature_24', label: 'Temperature 24°C', required: false },
-                    { value: 'temperature_25', label: 'Temperature 25°C', required: false },
-                    { value: 'temperature_26', label: 'Temperature 26°C', required: false },
-                    { value: 'temperature_27', label: 'Temperature 27°C', required: false },
-                    { value: 'temperature_28', label: 'Temperature 28°C', required: false },
-                    { value: 'temperature_29', label: 'Temperature 29°C', required: false },
-                    { value: 'temperature_30', label: 'Temperature 30°C', required: false },
-                    { value: 'temperature_up', label: 'Temperature Up', required: false },
-                    { value: 'temperature_down', label: 'Temperature Down', required: false },
-                    { value: 'hvac_mode_heat', label: 'Mode: Heat', required: false },
-                    { value: 'hvac_mode_cool', label: 'Mode: Cool', required: false },
-                    { value: 'hvac_mode_auto', label: 'Mode: Auto', required: false },
-                    { value: 'hvac_mode_dry', label: 'Mode: Dry', required: false },
-                    { value: 'hvac_mode_fan_only', label: 'Mode: Fan Only', required: false },
-                    { value: 'fan_mode_auto', label: 'Fan: Auto', required: false },
-                    { value: 'fan_mode_low', label: 'Fan: Low', required: false },
-                    { value: 'fan_mode_medium', label: 'Fan: Medium', required: false },
-                    { value: 'fan_mode_high', label: 'Fan: High', required: false },
-                    { value: 'fan_mode_turbo', label: 'Fan: Turbo', required: false },
-                    { value: 'swing_mode_on', label: 'Swing: On', required: false },
-                    { value: 'swing_mode_off', label: 'Swing: Off', required: false },
-                    { value: 'swing_mode_vertical', label: 'Swing: Vertical', required: false },
-                    { value: 'swing_mode_horizontal', label: 'Swing: Horizontal', required: false },
-                    { value: 'swing_mode_both', label: 'Swing: Both', required: false }
-                ],
+                // climate removed - not supported by Home Assistant template platform
+                // Users should use SmartIR custom integration for AC control
                 'cover': [
                     { value: 'open', label: 'Open (required)', required: true },
                     { value: 'close', label: 'Close (required)', required: true },
@@ -2399,7 +2363,6 @@
                                     <option value="fan" ${device.entity_type === 'fan' ? 'selected' : ''}>Fan</option>
                                     <option value="switch" ${device.entity_type === 'switch' ? 'selected' : ''}>Switch</option>
                                     <option value="media_player" ${device.entity_type === 'media_player' ? 'selected' : ''}>Media Player</option>
-                                    <option value="climate" ${device.entity_type === 'climate' ? 'selected' : ''}>Climate (AC/Heater)</option>
                                     <option value="cover" ${device.entity_type === 'cover' ? 'selected' : ''}>Cover (Blinds/Curtains)</option>
                                 </select>
                                 <small class="form-text">What type of device is it?</small>
@@ -2681,7 +2644,6 @@
                         'fan': 'Fan',
                         'switch': 'Switch',
                         'media_player': 'Media Player',
-                        'climate': 'Climate (AC/Heater)',
                         'cover': 'Cover (Blinds/Curtains)'
                     };
                     previewEntityTypeEl.textContent = typeNames[entityType] || entityType;

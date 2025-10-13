@@ -144,9 +144,14 @@ class EntityGenerator:
                     entity_id, entity_data, broadlink_commands
                 )
             elif entity_type == "climate":
-                config = self._generate_climate(
-                    entity_id, entity_data, broadlink_commands
+                # Climate entities are not supported - template.climate platform removed from HA
+                # Users should use SmartIR custom integration for AC control
+                logger.warning(
+                    f"Climate entity type not supported for {entity_id}. "
+                    "Use SmartIR custom integration for AC control: "
+                    "https://github.com/smartHomeHub/SmartIR"
                 )
+                continue
             elif entity_type == "cover":
                 config = self._generate_cover(
                     entity_id, entity_data, broadlink_commands
@@ -193,7 +198,6 @@ class EntityGenerator:
                 "light": "lights",
                 "fan": "fans",
                 "switch": "switches",
-                "climate": "climates",
                 "cover": "covers",
             }
             
@@ -1168,58 +1172,11 @@ class EntityGenerator:
                         "initial": "forward",
                     }
 
-            # Climate entities need HVAC mode and temperature tracking
+            # Climate entities are not supported (template.climate removed from HA)
+            # Users should use SmartIR custom integration for AC control
             elif entity_type == "climate":
-                commands = entity_data.get("commands", {})
-
-                # Add HVAC mode selector if mode commands exist
-                hvac_modes = []
-                if any(k.startswith("hvac_mode_") for k in commands.keys()):
-                    for mode in ["off", "heat", "cool", "auto", "dry", "fan_only"]:
-                        if f"hvac_mode_{mode}" in commands or mode == "off":
-                            hvac_modes.append(mode)
-
-                    if hvac_modes:
-                        helpers["input_select"][f"{entity_id}_hvac_mode"] = {
-                            "name": f"{display_name} HVAC Mode",
-                            "options": hvac_modes,
-                            "initial": "off",
-                        }
-
-                # Add fan mode selector if fan mode commands exist
-                fan_modes = []
-                if any(k.startswith("fan_mode_") for k in commands.keys()):
-                    for mode in ["auto", "low", "medium", "high", "turbo"]:
-                        if f"fan_mode_{mode}" in commands:
-                            fan_modes.append(mode)
-
-                    if fan_modes:
-                        helpers["input_select"][f"{entity_id}_fan_mode"] = {
-                            "name": f"{display_name} Fan Mode",
-                            "options": fan_modes,
-                            "initial": "auto" if "auto" in fan_modes else fan_modes[0],
-                        }
-
-                # Add temperature tracking
-                temp_commands = {
-                    k: v
-                    for k, v in commands.items()
-                    if k.startswith("temperature_")
-                    and k not in ["temperature_up", "temperature_down"]
-                }
-                if temp_commands:
-                    temps = [int(k.split("_")[1]) for k in temp_commands.keys()]
-                    min_temp = min(temps)
-                    max_temp = max(temps)
-                    helpers["input_number"] = helpers.get("input_number", {})
-                    helpers["input_number"][f"{entity_id}_target_temp"] = {
-                        "name": f"{display_name} Target Temperature",
-                        "min": min_temp,
-                        "max": max_temp,
-                        "step": 1,
-                        "initial": (min_temp + max_temp) // 2,
-                        "unit_of_measurement": "°C",
-                    }
+                # Skip - no helpers needed for unsupported entity type
+                pass
 
             # Media player entities need source selection
             elif entity_type == "media_player":

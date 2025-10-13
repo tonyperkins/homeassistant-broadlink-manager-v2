@@ -253,6 +253,9 @@ The add-on can automatically create Home Assistant entities from your learned co
 
 - **Light**: Requires `light_on` and `light_off` commands (or `light_toggle`)
 - **Fan**: Requires `fan_speed_X` commands and optionally `fan_off`, `fan_reverse`
+  - Automatic percentage-based speed control
+  - Direction control (forward/reverse) included by default
+  - Supports 1-6 speed levels
 - **Switch**: Requires `on` and `off` commands (or `toggle`)
 - **Media Player**: Coming soon
 
@@ -261,7 +264,10 @@ The add-on can automatically create Home Assistant entities from your learned co
 For best auto-detection results, use these naming patterns:
 
 - **Lights**: `light_on`, `light_off`, `light_toggle`
-- **Fans**: `fan_speed_1`, `fan_speed_2`, `fan_speed_3`, `fan_off`, `fan_reverse`
+- **Fans**: `fan_speed_1`, `fan_speed_2`, ..., `fan_speed_6`, `fan_off`, `fan_reverse`
+  - Speed commands are required (at least one)
+  - `fan_off` is optional (will use lowest speed if not provided)
+  - `fan_reverse` is optional (direction control will still appear in UI)
 - **Switches**: `on`, `off`, `toggle`, `power`
 
 ## Documentation

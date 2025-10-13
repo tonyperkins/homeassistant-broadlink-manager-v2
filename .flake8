@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 127
+extend-ignore = E203, W503, F401, F541
+per-file-ignores =
+    web_server.py:E501,F811,E722,F841
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    build,
+    dist,
+    *.egg-info

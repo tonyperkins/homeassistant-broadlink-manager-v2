@@ -151,7 +151,7 @@ Auto-detect entities from commands.
 ```
 
 ### POST /api/entities/generate
-Generate YAML entity files.
+Generate YAML entity files and automatically reload Home Assistant configuration.
 
 **Request:**
 ```json
@@ -164,7 +164,7 @@ Generate YAML entity files.
 ```json
 {
   "success": true,
-  "message": "Entity files generated successfully",
+  "message": "Entity files generated successfully. Configuration reloaded successfully.",
   "entities_count": 5,
   "entity_counts": {
     "light": 3,
@@ -174,6 +174,7 @@ Generate YAML entity files.
     "entities": "/config/broadlink_manager/entities.yaml",
     "helpers": "/config/broadlink_manager/helpers.yaml"
   },
+  "config_reloaded": true,
   "instructions": {
     "step1": "Add to configuration.yaml:",
     "code": "light: !include broadlink_manager/entities.yaml\n...",
@@ -182,6 +183,8 @@ Generate YAML entity files.
   }
 }
 ```
+
+**Note:** This endpoint automatically reloads both the Broadlink integration config entries and the Home Assistant YAML configuration, so new entities appear immediately without manual reload.
 
 ### GET /api/entities/types
 Get supported entity types and their command roles.
@@ -255,7 +258,116 @@ light:
 ```
 
 ### Template Fan
-Includes speed control with percentage support and optional direction control.
+Includes speed control with percentage support and direction control.
+
+**Features:**
+- Percentage-based speed control (automatically calculated from speed count)
+- Direction control (forward/reverse) - always included
+- Optional `fan_off` command (falls back to lowest speed if not available)
+- State tracking via input_boolean and input_select helpers
+
+**Generated configuration:**
+```yaml
+fan:
+  - platform: template
+    fans:
+      office_ceiling_fan:
+        friendly_name: "Office Ceiling Fan"
+        value_template: "{{ is_state('input_boolean.office_ceiling_fan_state', 'on') }}"
+        speed_count: 6
+        percentage_template: |
+          {%- if is_state('input_select.office_ceiling_fan_speed', 'off') -%}
+            0
+          {%- elif is_state('input_select.office_ceiling_fan_speed', '1') -%}
+            16
+          {%- elif is_state('input_select.office_ceiling_fan_speed', '2') -%}
+            33
+          ...
+          {%- endif -%}
+        direction_template: "{{ states('input_select.office_ceiling_fan_direction') }}"
+        turn_on:
+          - service: remote.send_command
+            target:
+              entity_id: remote.broadlink_rm4_pro
+            data:
+              device: office_ceiling_fan
+              command: fan_speed_3  # Default to medium speed
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.office_ceiling_fan_state
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.office_ceiling_fan_speed
+            data:
+              option: '3'
+        turn_off:
+          - service: remote.send_command
+            target:
+              entity_id: remote.broadlink_rm4_pro
+            data:
+              device: office_ceiling_fan
+              command: fan_off  # Uses fan_off if available, otherwise lowest speed
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.office_ceiling_fan_state
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.office_ceiling_fan_speed
+            data:
+              option: 'off'
+        set_percentage:
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.office_ceiling_fan_speed
+            data:
+              option: "{% if percentage == 0 %}off{% elif percentage <= 16 %}1..."
+          - service: remote.send_command
+            target:
+              entity_id: remote.broadlink_rm4_pro
+            data:
+              device: office_ceiling_fan
+              command: "{% if percentage == 0 %}fan_off{% elif percentage <= 16 %}fan_speed_1..."
+        set_direction:
+          - service: remote.send_command  # Only included if fan_reverse command exists
+            target:
+              entity_id: remote.broadlink_rm4_pro
+            data:
+              device: office_ceiling_fan
+              command: fan_reverse
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.office_ceiling_fan_direction
+            data:
+              option: "{% if direction == 'forward' %}reverse{% else %}forward{% endif %}"
+```
+
+**Required Helper Entities:**
+```yaml
+input_boolean:
+  office_ceiling_fan_state:
+    name: "Office Ceiling Fan State"
+    initial: off
+
+input_select:
+  office_ceiling_fan_speed:
+    name: "Office Ceiling Fan Speed"
+    options:
+      - 'off'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+    initial: 'off'
+  
+  office_ceiling_fan_direction:
+    name: "Office Ceiling Fan Direction"
+    options:
+      - 'forward'
+      - 'reverse'
+    initial: 'forward'
+```
 
 ### Template Switch
 Similar to light but simpler (no brightness control).

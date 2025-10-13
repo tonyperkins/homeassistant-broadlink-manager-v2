@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Fan direction support**: All fan entities now include direction control by default
+- **Automatic config reload**: Generate Entities button now automatically reloads both Broadlink and YAML configurations
+- **Enhanced command sync**: Fan-specific commands (`fan_off`, `fan_reverse`, etc.) now properly sync to metadata
+
+### Fixed
+- Fixed entity generation to include `fan_off` command in turn_off action instead of lowest speed
+- Fixed entity generation to include `fan_off` in set_percentage when percentage is 0
+- Fixed command mapping to include all `fan_*` prefixed commands during metadata sync
+- Fixed direction control not appearing in Mushroom Fan Card due to missing remote command in set_direction action
+
+### Changed
+- Fan entities always include direction support (even if no reverse command learned yet)
+- Entity generation now calls both `reload_broadlink_config` and `reload_core_config` for complete reload
+
 ## [1.10.24] - 2025-10-09
 
 ### Fixed

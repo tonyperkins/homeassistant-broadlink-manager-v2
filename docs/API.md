@@ -370,7 +370,7 @@ Automatically detect entities from learned commands.
 
 ### Generate Entity Files
 
-Generate Home Assistant YAML entity files.
+Generate Home Assistant YAML entity files and automatically reload configuration.
 
 **Endpoint:** `POST /api/entities/generate`
 
@@ -385,12 +385,13 @@ Generate Home Assistant YAML entity files.
 ```json
 {
   "success": true,
-  "message": "Entity files generated successfully",
+  "message": "Entity files generated successfully. Configuration reloaded successfully.",
   "entities_count": 5,
   "entity_counts": {
     "light": 3,
     "fan": 2
   },
+  "config_reloaded": true,
   "files": {
     "entities": "/config/broadlink_manager/entities.yaml",
     "helpers": "/config/broadlink_manager/helpers.yaml",
@@ -404,6 +405,8 @@ Generate Home Assistant YAML entity files.
   }
 }
 ```
+
+**Note:** This endpoint automatically reloads both the Broadlink integration and Home Assistant YAML configuration, so new entities appear immediately without manual reload.
 
 ### Get Entity Types
 

@@ -5,23 +5,23 @@ A Home Assistant add-on for managing Broadlink devices with a built-in web inter
 
 ## Screenshots
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/main-interface.png" alt="Main Interface - Command Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/main-interface.png?v=2" alt="Main Interface - Command Management" width="600">
 
 *Main interface showing currently active broadlink devices*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/add-new-device.png" alt="Add New Device" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/add-new-device.png?v=2" alt="Add New Device" width="600">
 
 *Adding a new Broadlink device to the system*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/learn-command.png" alt="Learn Command Interface" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/learn-command.png?v=2" alt="Learn Command Interface" width="600">
 
 *Easy command learning with real-time feedback*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/automated-entity-helper-generator.png" alt="Automated Entity and Helper Generator" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/automated-entity-helper-generator.png?v=2" alt="Automated Entity and Helper Generator" width="600">
 
 *Auto-generate Home Assistant entities and helpers from learned commands*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/user-selectable-dark-mode.png" alt="User Selectable Dark Mode" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/user-selectable-dark-mode.png?v=2" alt="User Selectable Dark Mode" width="600">
 
 *User-selectable dark mode for comfortable viewing*
 

@@ -91,7 +91,7 @@ def tablet_page(tablet_context):
     page.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_url():
     """Base URL for the application"""
     return "http://localhost:8099"

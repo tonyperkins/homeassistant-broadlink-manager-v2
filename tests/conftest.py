@@ -132,12 +132,16 @@ def flask_app():
     """Create a Flask app instance for testing"""
     from web_server import BroadlinkWebServer
     from config_loader import ConfigLoader
+    from pathlib import Path
     
     # Mock config loader
     config_loader = Mock(spec=ConfigLoader)
+    config_loader.mode = 'standalone'
     config_loader.get_ha_url.return_value = 'http://localhost:8123'
     config_loader.get_ha_token.return_value = 'test_token'
-    config_loader.get_storage_path.return_value = tempfile.mkdtemp()
+    temp_storage = Path(tempfile.mkdtemp())
+    config_loader.get_storage_path.return_value = temp_storage
+    config_loader.get_broadlink_manager_path.return_value = temp_storage / 'broadlink_manager'
     
     server = BroadlinkWebServer(port=8099, config_loader=config_loader)
     server.app.config['TESTING'] = True
@@ -145,7 +149,7 @@ def flask_app():
     yield server.app
     
     # Cleanup
-    shutil.rmtree(config_loader.get_storage_path())
+    shutil.rmtree(str(temp_storage))
 
 
 @pytest.fixture

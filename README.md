@@ -9,21 +9,21 @@ A Home Assistant add-on for managing Broadlink devices with a built-in web inter
 
 *Main interface showing currently active broadlink devices*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-list.png" alt="Command List" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/add-new-device.png" alt="Add New Device" width="600">
 
-*Command list interface showing all learned commands and their associated devices and rooms*
+*Adding a new Broadlink device to the system*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-learning.png" alt="Command Learning" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/learn-command.png" alt="Learn Command Interface" width="600">
 
 *Easy command learning with real-time feedback*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/entity-management.png" alt="Entity Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/automated-entity-helper-generator.png" alt="Automated Entity and Helper Generator" width="600">
 
-*Auto-generate Home Assistant entities from learned commands*
+*Auto-generate Home Assistant entities and helpers from learned commands*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/command-management.png" alt="Command Management" width="600">
+<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/user-selectable-dark-mode.png" alt="User Selectable Dark Mode" width="600">
 
-*Command management interface*
+*User-selectable dark mode for comfortable viewing*
 
 ## About
 

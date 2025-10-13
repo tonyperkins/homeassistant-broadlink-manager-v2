@@ -178,8 +178,12 @@ class EntityGenerator:
                         # Extract switch config from wrapper
                         switch_entity_id = f"{entity_id}_power"
                         switch_platform_key = list(switch_config.keys())[1]
-                        switch_entity_config = switch_config[switch_platform_key][switch_entity_id]
-                        entities_by_type["switch"][switch_entity_id] = switch_entity_config
+                        switch_entity_config = switch_config[switch_platform_key][
+                            switch_entity_id
+                        ]
+                        entities_by_type["switch"][
+                            switch_entity_id
+                        ] = switch_entity_config
                 else:
                     # Template platforms: group entities by type
                     if entity_type not in entities_by_type:
@@ -208,10 +212,7 @@ class EntityGenerator:
 
             # Create single platform entry with all entities of this type
             yaml_structure[entity_type] = [
-                {
-                    "platform": "template",
-                    platform_key: entities_dict
-                }
+                {"platform": "template", platform_key: entities_dict}
             ]
 
         return yaml_structure
@@ -789,7 +790,9 @@ class EntityGenerator:
 
             # Add source list to attributes via input_select
             config["attributes"]["source"] = f"input_select.{entity_id}_source"
-            config["attributes"]["source_list"] = f"input_select.{entity_id}_source|options"
+            config["attributes"][
+                "source_list"
+            ] = f"input_select.{entity_id}_source|options"
 
         logger.info(
             f"Generated universal media player configuration for {entity_id} with {len(commands)} commands"
@@ -1180,10 +1183,14 @@ class EntityGenerator:
                 commands = entity_data.get("commands", {})
 
                 # Add source selector if source commands exist
-                source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
+                source_commands = {
+                    k: v for k, v in commands.items() if k.startswith("source_")
+                }
                 if source_commands:
                     # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
-                    sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
+                    sources = [
+                        k.replace("source_", "").upper() for k in source_commands.keys()
+                    ]
 
                     helpers["input_select"][f"{entity_id}_source"] = {
                         "name": f"{display_name} Source",

@@ -182,13 +182,13 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             content = f.read()
 
-        # Should have TWO platform entries:
+        # Should have THREE platform entries:
         # - 1 universal platform for media_player
-        # - 1 template platform for light
+        # - 2 template platforms (1 for media_player's companion switch, 1 for light)
         universal_count = content.count("platform: universal")
         template_count = content.count("platform: template")
         assert universal_count == 1, f"Expected 1 universal platform, found {universal_count}"
-        assert template_count == 1, f"Expected 1 template platform, found {template_count}"
+        assert template_count == 2, f"Expected 2 template platforms, found {template_count}"
 
         # Verify structure (singular domain names, not plural)
         assert "media_player:" in content

@@ -37,6 +37,10 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-test.txt
     
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps chromium
+    
     - name: Run linting
       run: |
         flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics

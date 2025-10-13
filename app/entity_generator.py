@@ -120,6 +120,8 @@ class EntityGenerator:
     ) -> Dict[str, Any]:
         """Build the entities YAML structure"""
         yaml_structure = {}
+        # Temporary storage to group entities by type
+        entities_by_type = {}
 
         for entity_id, entity_data in entities.items():
             if not entity_data.get("enabled", True):
@@ -154,11 +156,59 @@ class EntityGenerator:
                 continue
 
             if config:
-                # Initialize platform list if needed
-                if entity_type not in yaml_structure:
-                    yaml_structure[entity_type] = []
+                # Media players use universal platform (not template), so handle differently
+                if entity_type == "media_player":
+                    # Universal media players are separate entries (not grouped)
+                    if entity_type not in yaml_structure:
+                        yaml_structure[entity_type] = []
+                    yaml_structure[entity_type].append(config)
+                    
+                    # Also generate companion switch for power control
+                    switch_config = self._generate_media_player_switch(
+                        entity_id, entity_data, broadlink_commands
+                    )
+                    if switch_config:
+                        if "switch" not in entities_by_type:
+                            entities_by_type["switch"] = {}
+                        # Extract switch config from wrapper
+                        switch_entity_id = f"{entity_id}_power"
+                        switch_platform_key = list(switch_config.keys())[1]
+                        switch_entity_config = switch_config[switch_platform_key][switch_entity_id]
+                        entities_by_type["switch"][switch_entity_id] = switch_entity_config
+                else:
+                    # Template platforms: group entities by type
+                    if entity_type not in entities_by_type:
+                        entities_by_type[entity_type] = {}
+                    
+                    # Extract the entity config from the platform wrapper
+                    # config is like: {"platform": "template", "lights": {"entity_id": {...}}}
+                    platform_key = list(config.keys())[1]  # Get 'lights', 'fans', etc.
+                    entity_config = config[platform_key][entity_id]
+                    entities_by_type[entity_type][entity_id] = entity_config
 
-                yaml_structure[entity_type].append(config)
+        # Now build the final YAML structure with one platform entry per type (for template platforms)
+        for entity_type, entities_dict in entities_by_type.items():
+            # Map entity_type to the correct platform key
+            platform_key_map = {
+                "light": "lights",
+                "fan": "fans",
+                "switch": "switches",
+                "climate": "climates",
+                "cover": "covers",
+            }
+            
+            platform_key = platform_key_map.get(entity_type)
+            if not platform_key:
+                logger.warning(f"Unknown platform key for entity type: {entity_type}")
+                continue
+            
+            # Create single platform entry with all entities of this type
+            yaml_structure[entity_type] = [
+                {
+                    "platform": "template",
+                    platform_key: entities_dict
+                }
+            ]
 
         return yaml_structure
 
@@ -589,7 +639,13 @@ class EntityGenerator:
         entity_data: Dict[str, Any],
         broadlink_commands: Dict[str, Dict[str, str]],
     ) -> Optional[Dict[str, Any]]:
-        """Generate template media player configuration"""
+        """
+        Generate universal media player configuration.
+        
+        Note: Home Assistant does not support template.media_player platform.
+        Instead, we generate a universal media player that uses a companion switch
+        for power control and direct remote commands for media functions.
+        """
         device = entity_data["device"]
         commands = entity_data["commands"]
 
@@ -601,60 +657,48 @@ class EntityGenerator:
             )
             return None
 
-        # Build the media player configuration
+        # Check for basic power commands
+        has_power = ("turn_on" in commands or "power_on" in commands) and (
+            "turn_off" in commands or "power_off" in commands
+        )
+        
+        if not has_power:
+            logger.warning(f"Media player {entity_id} missing power on/off commands")
+            return None
+
+        # Build the universal media player configuration
+        friendly_name = entity_data.get("name") or entity_data.get(
+            "friendly_name", entity_id.replace("_", " ").title()
+        )
+        
+        # The companion switch entity ID
+        switch_entity_id = f"switch.{entity_id}_power"
+        
         config = {
-            "platform": "template",
-            "media_players": {
-                entity_id: {
-                    "unique_id": entity_id,
-                    "friendly_name": entity_data.get("name")
-                    or entity_data.get(
-                        "friendly_name", entity_id.replace("_", " ").title()
-                    ),
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
-                }
+            "platform": "universal",
+            "name": friendly_name,
+            "unique_id": entity_id,
+            "children": [switch_entity_id],
+            "commands": {},
+            "attributes": {
+                "state": switch_entity_id,
             },
         }
 
-        media_player_config = config["media_players"][entity_id]
-
-        # Note: icon_template support varies by platform
-        # For media_player, icons should be set via entity customization
-        # Keeping icon in metadata for future use/documentation
-
-        # Turn on command
-        if "turn_on" in commands or "power_on" in commands:
-            turn_on_cmd = commands.get("turn_on") or commands.get("power_on")
-            media_player_config["turn_on"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": turn_on_cmd},
-                },
-                {
-                    "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
-                },
-            ]
-
-        # Turn off command
-        if "turn_off" in commands or "power_off" in commands:
-            turn_off_cmd = commands.get("turn_off") or commands.get("power_off")
-            media_player_config["turn_off"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": turn_off_cmd},
-                },
-                {
-                    "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
-                },
-            ]
+        # Power commands (via companion switch)
+        config["commands"]["turn_on"] = {
+            "service": "switch.turn_on",
+            "target": {"entity_id": switch_entity_id},
+        }
+        
+        config["commands"]["turn_off"] = {
+            "service": "switch.turn_off",
+            "target": {"entity_id": switch_entity_id},
+        }
 
         # Volume up command
         if "volume_up" in commands:
-            media_player_config["volume_up"] = {
+            config["commands"]["volume_up"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["volume_up"]},
@@ -662,7 +706,7 @@ class EntityGenerator:
 
         # Volume down command
         if "volume_down" in commands:
-            media_player_config["volume_down"] = {
+            config["commands"]["volume_down"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["volume_down"]},
@@ -671,29 +715,31 @@ class EntityGenerator:
         # Mute command
         if "mute" in commands or "volume_mute" in commands:
             mute_cmd = commands.get("mute") or commands.get("volume_mute")
-            media_player_config["volume_mute"] = {
+            config["commands"]["volume_mute"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": mute_cmd},
             }
 
-        # Play/Pause commands
+        # Play command
         if "play" in commands:
-            media_player_config["media_play"] = {
+            config["commands"]["media_play"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["play"]},
             }
 
+        # Pause command
         if "pause" in commands:
-            media_player_config["media_pause"] = {
+            config["commands"]["media_pause"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["pause"]},
             }
 
+        # Play/Pause toggle command
         if "play_pause" in commands:
-            media_player_config["media_play_pause"] = {
+            config["commands"]["media_play_pause"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["play_pause"]},
@@ -701,32 +747,121 @@ class EntityGenerator:
 
         # Stop command
         if "stop" in commands:
-            media_player_config["media_stop"] = {
+            config["commands"]["media_stop"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": commands["stop"]},
             }
 
-        # Next/Previous track
+        # Next track command
         if "next" in commands or "next_track" in commands:
             next_cmd = commands.get("next") or commands.get("next_track")
-            media_player_config["media_next_track"] = {
+            config["commands"]["media_next_track"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": next_cmd},
             }
 
+        # Previous track command
         if "previous" in commands or "previous_track" in commands:
             prev_cmd = commands.get("previous") or commands.get("previous_track")
-            media_player_config["media_previous_track"] = {
+            config["commands"]["media_previous_track"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"device": device, "command": prev_cmd},
             }
 
+        # Source selection (if source commands exist)
+        source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
+        if source_commands:
+            # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
+            sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
+            
+            config["commands"]["select_source"] = {
+                "service": "remote.send_command",
+                "target": {"entity_id": broadlink_entity},
+                "data": {
+                    "device": device,
+                    "command": "{{ 'source_' + source.lower().replace(' ', '_') }}",
+                },
+            }
+            
+            # Add source list to attributes via input_select
+            config["attributes"]["source"] = f"input_select.{entity_id}_source"
+            config["attributes"]["source_list"] = f"input_select.{entity_id}_source|options"
+
         logger.info(
-            f"Generated media player configuration for {entity_id} with {len(commands)} commands"
+            f"Generated universal media player configuration for {entity_id} with {len(commands)} commands"
         )
+        return config
+
+    def _generate_media_player_switch(
+        self,
+        entity_id: str,
+        entity_data: Dict[str, Any],
+        broadlink_commands: Dict[str, Dict[str, str]],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate companion switch for media player power control.
+        
+        This switch is used by the universal media player for power on/off.
+        """
+        device = entity_data["device"]
+        commands = entity_data["commands"]
+
+        # Get the Broadlink entity to use
+        broadlink_entity = self._get_broadlink_entity(entity_data)
+        if not broadlink_entity:
+            return None
+
+        # Get power commands
+        turn_on_cmd = commands.get("turn_on") or commands.get("power_on")
+        turn_off_cmd = commands.get("turn_off") or commands.get("power_off")
+
+        if not (turn_on_cmd and turn_off_cmd):
+            return None
+
+        # Create switch entity ID (will be switch.{entity_id}_power)
+        switch_entity_id = f"{entity_id}_power"
+        
+        friendly_name = entity_data.get("name") or entity_data.get(
+            "friendly_name", entity_id.replace("_", " ").title()
+        )
+
+        config = {
+            "platform": "template",
+            "switches": {
+                switch_entity_id: {
+                    "unique_id": switch_entity_id,
+                    "friendly_name": f"{friendly_name} Power",
+                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "turn_on": [
+                        {
+                            "service": "remote.send_command",
+                            "target": {"entity_id": broadlink_entity},
+                            "data": {"device": device, "command": turn_on_cmd},
+                        },
+                        {
+                            "service": "input_boolean.turn_on",
+                            "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                        },
+                    ],
+                    "turn_off": [
+                        {
+                            "service": "remote.send_command",
+                            "target": {"entity_id": broadlink_entity},
+                            "data": {"device": device, "command": turn_off_cmd},
+                        },
+                        {
+                            "service": "input_boolean.turn_off",
+                            "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                        },
+                    ],
+                }
+            },
+        }
+
+        logger.info(f"Generated companion switch for media player {entity_id}")
         return config
 
     def _generate_climate(
@@ -1084,6 +1219,22 @@ class EntityGenerator:
                         "step": 1,
                         "initial": (min_temp + max_temp) // 2,
                         "unit_of_measurement": "°C",
+                    }
+
+            # Media player entities need source selection
+            elif entity_type == "media_player":
+                commands = entity_data.get("commands", {})
+                
+                # Add source selector if source commands exist
+                source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
+                if source_commands:
+                    # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
+                    sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
+                    
+                    helpers["input_select"][f"{entity_id}_source"] = {
+                        "name": f"{display_name} Source",
+                        "options": sources,
+                        "initial": sources[0] if sources else "HDMI1",
                     }
 
             # Cover entities need position tracking

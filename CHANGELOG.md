@@ -11,8 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fan direction support**: All fan entities now include direction control by default
 - **Automatic config reload**: Generate Entities button now automatically reloads both Broadlink and YAML configurations
 - **Enhanced command sync**: Fan-specific commands (`fan_off`, `fan_reverse`, etc.) now properly sync to metadata
+- **Unit tests**: Added comprehensive tests for entity generator to prevent regressions
 
 ### Fixed
+- **CRITICAL**: Fixed media_player generation to use universal platform instead of unsupported template platform
+  - Resolves "ModuleNotFoundError: No module named 'homeassistant.components.template.media_player'" error
+  - Media players now generate as `platform: universal` with companion switches for power control
+  - Supports volume control, play/pause, source selection, and other media commands
+- **CRITICAL**: Fixed template platform configuration generating multiple platform entries instead of grouping entities together
+  - Multiple entities of same type now correctly grouped under single `platform: template` entry
+  - Applies to light, fan, switch, climate, and cover entity types
 - Fixed entity generation to include `fan_off` command in turn_off action instead of lowest speed
 - Fixed entity generation to include `fan_off` in set_percentage when percentage is 0
 - Fixed command mapping to include all `fan_*` prefixed commands during metadata sync
@@ -21,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Fan entities always include direction support (even if no reverse command learned yet)
 - Entity generation now calls both `reload_broadlink_config` and `reload_core_config` for complete reload
+- Entity generator now groups all entities of the same type under a single platform entry (correct HA syntax)
 
 ## [1.10.24] - 2025-10-09
 

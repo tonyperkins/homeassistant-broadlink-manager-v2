@@ -3,78 +3,128 @@ Unit tests for AreaManager
 """
 
 import pytest
+from unittest.mock import AsyncMock, patch, MagicMock
 
 
 @pytest.mark.unit
 class TestAreaManager:
     """Test AreaManager functionality"""
-    
+
     def test_initialization(self, area_manager):
         """Test AreaManager initializes correctly"""
-        assert area_manager.storage_path.exists()
-        assert area_manager.areas_file.exists()
-    
-    def test_create_area(self, area_manager, sample_area_data):
+        assert area_manager.ha_url == "http://localhost:8123"
+        assert area_manager.ha_token == "test_token"
+        assert area_manager.ws_url == "ws://localhost:8123/api/websocket"
+        assert area_manager.message_id == 1
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_area_existing(self, area_manager):
+        """Test getting an existing area"""
+        # Mock WebSocket response with existing area
+        mock_areas = [
+            {"area_id": "master_bedroom", "name": "Master Bedroom"},
+            {"area_id": "living_room", "name": "Living Room"},
+        ]
+
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = mock_areas
+            result = await area_manager.get_or_create_area("Master Bedroom")
+
+            assert result == "master_bedroom"
+            mock_ws.assert_called_once_with("config/area_registry/list")
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_area_new(self, area_manager):
         """Test creating a new area"""
-        result = area_manager.create_area('master_bedroom', sample_area_data)
-        
-        assert result is True
-        area = area_manager.get_area('master_bedroom')
-        assert area is not None
-        assert area['name'] == sample_area_data['name']
-        assert area['area_id'] == 'master_bedroom'
-    
-    def test_create_duplicate_area(self, area_manager, sample_area_data):
-        """Test that creating a duplicate area fails"""
-        area_manager.create_area('master_bedroom', sample_area_data)
-        result = area_manager.create_area('master_bedroom', sample_area_data)
-        
-        assert result is False
-    
-    def test_get_area(self, area_manager, sample_area_data):
-        """Test retrieving an area"""
-        area_manager.create_area('master_bedroom', sample_area_data)
-        area = area_manager.get_area('master_bedroom')
-        
-        assert area is not None
-        assert area['area_id'] == 'master_bedroom'
-    
-    def test_get_all_areas(self, area_manager, sample_area_data):
-        """Test retrieving all areas"""
-        area_manager.create_area('master_bedroom', sample_area_data)
-        area_manager.create_area('living_room', sample_area_data)
-        
-        areas = area_manager.get_all_areas()
-        assert len(areas) == 2
-        assert 'master_bedroom' in areas
-        assert 'living_room' in areas
-    
-    def test_update_area(self, area_manager, sample_area_data):
-        """Test updating area metadata"""
-        area_manager.create_area('master_bedroom', sample_area_data)
-        
-        updates = {'name': 'Primary Bedroom', 'floor': 'second'}
-        result = area_manager.update_area('master_bedroom', updates)
-        
-        assert result is True
-        area = area_manager.get_area('master_bedroom')
-        assert area['name'] == 'Primary Bedroom'
-        assert area['floor'] == 'second'
-    
-    def test_delete_area(self, area_manager, sample_area_data):
-        """Test deleting an area"""
-        area_manager.create_area('master_bedroom', sample_area_data)
-        result = area_manager.delete_area('master_bedroom')
-        
-        assert result is True
-        area = area_manager.get_area('master_bedroom')
-        assert area is None
-    
-    def test_generate_area_id(self, area_manager):
-        """Test area ID generation"""
-        area_id = area_manager.generate_area_id('Master Bedroom')
-        assert area_id == 'master_bedroom'
-        
-        # Test with special characters
-        area_id = area_manager.generate_area_id('Living/Dining Room')
-        assert area_id == 'living_dining_room'
+        # Mock WebSocket responses - return list with existing areas (but not matching)
+        # then return the newly created area
+        mock_existing_areas = [{"area_id": "other_area", "name": "Other Area"}]
+        mock_new_area = {"area_id": "new_area", "name": "New Area"}
+
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            # First call returns list without our area, second call returns new area
+            mock_ws.side_effect = [mock_existing_areas, mock_new_area]
+            result = await area_manager.get_or_create_area("New Area")
+
+            assert result == "new_area"
+            assert mock_ws.call_count == 2
+            # Verify the create call was made
+            mock_ws.assert_any_call("config/area_registry/create", name="New Area")
+
+    @pytest.mark.asyncio
+    async def test_assign_entity_to_area(self, area_manager):
+        """Test assigning an entity to an area"""
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = {"entity_id": "light.bedroom", "area_id": "bedroom"}
+            result = await area_manager.assign_entity_to_area(
+                "light.bedroom", "bedroom"
+            )
+
+            assert result is True
+            mock_ws.assert_called_once_with(
+                "config/entity_registry/update",
+                entity_id="light.bedroom",
+                area_id="bedroom",
+            )
+
+    @pytest.mark.asyncio
+    async def test_assign_entity_to_area_failure(self, area_manager):
+        """Test failed entity assignment"""
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = None
+            result = await area_manager.assign_entity_to_area(
+                "light.bedroom", "bedroom"
+            )
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_entity_exists(self, area_manager):
+        """Test checking if entity exists"""
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = {"entity_id": "light.bedroom"}
+            result = await area_manager.check_entity_exists("light.bedroom")
+
+            assert result is True
+            mock_ws.assert_called_once_with(
+                "config/entity_registry/get", entity_id="light.bedroom"
+            )
+
+    @pytest.mark.asyncio
+    async def test_check_entity_not_exists(self, area_manager):
+        """Test checking for non-existent entity"""
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = None
+            result = await area_manager.check_entity_exists("light.nonexistent")
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_reload_config(self, area_manager):
+        """Test reloading Home Assistant configuration"""
+        with patch.object(
+            area_manager, "_send_ws_command", new_callable=AsyncMock
+        ) as mock_ws:
+            mock_ws.return_value = {}
+            result = await area_manager.reload_config()
+
+            assert result is True
+            mock_ws.assert_called_once_with(
+                "call_service",
+                domain="homeassistant",
+                service="reload_core_config",
+                service_data={},
+                return_response=False,
+            )

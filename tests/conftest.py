@@ -33,9 +33,9 @@ def device_manager(temp_storage_dir):
 
 
 @pytest.fixture
-def area_manager(temp_storage_dir):
-    """Create an AreaManager instance with temporary storage"""
-    return AreaManager(storage_path=temp_storage_dir)
+def area_manager():
+    """Create an AreaManager instance for testing"""
+    return AreaManager(ha_url="http://localhost:8123", ha_token="test_token")
 
 
 @pytest.fixture

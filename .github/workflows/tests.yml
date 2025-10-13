@@ -119,8 +119,7 @@ jobs:
     
     - name: Run bandit security scan
       run: |
-        bandit -r app/ -f json -o bandit-report.json
-      continue-on-error: true
+        bandit -r app/ -f json -o bandit-report.json || true
     
     - name: Check dependencies for vulnerabilities
       run: |

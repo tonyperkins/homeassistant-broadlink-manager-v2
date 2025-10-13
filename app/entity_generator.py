@@ -167,7 +167,7 @@ class EntityGenerator:
                     if entity_type not in yaml_structure:
                         yaml_structure[entity_type] = []
                     yaml_structure[entity_type].append(config)
-                    
+
                     # Also generate companion switch for power control
                     switch_config = self._generate_media_player_switch(
                         entity_id, entity_data, broadlink_commands
@@ -184,7 +184,7 @@ class EntityGenerator:
                     # Template platforms: group entities by type
                     if entity_type not in entities_by_type:
                         entities_by_type[entity_type] = {}
-                    
+
                     # Extract the entity config from the platform wrapper
                     # config is like: {"platform": "template", "lights": {"entity_id": {...}}}
                     platform_key = list(config.keys())[1]  # Get 'lights', 'fans', etc.
@@ -200,12 +200,12 @@ class EntityGenerator:
                 "switch": "switches",
                 "cover": "covers",
             }
-            
+
             platform_key = platform_key_map.get(entity_type)
             if not platform_key:
                 logger.warning(f"Unknown platform key for entity type: {entity_type}")
                 continue
-            
+
             # Create single platform entry with all entities of this type
             yaml_structure[entity_type] = [
                 {
@@ -645,7 +645,7 @@ class EntityGenerator:
     ) -> Optional[Dict[str, Any]]:
         """
         Generate universal media player configuration.
-        
+
         Note: Home Assistant does not support template.media_player platform.
         Instead, we generate a universal media player that uses a companion switch
         for power control and direct remote commands for media functions.
@@ -665,7 +665,7 @@ class EntityGenerator:
         has_power = ("turn_on" in commands or "power_on" in commands) and (
             "turn_off" in commands or "power_off" in commands
         )
-        
+
         if not has_power:
             logger.warning(f"Media player {entity_id} missing power on/off commands")
             return None
@@ -674,10 +674,10 @@ class EntityGenerator:
         friendly_name = entity_data.get("name") or entity_data.get(
             "friendly_name", entity_id.replace("_", " ").title()
         )
-        
+
         # The companion switch entity ID
         switch_entity_id = f"switch.{entity_id}_power"
-        
+
         config = {
             "platform": "universal",
             "name": friendly_name,
@@ -694,7 +694,7 @@ class EntityGenerator:
             "service": "switch.turn_on",
             "target": {"entity_id": switch_entity_id},
         }
-        
+
         config["commands"]["turn_off"] = {
             "service": "switch.turn_off",
             "target": {"entity_id": switch_entity_id},
@@ -778,9 +778,6 @@ class EntityGenerator:
         # Source selection (if source commands exist)
         source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
         if source_commands:
-            # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
-            sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
-            
             config["commands"]["select_source"] = {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
@@ -789,7 +786,7 @@ class EntityGenerator:
                     "command": "{{ 'source_' + source.lower().replace(' ', '_') }}",
                 },
             }
-            
+
             # Add source list to attributes via input_select
             config["attributes"]["source"] = f"input_select.{entity_id}_source"
             config["attributes"]["source_list"] = f"input_select.{entity_id}_source|options"
@@ -807,7 +804,7 @@ class EntityGenerator:
     ) -> Optional[Dict[str, Any]]:
         """
         Generate companion switch for media player power control.
-        
+
         This switch is used by the universal media player for power on/off.
         """
         device = entity_data["device"]
@@ -827,7 +824,7 @@ class EntityGenerator:
 
         # Create switch entity ID (will be switch.{entity_id}_power)
         switch_entity_id = f"{entity_id}_power"
-        
+
         friendly_name = entity_data.get("name") or entity_data.get(
             "friendly_name", entity_id.replace("_", " ").title()
         )
@@ -1181,13 +1178,13 @@ class EntityGenerator:
             # Media player entities need source selection
             elif entity_type == "media_player":
                 commands = entity_data.get("commands", {})
-                
+
                 # Add source selector if source commands exist
                 source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
                 if source_commands:
                     # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
                     sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
-                    
+
                     helpers["input_select"][f"{entity_id}_source"] = {
                         "name": f"{display_name} Source",
                         "options": sources,

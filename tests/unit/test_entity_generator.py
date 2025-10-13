@@ -81,18 +81,18 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             content = f.read()
 
-        # Count occurrences of "platform: template"
-        platform_count = content.count("platform: template")
+        # Count occurrences of "platform: universal" (media players use universal platform)
+        platform_count = content.count("platform: universal")
 
-        # Should only have ONE platform entry for media_player
-        assert platform_count == 1, f"Expected 1 platform entry, found {platform_count}"
+        # Should have TWO platform entries (one for each media player - they're not grouped)
+        assert platform_count == 2, f"Expected 2 platform entries, found {platform_count}"
 
         # Verify both entities are present
         assert "living_room_tv" in content
         assert "living_room_stereo" in content
 
-        # Verify the structure has media_players key (not multiple entries)
-        assert content.count("media_players:") == 1
+        # Verify the structure has media_player key (singular, not plural)
+        assert "media_player:" in content
 
     def test_multiple_lights_single_platform(self, generator, mock_storage):
         """Test that multiple lights are grouped under a single platform entry"""
@@ -182,10 +182,14 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             content = f.read()
 
-        # Should have TWO platform entries (one for media_player, one for light)
-        platform_count = content.count("platform: template")
-        assert platform_count == 2, f"Expected 2 platform entries, found {platform_count}"
+        # Should have TWO platform entries:
+        # - 1 universal platform for media_player
+        # - 1 template platform for light
+        universal_count = content.count("platform: universal")
+        template_count = content.count("platform: template")
+        assert universal_count == 1, f"Expected 1 universal platform, found {universal_count}"
+        assert template_count == 1, f"Expected 1 template platform, found {template_count}"
 
-        # Verify structure
-        assert "media_players:" in content
+        # Verify structure (singular domain names, not plural)
+        assert "media_player:" in content
         assert "lights:" in content

@@ -16,16 +16,16 @@ logger = logging.getLogger(__name__)
 class EntityGenerator:
     """Generate Home Assistant entity YAML configurations"""
     
-    def __init__(self, storage_manager, broadlink_device_id: str):
+    def __init__(self, storage_manager, broadlink_device_id: str = None):
         """
         Initialize entity generator
         
         Args:
             storage_manager: StorageManager instance
-            broadlink_device_id: HA device ID for the Broadlink device
+            broadlink_device_id: Optional default HA device ID for the Broadlink device (for backward compatibility)
         """
         self.storage = storage_manager
-        self.device_id = broadlink_device_id
+        self.default_device_id = broadlink_device_id
     
     def generate_all(self, broadlink_commands: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
         """
@@ -113,6 +113,10 @@ class EntityGenerator:
                 config = self._generate_switch(entity_id, entity_data, broadlink_commands)
             elif entity_type == 'media_player':
                 config = self._generate_media_player(entity_id, entity_data, broadlink_commands)
+            elif entity_type == 'climate':
+                config = self._generate_climate(entity_id, entity_data, broadlink_commands)
+            elif entity_type == 'cover':
+                config = self._generate_cover(entity_id, entity_data, broadlink_commands)
             else:
                 logger.warning(f"Unknown entity type: {entity_type} for {entity_id}")
                 continue
@@ -132,6 +136,12 @@ class EntityGenerator:
         device = entity_data['device']
         commands = entity_data['commands']
         
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
         # Check if we have the required commands
         has_on_off = 'turn_on' in commands and 'turn_off' in commands
         has_toggle = 'toggle' in commands
@@ -145,7 +155,7 @@ class EntityGenerator:
             'lights': {
                 entity_id: {
                     'unique_id': entity_id,
-                    'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
                     'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                 }
             }
@@ -153,12 +163,16 @@ class EntityGenerator:
         
         light_config = config['lights'][entity_id]
         
+        # Add icon if specified
+        if entity_data.get('icon'):
+            light_config['icon_template'] = entity_data['icon']
+        
         if has_on_off:
             # Separate on/off commands
             light_config['turn_on'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': commands['turn_on']
@@ -173,7 +187,7 @@ class EntityGenerator:
             light_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': commands['turn_off']
@@ -189,7 +203,7 @@ class EntityGenerator:
             light_config['turn_on'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': commands['toggle']
@@ -204,7 +218,7 @@ class EntityGenerator:
             light_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': commands['toggle']
@@ -224,6 +238,12 @@ class EntityGenerator:
         device = entity_data['device']
         commands = entity_data['commands']
         
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
         # Count speed commands
         speed_commands = {k: v for k, v in commands.items() if k.startswith('speed_')}
         speed_count = len(speed_commands)
@@ -240,7 +260,7 @@ class EntityGenerator:
             'fans': {
                 entity_id: {
                     'unique_id': entity_id,
-                    'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
                     'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                     'speed_count': speed_count,
                 }
@@ -248,6 +268,9 @@ class EntityGenerator:
         }
         
         fan_config = config['fans'][entity_id]
+        
+        # Note: icon_template is not supported for fan entities in HA
+        # Icons must be set via entity customization in HA UI or entity registry
         
         # Percentage template
         percentage_conditions = []
@@ -268,7 +291,7 @@ class EntityGenerator:
         fan_config['turn_on'] = [
             {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands.get(f'speed_{default_speed}', list(speed_commands.values())[0])
@@ -285,27 +308,28 @@ class EntityGenerator:
             }
         ]
         
-        # Turn off
-        if 'turn_off' in commands:
-            fan_config['turn_off'] = [
-                {
-                    'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
-                    'data': {
-                        'device': device,
-                        'command': commands['turn_off']
-                    }
-                },
-                {
-                    'service': 'input_boolean.turn_off',
-                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
-                },
-                {
-                    'service': 'input_select.select_option',
-                    'target': {'entity_id': f'input_select.{entity_id}_speed'},
-                    'data': {'option': 'off'}
+        # Turn off (required for fan entities)
+        # Use turn_off command if available, otherwise use speed_1 to lowest speed
+        turn_off_command = commands.get('turn_off', commands.get('speed_1', list(speed_commands.values())[0]))
+        fan_config['turn_off'] = [
+            {
+                'service': 'remote.send_command',
+                'target': {'entity_id': broadlink_entity},
+                'data': {
+                    'device': device,
+                    'command': turn_off_command
                 }
-            ]
+            },
+            {
+                'service': 'input_boolean.turn_off',
+                'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+            },
+            {
+                'service': 'input_select.select_option',
+                'target': {'entity_id': f'input_select.{entity_id}_speed'},
+                'data': {'option': 'off'}
+            }
+        ]
         
         # Set percentage
         set_percentage_option_conditions = []  # For input_select (speed numbers)
@@ -341,7 +365,7 @@ class EntityGenerator:
             },
             {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': (
@@ -364,7 +388,7 @@ class EntityGenerator:
             fan_config['set_direction'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': direction_command
@@ -399,13 +423,19 @@ class EntityGenerator:
         device = entity_data['device']
         commands = entity_data['commands']
         
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
         # Build the media player configuration
         config = {
             'platform': 'template',
             'media_players': {
                 entity_id: {
                     'unique_id': entity_id,
-                    'friendly_name': entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
                     'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                 }
             }
@@ -413,13 +443,17 @@ class EntityGenerator:
         
         media_player_config = config['media_players'][entity_id]
         
+        # Note: icon_template support varies by platform
+        # For media_player, icons should be set via entity customization
+        # Keeping icon in metadata for future use/documentation
+        
         # Turn on command
         if 'turn_on' in commands or 'power_on' in commands:
             turn_on_cmd = commands.get('turn_on') or commands.get('power_on')
             media_player_config['turn_on'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': turn_on_cmd
@@ -437,7 +471,7 @@ class EntityGenerator:
             media_player_config['turn_off'] = [
                 {
                     'service': 'remote.send_command',
-                    'target': {'entity_id': self.device_id},
+                    'target': {'entity_id': broadlink_entity},
                     'data': {
                         'device': device,
                         'command': turn_off_cmd
@@ -453,7 +487,7 @@ class EntityGenerator:
         if 'volume_up' in commands:
             media_player_config['volume_up'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['volume_up']
@@ -464,7 +498,7 @@ class EntityGenerator:
         if 'volume_down' in commands:
             media_player_config['volume_down'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['volume_down']
@@ -476,7 +510,7 @@ class EntityGenerator:
             mute_cmd = commands.get('mute') or commands.get('volume_mute')
             media_player_config['volume_mute'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': mute_cmd
@@ -487,7 +521,7 @@ class EntityGenerator:
         if 'play' in commands:
             media_player_config['media_play'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['play']
@@ -497,7 +531,7 @@ class EntityGenerator:
         if 'pause' in commands:
             media_player_config['media_pause'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['pause']
@@ -507,7 +541,7 @@ class EntityGenerator:
         if 'play_pause' in commands:
             media_player_config['media_play_pause'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['play_pause']
@@ -518,7 +552,7 @@ class EntityGenerator:
         if 'stop' in commands:
             media_player_config['media_stop'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': commands['stop']
@@ -530,7 +564,7 @@ class EntityGenerator:
             next_cmd = commands.get('next') or commands.get('next_track')
             media_player_config['media_next_track'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': next_cmd
@@ -541,7 +575,7 @@ class EntityGenerator:
             prev_cmd = commands.get('previous') or commands.get('previous_track')
             media_player_config['media_previous_track'] = {
                 'service': 'remote.send_command',
-                'target': {'entity_id': self.device_id},
+                'target': {'entity_id': broadlink_entity},
                 'data': {
                     'device': device,
                     'command': prev_cmd
@@ -549,6 +583,251 @@ class EntityGenerator:
             }
         
         logger.info(f"Generated media player configuration for {entity_id} with {len(commands)} commands")
+        return config
+    
+    def _generate_climate(self, entity_id: str, entity_data: Dict[str, Any],
+                         broadlink_commands: Dict[str, Dict[str, str]]) -> Optional[Dict[str, Any]]:
+        """Generate template climate configuration for IR/RF AC units"""
+        device = entity_data['device']
+        commands = entity_data['commands']
+        
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
+        # Check for basic on/off commands
+        has_on = 'turn_on' in commands
+        has_off = 'turn_off' in commands
+        
+        if not (has_on or has_off):
+            logger.warning(f"Climate {entity_id} missing turn_on or turn_off commands")
+            return None
+        
+        # Build the climate configuration using template platform
+        config = {
+            'platform': 'template',
+            'climates': {
+                entity_id: {
+                    'unique_id': entity_id,
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'value_template': f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    'current_temperature_template': "{{ 22 }}",  # Static temperature since IR/RF has no feedback
+                    'target_temperature_template': "{{ states('input_number.{}_target_temp'.format('" + entity_id + "')) | float }}",
+                    'min_temp': 16,
+                    'max_temp': 30,
+                }
+            }
+        }
+        
+        climate_config = config['climates'][entity_id]
+        
+        # Add icon if specified
+        if entity_data.get('icon'):
+            climate_config['icon_template'] = entity_data['icon']
+        
+        # Add turn_on action
+        if has_on:
+            climate_config['turn_on'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['turn_on']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_on',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        
+        # Add turn_off action
+        if has_off:
+            climate_config['turn_off'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['turn_off']
+                    }
+                },
+                {
+                    'service': 'input_boolean.turn_off',
+                    'target': {'entity_id': f'input_boolean.{entity_id}_state'}
+                }
+            ]
+        
+        # Add set_temperature action (uses turn_on for now)
+        if has_on:
+            climate_config['set_temperature'] = [
+                {
+                    'service': 'input_number.set_value',
+                    'target': {'entity_id': f'input_number.{entity_id}_target_temp'},
+                    'data': {
+                        'value': '{{ temperature }}'
+                    }
+                },
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['turn_on']
+                    }
+                }
+            ]
+        
+        logger.info(f"Generated template climate configuration for {entity_id}")
+        
+        return config
+    
+    def _generate_cover(self, entity_id: str, entity_data: Dict[str, Any],
+                       broadlink_commands: Dict[str, Dict[str, str]]) -> Optional[Dict[str, Any]]:
+        """Generate template cover configuration"""
+        device = entity_data['device']
+        commands = entity_data['commands']
+        
+        # Get the Broadlink entity to use (from entity data or default)
+        broadlink_entity = entity_data.get('broadlink_entity', self.default_device_id)
+        if not broadlink_entity:
+            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            return None
+        
+        # Check for required commands
+        has_open = 'open' in commands
+        has_close = 'close' in commands
+        has_stop = 'stop' in commands
+        
+        if not (has_open or has_close):
+            logger.warning(f"Cover {entity_id} missing open or close commands")
+            return None
+        
+        # Build the cover configuration
+        config = {
+            'platform': 'template',
+            'covers': {
+                entity_id: {
+                    'unique_id': entity_id,
+                    'friendly_name': entity_data.get('name') or entity_data.get('friendly_name', entity_id.replace('_', ' ').title()),
+                    'value_template': f"{{{{ is_state('input_select.{entity_id}_position', 'open') }}}}",
+                }
+            }
+        }
+        
+        cover_config = config['covers'][entity_id]
+        
+        # Add icon if specified
+        if entity_data.get('icon'):
+            cover_config['icon_template'] = entity_data['icon']
+        
+        # Open cover command
+        if has_open:
+            cover_config['open_cover'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['open']
+                    }
+                },
+                {
+                    'service': 'input_select.select_option',
+                    'target': {'entity_id': f'input_select.{entity_id}_position'},
+                    'data': {'option': 'open'}
+                }
+            ]
+        
+        # Close cover command
+        if has_close:
+            cover_config['close_cover'] = [
+                {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['close']
+                    }
+                },
+                {
+                    'service': 'input_select.select_option',
+                    'target': {'entity_id': f'input_select.{entity_id}_position'},
+                    'data': {'option': 'closed'}
+                }
+            ]
+        
+        # Stop cover command (optional but recommended)
+        if has_stop:
+            cover_config['stop_cover'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': broadlink_entity},
+                'data': {
+                    'device': device,
+                    'command': commands['stop']
+                }
+            }
+        
+        # Check for position commands
+        position_commands = {k: v for k, v in commands.items() if k.startswith('position_')}
+        if position_commands:
+            # Add position template
+            cover_config['position_template'] = f"{{{{ states('input_number.{entity_id}_position') | int }}}}"
+            
+            # Add set position action
+            position_conditions = []
+            for pos_key in sorted(position_commands.keys()):
+                pos_value = int(pos_key.split('_')[1])
+                position_conditions.append(
+                    f"{{%- elif position == {pos_value} -%}}\n"
+                    f"  {position_commands[pos_key]}"
+                )
+            
+            cover_config['set_cover_position'] = {
+                'service': 'remote.send_command',
+                'target': {'entity_id': broadlink_entity},
+                'data': {
+                    'device': device,
+                    'command': (
+                        "{% if position == 0 %}\n"
+                        f"  {commands.get('close', '')}\n" +
+                        '\n'.join(position_conditions) +
+                        "\n{% elif position == 100 %}\n"
+                        f"  {commands.get('open', '')}\n"
+                        "{% endif %}"
+                    )
+                }
+            }
+        
+        # Check for tilt commands
+        has_open_tilt = 'open_tilt' in commands
+        has_close_tilt = 'close_tilt' in commands
+        
+        if has_open_tilt or has_close_tilt:
+            if has_open_tilt:
+                cover_config['open_cover_tilt'] = {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['open_tilt']
+                    }
+                }
+            
+            if has_close_tilt:
+                cover_config['close_cover_tilt'] = {
+                    'service': 'remote.send_command',
+                    'target': {'entity_id': broadlink_entity},
+                    'data': {
+                        'device': device,
+                        'command': commands['close_tilt']
+                    }
+                }
+        
+        logger.info(f"Generated cover configuration for {entity_id} with {len(commands)} commands")
         return config
     
     def _build_helpers_yaml(self, entities: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
@@ -564,9 +843,12 @@ class EntityGenerator:
             
             entity_type = entity_data['entity_type']
             
+            # Get display name (prefer 'name' over 'friendly_name')
+            display_name = entity_data.get('name') or entity_data.get('friendly_name', entity_id)
+            
             # All entities need a state tracker
             helpers['input_boolean'][f'{entity_id}_state'] = {
-                'name': f"{entity_data.get('friendly_name', entity_id)} State",
+                'name': f"{display_name} State",
                 'initial': False
             }
             
@@ -578,7 +860,7 @@ class EntityGenerator:
                 options = ['off'] + [str(i) for i in range(1, speed_count + 1)]
                 
                 helpers['input_select'][f'{entity_id}_speed'] = {
-                    'name': f"{entity_data.get('friendly_name', entity_id)} Speed",
+                    'name': f"{display_name} Speed",
                     'options': options,
                     'initial': 'off'
                 }
@@ -587,9 +869,81 @@ class EntityGenerator:
                 commands = entity_data.get('commands', {})
                 if 'reverse' in commands or 'direction' in commands:
                     helpers['input_select'][f'{entity_id}_direction'] = {
-                        'name': f"{entity_data.get('friendly_name', entity_id)} Direction",
+                        'name': f"{display_name} Direction",
                         'options': ['forward', 'reverse'],
                         'initial': 'forward'
+                    }
+            
+            # Climate entities need HVAC mode and temperature tracking
+            elif entity_type == 'climate':
+                commands = entity_data.get('commands', {})
+                
+                # Add HVAC mode selector if mode commands exist
+                hvac_modes = []
+                if any(k.startswith('hvac_mode_') for k in commands.keys()):
+                    for mode in ['off', 'heat', 'cool', 'auto', 'dry', 'fan_only']:
+                        if f'hvac_mode_{mode}' in commands or mode == 'off':
+                            hvac_modes.append(mode)
+                    
+                    if hvac_modes:
+                        helpers['input_select'][f'{entity_id}_hvac_mode'] = {
+                            'name': f"{display_name} HVAC Mode",
+                            'options': hvac_modes,
+                            'initial': 'off'
+                        }
+                
+                # Add fan mode selector if fan mode commands exist
+                fan_modes = []
+                if any(k.startswith('fan_mode_') for k in commands.keys()):
+                    for mode in ['auto', 'low', 'medium', 'high', 'turbo']:
+                        if f'fan_mode_{mode}' in commands:
+                            fan_modes.append(mode)
+                    
+                    if fan_modes:
+                        helpers['input_select'][f'{entity_id}_fan_mode'] = {
+                            'name': f"{display_name} Fan Mode",
+                            'options': fan_modes,
+                            'initial': 'auto' if 'auto' in fan_modes else fan_modes[0]
+                        }
+                
+                # Add temperature tracking
+                temp_commands = {k: v for k, v in commands.items() if k.startswith('temperature_') and k not in ['temperature_up', 'temperature_down']}
+                if temp_commands:
+                    temps = [int(k.split('_')[1]) for k in temp_commands.keys()]
+                    min_temp = min(temps)
+                    max_temp = max(temps)
+                    helpers['input_number'] = helpers.get('input_number', {})
+                    helpers['input_number'][f'{entity_id}_target_temp'] = {
+                        'name': f"{display_name} Target Temperature",
+                        'min': min_temp,
+                        'max': max_temp,
+                        'step': 1,
+                        'initial': (min_temp + max_temp) // 2,
+                        'unit_of_measurement': '°C'
+                    }
+            
+            # Cover entities need position tracking
+            elif entity_type == 'cover':
+                commands = entity_data.get('commands', {})
+                
+                # Add position selector
+                helpers['input_select'][f'{entity_id}_position'] = {
+                    'name': f"{display_name} Position",
+                    'options': ['open', 'closed', 'partial'],
+                    'initial': 'closed'
+                }
+                
+                # Add position slider if position commands exist
+                position_commands = {k: v for k, v in commands.items() if k.startswith('position_')}
+                if position_commands:
+                    helpers['input_number'] = helpers.get('input_number', {})
+                    helpers['input_number'][f'{entity_id}_position'] = {
+                        'name': f"{display_name} Position",
+                        'min': 0,
+                        'max': 100,
+                        'step': 1,
+                        'initial': 0,
+                        'unit_of_measurement': '%'
                     }
         
         return helpers
@@ -618,8 +972,11 @@ class EntityGenerator:
                 "fan: !include broadlink_manager/entities.yaml\n"
                 "switch: !include broadlink_manager/entities.yaml\n"
                 "media_player: !include broadlink_manager/entities.yaml\n"
+                "climate: !include broadlink_manager/entities.yaml\n"
+                "cover: !include broadlink_manager/entities.yaml\n"
                 "input_boolean: !include broadlink_manager/helpers.yaml\n"
-                "input_select: !include broadlink_manager/helpers.yaml"
+                "input_select: !include broadlink_manager/helpers.yaml\n"
+                "input_number: !include broadlink_manager/helpers.yaml"
             ),
             "step2": "Check your configuration (Developer Tools → YAML → Check Configuration)",
             "step3": "Restart Home Assistant",

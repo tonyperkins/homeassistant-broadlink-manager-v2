@@ -60,6 +60,80 @@ class EntityDetector:
         (r'^ch_down$', 'media_player', 'channel_down'),
         (r'^channel_up$', 'media_player', 'channel_up'),
         (r'^channel_down$', 'media_player', 'channel_down'),
+        
+        # Climate patterns (AC, heater, heat pump)
+        (r'^ac_on$', 'climate', 'turn_on'),
+        (r'^ac_off$', 'climate', 'turn_off'),
+        (r'^heat_on$', 'climate', 'turn_on'),
+        (r'^heat_off$', 'climate', 'turn_off'),
+        (r'^cool_on$', 'climate', 'turn_on'),
+        (r'^cool_off$', 'climate', 'turn_off'),
+        (r'^hvac_off$', 'climate', 'turn_off'),
+        
+        # Temperature settings
+        (r'^temp_(\d+)$', 'climate', 'temperature'),
+        (r'^temperature_(\d+)$', 'climate', 'temperature'),
+        (r'^set_temp_(\d+)$', 'climate', 'temperature'),
+        (r'^temp_up$', 'climate', 'temperature_up'),
+        (r'^temp_down$', 'climate', 'temperature_down'),
+        (r'^temperature_up$', 'climate', 'temperature_up'),
+        (r'^temperature_down$', 'climate', 'temperature_down'),
+        
+        # HVAC modes
+        (r'^mode_heat$', 'climate', 'hvac_mode_heat'),
+        (r'^mode_cool$', 'climate', 'hvac_mode_cool'),
+        (r'^mode_auto$', 'climate', 'hvac_mode_auto'),
+        (r'^mode_dry$', 'climate', 'hvac_mode_dry'),
+        (r'^mode_fan$', 'climate', 'hvac_mode_fan_only'),
+        (r'^mode_fan_only$', 'climate', 'hvac_mode_fan_only'),
+        (r'^heat$', 'climate', 'hvac_mode_heat'),
+        (r'^cool$', 'climate', 'hvac_mode_cool'),
+        (r'^auto$', 'climate', 'hvac_mode_auto'),
+        (r'^dry$', 'climate', 'hvac_mode_dry'),
+        
+        # Fan modes for climate
+        (r'^fan_auto$', 'climate', 'fan_mode_auto'),
+        (r'^fan_low$', 'climate', 'fan_mode_low'),
+        (r'^fan_medium$', 'climate', 'fan_mode_medium'),
+        (r'^fan_high$', 'climate', 'fan_mode_high'),
+        (r'^fan_turbo$', 'climate', 'fan_mode_turbo'),
+        
+        # Swing modes
+        (r'^swing_on$', 'climate', 'swing_mode_on'),
+        (r'^swing_off$', 'climate', 'swing_mode_off'),
+        (r'^swing_vertical$', 'climate', 'swing_mode_vertical'),
+        (r'^swing_horizontal$', 'climate', 'swing_mode_horizontal'),
+        (r'^swing_both$', 'climate', 'swing_mode_both'),
+        
+        # Cover patterns (blinds, curtains, shades, garage doors)
+        (r'^open$', 'cover', 'open'),
+        (r'^close$', 'cover', 'close'),
+        (r'^stop$', 'cover', 'stop'),
+        (r'^cover_open$', 'cover', 'open'),
+        (r'^cover_close$', 'cover', 'close'),
+        (r'^cover_stop$', 'cover', 'stop'),
+        (r'^blinds_open$', 'cover', 'open'),
+        (r'^blinds_close$', 'cover', 'close'),
+        (r'^blinds_stop$', 'cover', 'stop'),
+        (r'^curtain_open$', 'cover', 'open'),
+        (r'^curtain_close$', 'cover', 'close'),
+        (r'^curtain_stop$', 'cover', 'stop'),
+        (r'^shade_open$', 'cover', 'open'),
+        (r'^shade_close$', 'cover', 'close'),
+        (r'^shade_stop$', 'cover', 'stop'),
+        (r'^garage_open$', 'cover', 'open'),
+        (r'^garage_close$', 'cover', 'close'),
+        (r'^garage_stop$', 'cover', 'stop'),
+        
+        # Cover position presets
+        (r'^position_(\d+)$', 'cover', 'position'),
+        (r'^preset_(\d+)$', 'cover', 'position'),
+        
+        # Tilt controls for venetian blinds
+        (r'^tilt_open$', 'cover', 'open_tilt'),
+        (r'^tilt_close$', 'cover', 'close_tilt'),
+        (r'^tilt_up$', 'cover', 'open_tilt'),
+        (r'^tilt_down$', 'cover', 'close_tilt'),
     ]
     
     def detect(self, command_name: str) -> Tuple[Optional[str], Optional[str]]:
@@ -77,10 +151,20 @@ class EntityDetector:
         for pattern, entity_type, command_role in self.PATTERNS:
             match = re.match(pattern, command_lower)
             if match:
-                # Handle speed numbers
+                # Handle speed numbers for fans
                 if command_role == 'speed' and match.groups():
                     speed_num = match.group(1)
                     return entity_type, f'speed_{speed_num}'
+                
+                # Handle temperature numbers for climate
+                if command_role == 'temperature' and match.groups():
+                    temp_num = match.group(1)
+                    return entity_type, f'temperature_{temp_num}'
+                
+                # Handle position numbers for covers
+                if command_role == 'position' and match.groups():
+                    position_num = match.group(1)
+                    return entity_type, f'position_{position_num}'
                 
                 logger.debug(f"Detected '{command_name}' as {entity_type}.{command_role}")
                 return entity_type, command_role
@@ -88,7 +172,7 @@ class EntityDetector:
         logger.debug(f"No pattern match for command: {command_name}")
         return None, None
     
-    def group_commands_by_entity(self, device_name: str, commands: Dict[str, str], area_name: str = None) -> Dict[str, Dict[str, Any]]:
+    def group_commands_by_entity(self, device_name: str, commands: Dict[str, str], area_name: str = None, broadlink_entity: str = None) -> Dict[str, Dict[str, Any]]:
         """
         Group commands into potential entities
         
@@ -96,6 +180,7 @@ class EntityDetector:
             device_name: Name of the device
             commands: Dict of {command_name: command_code}
             area_name: Optional area name to assign to entities
+            broadlink_entity: Optional Broadlink entity ID that will send these commands (e.g., 'remote.kitchen_broadlink')
             
         Returns:
             Dict of potential entities with their commands
@@ -123,16 +208,23 @@ class EntityDetector:
             
             # Validate entity has required commands
             if self._is_valid_entity(entity_type, command_roles):
-                entities[entity_id] = {
+                entity_data = {
                     "entity_type": entity_type,
                     "device": device_name,
                     "commands": dict(command_roles),
                     "friendly_name": self.generate_friendly_name(device_name, entity_type),
                     "area": area_name,
+                    "icon": self._suggest_icon(entity_type, device_name),
                     "enabled": True,
                     "auto_detected": True
                 }
-                logger.info(f"Detected {entity_type} entity: {entity_id} (area: {area_name}) with {len(command_roles)} commands")
+                
+                # Add broadlink_entity if provided
+                if broadlink_entity:
+                    entity_data["broadlink_entity"] = broadlink_entity
+                
+                entities[entity_id] = entity_data
+                logger.info(f"Detected {entity_type} entity: {entity_id} (area: {area_name}, broadlink: {broadlink_entity or 'not specified'}) with {len(command_roles)} commands")
         
         return entities
     
@@ -144,9 +236,9 @@ class EntityDetector:
         clean_name = re.sub(r'_+', '_', clean_name)
         clean_name = clean_name.strip('_')
         
-        # Add entity type suffix if not already present
-        if entity_type not in clean_name:
-            return f"{clean_name}_{entity_type}"
+        # The device_name from Broadlink storage already includes area and device
+        # (e.g., "tony_s_office_workbench_lamp")
+        # Just use it as-is since it already uniquely identifies the device
         return clean_name
     
     def _extract_area_from_device_name(self, device_name: str) -> str:
@@ -262,6 +354,22 @@ class EntityDetector:
             has_volume = 'volume_up' in command_roles or 'volume_down' in command_roles
             return has_power or has_volume
         
+        elif entity_type == 'climate':
+            # Climate needs at least on/off or temperature control or hvac modes
+            has_on_off = 'turn_on' in command_roles and 'turn_off' in command_roles
+            has_temps = any(role.startswith('temperature_') for role in command_roles)
+            has_temp_control = 'temperature_up' in command_roles or 'temperature_down' in command_roles
+            has_hvac_modes = any(role.startswith('hvac_mode_') for role in command_roles)
+            return has_on_off or has_temps or has_temp_control or has_hvac_modes
+        
+        elif entity_type == 'cover':
+            # Cover needs at least open/close or stop
+            has_open = 'open' in command_roles
+            has_close = 'close' in command_roles
+            has_stop = 'stop' in command_roles
+            has_positions = any(role.startswith('position_') for role in command_roles)
+            return has_open or has_close or has_stop or has_positions
+        
         return False
     
     def suggest_missing_commands(self, entity_type: str, existing_commands: List[str]) -> List[str]:
@@ -301,7 +409,7 @@ class EntityDetector:
     
     def get_entity_types(self) -> List[str]:
         """Get list of supported entity types"""
-        return ['light', 'fan', 'switch', 'media_player']
+        return ['light', 'fan', 'switch', 'media_player', 'climate', 'cover']
     
     def get_command_roles_for_type(self, entity_type: str) -> List[str]:
         """Get possible command roles for an entity type"""
@@ -310,6 +418,103 @@ class EntityDetector:
             'fan': ['turn_on', 'turn_off', 'speed_1', 'speed_2', 'speed_3', 'speed_4', 'speed_5', 'speed_6', 'reverse'],
             'switch': ['turn_on', 'turn_off', 'toggle'],
             'media_player': ['power', 'volume_up', 'volume_down', 'mute', 'play', 'pause', 'stop', 
-                           'play_pause', 'next', 'previous', 'channel_up', 'channel_down']
+                           'play_pause', 'next', 'previous', 'channel_up', 'channel_down'],
+            'climate': ['turn_on', 'turn_off', 'temperature_16', 'temperature_17', 'temperature_18', 'temperature_19',
+                       'temperature_20', 'temperature_21', 'temperature_22', 'temperature_23', 'temperature_24',
+                       'temperature_25', 'temperature_26', 'temperature_27', 'temperature_28', 'temperature_29',
+                       'temperature_30', 'temperature_up', 'temperature_down',
+                       'hvac_mode_heat', 'hvac_mode_cool', 'hvac_mode_auto', 'hvac_mode_dry', 'hvac_mode_fan_only',
+                       'fan_mode_auto', 'fan_mode_low', 'fan_mode_medium', 'fan_mode_high', 'fan_mode_turbo',
+                       'swing_mode_on', 'swing_mode_off', 'swing_mode_vertical', 'swing_mode_horizontal', 'swing_mode_both'],
+            'cover': ['open', 'close', 'stop', 'position_0', 'position_25', 'position_50', 'position_75', 'position_100',
+                     'open_tilt', 'close_tilt']
         }
         return roles.get(entity_type, [])
+    
+    def _suggest_icon(self, entity_type: str, device_name: str) -> Optional[str]:
+        """
+        Suggest an appropriate icon based on entity type and device name
+        
+        Args:
+            entity_type: Type of entity (light, fan, switch, media_player, climate, cover)
+            device_name: Name of the device
+            
+        Returns:
+            Suggested MDI icon name or None
+        """
+        device_lower = device_name.lower()
+        
+        # Check device name for specific keywords
+        if entity_type == 'light':
+            if 'ceiling' in device_lower:
+                return 'mdi:ceiling-light'
+            elif 'lamp' in device_lower or 'table' in device_lower:
+                return 'mdi:lamp'
+            elif 'floor' in device_lower:
+                return 'mdi:floor-lamp'
+            elif 'pendant' in device_lower:
+                return 'mdi:ceiling-light-outline'
+            elif 'wall' in device_lower:
+                return 'mdi:wall-sconce'
+            else:
+                return 'mdi:lightbulb'
+        
+        elif entity_type == 'fan':
+            if 'ceiling' in device_lower:
+                return 'mdi:ceiling-fan'
+            elif 'tower' in device_lower:
+                return 'mdi:fan'
+            elif 'desk' in device_lower or 'table' in device_lower:
+                return 'mdi:fan'
+            else:
+                return 'mdi:fan'
+        
+        elif entity_type == 'switch':
+            if 'outlet' in device_lower or 'plug' in device_lower:
+                return 'mdi:power-plug'
+            elif 'power' in device_lower:
+                return 'mdi:power'
+            else:
+                return 'mdi:light-switch'
+        
+        elif entity_type == 'media_player':
+            if 'tv' in device_lower or 'television' in device_lower:
+                return 'mdi:television'
+            elif 'speaker' in device_lower or 'audio' in device_lower:
+                return 'mdi:speaker'
+            elif 'receiver' in device_lower or 'amplifier' in device_lower:
+                return 'mdi:amplifier'
+            elif 'projector' in device_lower:
+                return 'mdi:projector'
+            else:
+                return 'mdi:play-box'
+        
+        elif entity_type == 'climate':
+            if 'ac' in device_lower or 'air' in device_lower and 'condition' in device_lower:
+                return 'mdi:air-conditioner'
+            elif 'heat' in device_lower and 'pump' in device_lower:
+                return 'mdi:heat-pump'
+            elif 'heat' in device_lower:
+                return 'mdi:radiator'
+            elif 'thermostat' in device_lower:
+                return 'mdi:thermostat'
+            else:
+                return 'mdi:thermostat'
+        
+        elif entity_type == 'cover':
+            if 'blind' in device_lower:
+                return 'mdi:blinds'
+            elif 'curtain' in device_lower or 'drape' in device_lower:
+                return 'mdi:curtains'
+            elif 'shade' in device_lower or 'roller' in device_lower:
+                return 'mdi:roller-shade'
+            elif 'garage' in device_lower:
+                return 'mdi:garage'
+            elif 'door' in device_lower:
+                return 'mdi:door'
+            elif 'window' in device_lower:
+                return 'mdi:window-shutter'
+            else:
+                return 'mdi:window-shutter'
+        
+        return None

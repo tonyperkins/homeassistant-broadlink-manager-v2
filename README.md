@@ -29,6 +29,7 @@ A Home Assistant add-on for managing Broadlink devices with a built-in web inter
 
 This add-on provides a comprehensive solution for managing Broadlink devices in your Home Assistant installation. It features:
 
+- **Automatic Migration**: Instantly discovers and migrates existing Broadlink commands on first startup
 - **Web Interface**: Modern, responsive web UI for device management
 - **Command Learning**: Easy IR/RF command learning with real-time feedback
 - **Command Management**: View, test, and organize learned commands
@@ -36,6 +37,16 @@ This add-on provides a comprehensive solution for managing Broadlink devices in 
 - **Storage Integration**: Direct access to Home Assistant's command storage
 - **Multi-Device Support**: Manage multiple Broadlink devices from one interface
 - **No External Dependencies**: Works entirely within Home Assistant
+
+### 🎉 Intelligent Startup System
+
+Broadlink Manager automatically detects your installation type and adapts accordingly:
+
+- **👋 First-time users**: Welcome guide and getting started instructions
+- **📋 Existing BL Manager users**: Configuration preserved, continues normally  
+- **🎉 Existing Broadlink users**: Automatic migration - all commands discovered and entities created instantly!
+
+No matter your situation, setup is automatic and seamless. See [Installation Scenarios Guide](docs/INSTALLATION_SCENARIOS.md) for details.
 
 ## Installation
 
@@ -256,6 +267,9 @@ For best auto-detection results, use these naming patterns:
 ## Documentation
 
 ### 📘 User Guides
+- **[Installation Scenarios Guide](docs/INSTALLATION_SCENARIOS.md)** - Complete guide for all user types (first-time, existing, migration)
+- **[Automatic Migration Guide](docs/AUTO_MIGRATION.md)** - How automatic command discovery and migration works
+- **[Entity Customization Guide](docs/CUSTOMIZATION.md)** - Customize entity names, icons, and more
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Installation and deployment instructions
 - **[Windows Deployment](docs/DEPLOYMENT_WINDOWS.md)** - Windows-specific deployment guide
 - **[Standalone Docker Guide](docs/DOCKER.md)** - Complete guide for Docker/Container installations
@@ -263,8 +277,13 @@ For best auto-detection results, use these naming patterns:
 - **[Entity Generation Guide](docs/ENTITY_GENERATION.md)** - Technical details on entity auto-generation
 
 ### 🔧 Developer Resources
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Understanding Broadlink devices, areas, and entity relationships
 - **[API Reference](docs/API.md)** - Complete REST API documentation
 - **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and testing
+- **[Testing Guide](docs/TESTING.md)** - Comprehensive testing documentation with automated and manual test plans
+- **[Testing Quick Start](TESTING_QUICKSTART.md)** - Get started with testing in 5 minutes
+- **[E2E Testing Guide](docs/E2E_TESTING.md)** - Browser automation testing with Playwright
+- **[E2E Quick Start](E2E_QUICKSTART.md)** - Browser testing in 5 minutes
 - **[Contributing Guidelines](docs/CONTRIBUTING.md)** - How to contribute to this project
 - **[Dual Mode Implementation](docs/DUAL_MODE_IMPLEMENTATION.md)** - Technical architecture details
 

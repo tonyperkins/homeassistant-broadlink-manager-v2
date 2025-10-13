@@ -3,763 +3,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Broadlink Manager</title>
-    <style>
-        :root {
-            /* Light theme (default) - matches HA light theme */
-            --ha-primary-color: #03a9f4;
-            --ha-accent-color: #ff9800;
-            --ha-background-color: #f5f5f5;
-            --ha-surface-color: #ffffff;
-            --ha-text-primary-color: #111111;
-            --ha-text-secondary-color: #424242;
-            --ha-border-color: #d3d3d3;
-            --ha-success-color: #4caf50;
-            --ha-warning-color: #ff9800;
-            --ha-error-color: #f44336;
-            --ha-info-color: #2196f3;
-        }
-        
-        /* Dark mode class */
-        body.dark-mode {
-            --ha-background-color: #111111;
-            --ha-surface-color: #1e1e1e;
-            --ha-text-primary-color: #e1e1e1;
-            --ha-text-secondary-color: #9e9e9e;
-            --ha-border-color: #3a3a3a;
-            --ha-success-color: #10b981;
-            --ha-warning-color: #f59e0b;
-            --ha-error-color: #ef4444;
-            --ha-info-color: #3b82f6;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--ha-background-color);
-            color: var(--ha-text-primary-color);
-            line-height: 1.6;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        .header {
-            background: var(--ha-surface-color);
-            border-bottom: 1px solid var(--ha-border-color);
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .header-icon {
-            width: 48px;
-            height: 48px;
-            background: #3b82f6;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-        }
-
-        .header-info h1 {
-            font-size: 28px;
-            font-weight: 400;
-            color: var(--ha-text-primary-color);
-            margin: 0 0 2px 0;
-        }
-
-        .header-stats {
-            font-size: 14px;
-        }
-
-        .add-button {
-            background: var(--ha-primary-color);
-            color: white;
-            border: none;
-            border-radius: 18px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(3, 169, 244, 0.3);
-        }
-
-        .add-button:hover {
-            filter: brightness(0.9);
-            box-shadow: 0 4px 8px rgba(3, 169, 244, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 32px;
-        }
-
-        .section-header {
-            font-size: 16px;
-            color: var(--ha-text-secondary-color);
-            font-weight: 600;
-        }
-
-        /* Device Cards */
-        .device-card {
-            background: var(--ha-surface-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 12px;
-            margin-bottom: 16px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        }
-
-        .device-header {
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: background-color 0.2s ease;
-        }
-
-        .device-main {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            cursor: pointer;
-            flex: 1;
-        }
-
-        .device-actions {
-            margin-left: 16px;
-        }
-
-        .add-command-button {
-            background: var(--ha-primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .add-command-button:hover:not(:disabled) {
-            filter: brightness(0.9);
-            transform: translateY(-1px);
-        }
-
-        .add-command-button:disabled {
-            background: var(--ha-text-secondary-color);
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .generate-entities-button {
-            background: var(--ha-success-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-left: 8px;
-        }
-
-        .generate-entities-button:hover:not(:disabled) {
-            filter: brightness(0.9);
-            transform: translateY(-1px);
-        }
-
-        .generate-entities-button:disabled {
-            background: var(--ha-text-secondary-color);
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .device-header:hover {
-            background: rgba(0, 0, 0, 0.03);
-        }
-        
-        body.dark-mode .device-header:hover {
-            background: #252f3f;
-        }
-
-        .device-icon {
-            width: 56px;
-            height: 56px;
-            background: var(--ha-primary-color);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            flex-shrink: 0;
-            opacity: 0.9;
-        }
-
-        .device-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .device-name {
-            font-size: 20px;
-            font-weight: 500;
-            color: var(--ha-text-primary-color);
-            margin-bottom: 6px;
-        }
-
-        .device-meta {
-            font-size: 14px;
-            color: var(--ha-text-secondary-color);
-        }
-
-        .device-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-right: 24px;
-        }
-
-        .status-indicator {
-            cursor: help;
-            transition: transform 0.2s ease;
-        }
-
-        .status-indicator:hover {
-            transform: scale(1.2);
-        }
-
-        .expand-icon {
-            width: 24px;
-            height: 24px;
-            color: #6b7280;
-            transition: transform 0.2s ease;
-            flex-shrink: 0;
-        }
-
-        .device-card.expanded .expand-icon {
-            transform: rotate(90deg);
-        }
-
-        /* Command Groups */
-        .command-groups {
-            display: none;
-            background: rgba(0, 0, 0, 0.02);
-            border-top: 1px solid var(--ha-border-color);
-        }
-        
-        body.dark-mode .command-groups {
-            background: #111827;
-            border-top: 1px solid #374151;
-        }
-
-        .device-card.expanded .command-groups {
-            display: block;
-        }
-
-        .command-group {
-            border-bottom: 1px solid var(--ha-border-color);
-        }
-        
-        body.dark-mode .command-group {
-            border-bottom: 1px solid #1f2937;
-        }
-
-        .command-group:last-child {
-            border-bottom: none;
-        }
-
-        .group-header {
-            padding: 20px 24px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .group-header:hover {
-            background: rgba(0, 0, 0, 0.03);
-        }
-        
-        body.dark-mode .group-header:hover {
-            background: #1f2937;
-        }
-
-        .group-icon {
-            width: 16px;
-            height: 16px;
-            color: #6b7280;
-            transition: transform 0.2s ease;
-            margin-left: 8px;
-        }
-
-        .command-group.expanded .group-icon {
-            transform: rotate(90deg);
-        }
-
-        .group-name {
-            font-size: 16px;
-            font-weight: 500;
-            color: var(--ha-text-primary-color);
-            flex: 1;
-        }
-
-        .group-count {
-            background: var(--ha-border-color);
-            color: var(--ha-text-secondary-color);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        /* Commands */
-        .commands-list {
-            display: none;
-            background: rgba(0, 0, 0, 0.01);
-        }
-        
-        body.dark-mode .commands-list {
-            background: #0d1117;
-            padding: 16px 0;
-        }
-
-        .command-group.expanded .commands-list {
-            display: block;
-        }
-
-        .command-item {
-            padding: 16px 24px 16px 80px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            transition: background-color 0.2s ease;
-            min-height: 56px;
-        }
-
-        .command-item:hover {
-            background: rgba(0, 0, 0, 0.03);
-        }
-        
-        body.dark-mode .command-item:hover {
-            background: #1f2937;
-        }
-
-        .command-item:hover .command-actions {
-            opacity: 1;
-        }
-
-        .command-name {
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            color: var(--ha-text-primary-color);
-            flex: 1;
-            margin-left: 12px;
-        }
-
-        .command-type {
-            background: var(--ha-border-color);
-            color: var(--ha-text-secondary-color);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: 500;
-            min-width: 28px;
-            text-align: center;
-        }
-
-        .command-type.rf {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .command-type.ir {
-            background: #f59e0b;
-            color: white;
-        }
-
-        .command-actions {
-            display: flex;
-            gap: 8px;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        /* Button styles */
-        .btn {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: none;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-secondary {
-            background: var(--ha-border-color);
-            color: var(--ha-text-primary-color);
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        /* Activity Log */
-        .config-section {
-            background: var(--ha-surface-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-
-        .config-section h2 {
-            color: var(--ha-text-primary-color);
-            margin-bottom: 16px;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .log-area {
-            background: var(--ha-background-color);
-            color: var(--ha-success-color);
-            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-            padding: 16px;
-            border-radius: 8px;
-            height: 180px;
-            overflow-y: auto;
-            border: 1px solid var(--ha-border-color);
-            font-size: 0.8rem;
-        }
-        
-        body.dark-mode .log-area {
-            background: #0a0a0a;
-            color: #22c55e;
-        }
-
-        .alert {
-            padding: 16px 24px;
-            border-radius: 8px;
-            font-weight: 500;
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            min-width: 320px;
-            max-width: 600px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            animation: slideInUp 0.3s ease-out;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        @keyframes slideInUp {
-            from {
-                transform: translateX(-50%) translateY(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .alert-success {
-            background: var(--ha-success-color);
-            color: #ffffff;
-            border-color: var(--ha-success-color);
-        }
-
-        .alert-error {
-            background: var(--ha-error-color);
-            color: #ffffff;
-            border-color: var(--ha-error-color);
-        }
-
-        .alert-info {
-            background: var(--ha-info-color);
-            color: #ffffff;
-            border-color: var(--ha-info-color);
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal,
-        .modal-dialog {
-            background: var(--ha-surface-color);
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            animation: slideInUp 0.3s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                transform: translateY(50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .modal-header {
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid #374151;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            color: #e1e5e9;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: #9ca3af;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-
-        .modal-close:hover {
-            background: #374151;
-            color: #e1e5e9;
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--ha-text-primary-color);
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--ha-surface-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 8px;
-            color: var(--ha-text-primary-color);
-            font-size: 14px;
-            transition: border-color 0.2s ease;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .modal-footer {
-            padding: 16px 24px 24px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-
-        .form-text {
-            font-size: 12px;
-            color: var(--ha-text-secondary-color);
-            margin-top: 4px;
-        }
-
-        .device-preview {
-            background: var(--ha-background-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 6px;
-            padding: 12px;
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
-        }
-
-        .preview-label {
-            color: var(--ha-text-secondary-color);
-            font-size: 12px;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        .preview-value {
-            color: var(--ha-primary-color);
-            font-weight: 500;
-            font-size: 14px;
-        }
-
-        .preview-row {
-            margin-bottom: 8px;
-        }
-
-        .preview-row:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Device Display in Modal */
-        .device-display {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: var(--ha-background-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .device-icon-small {
-            width: 32px;
-            height: 32px;
-            background: var(--ha-primary-color);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .device-info-small {
-            flex: 1;
-        }
-
-        .device-name-small {
-            font-weight: 500;
-            color: var(--ha-text-primary-color);
-            margin-bottom: 2px;
-        }
-
-        .device-id-small {
-            font-size: 12px;
-            color: var(--ha-text-secondary-color);
-            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-        }
-
-        /* Theme Toggle Button */
-        .theme-toggle {
-            background: var(--ha-surface-color);
-            border: 1px solid var(--ha-border-color);
-            border-radius: 8px;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 20px;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-
-        .theme-toggle:hover {
-            background: var(--ha-primary-color);
-            border-color: var(--ha-primary-color);
-            transform: scale(1.05);
-        }
-
-        .theme-toggle:active {
-            transform: scale(0.95);
-        }
-
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <header class="header">
         <div class="header-left">
-            <div class="header-icon">📡</div>
+            <div class="header-icon"><img src="{{ url_for('static', filename='images/broadlink-icon@2x.png') }}" alt="Broadlink" style="width: 32px; height: 32px; border-radius: 8px;"></div>
             <div class="header-info">
                 <h1>Broadlink</h1>
                 <div class="header-stats">2 devices • 15 entities</div>
@@ -788,6 +38,7 @@
     </div>
 
     <script>
+        // Version: 2024-10-12-17:45 - Hybrid approach: Standard command dropdowns + legacy mapping
         let learnedData = {};
         let currentDevice = '';
         
@@ -815,6 +66,19 @@
                 window.location.pathname.slice(0, -1) : window.location.pathname;
             return baseUrl.includes('/api/hassio_ingress/') ? 
                 `${baseUrl}${endpoint}` : endpoint;
+        }
+
+        // Helper function to escape strings for use in JavaScript strings within HTML attributes
+        // This escapes for JavaScript, not HTML entities
+        function escapeJs(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/\\/g, '\\\\')  // Backslash first
+                .replace(/'/g, "\\'")     // Single quote
+                .replace(/"/g, '\\"')     // Double quote
+                .replace(/\n/g, '\\n')    // Newline
+                .replace(/\r/g, '\\r')    // Carriage return
+                .replace(/\t/g, '\\t');   // Tab
         }
 
         // Simple dark mode toggle - manual only, no auto-detection
@@ -952,14 +216,16 @@
                     console.log(`📋 Deleted commands cache (${cacheKeys.length} items):`, deletedCommandsCache);
                 }
                 
-                // Load both learned commands and all detected devices
-                const [learnedResponse, devicesResponse] = await Promise.all([
+                // Load learned commands, Broadlink devices, and managed devices
+                const [learnedResponse, devicesResponse, managedDevicesResponse] = await Promise.all([
                     fetch(getApiUrl('/api/learned-devices')),
-                    fetch(getApiUrl('/api/devices'))
+                    fetch(getApiUrl('/api/devices')),
+                    fetch(getApiUrl('/api/devices/managed'))
                 ]);
                 
                 learnedData = await learnedResponse.json();
                 const allDevices = await devicesResponse.json();
+                const managedDevices = await managedDevicesResponse.json();
                 
                 // Filter out commands that are in the deleted cache
                 // This prevents them from reappearing while HA writes to disk
@@ -982,12 +248,15 @@
                 
                 console.log('Loaded learned data:', learnedData);
                 console.log('All detected devices:', allDevices);
+                console.log('Managed devices:', managedDevices);
                 
                 log(`Loaded learned data: ${learnedData.commands.length} commands from ${Object.keys(learnedData.devices).length} devices`);
                 log(`Detected ${allDevices.length} total Broadlink devices`);
+                log(`Found ${Object.keys(managedDevices).length} managed devices`);
                 
                 // Store all devices for rendering
                 learnedData.allDevices = allDevices;
+                learnedData.managedDevices = managedDevices;
                 
                 updateHeaderStats();
                 renderBroadlinkDevices();
@@ -1089,7 +358,12 @@
                 deviceCard.innerHTML = `
                     <div class="device-header">
                         <div class="device-main" onclick="toggleDevice(this.closest('.device-card'))">
-                            <div class="device-icon">📡</div>
+                            <div class="expand-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </div>
+                            
                             <div class="device-info">
                                 <div class="device-name">${areaName} RM4 Pro</div>
                                 <div class="device-meta">Broadlink • ${areaName} • ${deviceCount} entities</div>
@@ -1097,77 +371,238 @@
                             <div class="device-status">
                                 <div class="status-indicator" style="width: 10px; height: 10px; border-radius: 50%; background: ${status.color};" title="${status.label}"></div>
                             </div>
-                            <div class="expand-icon">▶</div>
                         </div>
                         <div class="device-actions">
-                            <button class="add-command-button" 
-                                    ${!device?.entity_id ? 'disabled title="No valid device entity found"' : ''} 
-                                    data-entity-id="${device?.entity_id || ''}"
+                            <button class="add-device-button" 
+                                    ${!(device && device.entity_id) ? 'disabled title="No valid device entity found"' : ''} 
+                                    data-entity-id="${device && device.entity_id ? device.entity_id : ''}"
                                     data-area-name="${areaName}"
-                                    onclick="event.stopPropagation(); handleAddCommand(this)">
-                                Add Command
+                                    onclick="event.stopPropagation(); handleAddDevice(this)">
+                                ➕ Add Device
                             </button>
                             <button class="generate-entities-button" 
                                     ${commandCount === 0 ? 'disabled title="No commands to generate entities from"' : ''} 
-                                    data-device-id="${device?.entity_id || ''}"
-                                    data-entity-id="${device?.entity_id || ''}"
+                                    data-device-id="${device && device.entity_id ? device.entity_id : ''}"
+                                    data-entity-id="${device && device.entity_id ? device.entity_id : ''}"
                                     data-area-name="${areaName}"
                                     onclick="event.stopPropagation(); handleGenerateEntities(this)">
                                 🎯 Generate Entities
                             </button>
-                            <button class="generate-entities-button" 
-                                    style="margin-left: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"
-                                    onclick="event.stopPropagation(); handleAutoAssignAreas(this)">
-                                ✨ Auto-Assign Areas
-                            </button>
                         </div>
                     </div>
                     <div class="command-groups">
-                        ${commandCount === 0 ? 
-                            '<div style="padding: 20px; text-align: center; color: #9ca3af;">No learned commands yet. Use the "Add entry" button to learn commands for this device.</div>' :
-                            Object.keys(deviceData.deviceGroups).map(devicePart => {
-                            const commands = deviceData.deviceGroups[devicePart];
-                            return `
-                                <div class="command-group">
-                                    <div class="group-header" onclick="event.stopPropagation(); toggleGroup(this)">
-                                        <div class="group-icon">▶</div>
-                                        <div class="group-name">${devicePart}</div>
-                                        <div class="group-count">${commands.length}</div>
-                                    </div>
-                                    <div class="commands-list">
-                                        ${commands.map(command => `
-                                            <div class="command-item">
-                                                <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
-                                                <div class="command-name">${command.command}</div>
-                                                <div class="command-actions">
-                                                    <button class="btn btn-primary command-test-btn" 
-                                                            data-device="${command.device_name}" 
-                                                            data-command="${command.command}">▶ Test</button>
-                                                    <button class="btn btn-secondary command-relearn-btn" 
-                                                            data-device="${command.device_name}" 
-                                                            data-command="${command.command}"
-                                                            data-type="${command.command_type}">🔄 Re-learn</button>
-                                                    <button class="btn btn-danger command-delete-btn" 
-                                                            data-device="${command.device_name}" 
-                                                            data-command="${command.command}">🗑️</button>
+                        ${(() => {
+                            // Get managed devices for this Broadlink
+                            const managedDevices = learnedData.managedDevices || {};
+                            const broadlinkManagedDevices = Object.entries(managedDevices).filter(([id, dev]) => 
+                                dev.broadlink_entity === (device && device.entity_id ? device.entity_id : null)
+                            );
+                            
+                            let html = '';
+                            
+                            // Show managed devices section
+                            if (broadlinkManagedDevices.length > 0) {
+                                html += '<div style="background: rgba(102, 126, 234, 0.1); padding: 16px; border-bottom: 1px solid var(--ha-border-color);">';
+                                html += '<div style="font-weight: 600; color: var(--ha-text-primary-color); margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px;"><i class="mdi mdi-devices" style="font-size: 18px;"></i> Managed Devices</div>';
+                                broadlinkManagedDevices.forEach(([deviceId, managedDev]) => {
+                                    const commandCount = Object.keys(managedDev.commands || {}).length;
+                                    const typeIcons = { light: 'lightbulb', fan: 'fan', switch: 'light-switch', media_player: 'television', climate: 'thermostat', cover: 'window-shutter' };
+                                    const iconName = typeIcons[managedDev.entity_type] || 'devices';
+                                    
+                                    html += `
+                                        <div style="background: var(--ha-surface-color); padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--ha-border-color);">
+                                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <i class="mdi mdi-${iconName}" style="font-size: 24px; color: var(--ha-primary-color);"></i>
+                                                    <div>
+                                                        <div style="font-weight: 500; color: var(--ha-text-primary-color);">${managedDev.name}</div>
+                                                        <div style="font-size: 12px; color: var(--ha-text-secondary-color);">
+                                                            ${managedDev.entity_type} • ${managedDev.area} • ${commandCount} commands
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style="display: flex; gap: 8px;">
+                                                    <button class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); addCommandToDevice('${deviceId}', '${escapeJs(managedDev.name)}', '${managedDev.broadlink_entity}', '${managedDev.entity_type}')"><i class="mdi mdi-plus"></i> Add Command</button>
+                                                    <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="event.stopPropagation(); editManagedDevice('${deviceId}')" title="Edit device"><i class="mdi mdi-pencil"></i></button>
+                                                    <button class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;" onclick="event.stopPropagation(); deleteManagedDevice('${deviceId}', '${escapeJs(managedDev.name)}')" title="Delete device"><i class="mdi mdi-delete"></i></button>
                                                 </div>
                                             </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                                    `;
+                                    
+                                    // Show commands if any exist
+                                    if (commandCount > 0) {
+                                        html += `
+                                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ha-border-color);">
+                                                <div style="font-size: 12px; font-weight: 600; color: var(--ha-text-secondary-color); margin-bottom: 8px;">Commands:</div>
+                                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        `;
+                                        
+                                        Object.entries(managedDev.commands || {}).forEach(([cmdName, cmdData]) => {
+                                            const cmdType = cmdData.command_type || 'rf';
+                                            const typeColor = cmdType === 'rf' ? '#3b82f6' : '#f59e0b';
+                                            html += `
+                                                <div style="display: inline-flex; align-items: center; gap: 4px; background: var(--ha-background-color); padding: 4px; border-radius: 16px; font-size: 11px; border: 1px solid var(--ha-border-color);">
+                                                    <span style="background: ${typeColor}; color: white; padding: 2px 6px; border-radius: 8px; font-weight: 600; text-transform: uppercase;">${cmdType}</span>
+                                                    <span style="color: var(--ha-text-primary-color); font-family: monospace; padding: 0 4px;">${cmdName}</span>
+                                                    <button onclick="event.stopPropagation(); testDeviceCommand('${deviceId}', '${cmdName}', '${managedDev.broadlink_entity}')" style="background: #3b82f6; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s;" title="Test command" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                                                        <i class="mdi mdi-play" style="font-size: 16px;"></i>
+                                                    </button>
+                                                    <button onclick="event.stopPropagation(); relearnDeviceCommand('${deviceId}', '${cmdName}', '${cmdType}', '${managedDev.broadlink_entity}')" style="background: var(--ha-border-color); color: var(--ha-text-primary-color); border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s;" title="Re-learn command" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                                                        <i class="mdi mdi-reload" style="font-size: 16px;"></i>
+                                                    </button>
+                                                    <button onclick="event.stopPropagation(); deleteDeviceCommand('${deviceId}', '${cmdName}', '${escapeJs(managedDev.name)}')" style="background: var(--ha-error-color); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.2s;" title="Delete command" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 2px 8px rgba(244, 67, 54, 0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                                                        <i class="mdi mdi-delete" style="font-size: 16px;"></i>
+                                                    </button>
+                                                </div>
+                                            `;
+                                        });
+                                        
+                                        html += `
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                    
+                                    html += `</div>`;
+                                });
+                                html += '</div>';
+                            }
+                            
+                            // Show learned commands section
+                            if (commandCount === 0 && broadlinkManagedDevices.length === 0) {
+                                html += '<div style="padding: 20px; text-align: center; color: #9ca3af;">No devices or commands yet. Use the "Add Device" button to get started.</div>';
+                            } else if (commandCount > 0) {
+                                html += Object.keys(deviceData.deviceGroups).map(devicePart => {
+                                    const commands = deviceData.deviceGroups[devicePart];
+                                    
+                                    // Check if this command group has been converted to a managed device
+                                    const isConverted = broadlinkManagedDevices.some(([devId, dev]) => {
+                                        const matches = devId === devicePart || devId.startsWith(devicePart + '_');
+                                        if (matches) {
+                                            console.log(`✅ Hiding converted device: ${devicePart} (matches managed device: ${devId})`);
+                                        }
+                                        return matches;
+                                    });
+                                    
+                                    // Skip if converted (hide old entries)
+                                    if (isConverted) {
+                                        return '';
+                                    }
+                                    console.log(`📋 Showing unconverted device: ${devicePart}`);
+                                    
+                                    // Escape JSON for HTML attribute
+                                    const commandsJson = JSON.stringify(commands).replace(/"/g, '&quot;');
+                                    
+                                    return `
+                                        <div class="command-group">
+                                            <div class="group-header">
+                                                <div class="group-icon" onclick="toggleGroup(this.parentElement)">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="group-name" onclick="toggleGroup(this.parentElement)">${devicePart}</div>
+                                                <div class="group-count" onclick="toggleGroup(this.parentElement)">${commands.length}</div>
+                                                <button class="btn btn-primary convert-device-btn" 
+                                                    style="font-size: 11px; padding: 4px 8px; margin-left: auto;" 
+                                                    data-device-part="${devicePart}"
+                                                    data-commands="${commandsJson}"
+                                                    data-broadlink-entity="${device && device.entity_id ? device.entity_id : ''}">
+                                                    ⬆️ Convert to Managed Device
+                                                </button>
+                                            </div>
+                                            <div class="commands-list">
+                                                ${commands.map(command => `
+                                                    <div class="command-item">
+                                                        <div class="command-type ${command.command_type}">${command.command_type.toUpperCase()}</div>
+                                                        <div class="command-name">${command.command}</div>
+                                                        <div class="command-actions">
+                                                            <button class="btn btn-primary command-test-btn" 
+                                                                    data-device="${command.device_name}" 
+                                                                    data-command="${command.command}"><i class="mdi mdi-play"></i> Test</button>
+                                                            <button class="btn btn-secondary command-relearn-btn" 
+                                                                    data-device="${command.device_name}" 
+                                                                    data-command="${command.command}"
+                                                                    data-type="${command.command_type}"><i class="mdi mdi-reload"></i> Re-learn</button>
+                                                            <button class="btn btn-danger command-delete-btn" 
+                                                                    data-device="${command.device_name}" 
+                                                                    data-command="${command.command}"><i class="mdi mdi-delete"></i></button>
+                                                        </div>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            }
+                            
+                            return html;
+                        })()}
                     </div>
                 `;
                 
                 container.appendChild(deviceCard);
             });
+            
+            // Restore expanded state after rendering
+            restoreExpandedState();
+        }
+
+        // Save/restore expanded state and scroll position
+        function saveUIState() {
+            // Save expanded devices
+            const expandedDevices = [];
+            document.querySelectorAll('.device-card.expanded').forEach(card => {
+                const deviceName = card.querySelector('.device-name')?.textContent;
+                if (deviceName) {
+                    expandedDevices.push(deviceName);
+                }
+            });
+            sessionStorage.setItem('expandedDevices', JSON.stringify(expandedDevices));
+            
+            // Save scroll position
+            sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+        }
+
+        function restoreUIState() {
+            try {
+                // Restore expanded devices
+                const expandedDevices = JSON.parse(sessionStorage.getItem('expandedDevices') || '[]');
+                document.querySelectorAll('.device-card').forEach(card => {
+                    const deviceName = card.querySelector('.device-name')?.textContent;
+                    if (deviceName && expandedDevices.includes(deviceName)) {
+                        card.classList.add('expanded');
+                    }
+                });
+                
+                // Restore scroll position after a short delay to ensure rendering is complete
+                setTimeout(() => {
+                    const scrollPosition = parseInt(sessionStorage.getItem('scrollPosition') || '0');
+                    if (scrollPosition > 0) {
+                        window.scrollTo(0, scrollPosition);
+                    }
+                }, 100);
+            } catch (e) {
+                console.error('Error restoring UI state:', e);
+            }
+        }
+        
+        // Keep old function names for compatibility
+        function saveExpandedState() {
+            saveUIState();
+        }
+        
+        function restoreExpandedState() {
+            restoreUIState();
         }
 
         function toggleDevice(deviceElement) {
             deviceElement.classList.toggle('expanded');
             const deviceName = deviceElement.querySelector('.device-name').textContent;
             console.log(`Device ${deviceElement.classList.contains('expanded') ? 'expanded' : 'collapsed'}: ${deviceName}`);
+            
+            // Save state after toggling
+            saveExpandedState();
         }
 
         function toggleGroup(groupElement) {
@@ -1344,7 +779,15 @@
         async function relearnCommand(deviceName, commandName, existingCommandType) {
             const commandTypeText = existingCommandType ? existingCommandType.toUpperCase() : 'IR/RF';
             
-            if (!confirm(`Re-learn the ${commandTypeText} command "${commandName}" from device "${deviceName}"?\n\nThis will overwrite the existing command with a new learned signal.`)) {
+            const confirmed = await showConfirmModal(
+                'Re-learn Command',
+                `Re-learn the ${commandTypeText} command "${commandName}" from device "${deviceName}"?\n\nThis will overwrite the existing command with a new learned signal.`,
+                'Re-learn',
+                'Cancel',
+                'primary'
+            );
+            
+            if (!confirmed) {
                 return;
             }
             
@@ -1534,7 +977,15 @@
         }
 
         async function deleteCommand(deviceName, commandName) {
-            if (!confirm(`Are you sure you want to delete the command "${commandName}" from device "${deviceName}"?\n\nThis action cannot be undone.`)) {
+            const confirmed = await showConfirmModal(
+                'Delete Command',
+                `Are you sure you want to delete the command "${commandName}" from device "${deviceName}"?\n\nThis action cannot be undone.`,
+                'Delete',
+                'Cancel',
+                'danger'
+            );
+            
+            if (!confirmed) {
                 return;
             }
             
@@ -1609,170 +1060,1536 @@
             }
         }
 
-        function handleAddCommand(button) {
-            const entityId = button.getAttribute('data-entity-id');
-            const areaName = button.getAttribute('data-area-name');
+        async function handleAddDevice(button) {
+            const broadlinkEntityId = button.getAttribute('data-entity-id');
+            const broadlinkAreaName = button.getAttribute('data-area-name');
             
-            if (!entityId || entityId === '') {
-                showAlert('No valid Broadlink device found for this area. Please check your device configuration.', 'error');
+            if (!broadlinkEntityId || broadlinkEntityId === '') {
+                showAlert('No valid Broadlink device found. Please check your device configuration.', 'error');
                 return;
             }
             
-            openAddDialog(entityId, areaName);
-        }
-
-        function openAddDialog(entityId, areaName) {
-            // Validate inputs
-            if (!entityId || entityId === 'undefined') {
-                showAlert('No valid Broadlink device found for this area. Please check your device configuration.', 'error');
-                return;
-            }
-            
-            // Convert area name to HA format
-            const areaNameFormatted = areaName.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+            log(`Opening Add Device dialog for Broadlink: ${broadlinkEntityId}`);
             
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
+            overlay.id = 'addDeviceModal';
             overlay.innerHTML = `
                 <div class="modal-dialog">
                     <div class="modal-header">
-                        <h3>Add New Command</h3>
-                        <button class="modal-close" onclick="closeAddDialog()">&times;</button>
+                        <h3>Add New Device</h3>
+                        <button class="modal-close" onclick="closeAddDeviceDialog()">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
                             <label>Broadlink Device:</label>
-                            <div class="device-display">
-                                <div class="device-icon-small">📡</div>
-                                <div class="device-info-small">
-                                    <div class="device-name-small">${areaName} RM4 Pro</div>
-                                    <div class="device-id-small">${entityId}</div>
+                            <div style="background: var(--ha-background-color); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="font-size: 24px;">📡</div>
+                                    <div>
+                                        <div style="font-weight: 500; color: var(--ha-text-primary-color);">${broadlinkAreaName} RM4 Pro</div>
+                                        <div style="font-size: 12px; color: var(--ha-text-secondary-color);">${broadlinkEntityId}</div>
+                                    </div>
                                 </div>
                             </div>
-                            <input type="hidden" id="selectedEntityId" value="${entityId}">
-                            <input type="hidden" id="selectedAreaName" value="${areaNameFormatted}">
+                            <small class="form-text">This device will transmit the commands</small>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="deviceName">Device Name:</label>
-                            <input type="text" id="deviceName" class="form-control" placeholder="e.g., ceiling_fan, workbench_lamp" list="deviceSuggestions">
-                            <datalist id="deviceSuggestions">
-                                <option value="ceiling_fan">
-                                <option value="workbench_lamp">
-                                <option value="table_lamp">
-                                <option value="floor_lamp">
-                                <option value="tv">
-                                <option value="air_conditioner">
-                                <option value="heater">
-                                <option value="fan">
-                                <option value="stereo">
-                                <option value="soundbar">
-                                <option value="projector">
-                                <option value="garage_door">
-                                <option value="blinds">
-                                <option value="curtains">
-                                <option value="fireplace">
-                                <option value="humidifier">
-                                <option value="dehumidifier">
-                                <option value="space_heater">
-                                <option value="window_ac">
-                                <option value="tower_fan">
-                            </datalist>
-                            <small class="form-text">This will be combined with the area to create the full device name</small>
+                            <label for="newDeviceName">Device Name: *</label>
+                            <input type="text" id="newDeviceName" class="form-control" placeholder="e.g., Stereo, TV, Ceiling Fan" autofocus>
+                            <small class="form-text">What device are you controlling?</small>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="commandName">Command Name:</label>
-                            <input type="text" id="commandName" class="form-control" placeholder="e.g., power_on, light_toggle, volume_up" list="commandSuggestions">
-                            <datalist id="commandSuggestions">
-                                <option value="power_on">
-                                <option value="power_off">
-                                <option value="power_toggle">
-                                <option value="light_on">
-                                <option value="light_off">
-                                <option value="light_toggle">
-                                <option value="volume_up">
-                                <option value="volume_down">
-                                <option value="volume_mute">
-                                <option value="channel_up">
-                                <option value="channel_down">
-                                <option value="fan_on">
-                                <option value="fan_off">
-                                <option value="fan_speed_1">
-                                <option value="fan_speed_2">
-                                <option value="fan_speed_3">
-                                <option value="fan_high">
-                                <option value="fan_medium">
-                                <option value="fan_low">
-                                <option value="temp_up">
-                                <option value="temp_down">
-                                <option value="mode_cool">
-                                <option value="mode_heat">
-                                <option value="mode_auto">
-                                <option value="mode_fan">
-                                <option value="swing_on">
-                                <option value="swing_off">
-                                <option value="timer_on">
-                                <option value="timer_off">
-                                <option value="open">
-                                <option value="close">
-                                <option value="stop">
-                                <option value="up">
-                                <option value="down">
-                                <option value="left">
-                                <option value="right">
-                                <option value="ok">
-                                <option value="back">
-                                <option value="home">
-                                <option value="menu">
-                                <option value="source">
-                                <option value="input_hdmi1">
-                                <option value="input_hdmi2">
-                                <option value="input_hdmi3">
-                                <option value="input_usb">
-                                <option value="brightness_up">
-                                <option value="brightness_down">
-                                <option value="warm_white">
-                                <option value="cool_white">
-                                <option value="red">
-                                <option value="green">
-                                <option value="blue">
-                                <option value="preset_1">
-                                <option value="preset_2">
-                                <option value="preset_3">
-                            </datalist>
-                        </div>
-                        <div class="form-group">
-                            <label for="commandType">Command Type:</label>
-                            <select id="commandType" class="form-control">
-                                <option value="rf" selected>RF (Radio Frequency)</option>
-                                <option value="ir">IR (Infrared)</option>
+                            <label for="newDeviceArea">Area: *</label>
+                            <select id="newDeviceArea" class="form-control">
+                                <option value="">Loading areas...</option>
                             </select>
+                            <small class="form-text">Where is the controlled device located?</small>
                         </div>
+                        
+                        <div class="form-group">
+                            <label for="newDeviceEntityType">Entity Type: *</label>
+                            <select id="newDeviceEntityType" class="form-control">
+                                <option value="">-- Select Type --</option>
+                                <option value="light">Light</option>
+                                <option value="fan">Fan</option>
+                                <option value="switch">Switch</option>
+                                <option value="media_player">Media Player</option>
+                                <option value="climate">Climate (AC/Heater)</option>
+                                <option value="cover">Cover (Blinds/Curtains)</option>
+                            </select>
+                            <small class="form-text">What type of device is it?</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newDeviceIcon">Icon (optional):</label>
+                            <div style="position: relative;">
+                                <input type="text" id="newDeviceIcon" class="form-control" placeholder="e.g., mdi:speaker" autocomplete="off">
+                                <div id="iconDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: var(--ha-surface-color); border: 1px solid var(--ha-border-color); border-radius: 8px; margin-top: 4px; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <!-- Icon suggestions will be populated here -->
+                                </div>
+                            </div>
+                            <small class="form-text">Material Design Icon name (auto-suggested based on type)</small>
+                        </div>
+                        
                         <div class="form-group">
                             <label>Preview:</label>
-                            <div id="devicePreview" class="device-preview">
-                                <div class="preview-row">
-                                    <span class="preview-label">Full Device Name:</span>
-                                    <span id="fullDeviceName" class="preview-value">Select area and enter device name</span>
-                                </div>
-                                <div class="preview-row">
-                                    <span class="preview-label">Full Command:</span>
-                                    <span id="fullCommandName" class="preview-value">Enter command name</span>
+                            <div style="background: var(--ha-background-color); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
+                                <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--ha-text-secondary-color);">Device ID:</span>
+                                        <span id="previewDeviceId" style="font-family: monospace; color: var(--ha-text-primary-color);">Enter device name and area</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--ha-text-secondary-color);">Entity Type:</span>
+                                        <span id="previewDeviceType" style="color: var(--ha-text-primary-color);">Not selected</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--ha-text-secondary-color);">Area:</span>
+                                        <span id="previewDeviceArea" style="color: var(--ha-text-primary-color);">Not selected</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--ha-text-secondary-color);">Broadlink:</span>
+                                        <span style="font-family: monospace; color: var(--ha-text-primary-color); font-size: 11px;">${broadlinkEntityId}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="closeAddDialog()">Cancel</button>
-                        <button class="btn btn-primary" onclick="startLearning()">Start Learning</button>
+                        <button class="btn btn-secondary" onclick="closeAddDeviceDialog()">Cancel</button>
+                        <button class="btn btn-primary" id="createDeviceBtn" onclick="createNewDevice('${broadlinkEntityId}', '${broadlinkAreaName}')">Create Device</button>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(overlay);
             
-            // Setup event listeners for the dialog
-            setupAddDialogEventListeners();
+            // Setup the dialog
+            await setupAddDeviceDialog(broadlinkAreaName);
+        }
+
+        async function setupAddDeviceDialog(broadlinkAreaName) {
+            const areaSelect = document.getElementById('newDeviceArea');
+            const deviceNameInput = document.getElementById('newDeviceName');
+            const entityTypeSelect = document.getElementById('newDeviceEntityType');
+            const iconInput = document.getElementById('newDeviceIcon');
+            
+            // Load areas from API
+            try {
+                const response = await fetch(getApiUrl('/api/areas'));
+                const areas = await response.json();
+                
+                areaSelect.innerHTML = '<option value="">-- Select Area --</option>';
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.name;
+                    option.dataset.areaName = area.name;
+                    areaSelect.appendChild(option);
+                });
+                
+                // Pre-select Broadlink's area
+                const broadlinkOption = Array.from(areaSelect.options).find(opt => 
+                    opt.textContent.toLowerCase().replace(/[^a-z0-9]/g, '_') === broadlinkAreaName.toLowerCase().replace(/[^a-z0-9]/g, '_')
+                );
+                if (broadlinkOption) {
+                    broadlinkOption.selected = true;
+                }
+                
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                areaSelect.innerHTML = '<option value="">Error loading areas</option>';
+            }
+            
+            // Auto-suggest icon based on entity type and device name
+            function suggestIcon() {
+                const entityType = entityTypeSelect.value;
+                const deviceName = deviceNameInput.value.toLowerCase();
+                
+                if (!iconInput.value && entityType) {
+                    const iconMap = {
+                        'light': deviceName.includes('ceiling') ? 'mdi:ceiling-light' : 
+                                deviceName.includes('lamp') ? 'mdi:lamp' : 
+                                deviceName.includes('floor') ? 'mdi:floor-lamp' : 'mdi:lightbulb',
+                        'fan': deviceName.includes('ceiling') ? 'mdi:ceiling-fan' : 'mdi:fan',
+                        'switch': deviceName.includes('outlet') || deviceName.includes('plug') ? 'mdi:power-plug' : 'mdi:light-switch',
+                        'media_player': deviceName.includes('tv') ? 'mdi:television' :
+                                       deviceName.includes('speaker') ? 'mdi:speaker' :
+                                       deviceName.includes('receiver') ? 'mdi:amplifier' : 'mdi:play-box'
+                    };
+                    iconInput.value = iconMap[entityType] || '';
+                }
+            }
+            
+            // Update preview
+            function updatePreview() {
+                const selectedOption = areaSelect.options[areaSelect.selectedIndex];
+                const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+                const areaId = areaSelect.value;
+                const deviceName = deviceNameInput.value.trim();
+                const entityType = entityTypeSelect.value;
+                
+                const previewDeviceId = document.getElementById('previewDeviceId');
+                const previewDeviceType = document.getElementById('previewDeviceType');
+                const previewDeviceArea = document.getElementById('previewDeviceArea');
+                
+                // Device ID
+                if (areaId && deviceName) {
+                    const cleanName = deviceName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_');
+                    previewDeviceId.textContent = `${areaId}_${cleanName}`;
+                    previewDeviceId.style.color = '#3b82f6';
+                } else {
+                    previewDeviceId.textContent = 'Enter device name and area';
+                    previewDeviceId.style.color = '#9ca3af';
+                }
+                
+                // Entity Type
+                if (entityType) {
+                    const typeNames = { 'light': 'Light', 'fan': 'Fan', 'switch': 'Switch', 'media_player': 'Media Player', 'climate': 'Climate (AC/Heater)', 'cover': 'Cover (Blinds/Curtains)' };
+                    previewDeviceType.textContent = typeNames[entityType];
+                    previewDeviceType.style.color = '#3b82f6';
+                } else {
+                    previewDeviceType.textContent = 'Not selected';
+                    previewDeviceType.style.color = '#9ca3af';
+                }
+                
+                // Area
+                if (areaName) {
+                    previewDeviceArea.textContent = areaName;
+                    previewDeviceArea.style.color = '#3b82f6';
+                } else {
+                    previewDeviceArea.textContent = 'Not selected';
+                    previewDeviceArea.style.color = '#9ca3af';
+                }
+            }
+            
+            // Setup icon picker
+            setupIconPicker(iconInput);
+            
+            // Event listeners
+            entityTypeSelect.addEventListener('change', () => {
+                suggestIcon();
+                updatePreview();
+            });
+            deviceNameInput.addEventListener('input', () => {
+                suggestIcon();
+                updatePreview();
+            });
+            areaSelect.addEventListener('change', updatePreview);
+            iconInput.addEventListener('input', updatePreview);
+            
+            // Initial update
+            updatePreview();
+        }
+
+        // Common MDI icons for device types
+        const commonIcons = [
+            'mdi:lightbulb', 'mdi:ceiling-light', 'mdi:lamp', 'mdi:floor-lamp', 'mdi:wall-sconce', 
+            'mdi:light-recessed', 'mdi:lightbulb-group', 'mdi:led-strip', 'mdi:track-light',
+            'mdi:fan', 'mdi:ceiling-fan', 'mdi:fan-off', 'mdi:air-conditioner',
+            'mdi:light-switch', 'mdi:toggle-switch', 'mdi:power-plug', 'mdi:power-socket', 
+            'mdi:power', 'mdi:power-on', 'mdi:power-off',
+            'mdi:television', 'mdi:speaker', 'mdi:amplifier', 'mdi:play-box', 'mdi:remote',
+            'mdi:cast', 'mdi:music', 'mdi:radio', 'mdi:video', 'mdi:projector',
+            'mdi:thermometer', 'mdi:thermostat', 'mdi:air-purifier', 'mdi:air-filter',
+            'mdi:air-humidifier', 'mdi:blinds', 'mdi:blinds-horizontal', 'mdi:window-shutter',
+            'mdi:curtains', 'mdi:roller-shade', 'mdi:garage', 'mdi:washing-machine', 
+            'mdi:dishwasher', 'mdi:fridge', 'mdi:stove', 'mdi:microwave', 'mdi:coffee-maker',
+            'mdi:alarm-light', 'mdi:alarm', 'mdi:bell', 'mdi:doorbell', 'mdi:lock', 
+            'mdi:motion-sensor', 'mdi:camera', 'mdi:robot-vacuum', 'mdi:water-pump'
+        ];
+
+        function setupIconPicker(iconInput) {
+            const dropdown = document.getElementById('iconDropdown');
+            let selectedIndex = -1;
+            
+            iconInput.addEventListener('focus', () => showIconSuggestions(''));
+            iconInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().replace('mdi:', '');
+                showIconSuggestions(query);
+                selectedIndex = -1;
+            });
+            
+            iconInput.addEventListener('keydown', (e) => {
+                const items = dropdown.querySelectorAll('.icon-item');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    items[selectedIndex].click();
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!iconInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            function showIconSuggestions(query) {
+                const filtered = query ? commonIcons.filter(icon => icon.toLowerCase().includes(query)) : commonIcons;
+                if (filtered.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                
+                dropdown.innerHTML = filtered.slice(0, 50).map(icon => `
+                    <div class="icon-item" data-icon="${icon}" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--ha-border-color);" onmouseover="this.style.background='var(--ha-background-color)'" onmouseout="this.style.background='transparent'">
+                        <i class="mdi ${icon}" style="font-size: 20px; color: var(--ha-text-primary-color);"></i>
+                        <span style="color: var(--ha-text-primary-color); font-size: 13px;">${icon}</span>
+                    </div>
+                `).join('');
+                
+                dropdown.style.display = 'block';
+                
+                dropdown.querySelectorAll('.icon-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        iconInput.value = item.dataset.icon;
+                        dropdown.style.display = 'none';
+                        iconInput.dispatchEvent(new Event('input'));
+                    });
+                });
+            }
+            
+            function updateSelection(items) {
+                items.forEach((item, idx) => {
+                    if (idx === selectedIndex) {
+                        item.style.background = 'var(--ha-background-color)';
+                        item.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        item.style.background = 'transparent';
+                    }
+                });
+            }
+        }
+
+        async function createNewDevice(broadlinkEntityId, broadlinkAreaName) {
+            const deviceNameInput = document.getElementById('newDeviceName');
+            const areaSelect = document.getElementById('newDeviceArea');
+            const entityTypeSelect = document.getElementById('newDeviceEntityType');
+            const iconInput = document.getElementById('newDeviceIcon');
+            const createBtn = document.getElementById('createDeviceBtn');
+            
+            const selectedOption = areaSelect.options[areaSelect.selectedIndex];
+            const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+            const areaId = areaSelect.value;
+            const deviceName = deviceNameInput.value.trim();
+            const entityType = entityTypeSelect.value;
+            const icon = iconInput.value.trim();
+            
+            // Validation
+            if (!deviceName) {
+                showAlert('Please enter a device name', 'error');
+                deviceNameInput.focus();
+                return;
+            }
+            
+            if (!areaId || !areaName) {
+                showAlert('Please select an area', 'error');
+                areaSelect.focus();
+                return;
+            }
+            
+            if (!entityType) {
+                showAlert('Please select an entity type', 'error');
+                entityTypeSelect.focus();
+                return;
+            }
+            
+            // Disable button during creation
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating...';
+            
+            try {
+                log(`Creating device: ${deviceName} (${entityType}) in ${areaName}`);
+                
+                const response = await fetch(getApiUrl('/api/devices/managed'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_name: deviceName,
+                        area_id: areaId,
+                        area_name: areaName,
+                        entity_type: entityType,
+                        icon: icon || null,
+                        broadlink_entity: broadlinkEntityId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Device created: ${result.device_id}`);
+                    showAlert(`Device "${deviceName}" created successfully!`, 'success');
+                    closeAddDeviceDialog();
+                    
+                    // Save UI state before reload
+                    saveUIState();
+                    
+                    // Reload to show the new device
+                    await loadLearnedData();
+                } else {
+                    throw new Error(result.error || 'Failed to create device');
+                }
+                
+            } catch (error) {
+                console.error('Error creating device:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to create device: ${error.message}`, 'error');
+                
+                // Re-enable button
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Device';
+            }
+        }
+
+        function closeAddDeviceDialog() {
+            const modal = document.getElementById('addDeviceModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function deleteManagedDevice(deviceId, deviceName) {
+            // Create custom confirmation modal with checkbox
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'deleteDeviceModal';
+            overlay.innerHTML = `
+                <div class="modal-dialog" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3>Delete Device</h3>
+                        <button class="modal-close" onclick="closeDeleteDeviceDialog()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px; color: var(--ha-text-primary-color);">
+                            Are you sure you want to delete <strong>"${deviceName}"</strong>?
+                        </p>
+                        
+                        <div style="background: var(--ha-background-color); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--ha-border-color);">
+                            <div style="font-weight: 600; margin-bottom: 12px; color: var(--ha-text-primary-color);">This will:</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: var(--ha-success-color);">✓</span>
+                                    <span style="color: var(--ha-text-primary-color);">Remove the device from Broadlink Manager</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: var(--ha-success-color);">✓</span>
+                                    <span style="color: var(--ha-text-primary-color);">Delete any generated entities (YAML files)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: rgba(255, 152, 0, 0.1); padding: 16px; border-radius: 8px; border: 1px solid var(--ha-warning-color);">
+                            <label style="display: flex; align-items: start; gap: 12px; cursor: pointer;">
+                                <input type="checkbox" id="deleteCommandsCheckbox" style="margin-top: 4px; cursor: pointer;">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--ha-text-primary-color); margin-bottom: 4px;">
+                                        Also delete learned IR/RF commands
+                                    </div>
+                                    <div style="font-size: 13px; color: var(--ha-text-secondary-color);">
+                                        If checked, all learned commands for this device will be permanently deleted from Home Assistant. 
+                                        You will need to re-learn them if you create a new device.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeDeleteDeviceDialog()">Cancel</button>
+                        <button class="btn btn-danger" onclick="confirmDeleteDevice('${deviceId}', '${escapeJs(deviceName)}')">Delete Device</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+        }
+
+        function closeDeleteDeviceDialog() {
+            const modal = document.getElementById('deleteDeviceModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function confirmDeleteDevice(deviceId, deviceName) {
+            const deleteCommandsCheckbox = document.getElementById('deleteCommandsCheckbox');
+            const deleteCommands = deleteCommandsCheckbox ? deleteCommandsCheckbox.checked : false;
+            
+            closeDeleteDeviceDialog();
+            
+            try {
+                log(`Deleting device: ${deviceId} (delete commands: ${deleteCommands})`);
+                
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}`), {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        delete_commands: deleteCommands
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Device deleted: ${deviceName}`);
+                    showAlert(`Device "${deviceName}" deleted successfully!`, 'success');
+                    
+                    // Save UI state and reload
+                    saveUIState();
+                    await loadLearnedData();
+                } else {
+                    throw new Error(result.error || 'Failed to delete device');
+                }
+                
+            } catch (error) {
+                console.error('Error deleting device:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to delete device: ${error.message}`, 'error');
+            }
+        }
+
+        async function convertToManagedDevice(devicePart, commands, broadlinkEntity) {
+            try {
+                // Decode and parse commands if it's a string
+                if (typeof commands === 'string') {
+                    commands = JSON.parse(decodeURIComponent(commands));
+                }
+                
+                log(`Converting "${devicePart}" to managed device with ${commands.length} commands`);
+                
+                // First, fetch areas to intelligently match
+                const response = await fetch(getApiUrl('/api/areas'));
+                const areas = await response.json();
+                
+                // Extract area and device name from devicePart
+                let areaId = '';
+                let deviceName = '';
+                let matchedArea = null;
+                
+                // Try to match against actual area IDs (longest match first)
+                const sortedAreas = areas.sort((a, b) => b.id.length - a.id.length);
+                for (const area of sortedAreas) {
+                    const areaIdLower = area.id.toLowerCase();
+                    const devicePartLower = devicePart.toLowerCase();
+                    
+                    if (devicePartLower.startsWith(areaIdLower + '_')) {
+                        areaId = area.id;
+                        matchedArea = area;
+                        // Device name is everything after the area prefix
+                        deviceName = devicePart.substring(areaIdLower.length + 1);
+                        break;
+                    }
+                }
+                
+                // Fallback: if no area matched, try heuristic approach
+                if (!deviceName) {
+                    const parts = devicePart.split('_');
+                    
+                    // Common area patterns (2-3 words)
+                    if (parts.length >= 4) {
+                        // Try 2-word area first (most common: "master_bedroom", "living_room")
+                        areaId = parts.slice(0, 2).join('_');
+                        deviceName = parts.slice(2).join('_');
+                    } else if (parts.length === 3) {
+                        // Could be 2-word area + 1-word device, or 1-word area + 2-word device
+                        // Default to 2-word area
+                        areaId = parts.slice(0, 2).join('_');
+                        deviceName = parts[2];
+                    } else if (parts.length === 2) {
+                        areaId = parts[0];
+                        deviceName = parts[1];
+                    } else {
+                        // Single word - use as device name
+                        deviceName = devicePart;
+                    }
+                }
+                
+                // Auto-detect entity type from command names
+                const commandNames = commands.map(cmd => cmd.command.toLowerCase());
+                let detectedEntityType = 'switch'; // default
+                
+                // Check for specific patterns
+                const hasLightCommands = commandNames.some(c => 
+                    c.includes('light_on') || c.includes('light_off') || c.includes('light_toggle')
+                );
+                const hasFanCommands = commandNames.some(c => 
+                    c.includes('fan_') || c.includes('speed')
+                );
+                const hasMediaCommands = commandNames.some(c => 
+                    c.includes('power') || c.includes('volume') || c.includes('play') || 
+                    c.includes('pause') || c.includes('mute') || c.includes('source')
+                );
+                
+                if (hasLightCommands) {
+                    detectedEntityType = 'light';
+                } else if (hasFanCommands) {
+                    detectedEntityType = 'fan';
+                } else if (hasMediaCommands) {
+                    detectedEntityType = 'media_player';
+                }
+                
+                // Show conversion dialog
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.id = 'convertDeviceModal';
+                
+                // Store data on the overlay element
+                overlay._convertData = {
+                    devicePart: devicePart,
+                    commands: commands,
+                    broadlinkEntity: broadlinkEntity
+                };
+                
+                // Capitalize first letter of each word for display
+                const displayName = deviceName ? deviceName.split('_').map(w => 
+                    w.charAt(0).toUpperCase() + w.slice(1)
+                ).join(' ') : '';
+                
+                overlay.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-header">
+                            <h3>Convert to Managed Device</h3>
+                            <button class="modal-close" onclick="closeConvertDeviceModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="margin-bottom: 16px;">Convert "<strong>${devicePart}</strong>" with <strong>${commands.length} commands</strong> to a managed device?</p>
+                            
+                            <div class="form-group">
+                                <label for="convertDeviceName">Device Name: *</label>
+                                <input type="text" id="convertDeviceName" class="form-control" value="${displayName}" autofocus>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="convertArea">Area: *</label>
+                                <select id="convertArea" class="form-control">
+                                    <option value="">Loading areas...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="convertEntityType">Entity Type: *</label>
+                                <select id="convertEntityType" class="form-control">
+                                    <option value="fan" ${detectedEntityType === 'fan' ? 'selected' : ''}>Fan</option>
+                                    <option value="light" ${detectedEntityType === 'light' ? 'selected' : ''}>Light</option>
+                                    <option value="switch" ${detectedEntityType === 'switch' ? 'selected' : ''}>Switch</option>
+                                    <option value="media_player" ${detectedEntityType === 'media_player' ? 'selected' : ''}>Media Player</option>
+                                    <option value="climate" ${detectedEntityType === 'climate' ? 'selected' : ''}>Climate (AC/Heater)</option>
+                                    <option value="cover" ${detectedEntityType === 'cover' ? 'selected' : ''}>Cover (Blinds/Curtains)</option>
+                                </select>
+                            </div>
+                            
+                            <div style="background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-warning-color); margin-top: 16px; display: flex; gap: 8px;">
+                                <i class="mdi mdi-information" style="font-size: 20px; color: var(--ha-warning-color); flex-shrink: 0;"></i>
+                                <div><strong>Note:</strong> This will create a new managed device and import all ${commands.length} commands. 
+                                The old command entries will remain in Home Assistant storage.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeConvertDeviceModal()">Cancel</button>
+                            <button class="btn btn-primary" id="confirmConvertBtn">Convert Device</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(overlay);
+                
+                // Add click handler for confirm button
+                document.getElementById('confirmConvertBtn').addEventListener('click', function() {
+                    const data = overlay._convertData;
+                    confirmConvertDevice(data.devicePart, data.commands, data.broadlinkEntity);
+                });
+                
+                // Populate areas dropdown
+                const areaSelect = document.getElementById('convertArea');
+                areaSelect.innerHTML = '<option value="">-- Select Area --</option>';
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.name;
+                    option.dataset.areaName = area.name;
+                    
+                    // Pre-select if matches
+                    if (matchedArea && area.id === matchedArea.id) {
+                        option.selected = true;
+                    } else if (!matchedArea && (area.id === areaId || area.id.toLowerCase().includes(areaId.toLowerCase()))) {
+                        option.selected = true;
+                    }
+                    
+                    areaSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error showing convert dialog:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function closeConvertDeviceModal() {
+            const modal = document.getElementById('convertDeviceModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function confirmConvertDevice(oldDevicePart, commands, broadlinkEntity) {
+            const deviceNameInput = document.getElementById('convertDeviceName');
+            const areaSelect = document.getElementById('convertArea');
+            const entityTypeSelect = document.getElementById('convertEntityType');
+            const confirmBtn = document.getElementById('confirmConvertBtn');
+            
+            const deviceName = deviceNameInput.value.trim();
+            const areaId = areaSelect.value;
+            const selectedOption = areaSelect.options[areaSelect.selectedIndex];
+            const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+            const entityType = entityTypeSelect.value;
+            
+            if (!deviceName || !areaId || !entityType) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            // Decode and parse commands if string
+            if (typeof commands === 'string') {
+                commands = JSON.parse(decodeURIComponent(commands));
+            }
+            
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Converting...';
+            
+            try {
+                log(`Creating managed device from "${oldDevicePart}"`);
+                
+                // Create the managed device
+                const createResponse = await fetch(getApiUrl('/api/devices/managed'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_name: deviceName,
+                        area_id: areaId,
+                        area_name: areaName,
+                        entity_type: entityType,
+                        broadlink_entity: broadlinkEntity
+                    })
+                });
+                
+                const createResult = await createResponse.json();
+                
+                if (!createResult.success) {
+                    throw new Error(createResult.error || 'Failed to create device');
+                }
+                
+                const newDeviceId = createResult.device_id;
+                log(`✅ Created managed device: ${newDeviceId}`);
+                
+                // Now import the commands (just add metadata, don't re-learn)
+                log(`Importing ${commands.length} commands...`);
+                
+                // We need to call the device manager directly to add command metadata
+                // without triggering the learning process
+                const importResponse = await fetch(getApiUrl(`/api/devices/managed/${newDeviceId}/import-commands`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        commands: commands.map(cmd => ({
+                            command_name: cmd.command,
+                            command_type: cmd.command_type
+                        }))
+                    })
+                });
+                
+                const importResult = await importResponse.json();
+                
+                if (!importResult.success) {
+                    throw new Error(importResult.error || 'Failed to import commands');
+                }
+                
+                log(`✅ Imported ${commands.length} commands`);
+                showAlert(`Device converted successfully with ${commands.length} commands!`, 'success');
+                
+                closeConvertDeviceModal();
+                saveUIState();
+                await loadLearnedData();
+                
+            } catch (error) {
+                console.error('Error converting device:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to convert device: ${error.message}`, 'error');
+                
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Convert Device';
+            }
+        }
+
+        async function testDeviceCommand(deviceId, commandName, broadlinkEntity) {
+            try {
+                log(`Testing command: ${deviceId}_${commandName}`);
+                showAlert(`Sending command "${commandName}"...`, 'info');
+                
+                // If broadlinkEntity is provided, use it directly
+                let entityId = broadlinkEntity;
+                
+                // Otherwise, try to find it using the same logic as testCommand
+                if (!entityId) {
+                    const allDevices = learnedData.allDevices || [];
+                    
+                    if (allDevices.length === 0) {
+                        showAlert('No Broadlink devices found. Please ensure your Broadlink device is configured in Home Assistant.', 'error');
+                        return;
+                    }
+                    
+                    // Extract area from device name
+                    const deviceParts = deviceId.split('_');
+                    let areaName = '';
+                    
+                    if (deviceParts.length >= 3) {
+                        areaName = deviceParts.slice(0, 3).join('_');
+                    } else if (deviceParts.length >= 2) {
+                        areaName = deviceParts.slice(0, 2).join('_');
+                    }
+                    
+                    // Try to find matching device
+                    let selectedDevice = allDevices.find(d => d.area_name && 
+                        d.area_name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_') === areaName);
+                    
+                    if (!selectedDevice && allDevices.length === 1) {
+                        selectedDevice = allDevices[0];
+                    }
+                    
+                    if (selectedDevice) {
+                        entityId = selectedDevice.entity_id;
+                    } else {
+                        showAlert('Could not determine Broadlink device. Please try from the Commands tab.', 'error');
+                        return;
+                    }
+                }
+                
+                const response = await fetch(getApiUrl('/api/send'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        entity_id: entityId,
+                        device: deviceId,
+                        command: commandName
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Command sent successfully: ${commandName}`);
+                    showAlert(`Command "${commandName}" sent!`, 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to send command');
+                }
+            } catch (error) {
+                console.error('Error testing command:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to send command: ${error.message}`, 'error');
+            }
+        }
+
+        async function relearnDeviceCommand(deviceId, commandName, commandType, broadlinkEntity) {
+            const confirmed = await showConfirmModal(
+                'Re-learn Command',
+                `Re-learn the ${commandType.toUpperCase()} command "${commandName}"?\n\nThis will overwrite the existing command with a new learned signal.`,
+                'Re-learn',
+                'Cancel',
+                'primary'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                log(`Re-learning command: ${deviceId}_${commandName}`);
+                
+                // Delete the old command first
+                await fetch(getApiUrl(`/api/devices/managed/${deviceId}/commands/${commandName}`), {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                // Now learn it again using the same flow as adding a new command
+                showLearningInstructions(deviceId, deviceId.split('_').pop(), commandName, commandType, broadlinkEntity);
+                
+            } catch (error) {
+                console.error('Error re-learning command:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to re-learn command: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteDeviceCommand(deviceId, commandName, deviceName) {
+            const confirmed = await showConfirmModal(
+                'Delete Command',
+                `Delete command "${commandName}" from device "${deviceName}"?`,
+                'Delete',
+                'Cancel',
+                'danger'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                log(`Deleting command "${commandName}" from device "${deviceId}"`);
+                
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}/commands/${commandName}`), {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Command deleted: ${commandName}`);
+                    showAlert(`Command "${commandName}" deleted successfully!`, 'success');
+                    
+                    // Save UI state and reload
+                    saveUIState();
+                    await loadLearnedData();
+                } else {
+                    throw new Error(result.error || 'Failed to delete command');
+                }
+                
+            } catch (error) {
+                console.error('Error deleting command:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to delete command: ${error.message}`, 'error');
+            }
+        }
+
+        async function addCommandToDevice(deviceId, deviceName, broadlinkEntity, entityType) {
+            log(`Opening Add Command dialog for device: ${deviceId} (${entityType})`);
+            
+            // Define standard commands for each entity type
+            const standardCommands = {
+                'light': [
+                    { value: 'turn_on', label: 'Turn On (required)', required: true },
+                    { value: 'turn_off', label: 'Turn Off (required)', required: true },
+                    { value: 'toggle', label: 'Toggle (alternative to on/off)', required: false },
+                    { value: 'brightness_up', label: 'Brightness Up', required: false },
+                    { value: 'brightness_down', label: 'Brightness Down', required: false }
+                ],
+                'switch': [
+                    { value: 'turn_on', label: 'Turn On (required)', required: true },
+                    { value: 'turn_off', label: 'Turn Off (required)', required: true },
+                    { value: 'toggle', label: 'Toggle (alternative to on/off)', required: false }
+                ],
+                'fan': [
+                    { value: 'turn_on', label: 'Turn On', required: false },
+                    { value: 'turn_off', label: 'Turn Off', required: false },
+                    { value: 'speed_1', label: 'Speed 1 (required)', required: true },
+                    { value: 'speed_2', label: 'Speed 2', required: false },
+                    { value: 'speed_3', label: 'Speed 3', required: false },
+                    { value: 'speed_4', label: 'Speed 4', required: false },
+                    { value: 'speed_5', label: 'Speed 5', required: false },
+                    { value: 'speed_6', label: 'Speed 6', required: false }
+                ],
+                'media_player': [
+                    { value: 'turn_on', label: 'Turn On (required)', required: true },
+                    { value: 'turn_off', label: 'Turn Off (required)', required: true },
+                    { value: 'volume_up', label: 'Volume Up', required: false },
+                    { value: 'volume_down', label: 'Volume Down', required: false },
+                    { value: 'volume_mute', label: 'Volume Mute', required: false },
+                    { value: 'play', label: 'Play', required: false },
+                    { value: 'pause', label: 'Pause', required: false },
+                    { value: 'stop', label: 'Stop', required: false }
+                ],
+                'climate': [
+                    { value: 'turn_on', label: 'Turn On (required)', required: true },
+                    { value: 'turn_off', label: 'Turn Off (required)', required: true },
+                    { value: 'temperature_16', label: 'Temperature 16°C', required: false },
+                    { value: 'temperature_17', label: 'Temperature 17°C', required: false },
+                    { value: 'temperature_18', label: 'Temperature 18°C', required: false },
+                    { value: 'temperature_19', label: 'Temperature 19°C', required: false },
+                    { value: 'temperature_20', label: 'Temperature 20°C', required: false },
+                    { value: 'temperature_21', label: 'Temperature 21°C', required: false },
+                    { value: 'temperature_22', label: 'Temperature 22°C', required: false },
+                    { value: 'temperature_23', label: 'Temperature 23°C', required: false },
+                    { value: 'temperature_24', label: 'Temperature 24°C', required: false },
+                    { value: 'temperature_25', label: 'Temperature 25°C', required: false },
+                    { value: 'temperature_26', label: 'Temperature 26°C', required: false },
+                    { value: 'temperature_27', label: 'Temperature 27°C', required: false },
+                    { value: 'temperature_28', label: 'Temperature 28°C', required: false },
+                    { value: 'temperature_29', label: 'Temperature 29°C', required: false },
+                    { value: 'temperature_30', label: 'Temperature 30°C', required: false },
+                    { value: 'temperature_up', label: 'Temperature Up', required: false },
+                    { value: 'temperature_down', label: 'Temperature Down', required: false },
+                    { value: 'hvac_mode_heat', label: 'Mode: Heat', required: false },
+                    { value: 'hvac_mode_cool', label: 'Mode: Cool', required: false },
+                    { value: 'hvac_mode_auto', label: 'Mode: Auto', required: false },
+                    { value: 'hvac_mode_dry', label: 'Mode: Dry', required: false },
+                    { value: 'hvac_mode_fan_only', label: 'Mode: Fan Only', required: false },
+                    { value: 'fan_mode_auto', label: 'Fan: Auto', required: false },
+                    { value: 'fan_mode_low', label: 'Fan: Low', required: false },
+                    { value: 'fan_mode_medium', label: 'Fan: Medium', required: false },
+                    { value: 'fan_mode_high', label: 'Fan: High', required: false },
+                    { value: 'fan_mode_turbo', label: 'Fan: Turbo', required: false },
+                    { value: 'swing_mode_on', label: 'Swing: On', required: false },
+                    { value: 'swing_mode_off', label: 'Swing: Off', required: false },
+                    { value: 'swing_mode_vertical', label: 'Swing: Vertical', required: false },
+                    { value: 'swing_mode_horizontal', label: 'Swing: Horizontal', required: false },
+                    { value: 'swing_mode_both', label: 'Swing: Both', required: false }
+                ],
+                'cover': [
+                    { value: 'open', label: 'Open (required)', required: true },
+                    { value: 'close', label: 'Close (required)', required: true },
+                    { value: 'stop', label: 'Stop', required: false },
+                    { value: 'position_0', label: 'Position 0% (Closed)', required: false },
+                    { value: 'position_25', label: 'Position 25%', required: false },
+                    { value: 'position_50', label: 'Position 50%', required: false },
+                    { value: 'position_75', label: 'Position 75%', required: false },
+                    { value: 'position_100', label: 'Position 100% (Open)', required: false },
+                    { value: 'open_tilt', label: 'Open Tilt (Venetian blinds)', required: false },
+                    { value: 'close_tilt', label: 'Close Tilt (Venetian blinds)', required: false }
+                ]
+            };
+            
+            const commands = standardCommands[entityType] || standardCommands['switch'];
+            const commandOptions = commands.map(cmd => 
+                `<option value="${cmd.value}">${cmd.label}</option>`
+            ).join('');
+            
+            // Create modal
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'addCommandModal';
+            overlay.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-header">
+                        <h3>Add Command to ${deviceName}</h3>
+                        <button class="modal-close" onclick="closeAddCommandModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Device:</label>
+                            <div style="background: var(--ha-background-color); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
+                                <div style="font-weight: 500; color: var(--ha-text-primary-color);">${deviceName}</div>
+                                <div style="font-size: 12px; color: var(--ha-text-secondary-color); font-family: monospace;">${deviceId} • ${entityType}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="commandName">Command Name: *</label>
+                            <select id="commandName" class="form-control" autofocus>
+                                <option value="">-- Select Standard Command --</option>
+                                ${commandOptions}
+                            </select>
+                            <small class="form-text">Standard commands for ${entityType} entities. Required commands must be learned for the entity to work.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="commandType">Command Type: *</label>
+                            <select id="commandType" class="form-control">
+                                <option value="rf" selected>RF (Radio Frequency)</option>
+                                <option value="ir">IR (Infrared)</option>
+                            </select>
+                            <small class="form-text">RF for fans/lights, IR for TVs/remotes</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Preview:</label>
+                            <div style="background: var(--ha-background-color); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
+                                <div style="font-family: monospace; color: var(--ha-text-primary-color);">
+                                    <span id="commandPreview" style="color: #9ca3af;">Select a command</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddCommandModal()">Cancel</button>
+                        <button class="btn btn-primary" id="learnCommandBtn" onclick="startLearningForDevice('${deviceId}', '${deviceName}', '${broadlinkEntity}')">Learn Command</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Setup preview update
+            const commandNameSelect = document.getElementById('commandName');
+            const commandPreview = document.getElementById('commandPreview');
+            
+            commandNameSelect.addEventListener('change', () => {
+                const value = commandNameSelect.value;
+                if (value) {
+                    commandPreview.textContent = value;
+                    commandPreview.style.color = '#3b82f6';
+                } else {
+                    commandPreview.textContent = 'Select a command';
+                    commandPreview.style.color = '#9ca3af';
+                }
+            });
+        }
+
+        function closeAddCommandModal() {
+            const modal = document.getElementById('addCommandModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function startLearningForDevice(deviceId, deviceName, broadlinkEntity) {
+            const commandNameInput = document.getElementById('commandName');
+            const commandTypeSelect = document.getElementById('commandType');
+            const learnBtn = document.getElementById('learnCommandBtn');
+            
+            const commandNameRaw = commandNameInput.value.trim();
+            const commandType = commandTypeSelect.value;
+            
+            // Validation
+            if (!commandNameRaw) {
+                showAlert('Please enter a command name', 'error');
+                commandNameInput.focus();
+                return;
+            }
+            
+            // Convert to HA format
+            const commandName = commandNameRaw.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+            
+            if (!commandName) {
+                showAlert('Invalid command name', 'error');
+                return;
+            }
+            
+            // Disable button
+            learnBtn.disabled = true;
+            learnBtn.textContent = 'Starting...';
+            
+            try {
+                log(`Learning command "${commandName}" for device "${deviceId}"`);
+                
+                // Close the add command modal
+                closeAddCommandModal();
+                
+                // Show learning instructions modal
+                showLearningInstructions(deviceId, deviceName, commandName, commandType, broadlinkEntity);
+                
+            } catch (error) {
+                console.error('Error starting learning:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+                learnBtn.disabled = false;
+                learnBtn.textContent = 'Learn Command';
+            }
+        }
+
+        async function showLearningInstructions(deviceId, deviceName, commandName, commandType, broadlinkEntity) {
+            const instructionType = commandType === 'rf' ? 'RF' : 'IR';
+            let instructionText = '';
+            
+            if (commandType === 'rf') {
+                instructionText = `
+                    <p style="margin-bottom: 12px;">RF learning is a <strong>two-step process</strong>:</p>
+                    <ol style="margin-left: 20px; margin-bottom: 16px; line-height: 1.8;">
+                        <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
+                        <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
+                    </ol>
+                    <p style="margin-bottom: 16px;">Follow the Home Assistant notifications (🔔) for real-time instructions.</p>
+                `;
+            } else {
+                instructionText = `
+                    <p style="margin-bottom: 16px;">Point your remote at the Broadlink device and press the button when prompted.</p>
+                    <p style="margin-bottom: 16px;">Follow the Home Assistant notifications (🔔) for instructions.</p>
+                `;
+            }
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'learningInstructionModal';
+            overlay.innerHTML = `
+                <div class="modal-dialog" style="max-width: 550px;">
+                    <div class="modal-header">
+                        <h3>📡 ${instructionType} Learning In Progress...</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 16px; font-size: 15px;">
+                            <strong>Learning request sent to device.</strong>
+                        </p>
+                        ${instructionText}
+                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                            <div style="margin-bottom: 8px;"><strong>Device:</strong> ${deviceName}</div>
+                            <div><strong>Command:</strong> <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px;">${commandName}</code></div>
+                        </div>
+                        <div id="learningStatus" style="margin-top: 16px; padding: 12px; background: var(--ha-background-color); border: 1px solid var(--ha-border-color); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 16px; height: 16px; border: 2px solid var(--ha-primary-color); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                <span>Waiting for device response...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="cancelLearningBtn" onclick="window.learningController?.abort(); document.getElementById('learningInstructionModal')?.remove();">Cancel</button>
+                        <button class="btn btn-primary" id="doneLearningBtn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                            <span id="doneBtnText">Please wait...</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            // Call the API to add the command to the device
+            try {
+                window.learningController = new AbortController();
+                const timeoutId = setTimeout(() => window.learningController.abort(), 40000);
+                
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}/commands`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        command_name: commandName,
+                        command_type: commandType,
+                        broadlink_entity: broadlinkEntity
+                    }),
+                    signal: window.learningController.signal
+                });
+                
+                clearTimeout(timeoutId);
+                const result = await response.json();
+                
+                const statusDiv = document.getElementById('learningStatus');
+                const doneBtn = document.getElementById('doneLearningBtn');
+                const doneBtnText = document.getElementById('doneBtnText');
+                const cancelBtn = document.getElementById('cancelLearningBtn');
+                
+                if (statusDiv && doneBtn) {
+                    if (result.success) {
+                        log(`✅ Command learned successfully: ${commandName}`);
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-success-color);">
+                                <span style="font-size: 20px;">✅</span>
+                                <span><strong>Success!</strong> Command was learned and saved to device.</span>
+                            </div>
+                        `;
+                        doneBtnText.textContent = 'Done';
+                        
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtn.onclick = () => {
+                            document.getElementById('learningInstructionModal')?.remove();
+                            saveUIState();
+                            loadLearnedData();
+                        };
+                        
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                    } else {
+                        const errorMsg = result.error || 'Unknown error';
+                        log(`❌ Learning failed: ${errorMsg}`, 'error');
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
+                                <i class="mdi mdi-close-circle" style="font-size: 20px;"></i>
+                                <span><strong>Failed:</strong> ${errorMsg}</span>
+                            </div>
+                        `;
+                        
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtnText.textContent = 'Close';
+                        doneBtn.onclick = () => document.getElementById('learningInstructionModal')?.remove();
+                        
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('learningStatus');
+                const doneBtn = document.getElementById('doneLearningBtn');
+                const doneBtnText = document.getElementById('doneBtnText');
+                const cancelBtn = document.getElementById('cancelLearningBtn');
+                
+                if (error.name === 'AbortError') {
+                    log(`🚫 Learning cancelled by user`);
+                } else {
+                    const errorMsg = error.message || 'Unknown error';
+                    log(`❌ Error: ${errorMsg}`, 'error');
+                    
+                    if (statusDiv && doneBtn) {
+                        statusDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
+                                <i class="mdi mdi-close-circle" style="font-size: 20px;"></i>
+                                <span><strong>Error:</strong> ${errorMsg}</span>
+                            </div>
+                        `;
+                        
+                        doneBtn.disabled = false;
+                        doneBtn.style.opacity = '1';
+                        doneBtn.style.cursor = 'pointer';
+                        doneBtnText.textContent = 'Close';
+                        doneBtn.onclick = () => document.getElementById('learningInstructionModal')?.remove();
+                        
+                        if (cancelBtn) cancelBtn.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        async function editManagedDevice(deviceId) {
+            try {
+                // Fetch device details
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}`));
+                const device = await response.json();
+                
+                if (!device) {
+                    showAlert('Device not found', 'error');
+                    return;
+                }
+                
+                log(`Opening edit dialog for device: ${deviceId}`);
+                
+                // Create edit modal
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                overlay.id = 'editDeviceModal';
+                overlay.innerHTML = `
+                    <div class="modal-dialog">
+                        <div class="modal-header">
+                            <h3>Edit Device</h3>
+                            <button class="modal-close" onclick="closeEditDeviceDialog()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>Device ID:</label>
+                                <input type="text" class="form-control" value="${deviceId}" disabled style="background: var(--ha-background-color); cursor: not-allowed;">
+                                <small class="form-text">Device ID cannot be changed</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editDeviceName">Device Name: *</label>
+                                <input type="text" id="editDeviceName" class="form-control" value="${device.name}" autofocus>
+                                <small class="form-text">Display name for this device</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editDeviceArea">Area: *</label>
+                                <select id="editDeviceArea" class="form-control">
+                                    <option value="">Loading areas...</option>
+                                </select>
+                                <small class="form-text">Where is the device located?</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editDeviceEntityType">Entity Type: *</label>
+                                <select id="editDeviceEntityType" class="form-control">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="light" ${device.entity_type === 'light' ? 'selected' : ''}>Light</option>
+                                    <option value="fan" ${device.entity_type === 'fan' ? 'selected' : ''}>Fan</option>
+                                    <option value="switch" ${device.entity_type === 'switch' ? 'selected' : ''}>Switch</option>
+                                    <option value="media_player" ${device.entity_type === 'media_player' ? 'selected' : ''}>Media Player</option>
+                                    <option value="climate" ${device.entity_type === 'climate' ? 'selected' : ''}>Climate (AC/Heater)</option>
+                                    <option value="cover" ${device.entity_type === 'cover' ? 'selected' : ''}>Cover (Blinds/Curtains)</option>
+                                </select>
+                                <small class="form-text">What type of device is it?</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="editDeviceIcon">Icon:</label>
+                                <input type="text" id="editDeviceIcon" class="form-control" value="${device.icon || ''}" placeholder="e.g., mdi:speaker">
+                                <small class="form-text">Material Design Icon name</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Broadlink Device:</label>
+                                <input type="text" class="form-control" value="${device.broadlink_entity}" disabled style="background: var(--ha-background-color); cursor: not-allowed;">
+                                <small class="form-text">Broadlink device cannot be changed</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Commands:</label>
+                                <div style="background: var(--ha-background-color); padding: 12px; border-radius: 8px; border: 1px solid var(--ha-border-color);">
+                                    ${Object.keys(device.commands || {}).length} learned commands
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeEditDeviceDialog()">Cancel</button>
+                            <button class="btn btn-primary" id="saveDeviceBtn" onclick="saveDeviceChanges('${deviceId}')">Save Changes</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(overlay);
+                
+                // Setup the dialog
+                await setupEditDeviceDialog(device);
+                
+            } catch (error) {
+                console.error('Error loading device for edit:', error);
+                showAlert(`Failed to load device: ${error.message}`, 'error');
+            }
+        }
+
+        async function setupEditDeviceDialog(device) {
+            const areaSelect = document.getElementById('editDeviceArea');
+            
+            // Load areas from API
+            try {
+                const response = await fetch(getApiUrl('/api/areas'));
+                const areas = await response.json();
+                
+                areaSelect.innerHTML = '<option value="">-- Select Area --</option>';
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.name;
+                    option.dataset.areaName = area.name;
+                    
+                    // Pre-select current area
+                    if (area.id === device.area_id) {
+                        option.selected = true;
+                    }
+                    
+                    areaSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                areaSelect.innerHTML = '<option value="">Error loading areas</option>';
+            }
+        }
+
+        function closeEditDeviceDialog() {
+            const modal = document.getElementById('editDeviceModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        async function saveDeviceChanges(deviceId) {
+            const deviceNameInput = document.getElementById('editDeviceName');
+            const areaSelect = document.getElementById('editDeviceArea');
+            const entityTypeSelect = document.getElementById('editDeviceEntityType');
+            const iconInput = document.getElementById('editDeviceIcon');
+            const saveBtn = document.getElementById('saveDeviceBtn');
+            
+            const selectedOption = areaSelect.options[areaSelect.selectedIndex];
+            const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+            const areaId = areaSelect.value;
+            const deviceName = deviceNameInput.value.trim();
+            const entityType = entityTypeSelect.value;
+            const icon = iconInput.value.trim();
+            
+            // Validation
+            if (!deviceName) {
+                showAlert('Please enter a device name', 'error');
+                deviceNameInput.focus();
+                return;
+            }
+            
+            if (!areaId || !areaName) {
+                showAlert('Please select an area', 'error');
+                areaSelect.focus();
+                return;
+            }
+            
+            if (!entityType) {
+                showAlert('Please select an entity type', 'error');
+                entityTypeSelect.focus();
+                return;
+            }
+            
+            // Disable button during save
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            
+            try {
+                log(`Updating device: ${deviceId}`);
+                
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}`), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: deviceName,
+                        area: areaName,
+                        area_id: areaId,
+                        entity_type: entityType,
+                        icon: icon || null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Device updated: ${deviceId}`);
+                    showAlert(`Device "${deviceName}" updated successfully!`, 'success');
+                    closeEditDeviceDialog();
+                    
+                    // Save UI state before reload
+                    saveUIState();
+                    
+                    // Reload to show the changes
+                    await loadLearnedData();
+                } else {
+                    throw new Error(result.error || 'Failed to update device');
+                }
+                
+            } catch (error) {
+                console.error('Error updating device:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to update device: ${error.message}`, 'error');
+                
+                // Re-enable button
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
+        }
+
+        async function confirmDeleteDevice(deviceId, deviceName) {
+            const deleteCommands = document.getElementById('deleteCommandsCheckbox').checked;
+            
+            try {
+                log(`Deleting managed device: ${deviceId} (delete commands: ${deleteCommands})`);
+                
+                const response = await fetch(getApiUrl(`/api/devices/managed/${deviceId}`), {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        delete_commands: deleteCommands
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log(`✅ Device deleted: ${deviceId}`);
+                    if (deleteCommands) {
+                        showAlert(`Device "${deviceName}" and all commands deleted successfully!`, 'success');
+                    } else {
+                        showAlert(`Device "${deviceName}" deleted! Learned commands preserved.`, 'success');
+                    }
+                    
+                    closeDeleteDeviceDialog();
+                    
+                    // Save UI state before reload
+                    saveUIState();
+                    
+                    // Reload to update the UI
+                    await loadLearnedData();
+                } else {
+                    throw new Error(result.error || 'Failed to delete device');
+                }
+                
+            } catch (error) {
+                console.error('Error deleting device:', error);
+                log(`❌ Error: ${error.message}`, 'error');
+                showAlert(`Failed to delete device: ${error.message}`, 'error');
+            }
         }
 
         function closeAddDialog() {
@@ -1784,10 +2601,48 @@
 
         // populateAddDialogDropdowns function removed - no longer needed with new dialog structure
 
-        function setupAddDialogEventListeners() {
-            const selectedAreaName = document.getElementById('selectedAreaName');
+        async function setupAddDialogEventListeners() {
+            const targetAreaSelect = document.getElementById('targetArea');
+            const entityTypeSelect = document.getElementById('entityType');
             const deviceNameInput = document.getElementById('deviceName');
             const commandNameInput = document.getElementById('commandName');
+            const broadlinkArea = document.getElementById('selectedBroadlinkArea').value;
+            
+            // Load areas from API
+            try {
+                const response = await fetch(getApiUrl('/api/areas'));
+                const areas = await response.json();
+                
+                // Clear loading option
+                targetAreaSelect.innerHTML = '';
+                
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select Area --';
+                targetAreaSelect.appendChild(defaultOption);
+                
+                // Add areas
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id;
+                    option.textContent = area.name;
+                    option.dataset.areaName = area.name;
+                    targetAreaSelect.appendChild(option);
+                });
+                
+                // Pre-select Broadlink's area as default
+                const broadlinkOption = Array.from(targetAreaSelect.options).find(opt => 
+                    opt.value.toLowerCase() === broadlinkArea.toLowerCase()
+                );
+                if (broadlinkOption) {
+                    broadlinkOption.selected = true;
+                }
+                
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                targetAreaSelect.innerHTML = '<option value="">Error loading areas</option>';
+            }
             
             // Function to convert names to HA standard (e.g., "Tony's Ceiling Fan" -> "tony_s_ceiling_fan")
             function convertToHAFormat(name) {
@@ -1800,47 +2655,74 @@
             
             // Update preview when any field changes
             function updatePreview() {
-                const area = selectedAreaName.value;
+                const selectedOption = targetAreaSelect.options[targetAreaSelect.selectedIndex];
+                const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+                const areaId = targetAreaSelect.value;
+                const entityType = entityTypeSelect.value;
                 const deviceName = deviceNameInput.value.trim();
                 const commandName = commandNameInput.value.trim();
                 const fullDeviceNameEl = document.getElementById('fullDeviceName');
                 const fullCommandNameEl = document.getElementById('fullCommandName');
+                const previewEntityTypeEl = document.getElementById('previewEntityType');
+                const previewAreaEl = document.getElementById('previewArea');
+                
+                // Update entity type preview
+                if (entityType) {
+                    const typeNames = {
+                        'light': 'Light',
+                        'fan': 'Fan',
+                        'switch': 'Switch',
+                        'media_player': 'Media Player',
+                        'climate': 'Climate (AC/Heater)',
+                        'cover': 'Cover (Blinds/Curtains)'
+                    };
+                    previewEntityTypeEl.textContent = typeNames[entityType] || entityType;
+                    previewEntityTypeEl.style.color = '#3b82f6';
+                } else {
+                    previewEntityTypeEl.textContent = 'Auto-detect';
+                    previewEntityTypeEl.style.color = '#9ca3af';
+                }
+                
+                // Update area preview
+                if (areaName) {
+                    previewAreaEl.textContent = areaName;
+                    previewAreaEl.style.color = '#3b82f6';
+                } else {
+                    previewAreaEl.textContent = 'Not selected';
+                    previewAreaEl.style.color = '#9ca3af';
+                }
                 
                 // Update device name preview
-                if (area && deviceName) {
+                if (areaId && deviceName) {
                     const convertedDeviceName = convertToHAFormat(deviceName);
-                    const fullDeviceName = `${area}_${convertedDeviceName}`;
+                    const fullDeviceName = `${areaId}_${convertedDeviceName}`;
                     fullDeviceNameEl.textContent = fullDeviceName;
                     fullDeviceNameEl.style.color = '#3b82f6';
-                } else if (area && !deviceName) {
-                    fullDeviceNameEl.textContent = `${area}_[enter device name]`;
+                } else if (areaId && !deviceName) {
+                    fullDeviceNameEl.textContent = `${areaId}_[enter device name]`;
                     fullDeviceNameEl.style.color = '#9ca3af';
-                } else if (!area && deviceName) {
+                } else if (!areaId && deviceName) {
                     const convertedDeviceName = convertToHAFormat(deviceName);
                     fullDeviceNameEl.textContent = `[area]_${convertedDeviceName}`;
                     fullDeviceNameEl.style.color = '#9ca3af';
                 } else {
-                    fullDeviceNameEl.textContent = 'Enter device name';
+                    fullDeviceNameEl.textContent = 'Select area and enter device name';
                     fullDeviceNameEl.style.color = '#9ca3af';
                 }
                 
                 // Update command name preview
-                if (area && deviceName && commandName) {
-                    const convertedDeviceName = convertToHAFormat(deviceName);
+                if (commandName) {
                     const convertedCommandName = convertToHAFormat(commandName);
-                    const fullCommand = `${area}_${convertedDeviceName}_${convertedCommandName}`;
-                    fullCommandNameEl.textContent = fullCommand;
+                    fullCommandNameEl.textContent = convertedCommandName;
                     fullCommandNameEl.style.color = '#3b82f6';
-                } else if (commandName) {
-                    const convertedCommandName = convertToHAFormat(commandName);
-                    fullCommandNameEl.textContent = `[device]_${convertedCommandName}`;
-                    fullCommandNameEl.style.color = '#9ca3af';
                 } else {
                     fullCommandNameEl.textContent = 'Enter command name';
                     fullCommandNameEl.style.color = '#9ca3af';
                 }
             }
             
+            targetAreaSelect.addEventListener('change', updatePreview);
+            entityTypeSelect.addEventListener('change', updatePreview);
             deviceNameInput.addEventListener('input', updatePreview);
             commandNameInput.addEventListener('input', updatePreview);
             
@@ -1850,13 +2732,17 @@
 
         async function startLearning() {
             const selectedEntityId = document.getElementById('selectedEntityId');
-            const selectedAreaName = document.getElementById('selectedAreaName');
+            const targetAreaSelect = document.getElementById('targetArea');
+            const entityTypeSelect = document.getElementById('entityType');
             const deviceNameInput = document.getElementById('deviceName');
             const commandNameInput = document.getElementById('commandName');
             const commandTypeSelect = document.getElementById('commandType');
             
             const broadlinkEntityId = selectedEntityId.value;
-            const areaValue = selectedAreaName.value;
+            const selectedOption = targetAreaSelect.options[targetAreaSelect.selectedIndex];
+            const areaId = targetAreaSelect.value;
+            const areaName = selectedOption ? selectedOption.dataset.areaName : '';
+            const entityTypeHint = entityTypeSelect.value; // Empty string if auto-detect
             const deviceNameRaw = deviceNameInput.value.trim();
             const commandNameRaw = commandNameInput.value.trim();
             const commandType = commandTypeSelect.value;
@@ -1876,6 +2762,11 @@
             // Validation
             if (!broadlinkEntityId) {
                 showAlert('No Broadlink device selected', 'error');
+                return;
+            }
+            
+            if (!areaId || !areaName) {
+                showAlert('Please select an area', 'error');
                 return;
             }
             
@@ -1902,9 +2793,9 @@
             }
             
             // Create the full device name: area_device
-            const fullDeviceName = `${areaValue}_${deviceName}`;
+            const fullDeviceName = `${areaId}_${deviceName}`;
             
-            log(`Starting to learn new command: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()})`);
+            log(`Starting to learn new command: ${fullDeviceName}_${commandName} (${commandType.toUpperCase()}) in area "${areaName}"`);
             
             // Close the add command dialog
             closeAddDialog();
@@ -1941,35 +2832,47 @@
                             <strong>Learning request sent to device.</strong>
                         </p>
                         ${instructionText}
-                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
-                            <strong>⚠️ Important:</strong> Check Home Assistant notifications (🔔) to see if learning succeeded or timed out. 
-                            This dialog cannot detect timeouts automatically.
+                        <div style="background: var(--ha-background-color); border: 1px solid var(--ha-border-color); padding: 12px; border-radius: 8px; margin-bottom: 16px; display: flex; gap: 8px;">
+                            <i class="mdi mdi-alert" style="font-size: 20px; color: var(--ha-warning-color); flex-shrink: 0;"></i>
+                            <div><strong>Important:</strong> Check Home Assistant notifications to see if learning succeeded or timed out. 
+                            This dialog cannot detect timeouts automatically.</div>
                         </div>
                         <p style="font-size: 14px; color: var(--ha-text-secondary-color);">
                             Command: <code style="background: var(--ha-background-color); padding: 2px 6px; border-radius: 4px;">${fullDeviceName}_${commandName}</code>
                         </p>
                         <div id="learningStatus" style="margin-top: 16px; padding: 12px; background: var(--ha-background-color); border: 1px solid var(--ha-border-color); border-radius: 8px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 16px; height: 16px; border: 2px solid var(--ha-primary-color); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                <span>Waiting for device response...</span>
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-text-secondary-color);">
+                                <div class="spinner"></div>
+                                <span>Waiting for learning to complete...</span>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" id="cancelLearningBtn" onclick="window.learningController?.abort(); this.closest('.modal-overlay').remove();">Cancel</button>
+                        <button class="btn btn-secondary" id="cancelLearningBtn">Cancel</button>
                         <button class="btn btn-primary" id="doneLearningBtn" disabled style="opacity: 0.5; cursor: not-allowed;">
-                            <span id="doneBtnText">Please wait...</span>
+                            <span id="doneBtnText">Waiting...</span>
                         </button>
                     </div>
                 </div>
             `;
+            
             document.body.appendChild(overlay);
             
+            // Set up cancel button
+            const cancelBtn = document.getElementById('cancelLearningBtn');
+            cancelBtn.addEventListener('click', () => {
+                if (window.learningController) {
+                    window.learningController.abort();
+                }
+                overlay.remove();
+                log('Learning cancelled by user');
+            });
+            
+            // Create an AbortController for this learning session
+            window.learningController = new AbortController();
+            
             try {
-                // Set a timeout for the API call (RF can take 30+ seconds)
-                window.learningController = new AbortController();
-                const timeoutId = setTimeout(() => window.learningController.abort(), 40000); // 40 second timeout
-                
+                // Send the learn command
                 const response = await fetch(getApiUrl('/api/learn'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1977,58 +2880,52 @@
                         entity_id: broadlinkEntityId,
                         device: fullDeviceName,
                         command: commandName,
-                        command_type: commandType
+                        command_type: commandType,
+                        entity_type_hint: entityTypeHint || null,
+                        area_name: areaName || null
                     }),
                     signal: window.learningController.signal
                 });
                 
-                clearTimeout(timeoutId);
                 const result = await response.json();
                 
-                // Update the status in the existing modal
                 const statusDiv = document.getElementById('learningStatus');
                 const doneBtn = document.getElementById('doneLearningBtn');
                 const doneBtnText = document.getElementById('doneBtnText');
-                const cancelBtn = document.getElementById('cancelLearningBtn');
                 
-                if (statusDiv && doneBtn) {
-                    if (result.success) {
-                        log(`✅ Learning API call completed, verifying command was learned...`);
-                        
-                        // Show checking status
+                if (result.success) {
+                    log(`Learning request sent successfully`);
+                    
+                    // Wait a bit for the command to be saved
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    // Check if the command was actually learned by fetching commands
+                    const checkResponse = await fetch(getApiUrl('/api/learned-devices'));
+                    const commandsData = await checkResponse.json();
+                    
+                    // Look for our command in the learned commands
+                    let commandFound = false;
+                    for (const cmd of commandsData.commands || []) {
+                        if (cmd.device_name === fullDeviceName && cmd.command === commandName) {
+                            commandFound = true;
+                            break;
+                        }
+                    }
+                    
+                    if (commandFound) {
+                        log(`✅ Command learned successfully: ${fullDeviceName}_${commandName}`);
                         statusDiv.innerHTML = `
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 16px; height: 16px; border: 2px solid var(--ha-primary-color); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                <span>Verifying command was learned...</span>
-                            </div>
-                        `;
-                        
-                        // Wait a moment for HA to save the command
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        // Reload learned data to check if command exists
-                        const learnedResponse = await fetch(getApiUrl('/api/learned-devices'));
-                        const learnedData = await learnedResponse.json();
-                        
-                        // Check if the command exists in the learned commands
-                        const commandExists = learnedData.commands?.some(cmd => 
-                            cmd.device_name === fullDeviceName && cmd.command === commandName
-                        );
-                        
-                        if (commandExists) {
-                            log(`✅ SUCCESS: Command ${fullDeviceName}_${commandName} was learned successfully!`);
-                            statusDiv.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-success-color);">
-                                    <span style="font-size: 20px;">✅</span>
+                            <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-success-color);">
+                                <i class="mdi mdi-check-circle" style="font-size: 20px;"></i>
                                     <span><strong>Success!</strong> Command was learned and saved.</span>
                                 </div>
                             `;
                             doneBtnText.textContent = 'Done';
                         } else {
-                            log(`⚠️ WARNING: Command not found in learned commands. May have timed out.`);
+                            log(`WARNING: Command not found in learned commands. May have timed out.`);
                             statusDiv.innerHTML = `
                                 <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-warning-color);">
-                                    <span style="font-size: 20px;">⚠️</span>
+                                    <i class="mdi mdi-alert" style="font-size: 20px;"></i>
                                     <span><strong>Not learned.</strong> The command was not saved. It may have timed out or no signal was received.</span>
                                 </div>
                             `;
@@ -2052,7 +2949,7 @@
                         log(`❌ Learning failed: ${errorMsg}`, 'error');
                         statusDiv.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
-                                <span style="font-size: 20px;">❌</span>
+                                <i class="mdi mdi-close-circle" style="font-size: 20px;"></i>
                                 <span><strong>Failed:</strong> ${errorMsg}</span>
                             </div>
                         `;
@@ -2069,7 +2966,6 @@
                         // Hide cancel button
                         if (cancelBtn) cancelBtn.style.display = 'none';
                     }
-                }
             } catch (error) {
                 const statusDiv = document.getElementById('learningStatus');
                 const doneBtn = document.getElementById('doneLearningBtn');
@@ -2090,7 +2986,7 @@
                     if (statusDiv && doneBtn) {
                         statusDiv.innerHTML = `
                             <div style="display: flex; align-items: center; gap: 8px; color: var(--ha-error-color);">
-                                <span style="font-size: 20px;">❌</span>
+                                <i class="mdi mdi-close-circle" style="font-size: 20px;"></i>
                                 <span><strong>Error:</strong> ${errorMsg}</span>
                             </div>
                         `;
@@ -2340,7 +3236,7 @@ fan:
 fan: !include broadlink_manager/entities.yaml
 input_boolean: !include broadlink_manager/helpers.yaml
 input_select: !include broadlink_manager/helpers.yaml</pre>
-                                <small style="opacity: 0.95;">⚠️ Only if you DON'T have these sections yet</small>
+                                <small style="opacity: 0.95; display: flex; align-items: center; gap: 4px;"><i class="mdi mdi-alert" style="font-size: 14px;"></i> Only if you DON'T have these sections yet</small>
                             </div>
                             
                                 <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
@@ -2359,57 +3255,6 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
                 </div>
             `;
             document.body.appendChild(overlay);
-        }
-
-        async function handleAutoAssignAreas(button) {
-            const originalText = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = 'Assigning...';
-            
-            try {
-                log('Auto-assigning entities to areas...');
-                
-                const response = await fetch(getApiUrl('/api/entities/assign-areas'), {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Assignment failed: ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    const assigned = result.results.assigned;
-                    const skipped = result.results.skipped;
-                    const failed = result.results.failed;
-                    
-                    if (assigned > 0) {
-                        log(`Assigned ${assigned} entities to areas!`);
-                        showAlert(`Successfully assigned ${assigned} entities to areas!`, 'success');
-                    }
-                    
-                    if (skipped > 0) {
-                        log(`${skipped} entities skipped (not in registry yet)`);
-                        showAlert(`${skipped} entities not ready yet. Restart HA first, then try again.`, 'warning');
-                    }
-                    
-                    if (failed > 0) {
-                        log(`${failed} entities failed to assign`);
-                    }
-                } else {
-                    throw new Error(result.message || 'Assignment failed');
-                }
-                
-            } catch (error) {
-                console.error('Error assigning areas:', error);
-                log(`Error: ${error.message}`, 'error');
-                showAlert(`Failed to assign areas: ${error.message}`, 'error');
-            } finally {
-                button.disabled = false;
-                button.innerHTML = originalText;
-            }
         }
 
         function showAlert(message, type = 'error') {
@@ -2432,6 +3277,58 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
             }, 5000);
         }
 
+        // Reusable confirmation modal that returns a Promise
+        function showConfirmModal(title, message, confirmText = 'OK', cancelText = 'Cancel', confirmStyle = 'primary') {
+            return new Promise((resolve) => {
+                // Remove any existing confirmation modals
+                const existingModals = document.querySelectorAll('.confirmation-modal-overlay');
+                existingModals.forEach(modal => modal.remove());
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay confirmation-modal-overlay';
+                overlay.innerHTML = `
+                    <div class="modal-dialog" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3>${escapeHtml(title)}</h3>
+                            <button class="modal-close" data-action="cancel">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="margin: 0; color: var(--ha-text-primary-color); white-space: pre-line;">${escapeHtml(message)}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" data-action="cancel">${escapeHtml(cancelText)}</button>
+                            <button class="btn btn-${confirmStyle}" data-action="confirm">${escapeHtml(confirmText)}</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Handle button clicks
+                overlay.addEventListener('click', (e) => {
+                    const action = e.target.getAttribute('data-action');
+                    if (action === 'confirm') {
+                        overlay.remove();
+                        resolve(true);
+                    } else if (action === 'cancel') {
+                        overlay.remove();
+                        resolve(false);
+                    } else if (e.target === overlay) {
+                        // Click on overlay background
+                        overlay.remove();
+                        resolve(false);
+                    }
+                });
+                
+                document.body.appendChild(overlay);
+            });
+        }
+
+        // Helper function to escape HTML for safe display
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function log(message, level = 'info') {
             const logArea = document.getElementById('logArea');
             const timestamp = new Date().toLocaleTimeString();
@@ -2442,11 +3339,56 @@ input_select: !include broadlink_manager/helpers.yaml</pre>
             logArea.scrollTop = logArea.scrollHeight;
         }
 
+        // Helper function to view managed devices (call from console)
+        async function viewManagedDevices() {
+            try {
+                const response = await fetch(getApiUrl('/api/devices/managed'));
+                const devices = await response.json();
+                console.log('=== MANAGED DEVICES ===');
+                console.log(devices);
+                Object.entries(devices).forEach(([id, device]) => {
+                    console.log(`\n📱 ${device.name} (${id})`);
+                    console.log(`   Type: ${device.entity_type}`);
+                    console.log(`   Area: ${device.area}`);
+                    console.log(`   Broadlink: ${device.broadlink_entity}`);
+                    console.log(`   Commands: ${Object.keys(device.commands || {}).length}`);
+                });
+                return devices;
+            } catch (error) {
+                console.error('Error fetching devices:', error);
+            }
+        }
+        
+        // Make it globally available
+        window.viewManagedDevices = viewManagedDevices;
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
             try {
                 initDarkModeToggle();
                 await loadLearnedData();
+                
+                // Set up event delegation for convert buttons
+                document.body.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('convert-device-btn') || 
+                        e.target.closest('.convert-device-btn')) {
+                        const btn = e.target.classList.contains('convert-device-btn') ? 
+                            e.target : e.target.closest('.convert-device-btn');
+                        
+                        e.stopPropagation();
+                        
+                        const devicePart = btn.dataset.devicePart;
+                        // Decode HTML entities before parsing JSON
+                        const commandsJson = btn.dataset.commands.replace(/&quot;/g, '"');
+                        const commands = JSON.parse(commandsJson);
+                        const broadlinkEntity = btn.dataset.broadlinkEntity;
+                        
+                        convertToManagedDevice(devicePart, commands, broadlinkEntity);
+                    }
+                });
+                
+                // Log helper message
+                console.log('💡 Tip: Call viewManagedDevices() in console to see created devices');
             } catch (error) {
                 console.error('Error initializing application:', error);
                 log('❌ Failed to initialize application', 'error');

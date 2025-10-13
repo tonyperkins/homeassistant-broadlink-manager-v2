@@ -24,15 +24,42 @@ from entity_detector import EntityDetector
 from entity_generator import EntityGenerator
 from area_manager import AreaManager
 from config_loader import ConfigLoader
+from migration_manager import MigrationManager
+from device_manager import DeviceManager
 
 logger = logging.getLogger(__name__)
+
+class IngressMiddleware:
+    """Middleware to handle Home Assistant ingress paths"""
+    def __init__(self, app):
+        self.app = app
+    
+    def __call__(self, environ, start_response):
+        # Get the ingress path from the header
+        ingress_path = environ.get('HTTP_X_INGRESS_PATH', '')
+        
+        if ingress_path:
+            # Set SCRIPT_NAME to the ingress path
+            environ['SCRIPT_NAME'] = ingress_path
+            
+            # Remove ingress path from PATH_INFO if present
+            path_info = environ.get('PATH_INFO', '')
+            if path_info.startswith(ingress_path):
+                environ['PATH_INFO'] = path_info[len(ingress_path):] or '/'
+        
+        return self.app(environ, start_response)
 
 class BroadlinkWebServer:
     """Web server for Broadlink device management"""
     
     def __init__(self, port: int = 8099, config_loader: Optional[ConfigLoader] = None):
         self.port = port
-        self.app = Flask(__name__, template_folder='templates')
+        # Use relative static path to work with Home Assistant ingress
+        self.app = Flask(__name__, template_folder='templates', static_folder='static')
+        
+        # Apply custom ingress middleware
+        self.app.wsgi_app = IngressMiddleware(self.app.wsgi_app)
+        
         CORS(self.app)
         
         # Load configuration using ConfigLoader
@@ -54,12 +81,21 @@ class BroadlinkWebServer:
         self.storage_manager = StorageManager()
         self.entity_detector = EntityDetector()
         self.area_manager = AreaManager(self.ha_url, self.ha_token)
+        self.device_manager = DeviceManager(self.config_loader.get_broadlink_manager_path())
+        self.migration_manager = MigrationManager(
+            self.storage_manager,
+            self.entity_detector,
+            self.storage_path
+        )
         
         self._setup_routes()
         # Initialize WebSocket variables
         self.ws_connection = None
         self.ws_message_id = 0
         self.ws_notifications = []
+        
+        # Perform automatic migration check on startup (async)
+        self._schedule_migration_check()
     
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -67,6 +103,11 @@ class BroadlinkWebServer:
         def index():
             """Serve the main web interface"""
             return render_template('index.html')
+        
+        @self.app.route('/static/<path:filename>')
+        def serve_static(filename):
+            """Explicitly serve static files to work with ingress"""
+            return send_from_directory(self.app.static_folder, filename)
         
         @self.app.route('/api/areas')
         def get_areas():
@@ -426,11 +467,12 @@ class BroadlinkWebServer:
                 device_name = data.get('device_name')
                 commands = data.get('commands')
                 area_name = data.get('area_name')
+                broadlink_entity = data.get('broadlink_entity')  # NEW: which Broadlink device sends these commands
                 
                 if not device_name or not commands:
                     return jsonify({"error": "Missing device_name or commands"}), 400
                 
-                detected = self.entity_detector.group_commands_by_entity(device_name, commands, area_name)
+                detected = self.entity_detector.group_commands_by_entity(device_name, commands, area_name, broadlink_entity)
                 return jsonify({
                     'success': True,
                     'detected_entities': detected,
@@ -442,23 +484,40 @@ class BroadlinkWebServer:
         
         @self.app.route('/api/entities/generate', methods=['POST'])
         def generate_entities():
-            """Generate YAML entity files"""
+            """Generate YAML entity files and reload Broadlink configuration"""
             try:
                 data = request.get_json()
-                device_id = data.get('device_id')
+                device_id = data.get('device_id')  # Optional: for backward compatibility
                 
-                if not device_id:
-                    return jsonify({"error": "Missing device_id"}), 400
+                logger.info("🔄 Manual entity generation triggered...")
                 
                 # Get all Broadlink commands
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 broadlink_commands = loop.run_until_complete(self._get_all_broadlink_commands())
-                loop.close()
                 
-                # Generate entities
+                # Sync devices.json to metadata.json
+                self._sync_devices_to_metadata()
+                
+                # Generate entities (device_id is now optional - entities specify their own broadlink_entity)
                 generator = EntityGenerator(self.storage_manager, device_id)
                 result = generator.generate_all(broadlink_commands)
+                
+                if result.get('success'):
+                    logger.info(f"✅ Generated {result.get('entities_count', 0)} entities")
+                    
+                    # Reload Broadlink configuration
+                    logger.info("🔄 Reloading Broadlink configuration...")
+                    reload_success = loop.run_until_complete(self._reload_broadlink_config())
+                    
+                    if reload_success:
+                        result['config_reloaded'] = True
+                        result['message'] = f"{result.get('message', '')} Configuration reloaded successfully."
+                    else:
+                        result['config_reloaded'] = False
+                        result['message'] = f"{result.get('message', '')} Warning: Configuration reload failed."
+                
+                loop.close()
                 
                 return jsonify(result)
             except Exception as e:
@@ -506,34 +565,285 @@ class BroadlinkWebServer:
                 logger.error(f"Error reloading config: {e}")
                 return jsonify({"error": str(e)}), 500
         
-        @self.app.route('/api/entities/assign-areas', methods=['POST'])
-        def assign_areas():
-            """Assign entities to areas automatically"""
+        # Migration Management Routes
+        
+        @self.app.route('/api/migration/status')
+        def get_migration_status():
+            """Get current migration status"""
             try:
-                # Get all entities from metadata
-                entities = self.storage_manager.get_all_entities()
-                
-                if not entities:
-                    return jsonify({
-                        "success": False,
-                        "message": "No entities found to assign"
-                    })
-                
-                # Assign areas asynchronously
+                status = self.migration_manager.get_migration_status()
+                return jsonify(status)
+            except Exception as e:
+                logger.error(f"Error getting migration status: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/migration/check', methods=['POST'])
+        def check_migration():
+            """Check if migration is needed and perform it"""
+            try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                results = loop.run_until_complete(self.area_manager.assign_entities_to_areas(entities))
+                
+                devices = loop.run_until_complete(self._get_broadlink_devices())
+                result = loop.run_until_complete(self.migration_manager.check_and_migrate(devices))
+                
                 loop.close()
+                
+                return jsonify(result)
+            except Exception as e:
+                logger.error(f"Error checking migration: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/migration/force', methods=['POST'])
+        def force_migration():
+            """Force migration even if metadata exists"""
+            try:
+                data = request.get_json() or {}
+                overwrite = data.get('overwrite', False)
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                devices = loop.run_until_complete(self._get_broadlink_devices())
+                result = loop.run_until_complete(self.migration_manager.force_migration(devices, overwrite))
+                
+                loop.close()
+                
+                return jsonify(result)
+            except Exception as e:
+                logger.error(f"Error forcing migration: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        # Device Management Endpoints
+        @self.app.route('/api/devices/managed', methods=['GET'])
+        def get_managed_devices():
+            """Get all managed devices"""
+            try:
+                devices = self.device_manager.get_all_devices()
+                return jsonify(devices)
+            except Exception as e:
+                logger.error(f"Error getting managed devices: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>', methods=['GET'])
+        def get_managed_device(device_id):
+            """Get a specific managed device"""
+            try:
+                device = self.device_manager.get_device(device_id)
+                if device:
+                    return jsonify(device)
+                return jsonify({"error": "Device not found"}), 404
+            except Exception as e:
+                logger.error(f"Error getting device {device_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed', methods=['POST'])
+        def create_managed_device():
+            """Create a new managed device"""
+            try:
+                data = request.get_json()
+                device_name = data.get('device_name')
+                area_id = data.get('area_id')
+                area_name = data.get('area_name')
+                entity_type = data.get('entity_type')
+                icon = data.get('icon')
+                broadlink_entity = data.get('broadlink_entity')
+                
+                if not all([device_name, area_id, entity_type, broadlink_entity]):
+                    return jsonify({"error": "Missing required fields"}), 400
+                
+                # Generate device ID
+                device_id = self.device_manager.generate_device_id(area_id, device_name)
+                
+                # Create device data
+                device_data = {
+                    'name': device_name,
+                    'full_name': f"{area_name} {device_name}" if area_name else device_name,
+                    'area': area_name,
+                    'area_id': area_id,
+                    'entity_type': entity_type,
+                    'icon': icon,
+                    'broadlink_entity': broadlink_entity
+                }
+                
+                if self.device_manager.create_device(device_id, device_data):
+                    return jsonify({
+                        "success": True,
+                        "device_id": device_id,
+                        "device": self.device_manager.get_device(device_id)
+                    })
+                
+                return jsonify({"error": "Failed to create device"}), 500
+                
+            except Exception as e:
+                logger.error(f"Error creating device: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>', methods=['PUT'])
+        def update_managed_device(device_id):
+            """Update a managed device"""
+            try:
+                data = request.get_json()
+                
+                if self.device_manager.update_device(device_id, data):
+                    return jsonify({
+                        "success": True,
+                        "device": self.device_manager.get_device(device_id)
+                    })
+                
+                return jsonify({"error": "Device not found"}), 404
+                
+            except Exception as e:
+                logger.error(f"Error updating device {device_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>', methods=['DELETE'])
+        def delete_managed_device(device_id):
+            """Delete a managed device"""
+            try:
+                data = request.get_json() or {}
+                delete_commands = data.get('delete_commands', False)
+                
+                # Get device info before deleting
+                device = self.device_manager.get_device(device_id)
+                if not device:
+                    return jsonify({"error": "Device not found"}), 404
+                
+                # Delete the device from device manager
+                if self.device_manager.delete_device(device_id):
+                    logger.info(f"Deleted device: {device_id}")
+                    
+                    # If user wants to delete commands too, delete them from HA storage
+                    if delete_commands and device.get('commands'):
+                        logger.info(f"Also deleting {len(device['commands'])} commands for device {device_id}")
+                        # TODO: Implement command deletion from HA storage
+                        # This would require calling the /api/delete endpoint for each command
+                        # For now, just log it
+                        logger.warning("Command deletion from HA storage not yet implemented")
+                    
+                    return jsonify({
+                        "success": True,
+                        "deleted_commands": delete_commands
+                    })
+                
+                return jsonify({"error": "Failed to delete device"}), 500
+                
+            except Exception as e:
+                logger.error(f"Error deleting device {device_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>/commands', methods=['POST'])
+        def add_device_command(device_id):
+            """Add a command to a device by learning it from Broadlink"""
+            try:
+                data = request.get_json()
+                command_name = data.get('command_name')
+                command_type = data.get('command_type', 'rf')
+                broadlink_entity = data.get('broadlink_entity')
+                
+                if not command_name:
+                    return jsonify({"error": "Missing command_name"}), 400
+                
+                if not broadlink_entity:
+                    return jsonify({"error": "Missing broadlink_entity"}), 400
+                
+                # Get the device to construct the full device name
+                device = self.device_manager.get_device(device_id)
+                if not device:
+                    return jsonify({"error": "Device not found"}), 404
+                
+                # Learn the command using the existing learn endpoint logic
+                logger.info(f"Learning command '{command_name}' for device '{device_id}' using {broadlink_entity}")
+                
+                # Prepare data for learning
+                learn_data = {
+                    'entity_id': broadlink_entity,
+                    'device': device_id,  # Use device_id as the device name
+                    'command': command_name,
+                    'command_type': command_type
+                }
+                
+                # Call the async learn_command method
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(self._learn_command(learn_data))
+                loop.close()
+                
+                if result.get('success'):
+                    # Add the command to the device metadata
+                    command_data = {
+                        'command_type': command_type,
+                        'learned_at': result.get('learned_at')
+                    }
+                    self.device_manager.add_command(device_id, command_name, command_data)
+                    
+                    return jsonify({
+                        "success": True,
+                        "device": self.device_manager.get_device(device_id)
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": result.get('error', 'Failed to learn command')
+                    }), 400
+                
+            except Exception as e:
+                logger.error(f"Error adding command to device {device_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>/import-commands', methods=['POST'])
+        def import_device_commands(device_id):
+            """Import existing commands to a device without re-learning"""
+            try:
+                data = request.get_json()
+                commands = data.get('commands', [])
+                
+                if not commands:
+                    return jsonify({"error": "No commands provided"}), 400
+                
+                device = self.device_manager.get_device(device_id)
+                if not device:
+                    return jsonify({"error": "Device not found"}), 404
+                
+                logger.info(f"Importing {len(commands)} commands to device {device_id}")
+                
+                # Add each command to the device metadata
+                for cmd in commands:
+                    command_name = cmd.get('command_name')
+                    command_type = cmd.get('command_type', 'rf')
+                    
+                    if command_name:
+                        command_data = {
+                            'command_type': command_type,
+                            'imported': True
+                        }
+                        self.device_manager.add_command(device_id, command_name, command_data)
+                        logger.info(f"Imported command: {command_name} ({command_type})")
                 
                 return jsonify({
                     "success": True,
-                    "message": f"Assigned {results['assigned']} entities to areas",
-                    "results": results
+                    "imported_count": len(commands),
+                    "device": self.device_manager.get_device(device_id)
                 })
                 
             except Exception as e:
-                logger.error(f"Error assigning areas: {e}")
+                logger.error(f"Error importing commands to device {device_id}: {e}")
                 return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/devices/managed/<device_id>/commands/<command_name>', methods=['DELETE'])
+        def delete_device_command(device_id, command_name):
+            """Delete a command from a device"""
+            try:
+                if self.device_manager.delete_command(device_id, command_name):
+                    return jsonify({"success": True})
+                
+                return jsonify({"error": "Device or command not found"}), 404
+                
+            except Exception as e:
+                logger.error(f"Error deleting command from device {device_id}: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        # Auto-assign areas endpoint removed - areas are now explicitly selected during command learning
     
     async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make a request to Home Assistant API"""
@@ -1037,8 +1347,15 @@ class BroadlinkWebServer:
             device = data.get('device')
             command = data.get('command')
             command_type = data.get('command_type', 'ir')
+            entity_type_hint = data.get('entity_type_hint')
+            area_name = data.get('area_name')
             
-            logger.info(f"Starting learning process for command: {command}")
+            log_msg = f"Starting learning process for command: {command}"
+            if entity_type_hint:
+                log_msg += f" (entity type hint: {entity_type_hint})"
+            if area_name:
+                log_msg += f" in area: {area_name}"
+            logger.info(log_msg)
             
             # First, let's check what services are available
             logger.info("Checking available services...")
@@ -1458,6 +1775,120 @@ class BroadlinkWebServer:
             logger.error(f"Error sending command: {e}")
             return {'success': False, 'error': str(e)}
     
+    def _sync_devices_to_metadata(self):
+        """Convert devices.json format to metadata.json format for entity generator"""
+        try:
+            devices = self.device_manager.get_all_devices()
+            
+            for device_id, device_data in devices.items():
+                # Map device commands to entity commands
+                entity_commands = self._map_device_commands_to_entity_commands(
+                    device_data.get('commands', {}),
+                    device_data.get('entity_type')
+                )
+                
+                if not entity_commands:
+                    logger.warning(f"Device {device_id} has no mappable commands, skipping")
+                    continue
+                
+                # Create entity metadata
+                entity_metadata = {
+                    'device': device_id,
+                    'name': device_data.get('full_name', device_data.get('name')),
+                    'friendly_name': device_data.get('full_name', device_data.get('name')),
+                    'entity_type': device_data.get('entity_type'),
+                    'commands': entity_commands,
+                    'broadlink_entity': device_data.get('broadlink_entity'),
+                    'icon': device_data.get('icon'),
+                    'enabled': True
+                }
+                
+                # Save to metadata
+                self.storage_manager.save_entity(device_id, entity_metadata)
+            
+            logger.info(f"Synced {len(devices)} devices to metadata")
+            
+        except Exception as e:
+            logger.error(f"Error syncing devices to metadata: {e}")
+    
+    def _map_device_commands_to_entity_commands(self, device_commands: dict, entity_type: str) -> dict:
+        """Map device command names to standardized entity command names"""
+        entity_commands = {}
+        
+        # Command name mappings
+        on_commands = ['power_on', 'turn_on', 'on', 'light_on']
+        off_commands = ['power_off', 'turn_off', 'off', 'light_off']
+        toggle_commands = ['toggle', 'power_toggle', 'light_toggle']
+        
+        # For climate and cover entities, pass through all commands as-is
+        # since they have specific command patterns (temperature_*, hvac_mode_*, position_*, etc.)
+        if entity_type in ['climate', 'cover']:
+            for cmd_name in device_commands.keys():
+                cmd_lower = cmd_name.lower()
+                
+                # Still map common on/off commands
+                if cmd_lower in on_commands:
+                    entity_commands['turn_on'] = cmd_name
+                elif cmd_lower in off_commands:
+                    entity_commands['turn_off'] = cmd_name
+                elif cmd_lower == 'open':
+                    entity_commands['open'] = cmd_name
+                elif cmd_lower == 'close':
+                    entity_commands['close'] = cmd_name
+                elif cmd_lower == 'stop':
+                    entity_commands['stop'] = cmd_name
+                else:
+                    # Pass through all other commands as-is (temperature_*, hvac_mode_*, etc.)
+                    entity_commands[cmd_name] = cmd_name
+        else:
+            # For other entity types, use standard mapping
+            for cmd_name in device_commands.keys():
+                cmd_lower = cmd_name.lower()
+                
+                if cmd_lower in on_commands:
+                    entity_commands['turn_on'] = cmd_name
+                elif cmd_lower in off_commands:
+                    entity_commands['turn_off'] = cmd_name
+                elif cmd_lower in toggle_commands:
+                    entity_commands['toggle'] = cmd_name
+                elif cmd_name.startswith('speed_') or cmd_name.startswith('fan_speed_'):
+                    # Fan speed commands
+                    entity_commands[cmd_name] = cmd_name
+        
+        return entity_commands
+    
+    async def _reload_broadlink_config(self) -> bool:
+        """Reload Broadlink integration configuration without restarting HA"""
+        try:
+            logger.info("🔄 Reloading Broadlink configuration...")
+            
+            # Call the homeassistant.reload_config_entry service for Broadlink
+            # First, we need to find the Broadlink config entry ID
+            result = await self._make_ha_request('GET', 'config/config_entries/entry')
+            
+            if result:
+                # Find Broadlink entries
+                broadlink_entries = [entry for entry in result if entry.get('domain') == 'broadlink']
+                
+                for entry in broadlink_entries:
+                    entry_id = entry.get('entry_id')
+                    if entry_id:
+                        logger.info(f"Reloading Broadlink config entry: {entry_id}")
+                        reload_result = await self._make_ha_request(
+                            'POST', 
+                            f'config/config_entries/entry/{entry_id}/reload'
+                        )
+                        if reload_result is not None:
+                            logger.info(f"✅ Broadlink configuration reloaded successfully")
+                            return True
+            
+            logger.warning("Could not reload Broadlink config - no entries found")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error reloading Broadlink config: {e}")
+            return False
+    
     async def _delete_command(self, data: Dict) -> Dict:
         """Delete a learned command"""
         try:
@@ -1488,6 +1919,8 @@ class BroadlinkWebServer:
             
             if result is not None:
                 logger.info(f"✅ Command deleted successfully: {device}_{command}")
+                # Reload Broadlink configuration to apply changes
+                await self._reload_broadlink_config()
                 return {'success': True, 'message': f'Command {command} deleted successfully'}
             
             # Fallback: Try modern format with target/data structure (for newer HA versions)
@@ -1505,6 +1938,8 @@ class BroadlinkWebServer:
             
             if result is not None:
                 logger.info(f"✅ Command deleted successfully with modern format: {device}_{command}")
+                # Reload Broadlink configuration to apply changes
+                await self._reload_broadlink_config()
                 return {'success': True, 'message': f'Command {command} deleted successfully'}
             
             # Last resort: Try with command as string (very old format)
@@ -1518,6 +1953,8 @@ class BroadlinkWebServer:
             
             if result is not None:
                 logger.info(f"✅ Command deleted successfully with string format: {device}_{command}")
+                # Reload Broadlink configuration to apply changes
+                await self._reload_broadlink_config()
                 return {'success': True, 'message': f'Command {command} deleted successfully'}
             else:
                 logger.error(f"❌ FAILED: All formats failed for command: {device}_{command}")
@@ -1527,6 +1964,85 @@ class BroadlinkWebServer:
             logger.error(f"Error deleting command: {e}")
             return {'success': False, 'error': str(e)}
 
+    def _schedule_migration_check(self):
+        """Schedule automatic migration check on startup"""
+        def run_migration_check():
+            try:
+                logger.info("=" * 60)
+                logger.info("🔍 Broadlink Manager - Checking installation type...")
+                logger.info("=" * 60)
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Get Broadlink devices
+                devices = loop.run_until_complete(self._get_broadlink_devices())
+                logger.info(f"Found {len(devices)} Broadlink device(s)")
+                
+                # Check and perform migration if needed
+                result = loop.run_until_complete(self.migration_manager.check_and_migrate(devices))
+                
+                loop.close()
+                
+                # Log results based on scenario
+                scenario = result.get('scenario', 'unknown')
+                
+                if scenario == 'existing_broadlink_user' and result.get('success'):
+                    logger.info("=" * 60)
+                    logger.info("✅ AUTOMATIC MIGRATION COMPLETED")
+                    logger.info("=" * 60)
+                    logger.info(f"📊 Migrated: {result.get('migrated_entities', 0)} entities")
+                    logger.info(f"📁 From: {len(result.get('entities', []))} devices")
+                    if result.get('skipped_devices'):
+                        logger.info(f"⚠️  Skipped: {len(result.get('skipped_devices', []))} devices (no valid entities)")
+                    logger.info("🎯 Next steps:")
+                    logger.info("   1. Review entities in the web interface")
+                    logger.info("   2. Adjust areas if needed")
+                    logger.info("   3. Generate YAML entities")
+                    logger.info("   4. Restart Home Assistant")
+                    logger.info("=" * 60)
+                    
+                elif scenario == 'existing_bl_manager_user':
+                    logger.info("=" * 60)
+                    logger.info("📋 EXISTING INSTALLATION DETECTED")
+                    logger.info("=" * 60)
+                    logger.info(f"Found {result.get('existing_entities', 0)} existing entities")
+                    logger.info("No migration needed - your configuration is preserved")
+                    logger.info("=" * 60)
+                    
+                elif scenario == 'first_time_user':
+                    logger.info("=" * 60)
+                    logger.info("👋 WELCOME TO BROADLINK MANAGER!")
+                    logger.info("=" * 60)
+                    logger.info("No learned commands found yet")
+                    logger.info("🎯 Get started:")
+                    logger.info("   1. Open the web interface")
+                    logger.info("   2. Select a Broadlink device")
+                    logger.info("   3. Learn IR/RF commands")
+                    logger.info("   4. Auto-generate entities")
+                    logger.info("=" * 60)
+                    
+                elif result.get('error'):
+                    logger.error("=" * 60)
+                    logger.error("❌ MIGRATION CHECK ERROR")
+                    logger.error("=" * 60)
+                    logger.error(f"Error: {result.get('error')}")
+                    logger.error("The add-on will continue to run, but automatic migration failed")
+                    logger.error("=" * 60)
+                    
+            except Exception as e:
+                logger.error("=" * 60)
+                logger.error("❌ MIGRATION CHECK FAILED")
+                logger.error("=" * 60)
+                logger.error(f"Error during automatic migration check: {e}", exc_info=True)
+                logger.error("The add-on will continue to run")
+                logger.error("=" * 60)
+        
+        # Run in background thread to not block startup
+        import threading
+        migration_thread = threading.Thread(target=run_migration_check, daemon=True)
+        migration_thread.start()
+    
     def run(self):
         """Run the Flask web server"""
         logger.info(f"Starting Broadlink Manager web server on port {self.port}")

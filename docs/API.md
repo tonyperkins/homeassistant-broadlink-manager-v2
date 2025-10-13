@@ -552,6 +552,100 @@ curl -X POST http://homeassistant.local:8099/api/entities/generate \
 
 ---
 
+## Migration Management
+
+### Get Migration Status
+
+Check if migration has been performed and get migration details.
+
+**Endpoint:** `GET /api/migration/status`
+
+**Response:**
+```json
+{
+  "has_metadata": true,
+  "entity_count": 15,
+  "migration_performed": true,
+  "migration_info": {
+    "migrated_at": "2025-10-11T22:30:00",
+    "migrated_entities": 15,
+    "skipped_devices": 2,
+    "errors": 0,
+    "broadlink_devices": 3
+  }
+}
+```
+
+### Check and Migrate
+
+Check if migration is needed and perform it automatically.
+
+**Endpoint:** `POST /api/migration/check`
+
+**Response:**
+```json
+{
+  "success": true,
+  "needed": true,
+  "migrated_entities": 15,
+  "entities": [
+    "living_room_ceiling_fan",
+    "bedroom_fan",
+    "office_light"
+  ],
+  "skipped_devices": [
+    {
+      "device_name": "unknown_device",
+      "reason": "No valid entities detected from commands",
+      "command_count": 3
+    }
+  ],
+  "errors": [],
+  "migration_info": {
+    "migrated_at": "2025-10-11T22:30:00",
+    "migrated_entities": 15,
+    "skipped_devices": 1,
+    "errors": 0,
+    "broadlink_devices": 3
+  },
+  "message": "Successfully migrated 15 entities from 8 devices"
+}
+```
+
+### Force Migration
+
+Force migration even if metadata already exists.
+
+**Endpoint:** `POST /api/migration/force`
+
+**Request Body:**
+```json
+{
+  "overwrite": false
+}
+```
+
+**Parameters:**
+- `overwrite` (boolean): If `true`, replaces existing entities. If `false`, only adds new ones.
+
+**Response:**
+```json
+{
+  "success": true,
+  "needed": true,
+  "forced": true,
+  "overwrite": false,
+  "migrated_entities": 5,
+  "entities": [
+    "new_device_1",
+    "new_device_2"
+  ],
+  "message": "Successfully migrated 5 entities from 2 devices"
+}
+```
+
+---
+
 ## WebSocket API (Future)
 
 WebSocket support for real-time updates is planned for future versions.

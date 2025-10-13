@@ -48,8 +48,43 @@ This folder contains auto-generated Home Assistant entities for your Broadlink d
 ## Files
 
 - `metadata.json` - Your entity configurations (edit via addon UI)
+  - Each entity specifies which Broadlink device transmits its commands
+  - Area assignment is for the controlled device location, not the transmitter
+  - Supports custom names and icons
 - `entities.yaml` - Generated HA entities (auto-generated, do not edit)
 - `helpers.yaml` - Generated helper entities (auto-generated, do not edit)
+
+## Metadata Structure
+
+Each entity in `metadata.json` can have these fields:
+
+```json
+{
+  "entity_id": {
+    "entity_type": "fan",
+    "device": "device_name",
+    "broadlink_entity": "remote.kitchen_broadlink",
+    "area": "Living Room",
+    "friendly_name": "Living Room Ceiling Fan",
+    "name": "Office Fan",
+    "icon": "mdi:ceiling-fan",
+    "commands": {...},
+    "enabled": true
+  }
+}
+```
+
+### Field Descriptions
+
+- `entity_type`: Type of HA entity (light, fan, switch, media_player)
+- `device`: Command storage key in Broadlink
+- `broadlink_entity`: Which Broadlink remote sends commands
+- `area`: Where the controlled device is located
+- `friendly_name`: Default display name (auto-generated)
+- `name`: Custom display name (optional, overrides friendly_name)
+- `icon`: Custom MDI icon (optional, e.g., "mdi:ceiling-fan")
+- `commands`: Mapping of actions to learned command names
+- `enabled`: Whether to generate this entity (true/false)
 
 ## Setup
 

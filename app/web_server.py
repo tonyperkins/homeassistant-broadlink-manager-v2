@@ -81,7 +81,9 @@ class BroadlinkWebServer:
         self.last_notification_check = 0
 
         # Initialize entity management components
-        self.storage_manager = StorageManager()
+        self.storage_manager = StorageManager(
+            str(self.config_loader.get_broadlink_manager_path())
+        )
         self.entity_detector = EntityDetector()
         self.area_manager = AreaManager(self.ha_url, self.ha_token)
         self.device_manager = DeviceManager(

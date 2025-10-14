@@ -22,14 +22,22 @@
     <footer class="app-footer">
       <p>Broadlink Manager v2.0.0-beta.1 | Built with Vue 3</p>
     </footer>
+
+    <!-- Toast Notifications -->
+    <Toast ref="toastRef" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, provide, onMounted, getCurrentInstance } from 'vue'
 import Dashboard from './views/Dashboard.vue'
+import Toast from './components/Toast.vue'
+import { smartirService } from './services/smartir'
+
+const toastRef = ref(null)
 
 const darkMode = ref(false)
+const smartirStatus = ref(null)
 
 const toggleDarkMode = () => {
   darkMode.value = !darkMode.value
@@ -37,14 +45,45 @@ const toggleDarkMode = () => {
   localStorage.setItem('darkMode', darkMode.value)
 }
 
-onMounted(() => {
+const checkSmartIR = async () => {
+  try {
+    const status = await smartirService.getStatus()
+    smartirStatus.value = status
+    
+    // Log SmartIR status for debugging
+    if (status.installed) {
+      console.log('✅ SmartIR detected:', status.version)
+    } else {
+      console.log('ℹ️ SmartIR not detected')
+    }
+  } catch (error) {
+    console.error('Error checking SmartIR:', error)
+    smartirStatus.value = { installed: false, error: error.message }
+  }
+}
+
+onMounted(async () => {
   // Load dark mode preference
   const savedDarkMode = localStorage.getItem('darkMode')
   if (savedDarkMode === 'true') {
     darkMode.value = true
     document.body.classList.add('dark-mode')
   }
+  
+  // Check SmartIR status
+  await checkSmartIR()
+  
+  // Make toast available globally
+  const app = getCurrentInstance()
+  if (app && toastRef.value) {
+    app.appContext.config.globalProperties.$toast = toastRef.value
+  }
 })
+
+// Provide SmartIR status and toast to all child components
+provide('smartirStatus', smartirStatus)
+provide('refreshSmartIR', checkSmartIR)
+provide('toast', toastRef)
 </script>
 
 <style scoped>
@@ -52,6 +91,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: var(--ha-surface-color);
 }
 
 .app-header {

@@ -26,9 +26,11 @@ from area_manager import AreaManager
 from config_loader import ConfigLoader
 from migration_manager import MigrationManager
 from device_manager import DeviceManager
+from smartir_detector import SmartIRDetector
 
 # Import API blueprint for v2
 from api import api_bp
+from api.smartir import init_smartir_routes
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +91,10 @@ class BroadlinkWebServer:
         # Format: {device_name: {command_name: timestamp}}
         self.recently_deleted_commands = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
+        
+        # Call tracking for logging context
+        self._call_counter = 0
+        self._call_lock = threading.Lock()
 
         # Initialize entity management components
         self.storage_manager = StorageManager(
@@ -102,16 +108,26 @@ class BroadlinkWebServer:
         self.migration_manager = MigrationManager(
             self.storage_manager, self.entity_detector, self.storage_path
         )
+        self.smartir_detector = SmartIRDetector(
+            str(self.config_loader.get_config_path())
+        )
 
         # Make managers available to API endpoints
         self.app.config['storage_manager'] = self.storage_manager
         self.app.config['device_manager'] = self.device_manager
         self.app.config['area_manager'] = self.area_manager
         self.app.config['web_server'] = self  # For command learning
+        self.app.config['smartir_detector'] = self.smartir_detector
+        self.app.config['config_path'] = str(self.config_loader.get_config_path())
 
         # Register API blueprint for v2
         self.app.register_blueprint(api_bp)
         logger.info("Registered API blueprint at /api")
+        
+        # Register SmartIR API blueprint
+        smartir_bp = init_smartir_routes(self.smartir_detector)
+        self.app.register_blueprint(smartir_bp)
+        logger.info("Registered SmartIR API blueprint at /api/smartir")
 
         self._setup_routes()
         # Initialize WebSocket variables
@@ -139,6 +155,12 @@ class BroadlinkWebServer:
         def serve_static(filename):
             """Explicitly serve static files to work with ingress"""
             return send_from_directory(self.app.static_folder, filename)
+        
+        @self.app.route("/assets/<path:filename>")
+        def serve_assets(filename):
+            """Serve Vue app assets (CSS, JS) with correct MIME types"""
+            assets_path = Path(self.app.static_folder) / "assets"
+            return send_from_directory(assets_path, filename)
 
         @self.app.route("/api/areas")
         def get_areas():
@@ -146,7 +168,7 @@ class BroadlinkWebServer:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                areas = loop.run_until_complete(self._get_ha_areas())
+                areas = loop.run_until_complete(self._get_ha_areas("GET /api/areas"))
                 loop.close()
                 return jsonify(areas)
             except Exception as e:
@@ -159,7 +181,7 @@ class BroadlinkWebServer:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                devices = loop.run_until_complete(self._get_broadlink_devices())
+                devices = loop.run_until_complete(self._get_broadlink_devices("GET /api/devices"))
                 loop.close()
                 return jsonify(devices)
             except Exception as e:
@@ -316,13 +338,13 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
 
                 # Get all detected Broadlink devices
-                all_devices = loop.run_until_complete(self._get_broadlink_devices())
+                all_devices = loop.run_until_complete(self._get_broadlink_devices("GET /api/debug/broadlink-full-data"))
 
                 # Get learned commands
                 learned_commands = loop.run_until_complete(self._get_learned_commands())
 
                 # Get areas
-                areas = loop.run_until_complete(self._get_ha_areas())
+                areas = loop.run_until_complete(self._get_ha_areas("GET /api/debug/broadlink-full-data"))
 
                 loop.close()
 
@@ -668,7 +690,7 @@ class BroadlinkWebServer:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-                devices = loop.run_until_complete(self._get_broadlink_devices())
+                devices = loop.run_until_complete(self._get_broadlink_devices("POST /api/migration/check"))
                 result = loop.run_until_complete(
                     self.migration_manager.check_and_migrate(devices)
                 )
@@ -690,7 +712,7 @@ class BroadlinkWebServer:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-                devices = loop.run_until_complete(self._get_broadlink_devices())
+                devices = loop.run_until_complete(self._get_broadlink_devices("POST /api/migration/force"))
                 result = loop.run_until_complete(
                     self.migration_manager.force_migration(devices, overwrite)
                 )
@@ -1007,35 +1029,49 @@ class BroadlinkWebServer:
                         )
                         return None
 
-    async def _get_ha_areas(self) -> List[Dict]:
-        """Get Home Assistant areas from storage file"""
+    def _get_call_id(self) -> str:
+        """Generate a unique call ID for tracking concurrent requests"""
+        with self._call_lock:
+            self._call_counter += 1
+            return f"#{self._call_counter}"
+
+    async def _get_ha_areas(self, call_context: str = "unknown") -> List[Dict]:
+        """Get Home Assistant areas from storage file
+        
+        Args:
+            call_context: Context identifier for logging (e.g., 'GET /api/areas', 'device_discovery')
+        """
         try:
             areas_file = self.storage_path / "core.area_registry"
 
             if areas_file.exists():
-                logger.info("Reading areas from storage file...")
+                logger.info(f"[{call_context}] Reading areas from storage file...")
                 async with aiofiles.open(areas_file, "r") as f:
                     content = await f.read()
                     data = json.loads(content)
                     areas = data.get("data", {}).get("areas", [])
-                    logger.info(f"Found {len(areas)} areas from storage")
+                    logger.info(f"[{call_context}] Found {len(areas)} areas from storage")
                     return areas
             else:
-                logger.warning("Areas storage file not found")
+                logger.warning(f"[{call_context}] Areas storage file not found")
                 return []
 
         except Exception as e:
-            logger.error(f"Error reading areas from storage: {e}")
+            logger.error(f"[{call_context}] Error reading areas from storage: {e}")
             return []
 
-    async def _get_broadlink_devices(self) -> List[Dict]:
-        """Get Broadlink remote devices from storage files with area information"""
+    async def _get_broadlink_devices(self, call_context: str = "unknown") -> List[Dict]:
+        """Get Broadlink remote devices from storage files with area information
+        
+        Args:
+            call_context: Context identifier for logging (e.g., 'GET /api/broadlink/devices', 'migration')
+        """
         try:
             # Read from storage files (primary method for add-on)
-            logger.info("Reading Broadlink devices from storage files...")
+            logger.info(f"[{call_context}] Reading Broadlink devices from storage files...")
 
             # Get area information first
-            areas_data = await self._get_ha_areas()
+            areas_data = await self._get_ha_areas(call_context)
             area_lookup = {area["id"]: area["name"] for area in areas_data}
 
             # Get device registry
@@ -1079,7 +1115,7 @@ class BroadlinkWebServer:
                             area_name = area_lookup.get(area_id, "Unknown Area")
 
                             logger.info(
-                                f"Found Broadlink device: {name} (ID: {device_id}, Area: {area_name})"
+                                f"[{call_context}] Found Broadlink device: {name} (ID: {device_id}, Area: {area_name})"
                             )
 
                             # Find corresponding entities
@@ -1111,7 +1147,7 @@ class BroadlinkWebServer:
                         continue
 
                 logger.info(
-                    f"Found {len(broadlink_devices)} Broadlink devices from storage"
+                    f"[{call_context}] Found {len(broadlink_devices)} Broadlink devices from storage"
                 )
                 return broadlink_devices
             else:
@@ -1500,11 +1536,11 @@ class BroadlinkWebServer:
             all_commands = {}
 
             # Get area information and Broadlink devices
-            areas_data = await self._get_ha_areas()
+            areas_data = await self._get_ha_areas("_get_learned_commands")
             area_lookup = {area["id"]: area["name"] for area in areas_data}
 
             # Get all Broadlink devices to map storage files to device areas
-            broadlink_devices = await self._get_broadlink_devices()
+            broadlink_devices = await self._get_broadlink_devices("_get_learned_commands")
 
             # Create a mapping from storage file to device area
             # Storage files are named like: broadlink_remote_<unique_id>_codes
@@ -1636,7 +1672,7 @@ class BroadlinkWebServer:
         """Find which Broadlink entity owns the commands for a given device name"""
         try:
             storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
-            broadlink_devices = await self._get_broadlink_devices()
+            broadlink_devices = await self._get_broadlink_devices("_find_broadlink_entity_for_device")
             
             # Create mapping from storage file to entity_id
             storage_to_entity = {}
@@ -2420,7 +2456,7 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
 
                 # Get Broadlink devices
-                devices = loop.run_until_complete(self._get_broadlink_devices())
+                devices = loop.run_until_complete(self._get_broadlink_devices("startup_migration"))
                 logger.info(f"Found {len(devices)} Broadlink device(s)")
 
                 # Check and perform migration if needed

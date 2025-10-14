@@ -13,24 +13,56 @@
           <label for="device-name">Device Name *</label>
           <input
             id="device-name"
+            ref="nameInput"
             v-model="formData.name"
             type="text"
             placeholder="e.g., Living Room TV"
             required
+            @input="clearValidation('nameInput')"
           />
         </div>
 
         <div class="form-group">
           <label for="entity-type">Entity Type *</label>
-          <select id="entity-type" v-model="formData.entity_type" required>
+          <select 
+            id="entity-type" 
+            ref="typeSelect"
+            v-model="formData.entity_type"
+            required
+            @change="clearValidation('typeSelect')"
+          >
             <option value="">-- Select Type --</option>
-            <option value="light">Light</option>
-            <option value="fan">Fan</option>
-            <option value="switch">Switch</option>
-            <option value="media_player">Media Player (Universal)</option>
-            <option value="cover">Cover (Blinds/Curtains)</option>
+            <option value="light">💡 Light</option>
+            <option value="fan">🌀 Fan</option>
+            <option value="switch">🔌 Switch</option>
+            <option value="media_player">📺 Media Player</option>
+            <option value="cover">🪟 Cover (Blinds/Curtains)</option>
+            <option value="climate" :disabled="!smartirInstalled">
+              🌡️ Climate {{ smartirInstalled ? '' : '(Requires SmartIR)' }}
+            </option>
           </select>
-          <small>Note: For climate control (AC/Heater), use SmartIR integration</small>
+          
+          <!-- SmartIR Info/Warning -->
+          <div v-if="formData.entity_type === 'climate'" class="smartir-notice">
+            <div v-if="smartirInstalled" class="notice-success">
+              <i class="mdi mdi-check-circle"></i>
+              <span>SmartIR detected! Climate entities will be created via SmartIR profiles.</span>
+            </div>
+            <div v-else class="notice-warning">
+              <i class="mdi mdi-alert"></i>
+              <div>
+                <strong>SmartIR Required</strong>
+                <p>Climate entities (AC, heaters) require SmartIR integration.</p>
+                <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="smartir-link">
+                  Install SmartIR →
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <small v-else-if="!smartirInstalled">
+            💡 Tip: Install <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="inline-link">SmartIR</a> for climate device support
+          </small>
         </div>
 
         <div class="form-group">
@@ -58,9 +90,11 @@
           <label for="broadlink-entity">Broadlink Device</label>
           <select 
             v-if="!isEdit || !hasCommands"
-            id="broadlink-entity" 
+            id="broadlink-entity"
+            ref="broadlinkSelect"
             v-model="formData.broadlink_entity"
             required
+            @change="clearValidation('broadlinkSelect')"
           >
             <option value="">-- Select Broadlink Device --</option>
             <option 
@@ -99,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import IconPicker from '../common/IconPicker.vue'
 
@@ -111,6 +145,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['save', 'cancel'])
+
+// Inject SmartIR status
+const smartirStatus = inject('smartirStatus')
+const smartirInstalled = computed(() => smartirStatus?.value?.installed || false)
 
 const isEdit = computed(() => !!props.device)
 
@@ -137,12 +175,36 @@ const formData = ref({
 
 const areas = ref([])
 const broadlinkDevices = ref([])
+const nameInput = ref(null)
+const typeSelect = ref(null)
+const broadlinkSelect = ref(null)
+const iconAutoSet = ref(false) // Track if icon was auto-set vs manually set
 
 onMounted(async () => {
   if (props.device) {
     formData.value = { ...props.device }
   }
   await Promise.all([loadAreas(), loadBroadlinkDevices()])
+  
+  // Set custom validation messages
+  if (nameInput.value) {
+    nameInput.value.setCustomValidity('')
+    nameInput.value.oninvalid = () => {
+      nameInput.value.setCustomValidity('Device name is required')
+    }
+  }
+  if (typeSelect.value) {
+    typeSelect.value.setCustomValidity('')
+    typeSelect.value.oninvalid = () => {
+      typeSelect.value.setCustomValidity('Entity type is required')
+    }
+  }
+  if (broadlinkSelect.value) {
+    broadlinkSelect.value.setCustomValidity('')
+    broadlinkSelect.value.oninvalid = () => {
+      broadlinkSelect.value.setCustomValidity('Broadlink device is required')
+    }
+  }
 })
 
 const loadAreas = async () => {
@@ -168,7 +230,104 @@ const loadBroadlinkDevices = async () => {
   }
 }
 
+const clearValidation = (refName) => {
+  const element = refName === 'nameInput' ? nameInput.value : 
+                  refName === 'typeSelect' ? typeSelect.value :
+                  refName === 'broadlinkSelect' ? broadlinkSelect.value : null
+  if (element) {
+    element.setCustomValidity('')
+  }
+}
+
+// Smart area detection from device name
+const detectAreaFromName = (name) => {
+  if (!name) return ''
+  
+  const lowerName = name.toLowerCase()
+  
+  // Check each area to see if it's mentioned in the name
+  for (const area of areas.value) {
+    const lowerArea = area.toLowerCase()
+    if (lowerName.includes(lowerArea)) {
+      return area
+    }
+  }
+  
+  return ''
+}
+
+// Smart icon selection based on entity type and name
+const getDefaultIcon = (entityType, name = '') => {
+  const lowerName = name.toLowerCase()
+  
+  // Name-based detection (more specific)
+  if (lowerName.includes('tv')) return 'mdi:television'
+  if (lowerName.includes('lamp')) return 'mdi:lamp'
+  if (lowerName.includes('ceiling')) return 'mdi:ceiling-light'
+  if (lowerName.includes('floor')) return 'mdi:floor-lamp'
+  if (lowerName.includes('desk')) return 'mdi:desk-lamp'
+  if (lowerName.includes('fan')) return 'mdi:fan'
+  if (lowerName.includes('ac') || lowerName.includes('air con')) return 'mdi:air-conditioner'
+  if (lowerName.includes('heater')) return 'mdi:radiator'
+  if (lowerName.includes('blind')) return 'mdi:blinds'
+  if (lowerName.includes('curtain')) return 'mdi:curtains'
+  if (lowerName.includes('garage')) return 'mdi:garage'
+  if (lowerName.includes('speaker') || lowerName.includes('stereo')) return 'mdi:speaker'
+  if (lowerName.includes('receiver')) return 'mdi:audio-video'
+  
+  // Entity type defaults
+  const typeIcons = {
+    light: 'mdi:lightbulb',
+    fan: 'mdi:fan',
+    switch: 'mdi:light-switch',
+    media_player: 'mdi:television',
+    cover: 'mdi:window-shutter',
+    climate: 'mdi:thermostat'
+  }
+  
+  return typeIcons[entityType] || 'mdi:devices'
+}
+
+// Watch device name for smart area detection
+watch(() => formData.value.name, (newName) => {
+  // Only auto-detect if user hasn't manually selected an area yet
+  if (!isEdit.value && newName && !formData.value.area) {
+    const detectedArea = detectAreaFromName(newName)
+    if (detectedArea) {
+      formData.value.area = detectedArea
+    }
+  }
+  
+  // Auto-update icon if it was auto-set or empty
+  if (!isEdit.value && newName && formData.value.entity_type && (iconAutoSet.value || !formData.value.icon)) {
+    formData.value.icon = getDefaultIcon(formData.value.entity_type, newName)
+    iconAutoSet.value = true
+  }
+})
+
+// Watch entity type for smart icon selection
+watch(() => formData.value.entity_type, (newType) => {
+  // Auto-update icon if it was auto-set or empty
+  if (!isEdit.value && newType && (iconAutoSet.value || !formData.value.icon)) {
+    formData.value.icon = getDefaultIcon(newType, formData.value.name)
+    iconAutoSet.value = true
+  }
+})
+
+// Watch icon field to detect manual changes
+watch(() => formData.value.icon, (newIcon, oldIcon) => {
+  // If user manually changes the icon (not from our auto-set), mark it as manual
+  if (oldIcon !== undefined && newIcon !== oldIcon && !iconAutoSet.value) {
+    iconAutoSet.value = false
+  }
+  // If user clears the icon, allow auto-set again
+  if (!newIcon) {
+    iconAutoSet.value = false
+  }
+})
+
 const handleSubmit = () => {
+  // Browser will handle validation with custom messages
   emit('save', { ...formData.value })
 }
 </script>
@@ -265,6 +424,72 @@ const handleSubmit = () => {
   margin-top: 4px;
   font-size: 12px;
   color: var(--ha-text-secondary-color);
+}
+
+.inline-link {
+  color: var(--ha-primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
+.smartir-notice {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.notice-success {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice-success i {
+  font-size: 20px;
+}
+
+.notice-warning {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  color: #f57c00;
+  display: flex;
+  gap: 8px;
+}
+
+.notice-warning i {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notice-warning strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.notice-warning p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.smartir-link {
+  color: var(--ha-primary-color);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.smartir-link:hover {
+  text-decoration: underline;
 }
 
 .modal-footer {

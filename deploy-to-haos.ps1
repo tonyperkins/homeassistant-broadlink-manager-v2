@@ -3,7 +3,7 @@
 
 # Configuration
 $HA_ADDONS_PATH = "\\homeassistant.local\addons\local"
-$ADDON_NAME = "broadlink-manager"
+$ADDON_NAME = "broadlink-manager-v2"
 $SOURCE_DIR = $PSScriptRoot
 $TARGET_DIR = Join-Path $HA_ADDONS_PATH $ADDON_NAME
 
@@ -31,7 +31,7 @@ function Write-Error-Custom {
 # Banner
 Write-Host ""
 Write-Host "=======================================================" -ForegroundColor Magenta
-Write-Host "  Broadlink Manager Add-on Deployment Script" -ForegroundColor Magenta
+Write-Host "  Broadlink Manager v2 (Beta) Deployment Script" -ForegroundColor Magenta
 Write-Host "=======================================================" -ForegroundColor Magenta
 Write-Host ""
 
@@ -138,11 +138,11 @@ if ($failedCount -eq 0) {
     Write-Host "  3. Click Add-on Store (bottom right)" -ForegroundColor White
     Write-Host "  4. Click the three dots in the top right" -ForegroundColor White
     Write-Host "  5. Select Check for updates or refresh the page" -ForegroundColor White
-    Write-Host "  6. Look for Broadlink Manager in the Local add-ons section" -ForegroundColor White
+    Write-Host "  6. Look for 'Broadlink Manager v2 (Beta)' in Local add-ons" -ForegroundColor White
     Write-Host "  7. Click Install or Rebuild if already installed" -ForegroundColor White
     Write-Host ""
-    Write-Warning-Custom "Note: The add-on should appear automatically in the Add-on Store."
-    Write-Warning-Custom "      If you don't see it, try refreshing the page or restarting Home Assistant."
+    Write-Warning-Custom "Note: v2 can run alongside v1 (different slug: broadlink-manager-v2)"
+    Write-Warning-Custom "      Both add-ons will share the same /config/broadlink_manager data"
     Write-Host ""
 } else {
     Write-Error-Custom "Deployment completed with errors!"

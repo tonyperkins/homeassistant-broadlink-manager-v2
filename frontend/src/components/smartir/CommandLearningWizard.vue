@@ -1,0 +1,763 @@
+<template>
+  <div class="command-wizard">
+    <h3>Learn IR Commands</h3>
+    
+    <!-- Edit Mode Banner -->
+    <div v-if="learnedCount > 0 && !hasLearnedAny" class="edit-mode-banner">
+      <i class="mdi mdi-information-outline"></i>
+      <div>
+        <strong>Editing Existing Profile</strong>
+        <p>{{ learnedCount }} command{{ learnedCount !== 1 ? 's' : '' }} already learned. You can re-learn any command by clicking the delete icon and then "Learn Command".</p>
+      </div>
+    </div>
+    
+    <div class="wizard-info">
+      <i class="mdi mdi-information"></i>
+      <div>
+        <p><strong>How it works:</strong></p>
+        <ol v-if="commandType === 'ir'">
+          <li>Click "Learn Command" for each combination</li>
+          <li><strong>Point your IR remote directly at the Broadlink device</strong></li>
+          <li>Press the button on your remote</li>
+          <li>Wait for confirmation (up to 30 seconds)</li>
+        </ol>
+        <ol v-else>
+          <li>Click "Learn Command" for each combination</li>
+          <li><strong>Step 1:</strong> Hold button on remote - Broadlink scans for RF frequency</li>
+          <li><strong>Step 2:</strong> Watch for Home Assistant notification, then press and release button</li>
+          <li>Keep remote within 5cm of Broadlink (RF doesn't need line-of-sight)</li>
+          <li>Wait for confirmation (may take up to 30 seconds)</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="progress-info">
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
+      </div>
+      <span class="progress-text">
+        {{ learnedCount }} / {{ totalCommands }} commands learned ({{ progressPercentage }}%)
+      </span>
+    </div>
+
+    <!-- Command Learning Grid -->
+    <div class="commands-grid">
+      <div 
+        v-for="cmd in commandList" 
+        :key="cmd.key"
+        class="command-card"
+        :class="{
+          'learned': commands[cmd.key],
+          'learning': learningCommand === cmd.key
+        }"
+      >
+        <div class="command-header">
+          <div class="command-icon">
+            <i :class="cmd.icon"></i>
+          </div>
+          <div class="command-info">
+            <h4>{{ cmd.label }}</h4>
+            <p>{{ cmd.description }}</p>
+          </div>
+        </div>
+
+        <!-- Learning Instructions (shown above button when learning) -->
+        <div v-if="learningCommand === cmd.key" class="learning-indicator">
+          <div v-if="commandType === 'ir'" class="ir-learning-steps">
+            <p><strong>Point your remote directly at the Broadlink device and press the button.</strong></p>
+            <small>Listening for up to 30 seconds...</small>
+          </div>
+          <div v-else class="rf-learning-steps">
+            <p class="rf-title"><strong>Learning request sent to device.</strong></p>
+            <p class="rf-subtitle">RF learning is a <strong>two-step process</strong>:</p>
+            <ol>
+              <li>
+                <strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.
+              </li>
+              <li>
+                <strong>Step 2 - Learn Signal:</strong> Press and release the button once.
+              </li>
+            </ol>
+            <p class="rf-note">Follow the Home Assistant notifications (🔔) for real-time instructions.</p>
+          </div>
+        </div>
+
+        <div class="command-actions">
+          <button 
+            v-if="!commands[cmd.key]"
+            @click="learnCommand(cmd)"
+            class="btn-learn"
+            :class="{ 'learning': learningCommand === cmd.key }"
+            :disabled="learningCommand !== null"
+          >
+            <i class="mdi mdi-radio-tower" :class="{ 'mdi-spin': learningCommand === cmd.key }"></i>
+            {{ learningCommand === cmd.key ? 'Listening...' : 'Learn Command' }}
+          </button>
+          
+          <div v-else class="learned-status">
+            <i class="mdi mdi-check-circle"></i>
+            <span>Learned</span>
+            <button @click="deleteCommand(cmd.key)" class="btn-delete" title="Delete and re-learn">
+              <i class="mdi mdi-delete"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button 
+        @click="learnAllSequentially" 
+        class="btn-secondary"
+        :disabled="learningCommand !== null || learnedCount === totalCommands"
+      >
+        <i class="mdi mdi-play-circle"></i>
+        Learn All Remaining
+      </button>
+      
+      <button 
+        @click="clearAll" 
+        class="btn-text"
+        :disabled="learnedCount === 0"
+      >
+        <i class="mdi mdi-delete-sweep"></i>
+        Clear All
+      </button>
+    </div>
+
+    <!-- Confirm Delete Dialog -->
+    <ConfirmDialog
+      :isOpen="confirmDelete.show"
+      title="Delete Learned Command?"
+      :message="`Are you sure you want to delete the '${confirmDelete.commandLabel}' command?\n\nYou will need to re-learn this command.`"
+      confirmText="Delete"
+      cancelText="Cancel"
+      :dangerMode="true"
+      @confirm="handleDeleteConfirm"
+      @cancel="confirmDelete.show = false"
+    />
+
+    <!-- Confirm Clear All Dialog -->
+    <ConfirmDialog
+      :isOpen="confirmClearAll"
+      title="Delete All Learned Commands?"
+      message="Are you sure you want to delete all learned commands? This cannot be undone.\n\nYou will need to re-learn all commands."
+      confirmText="Delete All"
+      cancelText="Cancel"
+      :dangerMode="true"
+      @confirm="handleClearAllConfirm"
+      @cancel="confirmClearAll = false"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import ConfirmDialog from '../common/ConfirmDialog.vue'
+
+const props = defineProps({
+  modelValue: {
+    type: Object,
+    default: () => ({})
+  },
+  platform: {
+    type: String,
+    required: true
+  },
+  config: {
+    type: Object,
+    required: true
+  },
+  broadlinkDevice: {
+    type: String,
+    required: true
+  },
+  manufacturer: {
+    type: String,
+    required: true
+  },
+  model: {
+    type: String,
+    required: true
+  },
+  commandType: {
+    type: String,
+    default: 'ir'
+  }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const commands = ref({ ...props.modelValue })
+const learningCommand = ref(null)
+const sequentialLearning = ref(false)
+const sequentialQueue = ref([])
+const hasLearnedAny = ref(false) // Track if user has learned any commands in this session
+const confirmDelete = ref({
+  show: false,
+  commandKey: null,
+  commandLabel: ''
+})
+const confirmClearAll = ref(false)
+
+const commandList = computed(() => {
+  if (props.platform !== 'climate') return []
+  
+  const list = []
+  const modes = props.config.modes || []
+  const fanModes = props.config.fanModes || []
+  const minTemp = props.config.minTemp || 16
+  const maxTemp = props.config.maxTemp || 30
+  
+  // Generate commands for each mode/temp/fan combination
+  modes.forEach(mode => {
+    if (mode === 'off') {
+      list.push({
+        key: 'off',
+        label: 'Power Off',
+        description: 'Turn device off',
+        icon: 'mdi mdi-power',
+        mode: 'off'
+      })
+    } else {
+      // For each temperature
+      for (let temp = minTemp; temp <= maxTemp; temp++) {
+        fanModes.forEach(fanMode => {
+          const key = `${mode}_${temp}_${fanMode}`
+          list.push({
+            key,
+            label: `${mode.toUpperCase()} ${temp}°C ${fanMode}`,
+            description: `Mode: ${mode}, Temp: ${temp}°C, Fan: ${fanMode}`,
+            icon: getModeIcon(mode),
+            mode,
+            temp,
+            fanMode
+          })
+        })
+      }
+    }
+  })
+  
+  return list
+})
+
+const totalCommands = computed(() => commandList.value.length)
+const learnedCount = computed(() => Object.keys(commands.value).length)
+const progressPercentage = computed(() => {
+  if (totalCommands.value === 0) return 0
+  return Math.round((learnedCount.value / totalCommands.value) * 100)
+})
+
+function getModeIcon(mode) {
+  const icons = {
+    'off': 'mdi mdi-power',
+    'auto': 'mdi mdi-autorenew',
+    'cool': 'mdi mdi-snowflake',
+    'heat': 'mdi mdi-fire',
+    'dry': 'mdi mdi-water-percent',
+    'fan_only': 'mdi mdi-fan'
+  }
+  return icons[mode] || 'mdi mdi-remote'
+}
+
+async function learnCommand(cmd) {
+  if (learningCommand.value) return
+  
+  learningCommand.value = cmd.key
+  
+  try {
+    // Create device name from manufacturer and model (e.g., "daikin_ftxs35k")
+    const manufacturer = props.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    const model = props.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    const deviceName = `${manufacturer}_${model}`
+    
+    // Call the learn command API
+    const response = await fetch('/api/commands/learn', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: props.broadlinkDevice,
+        device: deviceName,
+        command: cmd.key,
+        command_type: props.commandType // Use the selected command type (ir or rf)
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to learn command: ${response.statusText}`)
+    }
+    
+    const result = await response.json()
+    
+    if (result.success && result.code) {
+      // Store the learned command
+      commands.value[cmd.key] = result.code
+      emit('update:modelValue', commands.value)
+      hasLearnedAny.value = true // Mark that user has learned at least one command
+      
+      // If sequential learning, move to next
+      if (sequentialLearning.value && sequentialQueue.value.length > 0) {
+        setTimeout(() => {
+          const nextCmd = sequentialQueue.value.shift()
+          if (nextCmd) {
+            learnCommand(nextCmd)
+          } else {
+            sequentialLearning.value = false
+          }
+        }, 1000)
+      }
+    } else {
+      throw new Error(result.error || 'Failed to learn command')
+    }
+  } catch (error) {
+    console.error('Error learning command:', error)
+    alert(`Error learning command: ${error.message}`)
+    sequentialLearning.value = false
+    sequentialQueue.value = []
+  } finally {
+    if (!sequentialLearning.value) {
+      learningCommand.value = null
+    }
+  }
+}
+
+function deleteCommand(key) {
+  // Find the command label for the confirmation message
+  const cmd = commandList.value.find(c => c.key === key)
+  confirmDelete.value = {
+    show: true,
+    commandKey: key,
+    commandLabel: cmd ? cmd.label : key
+  }
+}
+
+function handleDeleteConfirm() {
+  const key = confirmDelete.value.commandKey
+  delete commands.value[key]
+  emit('update:modelValue', commands.value)
+  confirmDelete.value.show = false
+}
+
+function learnAllSequentially() {
+  const unlearned = commandList.value.filter(cmd => !commands.value[cmd.key])
+  
+  if (unlearned.length === 0) {
+    // All commands already learned, nothing to do
+    return
+  }
+  
+  // Start sequential learning immediately
+  sequentialLearning.value = true
+  sequentialQueue.value = [...unlearned]
+  const firstCmd = sequentialQueue.value.shift()
+  if (firstCmd) {
+    learnCommand(firstCmd)
+  }
+}
+
+function clearAll() {
+  confirmClearAll.value = true
+}
+
+function handleClearAllConfirm() {
+  commands.value = {}
+  emit('update:modelValue', commands.value)
+  confirmClearAll.value = false
+}
+
+watch(() => props.modelValue, (newValue) => {
+  commands.value = { ...newValue }
+}, { deep: true })
+</script>
+
+<style scoped>
+.command-wizard h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--primary-text-color);
+}
+
+.edit-mode-banner {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+  margin-bottom: 16px;
+}
+
+.edit-mode-banner i {
+  font-size: 24px;
+  color: #4caf50;
+  flex-shrink: 0;
+}
+
+.edit-mode-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--primary-text-color);
+  font-size: 15px;
+}
+
+.edit-mode-banner p {
+  margin: 0;
+  color: var(--secondary-text-color);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wizard-info {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+  margin-bottom: 24px;
+}
+
+.wizard-info i {
+  font-size: 24px;
+  color: #2196f3;
+  flex-shrink: 0;
+}
+
+.wizard-info p {
+  margin: 0 0 8px 0;
+  color: var(--primary-text-color);
+  font-weight: 600;
+}
+
+.wizard-info ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--primary-text-color);
+}
+
+.wizard-info li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.progress-info {
+  margin-bottom: 24px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--ha-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), #4caf50);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  color: var(--secondary-text-color);
+  font-weight: 600;
+}
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.command-card {
+  background: var(--ha-card-background);
+  border: 2px solid var(--ha-border-color);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s;
+}
+
+.command-card.learned {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.command-card.learning {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-color-rgb, 3, 169, 244), 0.05);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb, 3, 169, 244), 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(var(--primary-color-rgb, 3, 169, 244), 0);
+  }
+}
+
+.command-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.command-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.command-icon i {
+  font-size: 20px;
+}
+
+.command-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-text-color);
+}
+
+.command-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--secondary-text-color);
+}
+
+.command-actions {
+  margin-top: 12px;
+}
+
+.btn-learn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--ha-primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-learn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-learn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-learn.learning {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.learned-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 6px;
+  color: #4caf50;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.learned-status i {
+  font-size: 20px;
+}
+
+.btn-delete {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--secondary-text-color);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.learning-indicator {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(var(--primary-color-rgb, 3, 169, 244), 0.1);
+  border-radius: 8px;
+  border-left: 4px solid rgb(var(--primary-color-rgb, 3, 169, 244));
+  text-align: left;
+}
+
+.pulse-ring {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 8px;
+  border: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: pulseRing 1.5s infinite;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+}
+
+.learning-indicator p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--primary-text-color);
+}
+
+.ir-learning-steps p {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ir-learning-steps small {
+  font-size: 12px;
+  color: var(--secondary-text-color);
+}
+
+.rf-learning-steps {
+  text-align: left;
+}
+
+.rf-title {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--primary-text-color);
+}
+
+.rf-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--primary-text-color);
+}
+
+.rf-learning-steps ol {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.rf-learning-steps li {
+  margin-bottom: 10px;
+}
+
+.rf-note {
+  margin: 12px 0 0 0;
+  padding: 10px 12px;
+  background: rgba(255, 193, 7, 0.15);
+  border-left: 3px solid #ffc107;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--primary-text-color);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ha-border-color);
+}
+
+.btn-secondary,
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-text {
+  background: transparent;
+  color: var(--secondary-text-color);
+}
+
+.btn-text:hover:not(:disabled) {
+  color: #f44336;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.btn-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode adjustments */
+:global(.dark-mode) .wizard-info {
+  background: rgba(33, 150, 243, 0.15);
+}
+
+:global(.dark-mode) .command-card.learned {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+:global(.dark-mode) .command-card.learning {
+  background: rgba(var(--primary-color-rgb, 3, 169, 244), 0.1);
+}
+</style>

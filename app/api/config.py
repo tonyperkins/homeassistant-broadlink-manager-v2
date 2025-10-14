@@ -51,7 +51,7 @@ def get_broadlink_devices():
         # Call the existing async method synchronously
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        devices = loop.run_until_complete(web_server._get_broadlink_devices())
+        devices = loop.run_until_complete(web_server._get_broadlink_devices("GET /api/broadlink/devices"))
         loop.close()
         
         return jsonify({'devices': devices})

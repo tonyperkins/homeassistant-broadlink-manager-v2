@@ -1,12 +1,12 @@
 #!/usr/bin/with-contenv bashio
 
 # ==============================================================================
-# Home Assistant Add-on: Broadlink Manager
+# Home Assistant Add-on: Broadlink Manager v2
 # Runs the Broadlink Manager application
 # ==============================================================================
 
 # Wait for Home Assistant to start
-bashio::log.info "Starting Broadlink Manager..."
+bashio::log.info "Starting Broadlink Manager v2..."
 
 # Get configuration options
 LOG_LEVEL=$(bashio::config 'log_level')

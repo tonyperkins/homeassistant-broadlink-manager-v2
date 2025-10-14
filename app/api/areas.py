@@ -24,7 +24,7 @@ def get_areas():
         # Call the existing async method synchronously
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        areas = loop.run_until_complete(web_server._get_ha_areas())
+        areas = loop.run_until_complete(web_server._get_ha_areas("GET /api/areas"))
         loop.close()
         
         # Return just the area names

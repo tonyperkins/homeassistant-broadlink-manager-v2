@@ -78,28 +78,47 @@ def learn_command():
         
         # If learning was successful, verify the command was actually saved
         if result.get('success'):
-            # Check if command exists in Broadlink storage
+            # Check if command exists in Broadlink storage and get the code
             command_verified = loop.run_until_complete(
                 _verify_command_learned(web_server, entity_id, device, command)
             )
             
             if command_verified:
+                # Get the actual IR code from Broadlink storage
+                all_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+                device_commands = all_commands.get(device, {})
+                ir_code = device_commands.get(command)
+                
+                if ir_code:
+                    result['code'] = ir_code
+                    logger.info(f"Retrieved IR code for command '{command}' (length: {len(ir_code)})")
+                
                 # Update the device's commands in metadata
                 storage = get_storage_manager()
+                device_updated = False
                 if storage:
                     # Find the device entity by matching the device name
                     entities = storage.get_all_entities()
                     for ent_id, ent_data in entities.items():
-                        if ent_data.get('device') == device or ent_id.endswith(f'.{device}'):
+                        if ent_data.get('device') == device:
                             # Add the command to the device
                             commands = ent_data.get('commands', {})
-                            commands[command] = command  # Simple mapping for now
-                            ent_data['commands'] = commands
-                            storage.save_entity(ent_id, ent_data)
-                            logger.info(f"Added command '{command}' to device {ent_id}")
+                            if command not in commands:
+                                commands[command] = command  # Simple mapping for now
+                                ent_data['commands'] = commands
+                                storage.save_entity(ent_id, ent_data)
+                                logger.info(f"Added command '{command}' to device {ent_id} (now has {len(commands)} commands)")
+                                device_updated = True
+                            else:
+                                logger.info(f"Command '{command}' already exists in device {ent_id}")
+                                device_updated = True
                             break
+                    
+                    if not device_updated:
+                        logger.warning(f"Could not find device with device name '{device}' to update metadata")
                 
                 result['message'] = f"✅ Command '{command}' learned successfully!"
+                result['command_added'] = device_updated
             else:
                 result['message'] = "⚠️ Learning request completed, but command not found in storage yet. Check Home Assistant notifications."
         

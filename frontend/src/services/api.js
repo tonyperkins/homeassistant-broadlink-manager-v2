@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// Use relative base URL for Ingress compatibility
+// When accessed via Ingress, requests will be relative to the ingress path
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  baseURL: import.meta.env.VITE_API_BASE_URL || './',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

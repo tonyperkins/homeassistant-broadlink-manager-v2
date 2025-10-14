@@ -166,12 +166,35 @@ def update_device(device_id):
         if not entity_data:
             return jsonify({'error': 'Device not found'}), 404
         
+        # Check if we need to rename the entity_id (only if no commands learned)
+        new_entity_id = device_id
+        if 'name' in data:
+            # Check if commands exist in metadata (this includes optimistically added commands)
+            # This is more reliable than checking storage files which update slowly in standalone mode
+            current_commands = entity_data.get('commands', {})
+            has_commands = current_commands and len(current_commands) > 0
+            
+            if has_commands:
+                logger.info(f"Device '{device_id}' has {len(current_commands)} commands in metadata - rename blocked")
+            
+            if not has_commands:
+                # No commands in metadata yet - safe to rename entity_id
+                new_device_name = normalize_device_name(data['name'])
+                entity_type = entity_data.get('entity_type', 'switch')
+                new_entity_id = f"{entity_type}.{new_device_name}"
+                
+                # If entity_id is changing, we need to delete old and create new
+                if new_entity_id != device_id:
+                    logger.info(f"Renaming entity from '{device_id}' to '{new_entity_id}' (no commands learned yet)")
+                    # Delete old entity
+                    storage.delete_entity(device_id)
+                    # Update device field
+                    entity_data['device'] = new_device_name
+        
         # Update fields
         if 'name' in data:
             entity_data['name'] = data['name']
             entity_data['friendly_name'] = data['name']
-            # NOTE: Do NOT update 'device' field - it must remain unchanged to maintain
-            # connection to Broadlink storage files. Only 'name' (friendly name) changes.
         if 'entity_type' in data:
             entity_data['entity_type'] = data['entity_type']
         if 'area' in data:
@@ -185,13 +208,13 @@ def update_device(device_id):
         if 'commands' in data:
             entity_data['commands'] = data['commands']
         
-        # Save updated entity
-        storage.save_entity(device_id, entity_data)
+        # Save entity (with new ID if renamed, or same ID if not)
+        storage.save_entity(new_entity_id, entity_data)
         
         return jsonify({
             'success': True,
             'device': {
-                'id': device_id,
+                'id': new_entity_id,
                 **entity_data
             }
         })

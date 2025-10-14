@@ -392,12 +392,25 @@ const closeCommandLearner = () => {
   selectedDevice.value = null
 }
 
-const handleCommandLearned = async () => {
-  // Reload devices to update command count
-  await deviceStore.loadDevices()
+const handleCommandLearned = async (updateData) => {
+  // Optimistically update the device in the store immediately
+  // This prevents UI lag while waiting for storage file updates (which can take 10+ seconds in standalone mode)
+  if (updateData && updateData.commands && selectedDevice.value) {
+    const deviceIndex = deviceStore.devices.findIndex(d => d.id === selectedDevice.value.id)
+    if (deviceIndex !== -1) {
+      // Update the device's commands in the store
+      deviceStore.devices[deviceIndex].commands = updateData.commands
+      console.log(`Optimistically updated device ${selectedDevice.value.id} with new command: ${updateData.commandName}`)
+    }
+  }
+  
+  // Still reload devices in the background to sync with storage
+  // But don't await it - let it happen asynchronously
+  deviceStore.loadDevices()
+  
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {
-    await discoveryRef.value.refresh()
+    discoveryRef.value.refresh()
   }
 }
 

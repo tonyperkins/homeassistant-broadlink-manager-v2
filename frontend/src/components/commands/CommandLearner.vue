@@ -8,7 +8,7 @@
         </button>
       </div>
 
-      <div class="modal-body">
+      <form @submit.prevent="startLearning" class="modal-body">
         <!-- Broadlink Device (Read-only) -->
         <div class="form-group">
           <label for="broadlink-entity">Broadlink Device</label>
@@ -27,8 +27,11 @@
           <label for="command-name">Command Name *</label>
           <select
             id="command-name"
+            ref="commandSelect"
             v-model="commandName"
             :disabled="learning"
+            required
+            @change="clearCommandValidation"
           >
             <option value="">-- Select or type command --</option>
             <optgroup label="Suggested Commands">
@@ -40,11 +43,14 @@
           </select>
           <input
             v-if="commandName === '__custom__'"
+            ref="customCommandInput"
             v-model="customCommandName"
             type="text"
             placeholder="Enter custom command name"
             :disabled="learning"
+            required
             class="custom-command-input"
+            @input="clearCustomCommandValidation"
           />
           <small>Select a suggested command for {{ device.entity_type || 'this device' }}, or enter a custom one.</small>
         </div>
@@ -67,9 +73,9 @@
         <!-- Learn Button (inline with inputs) -->
         <div class="learn-action">
           <button 
-            @click="startLearning" 
+            type="submit"
             class="btn btn-primary btn-large" 
-            :disabled="!canLearn || learning"
+            :disabled="learning"
           >
             <i v-if="learning" class="mdi mdi-loading mdi-spin"></i>
             <i v-else class="mdi mdi-remote-tv"></i>
@@ -84,9 +90,10 @@
           <small>This may take up to 30 seconds</small>
         </div>
 
-        <!-- Result Message -->
-        <div v-if="resultMessage" :class="['result-message', resultType]">
-          <i :class="`mdi mdi-${resultType === 'success' ? 'check-circle' : 'alert-circle'}`"></i>
+        <!-- Result Message (success only for learning/deleting, errors use native validation) -->
+        <!-- Test command success is shown inline on the command row -->
+        <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully')" class="result-message success">
+          <i class="mdi mdi-check-circle"></i>
           <p>{{ resultMessage }}</p>
         </div>
 
@@ -97,13 +104,22 @@
         <div v-if="learnedCommands.length > 0" class="learned-commands">
           <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
           <div class="command-list">
-            <div v-for="cmd in learnedCommands" :key="cmd" class="command-item">
+            <div v-for="cmd in learnedCommands" :key="cmd" class="command-item" :class="{ 'testing': testingCommand === cmd, 'tested': testedCommand === cmd }">
               <span class="command-name">{{ cmd }}</span>
+              
+              <!-- Inline status messages -->
+              <span v-if="testingCommand === cmd" class="command-status testing">
+                <i class="mdi mdi-loading mdi-spin"></i> Sending...
+              </span>
+              <span v-else-if="testedCommand === cmd" class="command-status success">
+                <i class="mdi mdi-check-circle"></i> Sent!
+              </span>
+              
               <div class="command-actions">
-                <button @click="testCommand(cmd)" class="icon-btn" title="Test">
+                <button type="button" @click="testCommand(cmd)" class="icon-btn" title="Test" :disabled="testingCommand !== ''">
                   <i class="mdi mdi-play"></i>
                 </button>
-                <button @click="deleteCommand(cmd)" class="icon-btn danger" title="Delete">
+                <button type="button" @click="deleteCommand(cmd)" class="icon-btn danger" title="Delete" :disabled="testingCommand !== ''">
                   <i class="mdi mdi-delete"></i>
                 </button>
               </div>
@@ -126,12 +142,12 @@
               <span class="untracked-badge">Not tracked</span>
             </div>
           </div>
-          <button @click="importUntrackedCommands" class="btn btn-secondary">
+          <button type="button" @click="importUntrackedCommands" class="btn btn-secondary">
             <i class="mdi mdi-import"></i>
             Import All Untracked Commands
           </button>
         </div>
-      </div>
+      </form>
 
       <div class="modal-footer">
         <button type="button" @click="$emit('cancel')" class="btn btn-secondary" :disabled="learning">
@@ -166,7 +182,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import api from '@/services/api'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 
@@ -192,11 +208,27 @@ const untrackedCommands = ref([])
 const showDeleteConfirm = ref(false)
 const commandToDelete = ref('')
 const showImportConfirm = ref(false)
+const commandSelect = ref(null)
+const customCommandInput = ref(null)
+const testedCommand = ref('') // Track which command was just tested
+const testingCommand = ref('') // Track which command is currently being tested
 
 const canLearn = computed(() => {
   const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
   return selectedBroadlink.value && actualCommand.trim()
 })
+
+const clearCommandValidation = () => {
+  if (commandSelect.value) {
+    commandSelect.value.setCustomValidity('')
+  }
+}
+
+const clearCustomCommandValidation = () => {
+  if (customCommandInput.value) {
+    customCommandInput.value.setCustomValidity('')
+  }
+}
 
 const broadlinkFriendlyName = computed(() => {
   const device = broadlinkDevices.value.find(d => d.entity_id === selectedBroadlink.value)
@@ -250,9 +282,30 @@ onMounted(async () => {
   await loadLearnedCommands()
   await loadUntrackedCommands()
   
+  // Set custom validation messages
+  if (commandSelect.value) {
+    commandSelect.value.setCustomValidity('')
+    commandSelect.value.oninvalid = () => {
+      commandSelect.value.setCustomValidity('Command name is required')
+    }
+  }
+  
   // Pre-select broadlink device if set on device
   if (props.device.broadlink_entity) {
     selectedBroadlink.value = props.device.broadlink_entity
+  }
+})
+
+// Watch for custom command input to appear and set validation
+watch(commandName, async (newVal) => {
+  if (newVal === '__custom__') {
+    await nextTick()
+    if (customCommandInput.value) {
+      customCommandInput.value.setCustomValidity('')
+      customCommandInput.value.oninvalid = () => {
+        customCommandInput.value.setCustomValidity('Custom command name is required')
+      }
+    }
   }
 })
 
@@ -276,14 +329,11 @@ const loadLearnedCommands = async () => {
 }
 
 const startLearning = async () => {
-  if (!canLearn.value) {
-    resultMessage.value = 'Please select a Broadlink device and enter a command name'
-    resultType.value = 'error'
-    return
-  }
+  // Clear previous success messages
+  resultMessage.value = ''
+  resultType.value = ''
   
   learning.value = true
-  resultMessage.value = ''
   
   try {
     // Extract device name - try multiple sources
@@ -319,12 +369,17 @@ const startLearning = async () => {
         untrackedCommands.value.splice(untrackedIndex, 1)
       }
       
+      // Optimistically update the device's command count in the store
+      // This prevents the UI from showing stale data while waiting for storage file updates
+      const updatedCommands = { ...props.device.commands }
+      updatedCommands[actualCommand] = true // Mark command as learned
+      
       // Clear form for next command
       commandName.value = ''
       customCommandName.value = ''
       
-      // Notify parent component
-      emit('learned')
+      // Notify parent component with updated command data
+      emit('learned', { commands: updatedCommands, commandName: actualCommand })
     } else {
       resultMessage.value = response.data.error || 'Failed to learn command'
       resultType.value = 'error'
@@ -339,6 +394,10 @@ const startLearning = async () => {
 
 const testCommand = async (command) => {
   try {
+    // Set testing state
+    testingCommand.value = command
+    testedCommand.value = '' // Clear previous tested state
+    
     // Extract device name - try multiple sources
     let deviceName = props.device.id.split('.')[1]
     if (props.device.device) {
@@ -349,16 +408,25 @@ const testCommand = async (command) => {
       entity_id: selectedBroadlink.value,
       device: deviceName,
       command: command,
-      device_id: props.device.id  // Add device_id for command mapping lookup
+      device_id: props.device.id
     })
     
     if (response.data.success) {
-      resultMessage.value = `Command "${command}" sent successfully!`
-      resultType.value = 'success'
+      // Show success on the command row
+      testedCommand.value = command
+      
+      // Auto-clear after 2 seconds
+      setTimeout(() => {
+        if (testedCommand.value === command) {
+          testedCommand.value = ''
+        }
+      }, 2000)
     }
   } catch (error) {
     resultMessage.value = `Failed to send command: ${error.message}`
     resultType.value = 'error'
+  } finally {
+    testingCommand.value = ''
   }
 }
 
@@ -676,6 +744,50 @@ const handleImportConfirm = async () => {
 .command-item.untracked {
   background: rgba(var(--ha-warning-rgb, 255, 152, 0), 0.05);
   border-color: var(--ha-warning-color, #ff9800);
+}
+
+.command-item.testing {
+  background: rgba(3, 169, 244, 0.08);
+  border-color: #03a9f4;
+}
+
+.command-item.tested {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: #4caf50;
+}
+
+.command-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.command-status.testing {
+  background: rgba(3, 169, 244, 0.15);
+  color: #03a9f4;
+}
+
+.command-status.success {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .command-actions {

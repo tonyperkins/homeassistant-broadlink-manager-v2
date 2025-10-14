@@ -1,5 +1,8 @@
 <template>
   <div class="dashboard">
+    <!-- SmartIR Banner -->
+    <SmartIRBanner />
+
     <!-- Welcome Banner -->
     <div class="welcome-banner">
       <div class="banner-content">
@@ -22,6 +25,13 @@
         </span>
       </div>
     </div>
+
+    <!-- SmartIR Status Card -->
+    <SmartIRStatusCard 
+      @create-profile="handleCreateProfile"
+      @edit-profile="handleEditProfile"
+      @show-install-guide="handleShowInstallGuide"
+    />
 
     <!-- Device List Component -->
     <DeviceList />
@@ -47,14 +57,104 @@
       <div class="info-card">
         <i class="mdi mdi-bug"></i>
         <h3>Report Issues</h3>
-        <p>Found a bug? Please report it on GitHub Issues.</p>
+        <p>
+          Found a bug? 
+          <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/issues" target="_blank">
+            Report it on GitHub Issues
+          </a>
+        </p>
       </div>
     </div>
+
+    <!-- SmartIR Profile Builder Modal -->
+    <SmartIRProfileBuilder
+      :show="showProfileBuilder"
+      :editMode="editMode"
+      :editData="editData"
+      @close="handleCloseProfileBuilder"
+      @save="handleProfileSave"
+    />
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import DeviceList from '@/components/devices/DeviceList.vue'
+import SmartIRBanner from '@/components/common/SmartIRBanner.vue'
+import SmartIRStatusCard from '@/components/smartir/SmartIRStatusCard.vue'
+import SmartIRProfileBuilder from '@/components/smartir/SmartIRProfileBuilder.vue'
+
+const showProfileBuilder = ref(false)
+const editMode = ref(false)
+const editData = ref(null)
+
+// Event handlers for SmartIR Status Card
+function handleCreateProfile() {
+  editMode.value = false
+  editData.value = null
+  showProfileBuilder.value = true
+}
+
+async function handleEditProfile({ platform, profile }) {
+  try {
+    // Fetch the full profile data
+    const response = await fetch(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
+    if (!response.ok) {
+      throw new Error('Failed to load profile')
+    }
+    
+    const data = await response.json()
+    
+    // Try to find controller_data from YAML config
+    let controllerData = ''
+    try {
+      const configResponse = await fetch(`/api/smartir/config/get-device?platform=${platform}&code=${profile.code}`)
+      if (configResponse.ok) {
+        const configData = await configResponse.json()
+        controllerData = configData.controller_data || ''
+        console.log('✅ Found controller_data from YAML:', controllerData)
+      } else {
+        console.warn('⚠️ No YAML entry found for this profile (this is OK for profiles not yet added to config)')
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch controller_data from config:', err)
+    }
+    
+    // Set edit mode and data
+    editMode.value = true
+    editData.value = {
+      platform,
+      code: profile.code,
+      profile: {
+        ...data.profile,
+        controller_data: controllerData // Add controller_data from YAML
+      }
+    }
+    showProfileBuilder.value = true
+  } catch (err) {
+    console.error('Error loading profile for edit:', err)
+    alert('Failed to load profile for editing')
+  }
+}
+
+function handleCloseProfileBuilder() {
+  showProfileBuilder.value = false
+  editMode.value = false
+  editData.value = null
+}
+
+function handleShowInstallGuide() {
+  // TODO: Open install guide modal
+  console.log('Show install guide clicked')
+  // For now, open GitHub in new tab
+  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
+}
+
+function handleProfileSave(result) {
+  console.log('Profile saved:', result)
+  // Close the builder
+  handleCloseProfileBuilder()
+}
 </script>
 
 <style scoped>

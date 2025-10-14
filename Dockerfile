@@ -16,7 +16,9 @@ RUN \
     openssl-dev \
     cargo \
     rust \
-    curl
+    curl \
+    jq \
+    bash
 
 # Python requirements
 # Cache bust: 2025-10-10-v2
@@ -27,8 +29,8 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 COPY run.sh /
 COPY app/ /app/
 
-# Make run.sh executable
-RUN chmod a+x /run.sh
+# Fix line endings and make run.sh executable
+RUN sed -i 's/\r$//' /run.sh && chmod a+x /run.sh
 
 # Set working directory
 WORKDIR /app

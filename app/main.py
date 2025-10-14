@@ -14,6 +14,10 @@ import time
 from typing import Dict, Any
 from pathlib import Path
 
+# Load .env file if it exists (for development)
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / '.env')
+
 from web_server import BroadlinkWebServer
 from config_loader import ConfigLoader
 

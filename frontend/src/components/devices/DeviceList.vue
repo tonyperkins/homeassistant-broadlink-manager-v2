@@ -1,0 +1,915 @@
+<template>
+  <div class="device-list">
+    <div class="device-list-header">
+      <div class="header-left">
+        <h2>Managed Devices</h2>
+        <span class="device-count">{{ deviceStore.deviceCount }} devices</span>
+      </div>
+      <button @click="showCreateForm = true" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i>
+        Add Device
+      </button>
+    </div>
+
+    <!-- Device Discovery Banner -->
+    <DeviceDiscovery ref="discoveryRef" @adopt="adoptDevice" />
+
+    <!-- Filter Bar -->
+    <div v-if="deviceStore.hasDevices" class="filter-bar">
+      <!-- Search Row -->
+      <div class="filter-row filter-row-search">
+        <div class="filter-group filter-search">
+          <label>
+            <i class="mdi mdi-magnify"></i>
+            <input
+              v-model="filters.search"
+              type="text"
+              placeholder="Search devices, commands..."
+              class="search-input"
+            />
+          </label>
+        </div>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="filter-row filter-row-dropdowns">
+        <div class="filter-group">
+          <label>
+            <i class="mdi mdi-access-point"></i>
+            <select v-model="filters.broadlinkDevice">
+              <option value="">All Broadlink Devices</option>
+              <option v-for="device in broadlinkDeviceOptions" :key="device.entity_id" :value="device.entity_id">
+                {{ device.friendly_name }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filter-group">
+          <label>
+            <i class="mdi mdi-home-map-marker"></i>
+            <select v-model="filters.area">
+              <option value="">All Areas</option>
+              <option v-for="area in areaOptions" :key="area" :value="area">
+                {{ area }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filter-group">
+          <label>
+            <i class="mdi mdi-shape"></i>
+            <select v-model="filters.entityType">
+              <option value="">All Types</option>
+              <option value="light">Light</option>
+              <option value="fan">Fan</option>
+              <option value="switch">Switch</option>
+              <option value="media_player">Media Player</option>
+              <option value="cover">Cover</option>
+            </select>
+          </label>
+        </div>
+
+        <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
+          <i class="mdi mdi-filter-remove"></i>
+          Clear
+        </button>
+
+        <div class="filter-results">
+          {{ filteredDevices.length }} of {{ deviceStore.deviceCount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="deviceStore.loading" class="loading-state">
+      <i class="mdi mdi-loading mdi-spin"></i>
+      <p>Loading devices...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="deviceStore.error" class="error-state">
+      <i class="mdi mdi-alert-circle"></i>
+      <p>{{ deviceStore.error }}</p>
+      <button @click="deviceStore.loadDevices()" class="btn btn-secondary">
+        Retry
+      </button>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="!deviceStore.hasDevices" class="empty-state">
+      <i class="mdi mdi-devices"></i>
+      <h3>No Devices Yet</h3>
+      <p>Get started by adding your first managed device</p>
+      <button @click="showCreateForm = true" class="btn btn-primary">
+        <i class="mdi mdi-plus"></i>
+        Add Your First Device
+      </button>
+    </div>
+
+    <!-- Device Grid -->
+    <div v-else class="device-grid">
+      <DeviceCard
+        v-for="device in filteredDevices"
+        :key="device.id"
+        :device="device"
+        @edit="editDevice"
+        @delete="confirmDelete"
+        @learn="learnCommands"
+      />
+    </div>
+
+    <!-- No Results -->
+    <div v-if="deviceStore.hasDevices && filteredDevices.length === 0" class="no-results">
+      <i class="mdi mdi-filter-off"></i>
+      <h3>No devices match your filters</h3>
+      <button @click="clearFilters" class="btn btn-secondary">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Create/Edit Form Modal -->
+    <DeviceForm
+      v-if="showCreateForm"
+      :device="selectedDevice"
+      @save="handleSave"
+      @cancel="closeForm"
+    />
+
+    <!-- Command Learner Modal -->
+    <CommandLearner
+      v-if="showCommandLearner"
+      :device="selectedDevice"
+      @learned="handleCommandLearned"
+      @cancel="closeCommandLearner"
+    />
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      :isOpen="showDeleteConfirm"
+      :title="`Delete ${deviceToDelete?.name}?`"
+      :message="deleteMessage"
+      confirmText="Delete"
+      cancelText="Cancel"
+      :dangerMode="true"
+      :checkboxLabel="deleteCheckboxLabel"
+      @confirm="handleDeleteConfirm"
+      @cancel="cancelDelete"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useDeviceStore } from '@/stores/devices'
+import DeviceCard from './DeviceCard.vue'
+import DeviceForm from './DeviceForm.vue'
+import CommandLearner from '../commands/CommandLearner.vue'
+import ConfirmDialog from '../common/ConfirmDialog.vue'
+import DeviceDiscovery from './DeviceDiscovery.vue'
+import api from '@/services/api'
+
+const deviceStore = useDeviceStore()
+const showCreateForm = ref(false)
+const showCommandLearner = ref(false)
+const selectedDevice = ref(null)
+const showDeleteConfirm = ref(false)
+const deviceToDelete = ref(null)
+const discoveryRef = ref(null)
+
+// Filters
+const filters = ref({
+  search: '',
+  broadlinkDevice: '',
+  area: '',
+  entityType: ''
+})
+
+const broadlinkDevices = ref([])
+
+// Filter options (computed from available devices)
+const broadlinkDeviceOptions = computed(() => {
+  const deviceMap = new Map()
+  
+  deviceStore.devices.forEach(device => {
+    if (device.broadlink_entity) {
+      // Find the friendly name from loaded Broadlink devices
+      const blDevice = broadlinkDevices.value.find(d => d.entity_id === device.broadlink_entity)
+      const friendlyName = blDevice ? (blDevice.name || device.broadlink_entity) : device.broadlink_entity
+      
+      deviceMap.set(device.broadlink_entity, {
+        entity_id: device.broadlink_entity,
+        friendly_name: friendlyName
+      })
+    }
+  })
+  
+  return Array.from(deviceMap.values()).sort((a, b) => 
+    a.friendly_name.localeCompare(b.friendly_name)
+  )
+})
+
+const areaOptions = computed(() => {
+  const areas = new Set()
+  deviceStore.devices.forEach(device => {
+    if (device.area) {
+      areas.add(device.area)
+    }
+  })
+  return Array.from(areas).sort()
+})
+
+// Filtered devices
+const filteredDevices = computed(() => {
+  let devices = deviceStore.devices
+
+  // Text search across all fields
+  if (filters.value.search) {
+    const searchLower = filters.value.search.toLowerCase()
+    devices = devices.filter(d => {
+      // Search in device name
+      if (d.name?.toLowerCase().includes(searchLower)) return true
+      
+      // Search in entity type
+      if (d.entity_type?.toLowerCase().includes(searchLower)) return true
+      
+      // Search in area
+      if (d.area?.toLowerCase().includes(searchLower)) return true
+      
+      // Search in entity ID
+      if (d.id?.toLowerCase().includes(searchLower)) return true
+      
+      // Search in commands
+      const commands = Object.keys(d.commands || {})
+      if (commands.some(cmd => cmd.toLowerCase().includes(searchLower))) return true
+      
+      // Search in Broadlink entity (friendly name)
+      const blDevice = broadlinkDevices.value.find(bd => bd.entity_id === d.broadlink_entity)
+      if (blDevice?.name?.toLowerCase().includes(searchLower)) return true
+      
+      return false
+    })
+  }
+
+  if (filters.value.broadlinkDevice) {
+    devices = devices.filter(d => d.broadlink_entity === filters.value.broadlinkDevice)
+  }
+
+  if (filters.value.area) {
+    devices = devices.filter(d => d.area === filters.value.area)
+  }
+
+  if (filters.value.entityType) {
+    devices = devices.filter(d => d.entity_type === filters.value.entityType)
+  }
+
+  return devices
+})
+
+const hasActiveFilters = computed(() => {
+  return filters.value.search || filters.value.broadlinkDevice || filters.value.area || filters.value.entityType
+})
+
+const clearFilters = () => {
+  filters.value.search = ''
+  filters.value.broadlinkDevice = ''
+  filters.value.area = ''
+  filters.value.entityType = ''
+}
+
+const loadBroadlinkDevices = async () => {
+  try {
+    const response = await api.get('/api/broadlink/devices')
+    broadlinkDevices.value = response.data.devices || []
+  } catch (error) {
+    console.error('Error loading Broadlink devices:', error)
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([
+    deviceStore.loadDevices(),
+    loadBroadlinkDevices()
+  ])
+})
+
+const editDevice = (device) => {
+  selectedDevice.value = device
+  showCreateForm.value = true
+}
+
+const deleteMessage = computed(() => {
+  if (!deviceToDelete.value) return ''
+  const commandCount = Object.keys(deviceToDelete.value.commands || {}).length
+  if (commandCount === 0) {
+    return 'This device has no commands. The device will be removed from tracking.'
+  }
+  return `This device has ${commandCount} learned command${commandCount > 1 ? 's' : ''}. What would you like to do?`
+})
+
+const deleteCheckboxLabel = computed(() => {
+  if (!deviceToDelete.value) return ''
+  const commandCount = Object.keys(deviceToDelete.value.commands || {}).length
+  if (commandCount === 0) return ''
+  return `Also delete all ${commandCount} command${commandCount > 1 ? 's' : ''} from Broadlink storage`
+})
+
+const confirmDelete = (device) => {
+  deviceToDelete.value = device
+  showDeleteConfirm.value = true
+}
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  deviceToDelete.value = null
+}
+
+const handleDeleteConfirm = async (deleteCommands) => {
+  const device = deviceToDelete.value
+  showDeleteConfirm.value = false
+  
+  try {
+    // If user chose to delete commands, delete them first
+    if (deleteCommands && device.commands) {
+      const commandNames = Object.values(device.commands)
+      const deviceName = device.device || device.id.split('.')[1]
+      
+      // Delete each command from Broadlink storage
+      for (const commandName of commandNames) {
+        try {
+          await api.delete(`/api/commands/${device.id}/${Object.keys(device.commands).find(k => device.commands[k] === commandName)}`)
+        } catch (error) {
+          console.error(`Failed to delete command ${commandName}:`, error)
+        }
+      }
+    }
+    
+    // Delete the device from metadata
+    await deviceStore.deleteDevice(device.id)
+    
+    // Refresh discovery to show newly untracked device
+    if (discoveryRef.value) {
+      await discoveryRef.value.refresh()
+    }
+  } catch (error) {
+    alert('Failed to delete device: ' + error.message)
+  } finally {
+    deviceToDelete.value = null
+  }
+}
+
+const handleSave = async (deviceData) => {
+  try {
+    // Check if we're editing (has valid id) or creating (id is null/undefined)
+    if (selectedDevice.value?.id && selectedDevice.value.id !== null) {
+      await deviceStore.updateDevice(selectedDevice.value.id, deviceData)
+    } else {
+      await deviceStore.createDevice(deviceData)
+    }
+    closeForm()
+    // Refresh discovery after saving
+    if (discoveryRef.value) {
+      await discoveryRef.value.refresh()
+    }
+  } catch (error) {
+    alert('Failed to save device: ' + error.message)
+  }
+}
+
+const closeForm = () => {
+  showCreateForm.value = false
+  selectedDevice.value = null
+}
+
+const learnCommands = (device) => {
+  selectedDevice.value = device
+  showCommandLearner.value = true
+}
+
+const closeCommandLearner = () => {
+  showCommandLearner.value = false
+  selectedDevice.value = null
+}
+
+const handleCommandLearned = async () => {
+  // Reload devices to update command count
+  await deviceStore.loadDevices()
+  // Refresh discovery to update untracked devices
+  if (discoveryRef.value) {
+    await discoveryRef.value.refresh()
+  }
+}
+
+const convertStorageNameToDisplay = (storageName) => {
+  // Convert snake_case to Title Case with possessive handling
+  // e.g., "tony_s_office" -> "Tony's Office", "living_room_tv" -> "Living Room TV"
+  const parts = storageName.split('_')
+  const result = []
+  
+  for (let i = 0; i < parts.length; i++) {
+    const word = parts[i]
+    const nextWord = parts[i + 1]
+    
+    // Check if this is a possessive pattern (word_s_nextword)
+    if (word && nextWord === 's' && parts[i + 2]) {
+      // Combine as possessive: "tony_s_office" -> "Tony's Office"
+      result.push(word.charAt(0).toUpperCase() + word.slice(1) + "'s")
+      i++ // Skip the 's' part
+    } else if (word !== 's') {
+      // Normal word
+      result.push(word.charAt(0).toUpperCase() + word.slice(1))
+    }
+  }
+  
+  return result.join(' ')
+}
+
+const detectEntityType = (deviceName, commands) => {
+  const name = deviceName.toLowerCase()
+  const cmdList = commands.map(c => c.toLowerCase())
+  
+  // Check device name keywords
+  if (name.includes('lamp') || name.includes('light')) return 'light'
+  if (name.includes('fan')) return 'fan'
+  if (name.includes('tv') || name.includes('stereo') || name.includes('speaker') || name.includes('receiver')) return 'media_player'
+  if (name.includes('blind') || name.includes('curtain') || name.includes('shade') || name.includes('garage')) return 'cover'
+  
+  // Check commands for patterns
+  const hasMediaCommands = cmdList.some(c => 
+    c.includes('volume') || c.includes('channel') || c.includes('play') || c.includes('pause') || c.includes('mute')
+  )
+  if (hasMediaCommands) return 'media_player'
+  
+  const hasFanCommands = cmdList.some(c => c.includes('fan_speed') || c.includes('fan_low') || c.includes('fan_high'))
+  if (hasFanCommands) return 'fan'
+  
+  const hasCoverCommands = cmdList.some(c => c.includes('open') || c.includes('close') || c.includes('stop'))
+  if (hasCoverCommands) return 'cover'
+  
+  // Default to switch
+  return 'switch'
+}
+
+const detectIcon = (deviceName, entityType) => {
+  const name = deviceName.toLowerCase()
+  
+  // Specific device type icons
+  if (name.includes('tv')) return 'mdi:television'
+  if (name.includes('stereo') || name.includes('receiver')) return 'mdi:speaker'
+  if (name.includes('speaker')) return 'mdi:speaker'
+  if (name.includes('lamp')) return 'mdi:lamp'
+  if (name.includes('light')) return 'mdi:lightbulb'
+  if (name.includes('fan')) return 'mdi:fan'
+  if (name.includes('blind')) return 'mdi:blinds'
+  if (name.includes('curtain')) return 'mdi:curtains'
+  if (name.includes('garage')) return 'mdi:garage'
+  
+  // Default icons by entity type
+  const typeIcons = {
+    light: 'mdi:lightbulb',
+    fan: 'mdi:fan',
+    switch: 'mdi:light-switch',
+    media_player: 'mdi:speaker',
+    cover: 'mdi:window-shutter'
+  }
+  
+  return typeIcons[entityType] || 'mdi:devices'
+}
+
+const detectAreaFromName = (deviceName) => {
+  // Try to detect area from device name
+  // Common patterns: "living_room_tv", "master_bedroom_fan", "tony_s_office_lamp"
+  const parts = deviceName.toLowerCase().split('_')
+  
+  // Check for possessive patterns (name_s_room) - e.g., "tony_s_office"
+  for (let i = 0; i < parts.length - 2; i++) {
+    if (parts[i + 1] === 's') {
+      // Found possessive pattern - extract just name_s_room (don't extend further)
+      // e.g., "tony_s_office_workbench_lamp" -> "tony_s_office"
+      const areaParts = parts.slice(i, i + 3) // name, s, room
+      const areaName = convertStorageNameToDisplay(areaParts.join('_'))
+      console.log('Detected possessive area:', areaName, 'from', deviceName)
+      return areaName
+    }
+  }
+  
+  // Common area patterns (two-word areas)
+  const twoWordAreas = [
+    ['living', 'room'],
+    ['dining', 'room'],
+    ['master', 'bedroom'],
+    ['guest', 'bedroom'],
+    ['family', 'room'],
+    ['laundry', 'room'],
+    ['home', 'office']
+  ]
+  
+  // Check for two-word areas
+  for (let i = 0; i < parts.length - 1; i++) {
+    const twoWord = [parts[i], parts[i + 1]]
+    const match = twoWordAreas.find(area => 
+      area[0] === twoWord[0] && area[1] === twoWord[1]
+    )
+    if (match) {
+      return convertStorageNameToDisplay(match.join('_'))
+    }
+  }
+  
+  // Check for single-word areas (kitchen, bedroom, garage, etc.)
+  const commonAreas = ['kitchen', 'bedroom', 'bathroom', 'garage', 'office', 
+                       'basement', 'attic', 'hallway', 'entryway', 'patio', 
+                       'deck', 'yard', 'garden']
+  
+  for (const part of parts) {
+    if (commonAreas.includes(part)) {
+      return part.charAt(0).toUpperCase() + part.slice(1)
+    }
+  }
+  
+  return '' // No area detected
+}
+
+const isDeviceType = (word) => {
+  // Common device type words that indicate the end of an area name
+  const deviceTypes = ['lamp', 'light', 'fan', 'tv', 'stereo', 'speaker', 
+                       'switch', 'outlet', 'plug', 'heater', 'ac', 'thermostat',
+                       'blind', 'curtain', 'shade', 'door', 'lock', 'camera']
+  return deviceTypes.includes(word)
+}
+
+const adoptDevice = async (discoveredDevice) => {
+  // Convert storage name to display name
+  const displayName = convertStorageNameToDisplay(discoveredDevice.device_name)
+  
+  // Try to detect area from device name
+  const detectedArea = detectAreaFromName(discoveredDevice.device_name)
+  
+  // Detect entity type and icon from device name and commands
+  const detectedType = detectEntityType(discoveredDevice.device_name, discoveredDevice.commands)
+  const detectedIcon = detectIcon(discoveredDevice.device_name, detectedType)
+  
+  // Find which Broadlink device owns these commands
+  let broadlinkEntity = ''
+  try {
+    console.log('Finding Broadlink owner for:', discoveredDevice.device_name)
+    const response = await api.post('/api/devices/find-broadlink-owner', {
+      device_name: discoveredDevice.device_name
+    })
+    console.log('Broadlink owner response:', response.data)
+    broadlinkEntity = response.data.broadlink_entity || ''
+    console.log('Detected Broadlink entity:', broadlinkEntity)
+  } catch (error) {
+    console.error('Error finding Broadlink owner:', error)
+  }
+  
+  // Pre-populate form with discovered device data
+  selectedDevice.value = {
+    id: null, // New device
+    device: discoveredDevice.device_name, // Keep original storage name
+    name: displayName, // Display name for user
+    entity_type: detectedType, // Auto-detected type
+    commands: {},
+    area: detectedArea, // Pre-select detected area
+    icon: detectedIcon, // Auto-detected icon
+    broadlink_entity: broadlinkEntity, // Auto-detected Broadlink device
+    enabled: true
+  }
+  
+  // Import commands automatically
+  const commandMapping = {}
+  discoveredDevice.commands.forEach(cmd => {
+    commandMapping[cmd] = cmd
+  })
+  selectedDevice.value.commands = commandMapping
+  
+  showCreateForm.value = true
+}
+</script>
+
+<style scoped>
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.device-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--ha-text-primary-color);
+}
+
+.device-count {
+  background: var(--ha-primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ha-card-background);
+  border-radius: 12px;
+  border: 1px solid var(--ha-border-color);
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-row-search {
+  width: 100%;
+}
+
+.filter-row-dropdowns {
+  width: 100%;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ha-text-secondary-color);
+}
+
+.filter-group i {
+  font-size: 18px;
+  color: var(--ha-primary-color);
+}
+
+.filter-group select {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-group select:hover {
+  border-color: var(--ha-primary-color);
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
+}
+
+.filter-search {
+  flex: 1;
+  width: 100%;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
+  opacity: 0.7;
+}
+
+.search-input:hover {
+  border-color: var(--ha-primary-color);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
+}
+
+.filter-toggle label {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.toggle-buttons {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-secondary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.toggle-btn:hover {
+  border-color: var(--ha-primary-color);
+  background: var(--ha-hover-color);
+}
+
+.toggle-btn.active {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.toggle-btn i {
+  font-size: 16px;
+}
+
+.btn-clear-filters {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-secondary-color);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  background: var(--ha-hover-color);
+  border-color: var(--ha-primary-color);
+  color: var(--ha-text-primary-color);
+}
+
+.filter-results {
+  color: var(--ha-text-secondary-color);
+  font-size: 14px;
+  white-space: nowrap;
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--ha-text-secondary-color);
+}
+
+.no-results i {
+  font-size: 64px;
+  color: var(--ha-text-secondary-color);
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+.no-results h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: var(--ha-text-primary-color);
+  font-weight: 500;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  background: var(--ha-card-background);
+  border-radius: 12px;
+  border: 1px solid var(--ha-border-color);
+}
+
+.loading-state i {
+  font-size: 48px;
+  color: var(--ha-primary-color);
+  margin-bottom: 16px;
+}
+
+.loading-state p {
+  color: var(--ha-text-secondary-color);
+  font-size: 16px;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  background: rgba(var(--ha-error-rgb), 0.1);
+  border-radius: 12px;
+  border: 1px solid var(--ha-error-color);
+}
+
+.error-state i {
+  font-size: 48px;
+  color: var(--ha-error-color);
+  margin-bottom: 16px;
+}
+
+.error-state p {
+  color: var(--ha-text-primary-color);
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  background: var(--ha-card-background);
+  border-radius: 12px;
+  border: 1px solid var(--ha-border-color);
+}
+
+.empty-state i {
+  font-size: 64px;
+  color: var(--ha-text-secondary-color);
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: var(--ha-text-primary-color);
+}
+
+.empty-state p {
+  margin: 0 0 24px 0;
+  color: var(--ha-text-secondary-color);
+  font-size: 16px;
+}
+
+/* Device Grid */
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .device-list-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -27,6 +27,9 @@ from config_loader import ConfigLoader
 from migration_manager import MigrationManager
 from device_manager import DeviceManager
 
+# Import API blueprint for v2
+from api import api_bp
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,11 +77,18 @@ class BroadlinkWebServer:
         self.storage_path = self.config_loader.get_storage_path()
 
         logger.info(f"Web server initialized in {self.config_loader.mode} mode")
-        logger.info(f"Home Assistant URL: {self.ha_url}")
-
-        # Simple notification cache
+        
+        # Broadlink manager path
+        self.broadlink_manager_path = self.config_loader.get_broadlink_manager_path()
+        
+        # Cache for notifications
         self.cached_notifications = []
         self.last_notification_check = 0
+        
+        # Cache for recently deleted commands to handle storage lag
+        # Format: {device_name: {command_name: timestamp}}
+        self.recently_deleted_commands = {}
+        self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
 
         # Initialize entity management components
         self.storage_manager = StorageManager(
@@ -92,6 +102,16 @@ class BroadlinkWebServer:
         self.migration_manager = MigrationManager(
             self.storage_manager, self.entity_detector, self.storage_path
         )
+
+        # Make managers available to API endpoints
+        self.app.config['storage_manager'] = self.storage_manager
+        self.app.config['device_manager'] = self.device_manager
+        self.app.config['area_manager'] = self.area_manager
+        self.app.config['web_server'] = self  # For command learning
+
+        # Register API blueprint for v2
+        self.app.register_blueprint(api_bp)
+        logger.info("Registered API blueprint at /api")
 
         self._setup_routes()
         # Initialize WebSocket variables
@@ -107,7 +127,12 @@ class BroadlinkWebServer:
 
         @self.app.route("/")
         def index():
-            """Serve the main web interface"""
+            """Serve the main web interface (Vue app if built, otherwise template)"""
+            # Try to serve Vue app from static folder first
+            vue_index = Path(self.app.static_folder) / "index.html"
+            if vue_index.exists():
+                return send_from_directory(self.app.static_folder, "index.html")
+            # Fallback to template (v1 interface)
             return render_template("index.html")
 
         @self.app.route("/static/<path:filename>")
@@ -1559,6 +1584,93 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error getting Broadlink commands: {e}")
             return {}
+    
+    def _add_to_deletion_cache(self, device_name: str, command_name: str):
+        """Add a command to the recently deleted cache"""
+        if device_name not in self.recently_deleted_commands:
+            self.recently_deleted_commands[device_name] = {}
+        self.recently_deleted_commands[device_name][command_name] = time.time()
+        logger.info(f"Added to deletion cache: {device_name}/{command_name}")
+    
+    def _is_recently_deleted(self, device_name: str, command_name: str) -> bool:
+        """Check if a command was recently deleted (within TTL)"""
+        if device_name not in self.recently_deleted_commands:
+            return False
+        
+        if command_name not in self.recently_deleted_commands[device_name]:
+            return False
+        
+        deletion_time = self.recently_deleted_commands[device_name][command_name]
+        age = time.time() - deletion_time
+        
+        if age > self.DELETION_CACHE_TTL:
+            # Expired, remove from cache
+            del self.recently_deleted_commands[device_name][command_name]
+            if not self.recently_deleted_commands[device_name]:
+                del self.recently_deleted_commands[device_name]
+            return False
+        
+        return True
+    
+    def _cleanup_deletion_cache(self):
+        """Remove expired entries from deletion cache"""
+        current_time = time.time()
+        devices_to_remove = []
+        
+        for device_name, commands in self.recently_deleted_commands.items():
+            commands_to_remove = []
+            for command_name, deletion_time in commands.items():
+                if current_time - deletion_time > self.DELETION_CACHE_TTL:
+                    commands_to_remove.append(command_name)
+            
+            for command_name in commands_to_remove:
+                del commands[command_name]
+            
+            if not commands:
+                devices_to_remove.append(device_name)
+        
+        for device_name in devices_to_remove:
+            del self.recently_deleted_commands[device_name]
+    
+    async def _find_broadlink_entity_for_device(self, device_name: str) -> str:
+        """Find which Broadlink entity owns the commands for a given device name"""
+        try:
+            storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
+            broadlink_devices = await self._get_broadlink_devices()
+            
+            # Create mapping from storage file to entity_id
+            storage_to_entity = {}
+            for device in broadlink_devices:
+                unique_id = device.get("unique_id", "")
+                if unique_id:
+                    storage_filename = f"broadlink_remote_{unique_id}_codes"
+                    storage_to_entity[storage_filename] = device.get("entity_id")
+            
+            # Search storage files for the device
+            for storage_file in storage_files:
+                try:
+                    async with aiofiles.open(storage_file, "r") as f:
+                        content = await f.read()
+                        data = json.loads(content)
+                        
+                        # Check if this device exists in this storage file
+                        if device_name in data.get("data", {}):
+                            # Found it! Return the corresponding entity_id
+                            entity_id = storage_to_entity.get(storage_file.name)
+                            if entity_id:
+                                logger.info(f"Found device '{device_name}' in storage file '{storage_file.name}' -> entity '{entity_id}'")
+                                return entity_id
+                
+                except Exception as e:
+                    logger.warning(f"Error reading storage file {storage_file}: {e}")
+                    continue
+            
+            logger.warning(f"Could not find Broadlink entity for device '{device_name}'")
+            return None
+        
+        except Exception as e:
+            logger.error(f"Error finding Broadlink entity: {e}")
+            return None
 
     async def _learn_command(self, data: Dict) -> Dict:
         """Learn a new command with 2-step process monitoring"""
@@ -2266,80 +2378,29 @@ class BroadlinkWebServer:
             )
             logger.info(f"Deleting command: {device}_{command} from entity {entity_id}")
 
-            # Broadlink integration expects command as an array
-            command_list = [command] if isinstance(command, str) else command
-
-            # Try the working format first: flat structure with command as array
-            # This is what the Broadlink integration actually expects
-            payload = {
-                "entity_id": entity_id,
-                "device": device,
-                "command": command_list,
-            }
-
-            logger.info(f"Deleting command with payload: {payload}")
-            result = await self._make_ha_request(
-                "POST", "services/remote/delete_command", payload
-            )
-
-            if result is not None:
-                logger.info(f"✅ Command deleted successfully: {device}_{command}")
-                # Reload Broadlink configuration to apply changes
-                await self._reload_broadlink_config()
-                return {
-                    "success": True,
-                    "message": f"Command {command} deleted successfully",
-                }
-
-            # Fallback: Try modern format with target/data structure (for newer HA versions)
-            logger.info("Trying modern format with target/data structure...")
-            modern_payload = {
-                "target": {"entity_id": entity_id},
-                "data": {"device": device, "command": command_list},
-            }
-            result = await self._make_ha_request(
-                "POST", "services/remote/delete_command", modern_payload
-            )
-
-            if result is not None:
-                logger.info(
-                    f"✅ Command deleted successfully with modern format: {device}_{command}"
-                )
-                # Reload Broadlink configuration to apply changes
-                await self._reload_broadlink_config()
-                return {
-                    "success": True,
-                    "message": f"Command {command} deleted successfully",
-                }
-
-            # Last resort: Try with command as string (very old format)
-            logger.info("Trying string command format...")
-            string_payload = {
+            # Use the same format as V1 - flat structure with entity_id
+            service_data = {
                 "entity_id": entity_id,
                 "device": device,
                 "command": command,
             }
+            
+            logger.info(f"Deleting command with payload: {service_data}")
             result = await self._make_ha_request(
-                "POST", "services/remote/delete_command", string_payload
+                "POST", "services/remote/delete_command", service_data
             )
 
             if result is not None:
-                logger.info(
-                    f"✅ Command deleted successfully with string format: {device}_{command}"
-                )
-                # Reload Broadlink configuration to apply changes
-                await self._reload_broadlink_config()
+                logger.info(f"✅ Command deleted successfully: {device}_{command}")
                 return {
                     "success": True,
                     "message": f"Command {command} deleted successfully",
                 }
             else:
-                logger.error(
-                    f"❌ FAILED: All formats failed for command: {device}_{command}"
-                )
+                logger.error(f"❌ FAILED to delete command: {device}_{command}")
                 return {
                     "success": False,
-                    "error": "Failed to delete command - all formats rejected by Home Assistant",
+                    "error": "Failed to delete command from Broadlink storage",
                 }
 
         except Exception as e:

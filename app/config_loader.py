@@ -76,7 +76,8 @@ class ConfigLoader:
         Returns:
             Path to /config directory (same for both modes, just mounted differently)
         """
-        config_path = os.environ.get("CONFIG_PATH", "/config")
+        # Check HA_CONFIG_PATH first (for standalone mode), then CONFIG_PATH (for Docker/add-on)
+        config_path = os.environ.get("HA_CONFIG_PATH") or os.environ.get("CONFIG_PATH", "/config")
         return Path(config_path)
 
     def get_storage_path(self) -> Path:

@@ -14,3 +14,4 @@ zeroconf>=0.47.0
 # Logging and utilities
 colorlog>=6.7.0
 python-dateutil>=2.8.0
+python-dotenv>=1.0.0

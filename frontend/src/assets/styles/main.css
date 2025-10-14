@@ -1,0 +1,192 @@
+/* Home Assistant Theme Variables */
+:root {
+  /* Colors */
+  --ha-primary-color: #03a9f4;
+  --ha-accent-color: #ff9800;
+  --ha-text-primary-color: #212121;
+  --ha-text-secondary-color: #727272;
+  --ha-card-background: #ffffff;
+  --ha-surface-color: #fafafa;
+  --ha-border-color: #e0e0e0;
+  --ha-hover-color: rgba(0, 0, 0, 0.04);
+  
+  /* Status Colors */
+  --ha-success-color: #4caf50;
+  --ha-warning-color: #ff9800;
+  --ha-error-color: #f44336;
+  --ha-info-color: #2196f3;
+  
+  /* RGB Values for alpha */
+  --ha-success-rgb: 76, 175, 80;
+  --ha-warning-rgb: 255, 152, 0;
+  --ha-error-rgb: 244, 67, 54;
+  
+  /* Spacing */
+  --ha-spacing: 8px;
+  
+  /* Border Radius */
+  --ha-border-radius: 8px;
+  
+  /* Shadows */
+  --ha-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --ha-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --ha-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark Mode */
+body.dark-mode {
+  --ha-primary-color: #03a9f4;
+  --ha-accent-color: #ff9800;
+  --ha-text-primary-color: #e1e1e1;
+  --ha-text-secondary-color: #9b9b9b;
+  --ha-card-background: #1c1c1c;
+  --ha-surface-color: #111111;
+  --ha-border-color: #404040;
+  --ha-hover-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background: var(--ha-surface-color);
+  color: var(--ha-text-primary-color);
+  transition: background 0.3s, color 0.3s;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 500;
+}
+
+p {
+  margin: 0;
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--ha-border-radius);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: var(--ha-primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--ha-card-background);
+  color: var(--ha-text-primary-color);
+  border: 1px solid var(--ha-border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--ha-hover-color);
+}
+
+/* Cards */
+.card {
+  background: var(--ha-card-background);
+  border-radius: var(--ha-border-radius);
+  padding: 16px;
+  border: 1px solid var(--ha-border-color);
+  box-shadow: var(--ha-shadow-sm);
+}
+
+/* Inputs */
+input, select, textarea {
+  font-family: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--ha-border-color);
+  border-radius: var(--ha-border-radius);
+  background: var(--ha-card-background);
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ha-surface-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ha-border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ha-text-secondary-color);
+}
+
+/* Utility Classes */
+.text-primary {
+  color: var(--ha-text-primary-color);
+}
+
+.text-secondary {
+  color: var(--ha-text-secondary-color);
+}
+
+.text-success {
+  color: var(--ha-success-color);
+}
+
+.text-warning {
+  color: var(--ha-warning-color);
+}
+
+.text-error {
+  color: var(--ha-error-color);
+}
+
+.mt-1 { margin-top: calc(var(--ha-spacing) * 1); }
+.mt-2 { margin-top: calc(var(--ha-spacing) * 2); }
+.mt-3 { margin-top: calc(var(--ha-spacing) * 3); }
+.mt-4 { margin-top: calc(var(--ha-spacing) * 4); }
+
+.mb-1 { margin-bottom: calc(var(--ha-spacing) * 1); }
+.mb-2 { margin-bottom: calc(var(--ha-spacing) * 2); }
+.mb-3 { margin-bottom: calc(var(--ha-spacing) * 3); }
+.mb-4 { margin-bottom: calc(var(--ha-spacing) * 4); }
+
+.p-1 { padding: calc(var(--ha-spacing) * 1); }
+.p-2 { padding: calc(var(--ha-spacing) * 2); }
+.p-3 { padding: calc(var(--ha-spacing) * 3); }
+.p-4 { padding: calc(var(--ha-spacing) * 4); }

@@ -1,7 +1,30 @@
-# Broadlink Manager Add-on
+# Broadlink Manager v2 (Beta)
 
+⚠️ **This is a beta version with a completely rewritten UI using Vue 3.**
 
-A Home Assistant add-on for managing Broadlink devices with a built-in web interface for easy IR/RF command learning and management.
+A next-generation Home Assistant add-on for managing Broadlink devices with a modern Vue 3 interface for easy IR/RF command learning and management.
+
+## What's New in v2?
+
+- 🎨 **Modern Vue 3 Interface** - Complete UI rewrite with component-based architecture
+- 🚀 **Better Performance** - Faster, more responsive user experience
+- 🔧 **SmartIR Integration** (Coming Soon) - Built-in SmartIR device profile builder
+- 📱 **Improved Mobile Experience** - Better responsive design
+- 🧩 **Maintainable Code** - Easier to extend and customize
+
+## Should I Use This?
+
+**Use v1 (stable)** if:
+- ✅ You want a proven, stable version
+- ✅ You don't want to deal with potential bugs
+- ✅ You just need basic functionality
+- 👉 Get v1 here: https://github.com/tonyperkins/homeassistant-broadlink-manager
+
+**Use v2 (beta)** if:
+- ✅ You want to help test new features
+- ✅ You're comfortable reporting bugs
+- ✅ You want early access to SmartIR integration
+- ✅ You like modern UIs
 
 ## Screenshots
 

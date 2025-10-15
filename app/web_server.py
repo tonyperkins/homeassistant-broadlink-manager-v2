@@ -27,6 +27,7 @@ from config_loader import ConfigLoader
 from migration_manager import MigrationManager
 from device_manager import DeviceManager
 from smartir_detector import SmartIRDetector
+from smartir_code_service import SmartIRCodeService
 
 # Import API blueprint for v2
 from api import api_bp
@@ -111,6 +112,9 @@ class BroadlinkWebServer:
         self.smartir_detector = SmartIRDetector(
             str(self.config_loader.get_config_path())
         )
+        self.smartir_code_service = SmartIRCodeService(
+            str(self.config_loader.get_broadlink_manager_path() / "cache")
+        )
 
         # Make managers available to API endpoints
         self.app.config['storage_manager'] = self.storage_manager
@@ -118,14 +122,15 @@ class BroadlinkWebServer:
         self.app.config['area_manager'] = self.area_manager
         self.app.config['web_server'] = self  # For command learning
         self.app.config['smartir_detector'] = self.smartir_detector
+        self.app.config['smartir_code_service'] = self.smartir_code_service
         self.app.config['config_path'] = str(self.config_loader.get_config_path())
 
         # Register API blueprint for v2
         self.app.register_blueprint(api_bp)
         logger.info("Registered API blueprint at /api")
         
-        # Register SmartIR API blueprint
-        smartir_bp = init_smartir_routes(self.smartir_detector)
+        # Register SmartIR API blueprint with code service
+        smartir_bp = init_smartir_routes(self.smartir_detector, self.smartir_code_service)
         self.app.register_blueprint(smartir_bp)
         logger.info("Registered SmartIR API blueprint at /api/smartir")
 

@@ -8,8 +8,8 @@
           <span class="beta-badge">BETA</span>
         </div>
         <div class="header-right">
-          <button @click="toggleDarkMode" class="icon-button" title="Toggle Dark Mode">
-            <i :class="darkMode ? 'mdi mdi-weather-night' : 'mdi mdi-weather-sunny'"></i>
+          <button @click="cycleTheme" class="icon-button" :title="themeTooltip">
+            <i :class="themeIcon"></i>
           </button>
         </div>
       </div>
@@ -29,20 +29,51 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted, getCurrentInstance } from 'vue'
+import { ref, computed, provide, onMounted, getCurrentInstance } from 'vue'
 import Dashboard from './views/Dashboard.vue'
 import Toast from './components/Toast.vue'
 import { smartirService } from './services/smartir'
 
 const toastRef = ref(null)
 
-const darkMode = ref(false)
+const theme = ref('light') // 'light', 'medium', 'dark'
 const smartirStatus = ref(null)
 
-const toggleDarkMode = () => {
-  darkMode.value = !darkMode.value
-  document.body.classList.toggle('dark-mode', darkMode.value)
-  localStorage.setItem('darkMode', darkMode.value)
+const themeIcon = computed(() => {
+  const icons = {
+    light: 'mdi mdi-weather-sunny',
+    medium: 'mdi mdi-weather-partly-cloudy',
+    dark: 'mdi mdi-weather-night'
+  }
+  return icons[theme.value]
+})
+
+const themeTooltip = computed(() => {
+  const tooltips = {
+    light: 'Switch to Medium Theme',
+    medium: 'Switch to Dark Theme',
+    dark: 'Switch to Light Theme'
+  }
+  return tooltips[theme.value]
+})
+
+const cycleTheme = () => {
+  const themes = ['light', 'medium', 'dark']
+  const currentIndex = themes.indexOf(theme.value)
+  const nextIndex = (currentIndex + 1) % themes.length
+  theme.value = themes[nextIndex]
+  
+  // Remove all theme classes
+  document.body.classList.remove('medium-mode', 'dark-mode')
+  
+  // Add the appropriate class
+  if (theme.value === 'medium') {
+    document.body.classList.add('medium-mode')
+  } else if (theme.value === 'dark') {
+    document.body.classList.add('dark-mode')
+  }
+  
+  localStorage.setItem('theme', theme.value)
 }
 
 const checkSmartIR = async () => {
@@ -63,11 +94,23 @@ const checkSmartIR = async () => {
 }
 
 onMounted(async () => {
-  // Load dark mode preference
-  const savedDarkMode = localStorage.getItem('darkMode')
-  if (savedDarkMode === 'true') {
-    darkMode.value = true
-    document.body.classList.add('dark-mode')
+  // Load theme preference
+  const savedTheme = localStorage.getItem('theme')
+  if (savedTheme && ['light', 'medium', 'dark'].includes(savedTheme)) {
+    theme.value = savedTheme
+    if (savedTheme === 'medium') {
+      document.body.classList.add('medium-mode')
+    } else if (savedTheme === 'dark') {
+      document.body.classList.add('dark-mode')
+    }
+  } else {
+    // Migrate old darkMode setting
+    const savedDarkMode = localStorage.getItem('darkMode')
+    if (savedDarkMode === 'true') {
+      theme.value = 'dark'
+      document.body.classList.add('dark-mode')
+      localStorage.setItem('theme', 'dark')
+    }
   }
   
   // Check SmartIR status

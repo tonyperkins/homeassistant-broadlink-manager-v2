@@ -157,6 +157,16 @@
       @confirm="handleDeleteConfirm"
       @cancel="cancelDelete"
     />
+
+    <!-- Error Dialog -->
+    <ErrorDialog
+      :isOpen="showErrorDialog"
+      :title="errorDialog.title"
+      :message="errorDialog.message"
+      :suggestion="errorDialog.suggestion"
+      :details="errorDialog.details"
+      @close="closeErrorDialog"
+    />
   </div>
 </template>
 
@@ -167,6 +177,7 @@ import DeviceCard from './DeviceCard.vue'
 import DeviceForm from './DeviceForm.vue'
 import CommandLearner from '../commands/CommandLearner.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import ErrorDialog from '../common/ErrorDialog.vue'
 import DeviceDiscovery from './DeviceDiscovery.vue'
 import api from '@/services/api'
 
@@ -177,6 +188,15 @@ const selectedDevice = ref(null)
 const showDeleteConfirm = ref(false)
 const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
+
+// Error dialog state
+const showErrorDialog = ref(false)
+const errorDialog = ref({
+  title: 'Error',
+  message: '',
+  suggestion: '',
+  details: ''
+})
 
 // Filters
 const filters = ref({
@@ -353,7 +373,8 @@ const handleDeleteConfirm = async (deleteCommands) => {
       await discoveryRef.value.refresh()
     }
   } catch (error) {
-    alert('Failed to delete device: ' + error.message)
+    const errorMsg = error.response?.data?.error || error.message || 'Unknown error'
+    showError('Failed to Delete Device', errorMsg)
   } finally {
     deviceToDelete.value = null
   }
@@ -373,7 +394,24 @@ const handleSave = async (deviceData) => {
       await discoveryRef.value.refresh()
     }
   } catch (error) {
-    alert('Failed to save device: ' + error.message)
+    // Extract error message from response
+    let errorMessage = 'Failed to save device'
+    let suggestion = ''
+    let details = ''
+    
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error
+      suggestion = error.response.data.suggestion || ''
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    // Add technical details
+    if (error.response) {
+      details = `Status: ${error.response.status}\nURL: ${error.config?.url || 'N/A'}`
+    }
+    
+    showError('Failed to Save Device', errorMessage, suggestion, details)
   }
 }
 
@@ -390,6 +428,20 @@ const learnCommands = (device) => {
 const closeCommandLearner = () => {
   showCommandLearner.value = false
   selectedDevice.value = null
+}
+
+const showError = (title, message, suggestion = '', details = '') => {
+  errorDialog.value = {
+    title,
+    message,
+    suggestion,
+    details
+  }
+  showErrorDialog.value = true
+}
+
+const closeErrorDialog = () => {
+  showErrorDialog.value = false
 }
 
 const handleCommandLearned = async (updateData) => {
@@ -904,7 +956,7 @@ const adoptDevice = async (discoveredDevice) => {
 /* Device Grid */
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 16px;
 }
 

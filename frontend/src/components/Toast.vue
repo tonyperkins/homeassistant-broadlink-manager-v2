@@ -12,6 +12,7 @@
           <div class="toast-content">
             <div v-if="toast.title" class="toast-title">{{ toast.title }}</div>
             <div class="toast-message">{{ toast.message }}</div>
+            <div v-if="toast.description" class="toast-description">{{ toast.description }}</div>
           </div>
           <button @click="removeToast(toast.id)" class="toast-close">
             <i class="mdi mdi-close"></i>
@@ -38,9 +39,9 @@ function getIcon(type) {
   return icons[type] || icons.info
 }
 
-function addToast({ message, title, type = 'info', duration = 5000 }) {
+function addToast({ message, title, description, type = 'info', duration = 5000 }) {
   const id = nextId++
-  const toast = { id, message, title, type }
+  const toast = { id, message, title, description, type }
   
   toasts.value.push(toast)
   
@@ -64,6 +65,7 @@ function removeToast(id) {
 defineExpose({
   addToast,
   removeToast,
+  show: addToast,  // Alias for consistency
   success: (message, title) => addToast({ message, title, type: 'success' }),
   error: (message, title) => addToast({ message, title, type: 'error', duration: 8000 }),
   warning: (message, title) => addToast({ message, title, type: 'warning', duration: 6000 }),
@@ -147,6 +149,16 @@ defineExpose({
   color: var(--ha-text-primary-color);
   font-size: 14px;
   line-height: 1.4;
+  white-space: pre-line;
+}
+
+.toast-description {
+  color: var(--ha-text-secondary-color);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(var(--ha-border-rgb, 128, 128, 128), 0.2);
   white-space: pre-line;
 }
 

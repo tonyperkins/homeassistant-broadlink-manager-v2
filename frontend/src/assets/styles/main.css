@@ -33,6 +33,23 @@
   --ha-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Medium Mode (Between Light and Dark) */
+body.medium-mode {
+  --ha-primary-color: #03a9f4;
+  --ha-accent-color: #ff9800;
+  --ha-text-primary-color: #d4d4d4;
+  --ha-text-secondary-color: #888888;
+  --ha-card-background: #2a2a2a;
+  --ha-surface-color: #1e1e1e;
+  --ha-border-color: #3a3a3a;
+  --ha-hover-color: rgba(255, 255, 255, 0.06);
+  
+  /* Shadows for medium mode */
+  --ha-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --ha-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25);
+  --ha-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.35);
+}
+
 /* Dark Mode */
 body.dark-mode {
   --ha-primary-color: #03a9f4;

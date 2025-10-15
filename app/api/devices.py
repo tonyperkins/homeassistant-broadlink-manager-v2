@@ -13,6 +13,10 @@ def get_storage_manager():
     """Get storage manager from Flask app context"""
     return current_app.config.get('storage_manager')
 
+def get_device_manager():
+    """Get device manager from Flask app context"""
+    return current_app.config.get('device_manager')
+
 def normalize_device_name(name):
     """
     Convert display name to storage-safe name
@@ -333,4 +337,209 @@ def discover_untracked_devices():
     
     except Exception as e:
         logger.error(f"Error discovering untracked devices: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/managed', methods=['POST'])
+def create_managed_device():
+    """Create a new managed device (supports both Broadlink and SmartIR types)"""
+    try:
+        data = request.json
+        device_manager = get_device_manager()
+        
+        if not device_manager:
+            return jsonify({'error': 'Device manager not available'}), 500
+        
+        # Extract device data
+        name = data.get('name', '')
+        entity_type = data.get('entity_type', 'switch')
+        device_type = data.get('device_type', 'broadlink')
+        area = data.get('area', '')
+        icon = data.get('icon', '')
+        
+        if not name:
+            return jsonify({'error': 'Device name is required'}), 400
+        
+        # Generate device_id (includes area to allow same device name in different areas)
+        area_id = area.lower().replace(' ', '_') if area else 'no_area'
+        device_id = device_manager.generate_device_id(area_id, name)
+        
+        # Check if device already exists
+        existing_device = device_manager.get_device(device_id)
+        if existing_device:
+            # Provide helpful error message
+            area_name = area if area else 'No Area'
+            return jsonify({
+                'error': f'A device named "{name}" already exists in {area_name}. Please use a different name or choose a different area.',
+                'existing_device_id': device_id,
+                'suggestion': 'Try adding a room identifier to the name (e.g., "Stereo - Living Room")'
+            }), 409  # 409 Conflict is more appropriate than 400
+        
+        # Build device data based on type
+        device_data = {
+            'name': name,
+            'entity_type': entity_type,
+            'device_type': device_type,
+            'area': area,
+            'icon': icon
+        }
+        
+        if device_type == 'smartir':
+            # SmartIR device - validate and add SmartIR-specific fields
+            device_data.update({
+                'manufacturer': data.get('manufacturer', ''),
+                'model': data.get('model', ''),
+                'device_code': data.get('device_code', ''),
+                'controller_device': data.get('controller_device', '')
+            })
+            
+            # Optional fields for climate entities
+            if entity_type == 'climate':
+                if data.get('temperature_sensor'):
+                    device_data['temperature_sensor'] = data['temperature_sensor']
+                if data.get('humidity_sensor'):
+                    device_data['humidity_sensor'] = data['humidity_sensor']
+            
+            # Validate SmartIR device data
+            is_valid, error_msg = device_manager.validate_smartir_device(device_data)
+            if not is_valid:
+                return jsonify({'error': error_msg}), 400
+            
+        else:
+            # Broadlink device - add Broadlink-specific fields
+            broadlink_entity = data.get('broadlink_entity', '')
+            if not broadlink_entity:
+                return jsonify({'error': 'broadlink_entity is required for Broadlink devices'}), 400
+            
+            device_data['broadlink_entity'] = broadlink_entity
+        
+        # Create the device
+        if device_manager.create_device(device_id, device_data):
+            return jsonify({
+                'success': True,
+                'device': {
+                    'id': device_id,
+                    **device_data
+                }
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create device'}), 500
+    
+    except Exception as e:
+        logger.error(f"Error creating managed device: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/managed', methods=['GET'])
+def get_managed_devices():
+    """Get all managed devices from device manager"""
+    try:
+        device_manager = get_device_manager()
+        
+        if not device_manager:
+            return jsonify({'error': 'Device manager not available'}), 500
+        
+        # Get all devices
+        devices = device_manager.get_all_devices()
+        
+        # Convert to list format for frontend
+        device_list = []
+        for device_id, device_data in devices.items():
+            device_list.append({
+                'id': device_id,
+                **device_data
+            })
+        
+        return jsonify({
+            'success': True,
+            'devices': device_list,
+            'count': len(device_list)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting managed devices: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/managed/<device_id>', methods=['GET'])
+def get_managed_device(device_id):
+    """Get a specific managed device"""
+    try:
+        device_manager = get_device_manager()
+        
+        if not device_manager:
+            return jsonify({'error': 'Device manager not available'}), 500
+        
+        device = device_manager.get_device(device_id)
+        
+        if not device:
+            return jsonify({'error': 'Device not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'device': {
+                'id': device_id,
+                **device
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting managed device: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/managed/<device_id>', methods=['PUT'])
+def update_managed_device(device_id):
+    """Update a managed device"""
+    try:
+        device_manager = get_device_manager()
+        
+        if not device_manager:
+            return jsonify({'error': 'Device manager not available'}), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Get existing device
+        existing_device = device_manager.get_device(device_id)
+        if not existing_device:
+            return jsonify({'error': f'Device {device_id} not found'}), 404
+        
+        # Update device data (preserve device_type - it cannot be changed)
+        updated_data = {
+            **existing_device,
+            **data,
+            'device_type': existing_device.get('device_type', 'broadlink')  # Preserve device_type
+        }
+        
+        # Update the device
+        if device_manager.update_device(device_id, updated_data):
+            return jsonify({
+                'success': True,
+                'message': f'Device {device_id} updated',
+                'device': device_manager.get_device(device_id)
+            })
+        else:
+            return jsonify({'error': 'Failed to update device'}), 500
+    
+    except Exception as e:
+        logger.error(f"Error updating managed device: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/managed/<device_id>', methods=['DELETE'])
+def delete_managed_device(device_id):
+    """Delete a managed device"""
+    try:
+        device_manager = get_device_manager()
+        
+        if not device_manager:
+            return jsonify({'error': 'Device manager not available'}), 500
+        
+        if device_manager.delete_device(device_id):
+            return jsonify({
+                'success': True,
+                'message': f'Device {device_id} deleted'
+            })
+        else:
+            return jsonify({'error': 'Failed to delete device'}), 500
+    
+    except Exception as e:
+        logger.error(f"Error deleting managed device: {e}")
         return jsonify({'error': str(e)}), 500

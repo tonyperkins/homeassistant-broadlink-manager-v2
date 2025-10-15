@@ -6,8 +6,16 @@
       </div>
       <div class="device-info">
         <h3>{{ device.name }}</h3>
-        <span class="device-type">{{ deviceTypeLabel }}</span>
+        <div class="device-labels">
+          <span class="device-type">{{ deviceTypeLabel }}</span>
+        </div>
       </div>
+      <img 
+        :src="deviceSourceLogo" 
+        :alt="deviceSourceLabel"
+        :title="deviceSourceLabel"
+        class="device-source-logo"
+      />
     </div>
 
     <div class="device-body">
@@ -35,6 +43,10 @@
           <i class="mdi mdi-access-point"></i>
           {{ broadlinkFriendlyName }}
         </span>
+        <span v-if="device.controller_device" class="controller-device">
+          <i class="mdi mdi-access-point"></i>
+          Controller: {{ getControllerName(device.controller_device) }}
+        </span>
       </div>
     </div>
 
@@ -56,6 +68,8 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import api from '@/services/api'
+import broadlinkLogo from '@/assets/images/broadlink-logo.png'
+import smartirLogo from '@/assets/images/smartir-logo.png'
 
 const props = defineProps({
   device: {
@@ -67,6 +81,7 @@ const props = defineProps({
 defineEmits(['edit', 'delete', 'learn'])
 
 const broadlinkDevices = ref([])
+const smartirCommandCount = ref(null)
 
 const deviceIcon = computed(() => {
   // Use custom icon if set, otherwise use default based on entity type
@@ -96,9 +111,33 @@ const deviceTypeLabel = computed(() => {
   return labels[props.device.entity_type] || props.device.entity_type
 })
 
+const deviceSourceLabel = computed(() => {
+  const deviceType = props.device.device_type || 'broadlink'
+  return deviceType === 'smartir' ? 'SmartIR' : 'Broadlink'
+})
+
+const deviceSourceLogo = computed(() => {
+  const deviceType = props.device.device_type || 'broadlink'
+  return deviceType === 'smartir' ? smartirLogo : broadlinkLogo
+})
+
 const commandCount = computed(() => {
+  const deviceType = props.device.device_type || 'broadlink'
+  
+  if (deviceType === 'smartir') {
+    // For SmartIR devices, show the command count from the code file
+    return smartirCommandCount.value !== null ? smartirCommandCount.value : 0
+  }
+  
+  // For Broadlink devices, show learned commands
   return Object.keys(props.device.commands || {}).length
 })
+
+const getControllerName = (entityId) => {
+  if (!entityId) return ''
+  const device = broadlinkDevices.value.find(d => d.entity_id === entityId)
+  return device ? (device.name || entityId) : entityId
+}
 
 const showStorageName = computed(() => {
   if (!props.device.device) return false
@@ -119,12 +158,41 @@ const broadlinkFriendlyName = computed(() => {
   return device ? (device.name || props.device.broadlink_entity) : props.device.broadlink_entity
 })
 
+const fetchSmartIRCommandCount = async () => {
+  if (!props.device.device_code || !props.device.entity_type) return
+  
+  try {
+    const response = await api.get('/api/smartir/codes/code', {
+      params: {
+        entity_type: props.device.entity_type,
+        code_id: props.device.device_code
+      }
+    })
+    
+    if (response.data.success && response.data.code) {
+      const code = response.data.code
+      // Count commands in the code file
+      if (code.commands) {
+        smartirCommandCount.value = Object.keys(code.commands).length
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching SmartIR command count:', error)
+  }
+}
+
 onMounted(async () => {
   try {
     const response = await api.get('/api/broadlink/devices')
     broadlinkDevices.value = response.data.devices || []
   } catch (error) {
     console.error('Error loading Broadlink devices:', error)
+  }
+  
+  // Fetch SmartIR command count if this is a SmartIR device
+  const deviceType = props.device.device_type || 'broadlink'
+  if (deviceType === 'smartir') {
+    await fetchSmartIRCommandCount()
   }
 })
 </script>
@@ -148,14 +216,15 @@ onMounted(async () => {
 
 .device-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
+  position: relative;
 }
 
 .device-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
   display: flex;
   align-items: center;
@@ -164,7 +233,7 @@ onMounted(async () => {
 }
 
 .device-icon i {
-  font-size: 28px;
+  font-size: 24px;
   color: var(--ha-primary-color);
 }
 
@@ -175,12 +244,25 @@ onMounted(async () => {
 
 .device-info h3 {
   margin: 0 0 4px 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--ha-text-primary-color);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  line-height: 1.3;
+  max-height: 2.6em;
+  padding-right: 36px;
+}
+
+.device-labels {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .device-type {
@@ -191,6 +273,23 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--ha-text-secondary-color);
   font-weight: 500;
+}
+
+.device-source-logo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  opacity: 0.8;
+  transition: all 0.2s;
+  cursor: help;
+}
+
+.device-source-logo:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 .device-body {
@@ -225,8 +324,10 @@ onMounted(async () => {
 }
 
 .device-id,
+.device-code,
 .storage-name,
-.broadlink-entity {
+.broadlink-entity,
+.controller-device {
   font-size: 12px;
   color: var(--ha-text-secondary-color);
   font-family: monospace;
@@ -236,8 +337,10 @@ onMounted(async () => {
 }
 
 .device-id i,
+.device-code i,
 .storage-name i,
-.broadlink-entity i {
+.broadlink-entity i,
+.controller-device i {
   font-size: 14px;
   flex-shrink: 0;
 }

@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 smartir_bp = Blueprint("smartir", __name__, url_prefix="/api/smartir")
 
 
-def init_smartir_routes(smartir_detector):
-    """Initialize SmartIR routes with detector instance"""
+def init_smartir_routes(smartir_detector, smartir_code_service=None):
+    """Initialize SmartIR routes with detector instance and code service"""
 
     @smartir_bp.route("/status", methods=["GET"])
     def get_status():
@@ -514,5 +514,262 @@ def init_smartir_routes(smartir_detector):
                 "success": False,
                 "error": str(e)
             }), 500
+
+    # ========== SmartIR Code Service Endpoints (GitHub Repository) ==========
+    
+    if smartir_code_service:
+        
+        @smartir_bp.route("/codes/manufacturers", methods=["GET"])
+        def get_code_manufacturers():
+            """Get list of manufacturers from GitHub repository"""
+            try:
+                entity_type = request.args.get("entity_type", "climate")
+                
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                manufacturers = smartir_code_service.get_manufacturers(entity_type)
+                
+                return jsonify({
+                    "success": True,
+                    "entity_type": entity_type,
+                    "manufacturers": manufacturers,
+                    "count": len(manufacturers)
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error getting manufacturers: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/models", methods=["GET"])
+        def get_code_models():
+            """Get list of models for a manufacturer"""
+            try:
+                entity_type = request.args.get("entity_type", "climate")
+                manufacturer = request.args.get("manufacturer")
+                
+                if not manufacturer:
+                    return jsonify({
+                        "error": "Missing manufacturer parameter"
+                    }), 400
+                
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                models = smartir_code_service.get_models(entity_type, manufacturer)
+                
+                return jsonify({
+                    "success": True,
+                    "entity_type": entity_type,
+                    "manufacturer": manufacturer,
+                    "models": models,
+                    "count": len(models)
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error getting models: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/code", methods=["GET"])
+        def get_code_by_params():
+            """Get code details using query parameters"""
+            try:
+                entity_type = request.args.get("entity_type")
+                code_id = request.args.get("code_id")
+                
+                if not entity_type or not code_id:
+                    return jsonify({
+                        "success": False,
+                        "error": "entity_type and code_id are required"
+                    }), 400
+                
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "success": False,
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                # Fetch full code from GitHub
+                full_code = smartir_code_service.fetch_full_code(entity_type, code_id)
+                if full_code:
+                    return jsonify({
+                        "success": True,
+                        "code": full_code
+                    }), 200
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"Code {code_id} not found"
+                    }), 404
+                
+            except Exception as e:
+                logger.error(f"Error getting code: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/<entity_type>/<code_id>", methods=["GET"])
+        def get_code_details(entity_type, code_id):
+            """Get full code details from GitHub"""
+            try:
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                # Try to get from cache first
+                code_info = smartir_code_service.get_code_info(entity_type, code_id)
+                
+                # Fetch full code if requested
+                fetch_full = request.args.get("full", "false").lower() == "true"
+                if fetch_full:
+                    full_code = smartir_code_service.fetch_full_code(entity_type, code_id)
+                    if full_code:
+                        return jsonify({
+                            "success": True,
+                            "code": full_code
+                        }), 200
+                    else:
+                        return jsonify({
+                            "success": False,
+                            "error": f"Code {code_id} not found"
+                        }), 404
+                
+                # Return cached info
+                if code_info:
+                    return jsonify({
+                        "success": True,
+                        "code": code_info
+                    }), 200
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": f"Code {code_id} not found in cache"
+                    }), 404
+                
+            except Exception as e:
+                logger.error(f"Error getting code details: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/search", methods=["GET"])
+        def search_codes():
+            """Search codes by manufacturer or model"""
+            try:
+                entity_type = request.args.get("entity_type", "climate")
+                query = request.args.get("query", "")
+                
+                if not query:
+                    return jsonify({
+                        "error": "Missing query parameter"
+                    }), 400
+                
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                results = smartir_code_service.search_codes(entity_type, query)
+                
+                return jsonify({
+                    "success": True,
+                    "entity_type": entity_type,
+                    "query": query,
+                    "results": results,
+                    "count": len(results)
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error searching codes: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/refresh", methods=["POST"])
+        def refresh_codes():
+            """Refresh code cache from GitHub"""
+            try:
+                data = request.get_json() or {}
+                entity_type = data.get("entity_type", "climate")
+                force = data.get("force", False)
+                
+                if entity_type not in ["climate", "fan", "media_player"]:
+                    return jsonify({
+                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                    }), 400
+                
+                success = smartir_code_service.refresh_codes(entity_type, force=force)
+                
+                if success:
+                    return jsonify({
+                        "success": True,
+                        "message": f"Cache refreshed for {entity_type}"
+                    }), 200
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": "Failed to refresh cache"
+                    }), 500
+                
+            except Exception as e:
+                logger.error(f"Error refreshing codes: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/cache-status", methods=["GET"])
+        def get_cache_status():
+            """Get cache status"""
+            try:
+                status = smartir_code_service.get_cache_status()
+                return jsonify({
+                    "success": True,
+                    "cache": status
+                }), 200
+            except Exception as e:
+                logger.error(f"Error getting cache status: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/codes/clear-cache", methods=["POST"])
+        def clear_cache():
+            """Clear code cache"""
+            try:
+                success = smartir_code_service.clear_cache()
+                
+                if success:
+                    return jsonify({
+                        "success": True,
+                        "message": "Cache cleared successfully"
+                    }), 200
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": "Failed to clear cache"
+                    }), 500
+                
+            except Exception as e:
+                logger.error(f"Error clearing cache: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
 
     return smartir_bp

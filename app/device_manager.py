@@ -65,6 +65,21 @@ class DeviceManager:
         Args:
             device_id: Unique device identifier (e.g., "master_bedroom_stereo")
             device_data: Device metadata
+                Required fields:
+                - name: Device display name
+                - entity_type: Entity type (climate, fan, media_player, switch)
+                - device_type: 'broadlink' or 'smartir'
+                
+                For Broadlink devices:
+                - broadlink_entity: Broadlink remote entity ID
+                
+                For SmartIR devices:
+                - manufacturer: Device manufacturer
+                - model: Device model
+                - device_code: SmartIR code ID
+                - controller_device: Broadlink entity that sends codes
+                - temperature_sensor: (optional, for climate) Temperature sensor entity
+                - humidity_sensor: (optional, for climate) Humidity sensor entity
 
         Returns:
             True if successful, False otherwise
@@ -76,15 +91,25 @@ class DeviceManager:
                 logger.warning(f"Device {device_id} already exists")
                 return False
 
+            # Validate device_type
+            device_type = device_data.get("device_type", "broadlink")
+            if device_type not in ["broadlink", "smartir"]:
+                logger.error(f"Invalid device_type: {device_type}")
+                return False
+
             # Add metadata
             device_data["device_id"] = device_id
+            device_data["device_type"] = device_type
             device_data["created_at"] = datetime.now().isoformat()
-            device_data["commands"] = {}
+            
+            # Initialize commands for Broadlink devices
+            if device_type == "broadlink":
+                device_data["commands"] = {}
 
             devices[device_id] = device_data
 
             if self._save_devices(devices):
-                logger.info(f"Created device: {device_id}")
+                logger.info(f"Created {device_type} device: {device_id}")
                 return True
 
             return False
@@ -295,3 +320,72 @@ class DeviceManager:
         )  # Remove multiple underscores
 
         return f"{area_id}_{clean_name}"
+    
+    def get_devices_by_type(self, device_type: str) -> Dict[str, Any]:
+        """
+        Get all devices of a specific type
+        
+        Args:
+            device_type: Device type ('broadlink' or 'smartir')
+            
+        Returns:
+            Dict of devices matching the type
+        """
+        all_devices = self._load_devices()
+        return {
+            device_id: device_data
+            for device_id, device_data in all_devices.items()
+            if device_data.get("device_type", "broadlink") == device_type
+        }
+    
+    def get_smartir_devices(self) -> Dict[str, Any]:
+        """Get all SmartIR devices"""
+        return self.get_devices_by_type("smartir")
+    
+    def get_broadlink_devices(self) -> Dict[str, Any]:
+        """Get all Broadlink devices"""
+        return self.get_devices_by_type("broadlink")
+    
+    def is_smartir_device(self, device_id: str) -> bool:
+        """
+        Check if a device is a SmartIR device
+        
+        Args:
+            device_id: Device identifier
+            
+        Returns:
+            True if device is SmartIR type, False otherwise
+        """
+        device = self.get_device(device_id)
+        if not device:
+            return False
+        return device.get("device_type", "broadlink") == "smartir"
+    
+    def validate_smartir_device(self, device_data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """
+        Validate SmartIR device data
+        
+        Args:
+            device_data: Device data to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        required_fields = ["manufacturer", "model", "device_code", "controller_device"]
+        
+        for field in required_fields:
+            if field not in device_data or not device_data[field]:
+                return False, f"Missing required field: {field}"
+        
+        # Validate entity_type for SmartIR
+        entity_type = device_data.get("entity_type")
+        if entity_type not in ["climate", "fan", "media_player"]:
+            return False, f"Invalid entity_type for SmartIR: {entity_type}"
+        
+        # Validate device_code is numeric
+        try:
+            int(device_data["device_code"])
+        except (ValueError, TypeError):
+            return False, "device_code must be a valid number"
+        
+        return True, None

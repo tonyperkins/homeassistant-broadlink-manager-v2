@@ -9,6 +9,25 @@
       </div>
 
       <form @submit.prevent="handleSubmit" class="modal-body">
+        <!-- Device Type Selection -->
+        <div class="form-group">
+          <label for="device-type">Device Type *</label>
+          <select
+            id="device-type"
+            v-model="formData.device_type"
+            required
+            :disabled="isEdit"
+          >
+            <option value="">-- Select Device Type --</option>
+            <option value="broadlink">📡 Broadlink Device (Learn IR Codes)</option>
+            <option value="smartir" :disabled="!smartirInstalled">
+              🌐 SmartIR Device {{ smartirInstalled ? '(Pre-configured Codes)' : '(Requires SmartIR)' }}
+            </option>
+          </select>
+          <small v-if="!isEdit">Choose how to control this device</small>
+          <small v-else>Device type cannot be changed after creation</small>
+        </div>
+
         <div class="form-group">
           <label for="device-name">Device Name *</label>
           <input
@@ -86,8 +105,9 @@
           <small>Optional: Material Design Icon name</small>
         </div>
 
-        <div class="form-group">
-          <label for="broadlink-entity">Broadlink Device</label>
+        <!-- Broadlink Device Selection (for Broadlink type) -->
+        <div v-if="formData.device_type === 'broadlink'" class="form-group">
+          <label for="broadlink-entity">Broadlink Device *</label>
           <select 
             v-if="!isEdit || !hasCommands"
             id="broadlink-entity"
@@ -118,6 +138,21 @@
           <small v-else>Cannot change Broadlink device after commands are learned</small>
         </div>
 
+        <!-- SmartIR Device Configuration (for SmartIR type) -->
+        <div v-if="formData.device_type === 'smartir'" class="smartir-section">
+          <div class="section-header">
+            <i class="mdi mdi-cloud-download"></i>
+            <span>SmartIR Device Configuration</span>
+          </div>
+          <SmartIRDeviceSelector
+            ref="smartirSelector"
+            :entity-type="formData.entity_type"
+            v-model="smartirData"
+            :broadlink-devices="broadlinkDevices"
+            @change="handleSmartIRChange"
+          />
+        </div>
+
         <div class="modal-footer">
           <button type="button" @click="$emit('cancel')" class="btn btn-secondary">
             Cancel
@@ -136,6 +171,7 @@
 import { ref, computed, inject, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import IconPicker from '../common/IconPicker.vue'
+import SmartIRDeviceSelector from './SmartIRDeviceSelector.vue'
 
 const props = defineProps({
   device: {
@@ -167,11 +203,15 @@ const broadlinkFriendlyName = computed(() => {
 const formData = ref({
   name: '',
   entity_type: '',
+  device_type: 'broadlink', // Default to broadlink
   area: '',
   icon: '',
   broadlink_entity: '',
   commands: {}
 })
+
+const smartirData = ref({})
+const smartirSelector = ref(null)
 
 const areas = ref([])
 const broadlinkDevices = ref([])
@@ -182,7 +222,23 @@ const iconAutoSet = ref(false) // Track if icon was auto-set vs manually set
 
 onMounted(async () => {
   if (props.device) {
-    formData.value = { ...props.device }
+    formData.value = { 
+      ...props.device,
+      // Ensure device_type is set (default to 'broadlink' for backward compatibility)
+      device_type: props.device.device_type || 'broadlink'
+    }
+    
+    // If editing a SmartIR device, populate smartirData
+    if (formData.value.device_type === 'smartir') {
+      smartirData.value = {
+        manufacturer: props.device.manufacturer,
+        model: props.device.model,
+        device_code: props.device.device_code,
+        controller_device: props.device.controller_device,
+        temperature_sensor: props.device.temperature_sensor,
+        humidity_sensor: props.device.humidity_sensor
+      }
+    }
   }
   await Promise.all([loadAreas(), loadBroadlinkDevices()])
   
@@ -326,9 +382,28 @@ watch(() => formData.value.icon, (newIcon, oldIcon) => {
   }
 })
 
-const handleSubmit = () => {
-  // Browser will handle validation with custom messages
-  emit('save', { ...formData.value })
+const handleSubmit = async () => {
+  // Validate SmartIR fields if SmartIR device
+  if (formData.value.device_type === 'smartir') {
+    if (smartirSelector.value && !smartirSelector.value.validate()) {
+      return
+    }
+    
+    // Merge SmartIR data into form data
+    const submitData = {
+      ...formData.value,
+      ...smartirData.value
+    }
+    
+    emit('save', submitData)
+  } else {
+    // Browser will handle validation with custom messages for Broadlink
+    emit('save', { ...formData.value })
+  }
+}
+
+const handleSmartIRChange = (data) => {
+  smartirData.value = data
 }
 </script>
 
@@ -490,6 +565,31 @@ const handleSubmit = () => {
 
 .smartir-link:hover {
   text-decoration: underline;
+}
+
+/* SmartIR Section */
+.smartir-section {
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-divider-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 8px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ha-primary-color, #03a9f4);
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--ha-divider-color, #e0e0e0);
+}
+
+.section-header i {
+  font-size: 24px;
 }
 
 .modal-footer {

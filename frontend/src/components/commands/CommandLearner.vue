@@ -2,25 +2,35 @@
   <div class="modal-overlay" @click.self="$emit('cancel')">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Learn Commands for {{ device.name }}</h2>
+        <h2>{{ isSmartIR ? 'Commands for' : 'Learn Commands for' }} {{ device.name }}</h2>
         <button @click="$emit('cancel')" class="close-btn">
           <i class="mdi mdi-close"></i>
         </button>
       </div>
 
-      <form @submit.prevent="startLearning" class="modal-body">
-        <!-- Broadlink Device (Read-only) -->
-        <div class="form-group">
-          <label for="broadlink-entity">Broadlink Device</label>
-          <input
-            id="broadlink-entity"
-            :value="broadlinkFriendlyName"
-            type="text"
-            readonly
-            disabled
-          />
-          <small>Commands will be learned using this device (set when device was created)</small>
+      <div class="modal-body">
+        <!-- SmartIR Info Message -->
+        <div v-if="isSmartIR" class="smartir-info">
+          <i class="mdi mdi-information"></i>
+          <div>
+            <h3>SmartIR Device</h3>
+            <p>This device uses SmartIR code file <strong>{{ device.device_code }}</strong>. Commands are pre-configured and cannot be learned. View the commands below.</p>
+          </div>
         </div>
+
+        <form v-else @submit.prevent="startLearning">
+          <!-- Broadlink Device (Read-only) -->
+          <div class="form-group">
+            <label for="broadlink-entity">Broadlink Device</label>
+            <input
+              id="broadlink-entity"
+              :value="broadlinkFriendlyName"
+              type="text"
+              readonly
+              disabled
+            />
+            <small>Commands will be learned using this device (set when device was created)</small>
+          </div>
 
         <!-- Command Name Input -->
         <div class="form-group">
@@ -96,6 +106,7 @@
           <i class="mdi mdi-check-circle"></i>
           <p>{{ resultMessage }}</p>
         </div>
+        </form>
 
         <!-- Section Divider -->
         <div v-if="learnedCommands.length > 0 || untrackedCommands.length > 0" class="section-divider"></div>
@@ -147,7 +158,7 @@
             Import All Untracked Commands
           </button>
         </div>
-      </form>
+      </div>
 
       <div class="modal-footer">
         <button type="button" @click="$emit('cancel')" class="btn btn-secondary" :disabled="learning">
@@ -213,7 +224,14 @@ const customCommandInput = ref(null)
 const testedCommand = ref('') // Track which command was just tested
 const testingCommand = ref('') // Track which command is currently being tested
 
+const isSmartIR = computed(() => {
+  return props.device.device_type === 'smartir'
+})
+
 const canLearn = computed(() => {
+  // SmartIR devices can't learn commands
+  if (isSmartIR.value) return false
+  
   const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
   return selectedBroadlink.value && actualCommand.trim()
 })
@@ -320,9 +338,25 @@ const loadBroadlinkDevices = async () => {
 
 const loadLearnedCommands = async () => {
   try {
-    const response = await api.get(`/api/commands/${props.device.id}`)
-    const commands = response.data.commands || {}
-    learnedCommands.value = Object.keys(commands)
+    if (isSmartIR.value) {
+      // For SmartIR devices, load commands from the code file
+      const response = await api.get('/api/smartir/codes/code', {
+        params: {
+          entity_type: props.device.entity_type,
+          code_id: props.device.device_code
+        }
+      })
+      
+      if (response.data.success && response.data.code) {
+        const commands = response.data.code.commands || {}
+        learnedCommands.value = Object.keys(commands)
+      }
+    } else {
+      // For Broadlink devices, load learned commands
+      const response = await api.get(`/api/commands/${props.device.id}`)
+      const commands = response.data.commands || {}
+      learnedCommands.value = Object.keys(commands)
+    }
   } catch (error) {
     console.error('Error loading commands:', error)
   }
@@ -350,6 +384,7 @@ const startLearning = async () => {
     const response = await api.post('/api/commands/learn', {
       entity_id: selectedBroadlink.value,
       device: deviceName,
+      device_id: props.device.id,  // Send device_id for managed devices
       command: actualCommand.trim(),
       command_type: commandType.value
     })
@@ -404,8 +439,13 @@ const testCommand = async (command) => {
       deviceName = props.device.device
     }
     
+    // For SmartIR devices, use controller_device; for Broadlink devices, use broadlink_entity
+    const entityId = isSmartIR.value 
+      ? props.device.controller_device 
+      : (selectedBroadlink.value || props.device.broadlink_entity)
+    
     const response = await api.post('/api/commands/test', {
-      entity_id: selectedBroadlink.value,
+      entity_id: entityId,
       device: deviceName,
       command: command,
       device_id: props.device.id
@@ -581,6 +621,41 @@ const handleImportConfirm = async () => {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+}
+
+.smartir-info {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid rgba(33, 150, 243, 0.6);
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.smartir-info i {
+  font-size: 24px;
+  color: rgba(33, 150, 243, 0.9);
+  flex-shrink: 0;
+}
+
+.smartir-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ha-text-primary-color);
+}
+
+.smartir-info p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ha-text-secondary-color);
+  line-height: 1.5;
+}
+
+.smartir-info strong {
+  color: var(--ha-text-primary-color);
+  font-weight: 600;
 }
 
 .form-group {

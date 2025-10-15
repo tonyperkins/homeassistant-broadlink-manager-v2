@@ -29,7 +29,8 @@ export const useDeviceStore = defineStore('devices', {
       this.error = null
       
       try {
-        const response = await api.get('/api/devices')
+        // Use managed devices endpoint to get devices with proper device_type field
+        const response = await api.get('/api/devices/managed')
         this.devices = response.data.devices || []
         console.log('Loaded devices:', this.devices)
       } catch (error) {
@@ -45,11 +46,12 @@ export const useDeviceStore = defineStore('devices', {
       this.error = null
       
       try {
-        const response = await api.post('/api/devices', deviceData)
+        // Use the new managed devices endpoint that supports device_type
+        const response = await api.post('/api/devices/managed', deviceData)
         await this.loadDevices() // Reload list
         return response.data
       } catch (error) {
-        this.error = error.message
+        // Don't set this.error - let the component handle it with ErrorDialog
         console.error('Error creating device:', error)
         throw error
       } finally {
@@ -62,11 +64,12 @@ export const useDeviceStore = defineStore('devices', {
       this.error = null
       
       try {
-        const response = await api.put(`/api/devices/${deviceId}`, deviceData)
+        // Use managed devices endpoint for updates
+        const response = await api.put(`/api/devices/managed/${deviceId}`, deviceData)
         await this.loadDevices() // Reload list
         return response.data
       } catch (error) {
-        this.error = error.message
+        // Don't set this.error - let the component handle it with ErrorDialog
         console.error('Error updating device:', error)
         throw error
       } finally {
@@ -79,7 +82,8 @@ export const useDeviceStore = defineStore('devices', {
       this.error = null
       
       try {
-        await api.delete(`/api/devices/${deviceId}`)
+        // Use managed devices endpoint for deletion
+        await api.delete(`/api/devices/managed/${deviceId}`)
         this.devices = this.devices.filter(d => d.id !== deviceId)
       } catch (error) {
         this.error = error.message

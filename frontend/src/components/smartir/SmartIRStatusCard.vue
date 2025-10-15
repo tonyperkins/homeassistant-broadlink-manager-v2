@@ -2,7 +2,7 @@
   <div class="smartir-status-card">
     <div class="card-header">
       <div class="header-left">
-        <i class="mdi mdi-air-conditioner"></i>
+        <img :src="smartirLogo" alt="SmartIR" class="smartir-logo" />
         <h3>SmartIR Integration</h3>
         
         <!-- Compact Status Info -->
@@ -70,38 +70,44 @@
       </div>
 
       <!-- Platform Details with Profiles -->
-      <div v-if="status.platforms?.length" class="platforms-section">
+      <div class="platforms-section">
         <h4>Available Platforms</h4>
         <div class="platform-list">
           <div 
-            v-for="platform in status.platforms" 
-            :key="platform"
+            v-for="platform in displayPlatforms" 
+            :key="platform.name"
             class="platform-card"
-            :class="{ expanded: expandedPlatforms[platform] }"
+            :class="{ 
+              expanded: expandedPlatforms[platform.name],
+              'not-installed': !platform.installed
+            }"
           >
-            <div class="platform-header" @click="togglePlatform(platform)">
+            <div class="platform-header" @click="platform.installed && togglePlatform(platform.name)">
               <div class="platform-icon">
-                <i :class="getPlatformIcon(platform)"></i>
+                <i :class="getPlatformIcon(platform.name)"></i>
               </div>
               <div class="platform-info">
-                <span class="platform-name">{{ formatPlatformName(platform) }}</span>
-                <span class="device-count">
-                  {{ status.device_counts?.[platform] || 0 }} devices
+                <span class="platform-name">{{ formatPlatformName(platform.name) }}</span>
+                <span class="device-count" v-if="platform.installed">
+                  {{ platform.deviceCount }} device{{ platform.deviceCount !== 1 ? 's' : '' }}
+                </span>
+                <span class="not-installed-label" v-else>
+                  Not Installed
                 </span>
               </div>
-              <i class="mdi" :class="expandedPlatforms[platform] ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
+              <i v-if="platform.installed" class="mdi" :class="expandedPlatforms[platform.name] ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
             </div>
             
             <!-- Expanded Profile List -->
-            <div v-if="expandedPlatforms[platform]" class="platform-profiles">
-              <div v-if="loadingProfiles[platform]" class="profiles-loading">
+            <div v-if="platform.installed && expandedPlatforms[platform.name]" class="platform-profiles">
+              <div v-if="loadingProfiles[platform.name]" class="profiles-loading">
                 <div class="spinner-small"></div>
                 <span>Loading profiles...</span>
               </div>
-              <div v-else-if="profiles[platform]?.length" class="profile-list">
+              <div v-else-if="profiles[platform.name]?.length" class="profile-list">
                 <div 
-                  v-for="profile in profiles[platform]" 
-                  :key="`${platform}-${profile.code}`"
+                  v-for="profile in profiles[platform.name]" 
+                  :key="`${platform.name}-${profile.code}`"
                   class="profile-item"
                 >
                   <div class="profile-info">
@@ -109,13 +115,13 @@
                     <span class="profile-code">Code: {{ profile.code }}</span>
                   </div>
                   <div class="profile-actions">
-                    <button @click="editProfile(platform, profile)" class="action-btn" title="Edit">
+                    <button @click="editProfile(platform.name, profile)" class="action-btn" title="Edit">
                       <i class="mdi mdi-pencil"></i>
                     </button>
-                    <button @click="downloadProfile(platform, profile)" class="action-btn" title="Download">
+                    <button @click="downloadProfile(platform.name, profile)" class="action-btn" title="Download">
                       <i class="mdi mdi-download"></i>
                     </button>
-                    <button @click="deleteProfile(platform, profile)" class="action-btn delete" title="Delete">
+                    <button @click="deleteProfile(platform.name, profile)" class="action-btn delete" title="Delete">
                       <i class="mdi mdi-delete"></i>
                     </button>
                   </div>
@@ -194,6 +200,7 @@
 import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import smartirLogo from '@/assets/images/smartir-logo.png'
 
 const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'])
 
@@ -223,6 +230,9 @@ const defaultBenefits = [
   'HVAC mode control (heat, cool, auto, dry, fan)'
 ]
 
+// All supported SmartIR platforms
+const allPlatforms = ['climate', 'media_player', 'fan', 'light']
+
 const platformCount = computed(() => {
   return status.value?.platforms?.length || 0
 })
@@ -230,6 +240,15 @@ const platformCount = computed(() => {
 const totalDevices = computed(() => {
   if (!status.value?.device_counts) return 0
   return Object.values(status.value.device_counts).reduce((sum, count) => sum + count, 0)
+})
+
+const displayPlatforms = computed(() => {
+  // Show all 4 platforms, mark which ones are installed
+  return allPlatforms.map(platform => ({
+    name: platform,
+    installed: status.value?.platforms?.includes(platform) || false,
+    deviceCount: status.value?.device_counts?.[platform] || 0
+  }))
 })
 
 function getPlatformIcon(platform) {
@@ -460,6 +479,12 @@ onMounted(async () => {
   color: var(--primary-color);
 }
 
+.smartir-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .header-left h3 {
   margin: 0;
   font-size: 18px;
@@ -685,8 +710,17 @@ onMounted(async () => {
 }
 
 .device-count {
+  font-size: 13px;
+  color: var(--ha-text-secondary-color);
+}
+
+.not-installed-label {
   font-size: 12px;
-  color: var(--secondary-text-color);
+  color: var(--ha-text-secondary-color);
+  font-style: italic;
+  padding: 2px 8px;
+  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.1);
+  border-radius: 4px;
 }
 
 /* Benefits Section */
@@ -835,6 +869,23 @@ onMounted(async () => {
   overflow: hidden;
   margin-bottom: 12px;
   transition: all 0.3s ease;
+}
+
+.platform-card.not-installed {
+  opacity: 0.6;
+  background: var(--ha-surface-color);
+}
+
+.platform-card.not-installed .platform-header {
+  cursor: default;
+}
+
+.platform-card.not-installed .platform-icon {
+  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.1);
+}
+
+.platform-card.not-installed .platform-icon i {
+  color: var(--ha-text-secondary-color);
 }
 
 .platform-card.expanded {

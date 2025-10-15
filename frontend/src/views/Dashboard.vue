@@ -26,15 +26,15 @@
       </div>
     </div>
 
+    <!-- Device List Component -->
+    <DeviceList />
+
     <!-- SmartIR Status Card -->
     <SmartIRStatusCard 
       @create-profile="handleCreateProfile"
       @edit-profile="handleEditProfile"
       @show-install-guide="handleShowInstallGuide"
     />
-
-    <!-- Device List Component -->
-    <DeviceList />
 
     <!-- Info Cards -->
     <div class="info-cards">
@@ -246,27 +246,32 @@ function handleProfileSave(result) {
 
 .info-card {
   background: var(--ha-card-background);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 8px;
+  padding: 16px;
   border: 1px solid var(--ha-border-color);
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .info-card i {
-  font-size: 32px;
+  font-size: 24px;
   color: var(--ha-primary-color);
-  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .info-card h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--ha-text-primary-color);
 }
 
 .info-card p {
   margin: 0;
   color: var(--ha-text-secondary-color);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .info-card a {

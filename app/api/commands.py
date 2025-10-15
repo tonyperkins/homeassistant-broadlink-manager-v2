@@ -50,13 +50,21 @@ def learn_command():
         device = data.get('device')
         command = data.get('command')
         command_type = data.get('command_type', 'ir')
+        device_id = data.get('device_id')  # For managed devices
         
-        logger.info(f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}")
+        logger.info(f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}")
+        
+        # If device is not provided, try to derive it from device_id
+        if not device and device_id:
+            # For managed devices, use the device_id as the device name
+            # Remove entity_type prefix if present (e.g., "switch.office_lamp" -> "office_lamp")
+            device = device_id.split('.')[-1] if '.' in device_id else device_id
+            logger.info(f"Derived device name from device_id: {device}")
         
         if not all([entity_id, device, command]):
             missing = []
             if not entity_id: missing.append('entity_id')
-            if not device: missing.append('device')
+            if not device: missing.append('device (or device_id)')
             if not command: missing.append('command')
             
             error_msg = f'Missing required fields: {", ".join(missing)}'
@@ -65,6 +73,11 @@ def learn_command():
                 'success': False,
                 'error': error_msg
             }), 400
+        
+        # Update data with derived device name if it was derived
+        if device and not data.get('device'):
+            data['device'] = device
+            logger.info(f"Updated data with derived device: {device}")
         
         # Get web server instance to use its _learn_command method
         web_server = get_web_server()
@@ -147,22 +160,46 @@ def test_command():
         
         logger.info(f"Parsed - entity_id: {entity_id}, device: {device}, command: {command}, device_id: {device_id}")
         
+        # If device is not provided, try to derive it from device_id
+        if not device and device_id:
+            # For managed devices, use the device_id as the device name
+            # Remove entity_type prefix if present (e.g., "switch.office_lamp" -> "office_lamp")
+            device = device_id.split('.')[-1] if '.' in device_id else device_id
+            logger.info(f"Derived device name from device_id: {device}")
+        
         if not all([entity_id, device, command]):
             return jsonify({
                 'success': False,
-                'error': 'Missing required fields: entity_id, device, command'
+                'error': 'Missing required fields: entity_id, device (or device_id), command'
             }), 400
         
-        # Get storage to look up command mapping
+        # Get storage to look up command mapping and device type
         storage = get_storage_manager()
+        is_smartir = False
         if storage and device_id:
+            # Try to get entity data - device_id might be with or without entity type prefix
             entity_data = storage.get_entity(device_id)
+            
+            # If not found and device_id doesn't have a dot, try to find it in all entities
+            if not entity_data and '.' not in device_id:
+                logger.info(f"Device ID '{device_id}' not found, searching all entities...")
+                all_entities = storage.get_all_entities()
+                for entity_id, data in all_entities.items():
+                    if entity_id.endswith(f'.{device_id}') or entity_id == device_id:
+                        entity_data = data
+                        logger.info(f"Found entity: {entity_id}")
+                        break
+            
             if entity_data:
+                is_smartir = entity_data.get('device_type') == 'smartir'
+                logger.info(f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}")
                 commands_mapping = entity_data.get('commands', {})
                 # Look up the actual Broadlink command name from the mapping
                 actual_command = commands_mapping.get(command, command)
                 logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
                 command = actual_command
+            else:
+                logger.warning(f"Entity data not found for device_id: {device_id}")
         
         # Get web server instance
         web_server = get_web_server()
@@ -173,17 +210,24 @@ def test_command():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # Broadlink expects command as an array
+        # Command as an array
         command_list = [command] if isinstance(command, str) else command
         
-        # Try flat format first (what Broadlink integration expects)
-        service_payload = {
-            "entity_id": entity_id,
-            "device": device,
-            "command": command_list
-        }
-        
-        logger.info(f"Sending payload to HA: {service_payload}")
+        # SmartIR uses standard remote.send_command format (no device parameter)
+        # Broadlink uses custom format with device parameter
+        if is_smartir:
+            service_payload = {
+                "entity_id": entity_id,
+                "command": command_list
+            }
+            logger.info(f"Sending SmartIR payload to HA: {service_payload}")
+        else:
+            service_payload = {
+                "entity_id": entity_id,
+                "device": device,
+                "command": command_list
+            }
+            logger.info(f"Sending Broadlink payload to HA: {service_payload}")
         
         result = loop.run_until_complete(
             web_server._make_ha_request("POST", "services/remote/send_command", service_payload)

@@ -71,6 +71,21 @@
           </label>
         </div>
 
+        <div class="filter-group filter-toggle">
+          <label class="toggle-label">
+            <span class="toggle-text">
+              <img src="@/assets/images/smartir-logo.png" alt="SmartIR" class="smartir-icon" />
+              SmartIR Only
+            </span>
+            <input 
+              type="checkbox" 
+              v-model="filters.showSmartIROnly"
+              class="toggle-checkbox"
+            />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
         <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
           <i class="mdi mdi-filter-remove"></i>
           Clear
@@ -203,7 +218,8 @@ const filters = ref({
   search: '',
   broadlinkDevice: '',
   area: '',
-  entityType: ''
+  entityType: '',
+  showSmartIROnly: false
 })
 
 const broadlinkDevices = ref([])
@@ -284,11 +300,16 @@ const filteredDevices = computed(() => {
     devices = devices.filter(d => d.entity_type === filters.value.entityType)
   }
 
+  // SmartIR filter
+  if (filters.value.showSmartIROnly) {
+    devices = devices.filter(d => d.device_type === 'smartir')
+  }
+
   return devices
 })
 
 const hasActiveFilters = computed(() => {
-  return filters.value.search || filters.value.broadlinkDevice || filters.value.area || filters.value.entityType
+  return filters.value.search || filters.value.broadlinkDevice || filters.value.area || filters.value.entityType || filters.value.showSmartIROnly
 })
 
 const clearFilters = () => {
@@ -296,6 +317,7 @@ const clearFilters = () => {
   filters.value.broadlinkDevice = ''
   filters.value.area = ''
   filters.value.entityType = ''
+  filters.value.showSmartIROnly = false
 }
 
 const loadBroadlinkDevices = async () => {
@@ -976,5 +998,79 @@ const adoptDevice = async (discoveredDevice) => {
   .device-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Toggle Switch Styles */
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  min-width: fit-content;
+}
+
+.toggle-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  background: var(--ha-border-color);
+  border-radius: 24px;
+  transition: background 0.3s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-checkbox:checked + .toggle-slider {
+  background: var(--ha-primary-color);
+}
+
+.toggle-checkbox:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle-checkbox:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.2);
+}
+
+.toggle-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ha-text-primary-color);
+  white-space: nowrap;
+}
+
+.smartir-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 </style>

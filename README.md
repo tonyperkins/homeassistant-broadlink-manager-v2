@@ -1,16 +1,56 @@
 # Broadlink Manager v2 (Beta)
 
+<p align="center">
+  <img src="images/broadlink-logo.png" alt="Broadlink Manager" width="120">
+</p>
+
+<h3 align="center">Transform Your Smart Home with Effortless IR/RF Control</h3>
+
+<p align="center">
+  <strong>The ultimate Home Assistant companion for Broadlink devices</strong><br>
+  Learn, manage, and automate infrared and radio frequency commands with a beautiful, modern interface.
+</p>
+
+---
+
+## 🎯 Why Broadlink Manager?
+
+Tired of juggling multiple remotes? Want to control your TV, AC, fans, and legacy devices through Home Assistant? **Broadlink Manager v2** makes it effortless.
+
+✨ **Point. Click. Control.** Learn any IR/RF command in seconds with our intuitive interface. No coding required.
+
+🎨 **Beautiful by Design.** A completely rewritten Vue 3 interface that's as pleasant to use as it is powerful. Light, medium, and dark themes adapt to your preference.
+
+🚀 **SmartIR Supercharged.** First-class SmartIR integration means instant access to thousands of pre-configured device profiles. Set up your AC, TV, or media player in minutes, not hours.
+
+🧠 **Intelligent & Automatic.** Discovers existing commands, migrates your setup seamlessly, and auto-generates Home Assistant entities. It just works.
+
 ⚠️ **This is a beta version with a completely rewritten UI using Vue 3.**
 
-A next-generation Home Assistant add-on for managing Broadlink devices with a modern Vue 3 interface for easy IR/RF command learning and management.
+## ✨ What's New in v2?
 
-## What's New in v2?
+### 🎨 Modern Vue 3 Interface
+- Complete UI rewrite with component-based architecture
+- Responsive design that works beautifully on desktop, tablet, and mobile
+- Three theme modes: Light, Medium (new!), and Dark
+- Real-time command testing with visual feedback
+- Intuitive device cards with logo badges
 
-- 🎨 **Modern Vue 3 Interface** - Complete UI rewrite with component-based architecture
-- 🚀 **Better Performance** - Faster, more responsive user experience
-- 🔧 **SmartIR Integration** (Coming Soon) - Built-in SmartIR device profile builder
-- 📱 **Improved Mobile Experience** - Better responsive design
-- 🧩 **Maintainable Code** - Easier to extend and customize
+### 🔧 SmartIR Integration ✅ **NOW AVAILABLE**
+- **Full SmartIR support** - Create and manage SmartIR devices directly
+- **Profile builder** - Build custom climate profiles with guided wizard
+- **Code browser** - Browse and preview 1000+ pre-made device codes
+- **Command learning** - Learn missing commands for existing profiles
+- **Dual device support** - Manage both Broadlink and SmartIR devices seamlessly
+- **Automatic detection** - Discovers existing SmartIR devices on startup
+
+### 🚀 Enhanced Features
+- **Better Performance** - Lightning-fast, responsive user experience
+- **Smart command management** - View, test, and organize all commands in one place
+- **Logo integration** - Visual device identification with Broadlink and SmartIR logos
+- **Improved entity generation** - Auto-create lights, fans, switches, and climate controls
+- **Command testing** - Test any command directly from the interface
+- **Area management** - Organize devices by room/area
 
 ## Should I Use This?
 
@@ -23,8 +63,9 @@ A next-generation Home Assistant add-on for managing Broadlink devices with a mo
 **Use v2 (beta)** if:
 - ✅ You want to help test new features
 - ✅ You're comfortable reporting bugs
-- ✅ You want early access to SmartIR integration
-- ✅ You like modern UIs
+- ✅ You want **full SmartIR integration** (available now!)
+- ✅ You like modern, beautiful UIs
+- ✅ You want the latest features and improvements
 
 ## Screenshots
 
@@ -48,18 +89,43 @@ A next-generation Home Assistant add-on for managing Broadlink devices with a mo
 
 *User-selectable dark mode for comfortable viewing*
 
-## About
+## 🎯 Key Features
 
-This add-on provides a comprehensive solution for managing Broadlink devices in your Home Assistant installation. It features:
+### 🎮 Device Management
+- **Dual Platform Support**: Manage both Broadlink and SmartIR devices from one interface
+- **Automatic Discovery**: Detects existing devices and commands on first startup
+- **Smart Migration**: Seamlessly migrates from v1 or vanilla Broadlink integration
+- **Multi-Device Support**: Control unlimited Broadlink remotes and devices
+- **Area Organization**: Group devices by room for easy management
 
-- **Automatic Migration**: Instantly discovers and migrates existing Broadlink commands on first startup
-- **Web Interface**: Modern, responsive web UI for device management
-- **Command Learning**: Easy IR/RF command learning with real-time feedback
-- **Command Management**: View, test, and organize learned commands
-- **Entity Auto-Generation**: Automatically create Home Assistant entities (lights, fans, switches) from learned commands
-- **Storage Integration**: Direct access to Home Assistant's command storage
-- **Multi-Device Support**: Manage multiple Broadlink devices from one interface
+### 📡 Command Learning & Testing
+- **Intuitive Learning**: Point, click, and press your remote - it's that simple
+- **Real-Time Feedback**: Visual confirmation when commands are learned
+- **Instant Testing**: Test any command with a single click
+- **Command Browser**: View all learned commands organized by device
+- **Import/Export**: Backup and restore your command library
+
+### 🌟 SmartIR Integration
+- **1000+ Device Profiles**: Access pre-configured codes for popular devices
+- **Profile Builder**: Create custom climate profiles with step-by-step wizard
+- **Code Browser**: Preview and select from extensive device database
+- **Command Learning**: Fill in missing commands for existing profiles
+- **Climate Control**: Full support for AC units with temperature, modes, and fan speeds
+- **Media Players**: Control TVs, receivers, and media devices
+
+### 🏠 Home Assistant Integration
+- **Entity Auto-Generation**: Create lights, fans, switches, and climate entities automatically
+- **Helper Generation**: Auto-create input helpers for advanced control
+- **Template Support**: Generate ready-to-use entity templates
+- **Configuration Integration**: Seamless YAML configuration generation
 - **No External Dependencies**: Works entirely within Home Assistant
+
+### 🎨 Modern Interface
+- **Vue 3 Architecture**: Fast, responsive, component-based UI
+- **Three Theme Modes**: Light, Medium, and Dark themes
+- **Mobile Optimized**: Works perfectly on phones and tablets
+- **Visual Feedback**: Real-time status updates and notifications
+- **Logo Integration**: Device identification with brand logos
 
 ### 🎉 Intelligent Startup System
 

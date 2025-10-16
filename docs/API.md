@@ -1,6 +1,11 @@
 # Broadlink Manager API Reference
 
+**Version:** 2.0  
+**Last Updated:** October 15, 2025
+
 This document describes the REST API endpoints provided by the Broadlink Manager add-on.
+
+---
 
 ## Base URL
 
@@ -13,30 +18,374 @@ Replace `homeassistant.local` with your Home Assistant IP address if needed.
 
 ## Authentication
 
-Currently, the API does not require authentication as it's designed to run within your local network. Future versions may add authentication support.
+Currently, the API does not require authentication as it's designed to run within your local network.
+
+---
+
+## Table of Contents
+
+- [Device Management](#device-management)
+- [Managed Devices](#managed-devices)
+- [Command Management](#command-management)
+- [Area Management](#area-management)
+- [SmartIR Integration](#smartir-integration)
+- [Broadlink Devices](#broadlink-devices)
+- [Error Responses](#error-responses)
 
 ---
 
 ## Device Management
 
-### List Devices
+### List All Devices
 
-Get all available Broadlink devices.
+Get all managed devices (legacy endpoint).
 
 **Endpoint:** `GET /api/devices`
 
 **Response:**
 ```json
 {
-  "success": true,
   "devices": [
     {
-      "entity_id": "remote.broadlink_rm4_pro",
-      "name": "Broadlink RM4 Pro",
-      "device_id": "abc123def456",
-      "type": "RM4 Pro"
+      "id": "living_room_fan",
+      "name": "Living Room Fan",
+      "device_type": "broadlink",
+      "broadlink_entity": "remote.living_room_rm4_pro",
+      "area": "Living Room",
+      "commands": {
+        "turn_on": "fan_on",
+        "turn_off": "fan_off"
+      },
+      "command_count": 2
     }
-  ]
+  ],
+  "count": 1
+}
+```
+
+---
+
+### Get Specific Device
+
+Get details for a specific device.
+
+**Endpoint:** `GET /api/devices/<device_id>`
+
+**Response:**
+```json
+{
+  "id": "living_room_fan",
+  "name": "Living Room Fan",
+  "device_type": "broadlink",
+  "broadlink_entity": "remote.living_room_rm4_pro",
+  "area": "Living Room",
+  "commands": {
+    "turn_on": "fan_on",
+    "turn_off": "fan_off"
+  },
+  "command_count": 2
+}
+```
+
+---
+
+### Create Device
+
+Create a new device (legacy endpoint).
+
+**Endpoint:** `POST /api/devices`
+
+**Request Body:**
+```json
+{
+  "device_id": "bedroom_fan",
+  "device_name": "Bedroom Fan",
+  "device_type": "broadlink",
+  "broadlink_entity": "remote.bedroom_rm4_pro",
+  "area": "Bedroom",
+  "commands": {
+    "turn_on": "fan_on",
+    "turn_off": "fan_off"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "device_id": "bedroom_fan",
+  "message": "Device created successfully"
+}
+```
+
+---
+
+### Update Device
+
+Update an existing device.
+
+**Endpoint:** `PUT /api/devices/<device_id>`
+
+**Request Body:**
+```json
+{
+  "device_name": "Bedroom Ceiling Fan",
+  "area": "Master Bedroom",
+  "commands": {
+    "turn_on": "fan_on",
+    "turn_off": "fan_off",
+    "speed_1": "fan_speed_1"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "device_id": "bedroom_fan",
+  "message": "Device updated successfully"
+}
+```
+
+---
+
+### Delete Device
+
+Delete a device.
+
+**Endpoint:** `DELETE /api/devices/<device_id>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Device deleted successfully"
+}
+```
+
+---
+
+### Find Broadlink Owner
+
+Find which Broadlink device owns a specific device's commands.
+
+**Endpoint:** `POST /api/devices/find-broadlink-owner`
+
+**Request Body:**
+```json
+{
+  "device_name": "samsung_model1"
+}
+```
+
+**Response:**
+```json
+{
+  "device_name": "samsung_model1",
+  "broadlink_entity": "remote.master_bedroom_rm4_pro",
+  "broadlink_name": "Master Bedroom RM4 Pro"
+}
+```
+
+---
+
+### Discover Untracked Devices
+
+Discover devices that exist in Broadlink storage but are not tracked in metadata.
+
+**Endpoint:** `GET /api/devices/discover`
+
+**Response:**
+```json
+{
+  "untracked_devices": [
+    {
+      "device_name": "samsung_model1",
+      "command_count": 5,
+      "commands": ["turn_on", "turn_off", "volume_up", "volume_down", "mute"]
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### Delete Untracked Device
+
+Delete all commands for an untracked device from Broadlink storage.
+
+**Endpoint:** `DELETE /api/devices/untracked/<device_name>`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Deleted 5 commands for device samsung_model1",
+  "deleted_commands": ["turn_on", "turn_off", "volume_up", "volume_down", "mute"]
+}
+```
+
+---
+
+## Managed Devices
+
+### Create Managed Device
+
+Create a new managed device (supports both Broadlink and SmartIR types).
+
+**Endpoint:** `POST /api/devices/managed`
+
+**Request Body (Broadlink):**
+```json
+{
+  "device_name": "Samsung TV",
+  "device": "samsung_model1",
+  "device_type": "broadlink",
+  "broadlink_entity": "remote.master_bedroom_rm4_pro",
+  "area": "Master Bedroom",
+  "commands": {
+    "turn_on": "turn_on",
+    "turn_off": "turn_off",
+    "volume_up": "volume_up"
+  }
+}
+```
+
+**Request Body (SmartIR):**
+```json
+{
+  "device_name": "Living Room AC",
+  "device": "climate.living_room_ac",
+  "device_type": "smartir",
+  "area": "Living Room",
+  "smartir_config": {
+    "platform": "climate",
+    "code_id": 1080,
+    "manufacturer": "Samsung",
+    "model": "AR09FSSEDWUNEU"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "device_id": "samsung_model1",
+  "message": "Device created successfully"
+}
+```
+
+---
+
+### List Managed Devices
+
+Get all managed devices from device manager.
+
+**Endpoint:** `GET /api/devices/managed`
+
+**Response:**
+```json
+{
+  "devices": [
+    {
+      "id": "samsung_model1",
+      "name": "Samsung TV",
+      "device_type": "broadlink",
+      "broadlink_entity": "remote.master_bedroom_rm4_pro",
+      "area": "Master Bedroom",
+      "commands": {
+        "turn_on": "turn_on",
+        "turn_off": "turn_off"
+      },
+      "command_count": 2,
+      "created_at": "2025-10-15T19:30:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### Get Managed Device
+
+Get a specific managed device.
+
+**Endpoint:** `GET /api/devices/managed/<device_id>`
+
+**Response:**
+```json
+{
+  "id": "samsung_model1",
+  "name": "Samsung TV",
+  "device_type": "broadlink",
+  "broadlink_entity": "remote.master_bedroom_rm4_pro",
+  "area": "Master Bedroom",
+  "commands": {
+    "turn_on": "turn_on",
+    "turn_off": "turn_off"
+  },
+  "command_count": 2,
+  "created_at": "2025-10-15T19:30:00Z"
+}
+```
+
+---
+
+### Update Managed Device
+
+Update a managed device.
+
+**Endpoint:** `PUT /api/devices/managed/<device_id>`
+
+**Request Body:**
+```json
+{
+  "device_name": "Samsung Smart TV",
+  "area": "Living Room",
+  "commands": {
+    "turn_on": "turn_on",
+    "turn_off": "turn_off",
+    "volume_up": "volume_up",
+    "volume_down": "volume_down"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "device_id": "samsung_model1",
+  "message": "Device updated successfully"
+}
+```
+
+---
+
+### Delete Managed Device
+
+Delete a managed device and optionally its commands from Broadlink storage.
+
+**Endpoint:** `DELETE /api/devices/managed/<device_id>`
+
+**Request Body:**
+```json
+{
+  "delete_commands": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Device samsung_model1 deleted",
+  "commands_deleted": true
 }
 ```
 
@@ -44,41 +393,19 @@ Get all available Broadlink devices.
 
 ## Command Management
 
-### List Commands
-
-Get all learned commands for a device.
-
-**Endpoint:** `GET /api/commands`
-
-**Query Parameters:**
-- `device` (optional) - Filter by device name
-
-**Response:**
-```json
-{
-  "success": true,
-  "commands": {
-    "tony_s_office_ceiling_fan": {
-      "light_on": "scAAArCeB...",
-      "light_off": "scCwBLCeB...",
-      "fan_speed_1": "scAAArCeB..."
-    }
-  }
-}
-```
-
 ### Learn Command
 
 Learn a new IR/RF command.
 
-**Endpoint:** `POST /api/learn`
+**Endpoint:** `POST /api/commands/learn`
 
 **Request Body:**
 ```json
 {
-  "device_id": "abc123def456",
-  "device_name": "tony_s_office_ceiling_fan",
-  "command_name": "light_on"
+  "entity_id": "remote.master_bedroom_rm4_pro",
+  "device": "samsung_model1",
+  "command": "turn_on",
+  "command_type": "ir"
 }
 ```
 
@@ -86,31 +413,27 @@ Learn a new IR/RF command.
 ```json
 {
   "success": true,
-  "message": "Command learned successfully",
-  "command_code": "scAAArCeB..."
+  "message": "✅ Command 'turn_on' learned successfully! (May take a moment to appear)",
+  "code": "pending"
 }
 ```
 
-**Error Response:**
-```json
-{
-  "success": false,
-  "error": "Learning timeout - no signal received"
-}
-```
+**Note:** The command will appear in Broadlink storage after 10-30 seconds due to Home Assistant's async storage writes.
+
+---
 
 ### Test Command
 
 Send a learned command to test it.
 
-**Endpoint:** `POST /api/test`
+**Endpoint:** `POST /api/commands/test`
 
 **Request Body:**
 ```json
 {
-  "device_id": "abc123def456",
-  "device_name": "tony_s_office_ceiling_fan",
-  "command_name": "light_on"
+  "entity_id": "remote.master_bedroom_rm4_pro",
+  "device": "samsung_model1",
+  "command": "turn_on"
 }
 ```
 
@@ -122,17 +445,106 @@ Send a learned command to test it.
 }
 ```
 
+---
+
 ### Delete Command
 
 Delete a learned command.
 
-**Endpoint:** `DELETE /api/commands/<device_name>/<command_name>`
+**Endpoint:** `DELETE /api/commands/<device_id>/<command_name>`
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Command deleted successfully"
+  "message": "Command 'turn_on' deleted from device 'samsung_model1'"
+}
+```
+
+---
+
+### Get Device Commands
+
+Get all commands for a device.
+
+**Endpoint:** `GET /api/commands/<device_id>`
+
+**Response:**
+```json
+{
+  "device_id": "samsung_model1",
+  "commands": {
+    "turn_on": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+    "turn_off": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+    "volume_up": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU..."
+  },
+  "count": 3
+}
+```
+
+---
+
+### Get Broadlink Commands
+
+Get learned commands from Broadlink storage files.
+
+**Endpoint:** `GET /api/commands/broadlink/<device_name>`
+
+**Response:**
+```json
+{
+  "device_name": "samsung_model1",
+  "commands": {
+    "turn_on": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+    "turn_off": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU..."
+  },
+  "count": 2
+}
+```
+
+---
+
+### Get Untracked Commands
+
+Get commands that exist in Broadlink storage but not in metadata.
+
+**Endpoint:** `GET /api/commands/untracked`
+
+**Response:**
+```json
+{
+  "untracked_commands": {
+    "samsung_model1": {
+      "turn_on": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+      "turn_off": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU..."
+    }
+  },
+  "count": 2
+}
+```
+
+---
+
+### Import Commands
+
+Import untracked commands into a device's metadata.
+
+**Endpoint:** `POST /api/commands/import`
+
+**Request Body:**
+```json
+{
+  "device_id": "samsung_model1",
+  "commands": ["turn_on", "turn_off", "volume_up"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Imported 3 commands into device samsung_model1",
+  "imported_count": 3
 }
 ```
 
@@ -142,321 +554,214 @@ Delete a learned command.
 
 ### List Areas
 
-Get all configured areas/rooms.
+Get all available areas from Home Assistant.
 
 **Endpoint:** `GET /api/areas`
 
 **Response:**
 ```json
 {
-  "success": true,
   "areas": [
-    {
-      "area_id": "tony_s_office",
-      "name": "Tony's Office",
-      "devices": ["tony_s_office_ceiling_fan"]
-    }
+    "Living Room",
+    "Bedroom",
+    "Kitchen",
+    "Master Bedroom"
   ]
 }
 ```
 
-### Create Area
+---
 
-Create a new area.
+## SmartIR Integration
 
-**Endpoint:** `POST /api/areas`
+### Get SmartIR Status
 
-**Request Body:**
-```json
-{
-  "area_id": "living_room",
-  "name": "Living Room"
-}
-```
+Get SmartIR installation status.
+
+**Endpoint:** `GET /api/smartir/status`
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Area created successfully",
-  "area_id": "living_room"
-}
-```
-
-### Assign Device to Area
-
-Assign a device to an area.
-
-**Endpoint:** `POST /api/areas/<area_id>/devices`
-
-**Request Body:**
-```json
-{
-  "device_name": "living_room_tv"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Device assigned to area"
+  "installed": true,
+  "version": "1.17.9",
+  "codes_path": "/config/custom_components/smartir/codes",
+  "platforms": ["climate", "media_player", "fan"]
 }
 ```
 
 ---
 
-## Entity Management
+### Get SmartIR Platforms
 
-### List Entities
+Get available SmartIR platforms.
 
-Get all configured entities with statistics.
-
-**Endpoint:** `GET /api/entities`
+**Endpoint:** `GET /api/smartir/platforms`
 
 **Response:**
 ```json
 {
-  "success": true,
-  "entities": {
-    "office_ceiling_fan_light": {
-      "entity_type": "light",
-      "device": "tony_s_office_ceiling_fan",
-      "commands": {
-        "turn_on": "light_on",
-        "turn_off": "light_off"
-      },
-      "device_id": "abc123",
-      "enabled": true,
-      "friendly_name": "Office Ceiling Fan Light",
-      "area": "Tony's Office"
+  "installed": true,
+  "platforms": ["climate", "media_player", "fan", "light"]
+}
+```
+
+---
+
+### Get Platform Codes
+
+Get available code files for a specific platform.
+
+**Endpoint:** `GET /api/smartir/platforms/<platform>/codes`
+
+**Response:**
+```json
+{
+  "platform": "climate",
+  "codes": [
+    {
+      "code_id": 1000,
+      "manufacturer": "Gree",
+      "supported_models": ["YAA1FBF", "YB1F2"]
+    },
+    {
+      "code_id": 1080,
+      "manufacturer": "Samsung",
+      "supported_models": ["AR09FSSEDWUNEU"]
     }
-  },
-  "stats": {
-    "total_entities": 5,
-    "entities_by_type": {
-      "light": 3,
-      "fan": 2
-    },
-    "last_generated": "2025-10-06T14:30:00"
-  }
-}
-```
-
-### Get Entity
-
-Get a specific entity configuration.
-
-**Endpoint:** `GET /api/entities/<entity_id>`
-
-**Response:**
-```json
-{
-  "success": true,
-  "entity": {
-    "entity_type": "light",
-    "device": "tony_s_office_ceiling_fan",
-    "commands": {
-      "turn_on": "light_on",
-      "turn_off": "light_off"
-    },
-    "enabled": true
-  }
-}
-```
-
-### Save Entity
-
-Create or update an entity configuration.
-
-**Endpoint:** `POST /api/entities`
-
-**Request Body:**
-```json
-{
-  "entity_id": "office_light",
-  "entity_data": {
-    "entity_type": "light",
-    "device": "tony_s_office_ceiling_fan",
-    "commands": {
-      "turn_on": "light_on",
-      "turn_off": "light_off"
-    },
-    "device_id": "abc123",
-    "enabled": true,
-    "friendly_name": "Office Light",
-    "area": "Tony's Office"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Entity saved successfully",
-  "entity_id": "office_light"
-}
-```
-
-### Delete Entity
-
-Delete an entity configuration.
-
-**Endpoint:** `DELETE /api/entities/<entity_id>`
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Entity deleted successfully"
-}
-```
-
-### Auto-Detect Entities
-
-Automatically detect entities from learned commands.
-
-**Endpoint:** `POST /api/entities/detect`
-
-**Request Body:**
-```json
-{
-  "device_name": "tony_s_office_ceiling_fan",
-  "commands": {
-    "light_on": "scAAArCeB...",
-    "light_off": "scCwBLCeB...",
-    "fan_speed_1": "scAAArCeB...",
-    "fan_speed_2": "scAAArCeB...",
-    "fan_off": "scAAArCeB..."
-  },
-  "area_name": "Tony's Office"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "detected_entities": {
-    "tony_s_office_ceiling_fan_light": {
-      "entity_type": "light",
-      "device": "tony_s_office_ceiling_fan",
-      "commands": {
-        "turn_on": "light_on",
-        "turn_off": "light_off"
-      },
-      "friendly_name": "Tony's Office Ceiling Fan Light",
-      "area": "Tony's Office",
-      "auto_detected": true
-    },
-    "tony_s_office_ceiling_fan": {
-      "entity_type": "fan",
-      "device": "tony_s_office_ceiling_fan",
-      "commands": {
-        "turn_off": "fan_off",
-        "speed_1": "fan_speed_1",
-        "speed_2": "fan_speed_2"
-      },
-      "friendly_name": "Tony's Office Ceiling Fan",
-      "area": "Tony's Office",
-      "speed_count": 2,
-      "auto_detected": true
-    }
-  },
+  ],
   "count": 2
 }
 ```
 
-### Generate Entity Files
+---
 
-Generate Home Assistant YAML entity files and automatically reload configuration.
+### Get Code Details
 
-**Endpoint:** `POST /api/entities/generate`
+Get details for a specific code file.
 
-**Request Body:**
-```json
-{
-  "device_id": "abc123"
-}
-```
+**Endpoint:** `GET /api/smartir/platforms/<platform>/codes/<code_id>`
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Entity files generated successfully. Configuration reloaded successfully.",
-  "entities_count": 5,
-  "entity_counts": {
-    "light": 3,
-    "fan": 2
-  },
-  "config_reloaded": true,
-  "files": {
-    "entities": "/config/broadlink_manager/entities.yaml",
-    "helpers": "/config/broadlink_manager/helpers.yaml",
-    "readme": "/config/broadlink_manager/README.md"
-  },
-  "instructions": {
-    "step1": "Add to configuration.yaml:",
-    "code": "light: !include broadlink_manager/entities.yaml\nfan: !include broadlink_manager/entities.yaml\nswitch: !include broadlink_manager/entities.yaml\ninput_boolean: !include broadlink_manager/helpers.yaml\ninput_select: !include broadlink_manager/helpers.yaml",
-    "step2": "Check configuration in Developer Tools → YAML",
-    "step3": "Restart Home Assistant"
-  }
-}
-```
-
-**Note:** This endpoint automatically reloads both the Broadlink integration and Home Assistant YAML configuration, so new entities appear immediately without manual reload.
-
-### Get Entity Types
-
-Get supported entity types and their command roles.
-
-**Endpoint:** `GET /api/entities/types`
-
-**Response:**
-```json
-{
-  "success": true,
-  "types": ["light", "fan", "switch", "media_player"],
-  "roles": {
-    "light": ["turn_on", "turn_off", "toggle"],
-    "fan": ["turn_on", "turn_off", "speed_1", "speed_2", "speed_3", "speed_4", "speed_5", "speed_6", "reverse"],
-    "switch": ["turn_on", "turn_off", "toggle"],
-    "media_player": ["power", "volume_up", "volume_down", "mute", "play", "pause", "stop", "play_pause", "next", "previous", "channel_up", "channel_down"]
-  }
+  "code_id": 1080,
+  "manufacturer": "Samsung",
+  "supportedModels": ["AR09FSSEDWUNEU", "AR12FSSEDWUNEU"],
+  "supportedController": "Broadlink",
+  "commandsEncoding": "Base64",
+  "minTemperature": 16,
+  "maxTemperature": 30,
+  "precision": 1,
+  "operationModes": ["auto", "cool", "dry", "fan_only", "heat"],
+  "fanModes": ["auto", "low", "medium", "high"]
 }
 ```
 
 ---
 
-## Storage Management
+### Search Codes
 
-### Get Storage Info
+Search for SmartIR codes by manufacturer or model.
 
-Get information about the storage directory.
+**Endpoint:** `GET /api/smartir/search?platform=<platform>&query=<query>`
 
-**Endpoint:** `GET /api/storage/info`
+**Query Parameters:**
+- `platform` - Platform to search (climate, media_player, fan, light)
+- `query` - Search term (manufacturer or model)
 
 **Response:**
 ```json
 {
-  "success": true,
-  "storage_path": "/config/broadlink_manager",
-  "files": {
-    "metadata": true,
-    "entities": true,
-    "helpers": true,
-    "readme": true
-  },
-  "stats": {
-    "total_entities": 5,
-    "entities_by_type": {
-      "light": 3,
-      "fan": 2
+  "results": [
+    {
+      "code_id": 1080,
+      "manufacturer": "Samsung",
+      "supported_models": ["AR09FSSEDWUNEU"],
+      "platform": "climate"
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### Get Manufacturers
+
+Get list of manufacturers for a platform.
+
+**Endpoint:** `GET /api/smartir/platforms/<platform>/manufacturers`
+
+**Response:**
+```json
+{
+  "platform": "climate",
+  "manufacturers": [
+    "Gree",
+    "Samsung",
+    "LG",
+    "Daikin",
+    "Mitsubishi"
+  ],
+  "count": 5
+}
+```
+
+---
+
+### Get Models by Manufacturer
+
+Get models for a specific manufacturer.
+
+**Endpoint:** `GET /api/smartir/platforms/<platform>/manufacturers/<manufacturer>/models`
+
+**Response:**
+```json
+{
+  "platform": "climate",
+  "manufacturer": "Samsung",
+  "models": [
+    {
+      "code_id": 1080,
+      "supported_models": ["AR09FSSEDWUNEU", "AR12FSSEDWUNEU"]
     },
-    "last_generated": "2025-10-06T14:30:00"
-  }
+    {
+      "code_id": 1081,
+      "supported_models": ["AR18FSSEDWUNEU"]
+    }
+  ],
+  "count": 2
+}
+```
+
+---
+
+## Broadlink Devices
+
+### Get Broadlink Devices
+
+Get available Broadlink devices from Home Assistant.
+
+**Endpoint:** `GET /api/broadlink/devices`
+
+**Response:**
+```json
+{
+  "devices": [
+    {
+      "entity_id": "remote.master_bedroom_rm4_pro",
+      "name": "Master Bedroom RM4 Pro",
+      "state": "idle",
+      "type": "RM4 Pro"
+    },
+    {
+      "entity_id": "remote.living_room_rm_mini",
+      "name": "Living Room RM Mini",
+      "state": "idle",
+      "type": "RM Mini 3"
+    }
+  ]
 }
 ```
 
@@ -489,181 +794,103 @@ For best results with entity auto-detection, use these naming patterns:
 ### Lights
 - `light_on`, `light_off` - Separate on/off commands
 - `light_toggle` - Single toggle command
-- `lamp_on`, `lamp_off` - Alternative naming
 
 ### Fans
-- `fan_speed_1` through `fan_speed_6` - Speed levels (numbered)
-- `fan_low`, `fan_medium`, `fan_high` - Named speed levels
+- `fan_speed_1` through `fan_speed_6` - Speed levels
 - `fan_off` - Turn off
-- `fan_on` - Turn on (optional)
 - `fan_reverse` - Reverse direction
-
-### Switches
-- `on`, `off` - Simple on/off
-- `toggle` - Single toggle
-- `power` - Power toggle
 
 ### Media Players
 - `power` - Power toggle
-- `vol_up`, `vol_down` - Volume control
-- `volume_up`, `volume_down` - Alternative volume naming
+- `volume_up`, `volume_down` - Volume control
 - `mute` - Mute toggle
 - `play`, `pause`, `stop` - Playback control
-- `play_pause` - Combined play/pause
-- `next`, `previous` - Track navigation
-- `ch_up`, `ch_down` - Channel control
-- `channel_up`, `channel_down` - Alternative channel naming
+- `channel_up`, `channel_down` - Channel control
+
+---
+
+## Storage Latency
+
+**Important:** Home Assistant's Broadlink storage has a write latency of 10-30 seconds. After learning a command:
+
+1. The API returns success immediately
+2. The command appears in storage after 10-30 seconds
+3. Testing the command works once it's in storage
+
+This is normal behavior and handled automatically by the application.
 
 ---
 
 ## Examples
 
-### Complete Workflow Example
+### Complete Device Adoption Workflow
 
-1. **Learn commands:**
+1. **Discover untracked devices:**
 ```bash
-curl -X POST http://homeassistant.local:8099/api/learn \
-  -H "Content-Type: application/json" \
-  -d '{
-    "device_id": "abc123",
-    "device_name": "office_fan",
-    "command_name": "light_on"
-  }'
+curl http://homeassistant.local:8099/api/devices/discover
 ```
 
-2. **Auto-detect entities:**
+2. **Find Broadlink owner:**
 ```bash
-curl -X POST http://homeassistant.local:8099/api/entities/detect \
+curl -X POST http://homeassistant.local:8099/api/devices/find-broadlink-owner \
+  -H "Content-Type: application/json" \
+  -d '{"device_name": "samsung_model1"}'
+```
+
+3. **Create managed device:**
+```bash
+curl -X POST http://homeassistant.local:8099/api/devices/managed \
   -H "Content-Type: application/json" \
   -d '{
-    "device_name": "office_fan",
+    "device_name": "Samsung TV",
+    "device": "samsung_model1",
+    "device_type": "broadlink",
+    "broadlink_entity": "remote.master_bedroom_rm4_pro",
+    "area": "Master Bedroom",
     "commands": {
-      "light_on": "...",
-      "light_off": "..."
+      "turn_on": "turn_on",
+      "turn_off": "turn_off"
     }
   }'
 ```
 
-3. **Generate entity files:**
+---
+
+### SmartIR Device Creation
+
+1. **Search for device code:**
 ```bash
-curl -X POST http://homeassistant.local:8099/api/entities/generate \
+curl "http://homeassistant.local:8099/api/smartir/search?platform=climate&query=Samsung"
+```
+
+2. **Get code details:**
+```bash
+curl http://homeassistant.local:8099/api/smartir/platforms/climate/codes/1080
+```
+
+3. **Create SmartIR device:**
+```bash
+curl -X POST http://homeassistant.local:8099/api/devices/managed \
   -H "Content-Type: application/json" \
-  -d '{"device_id": "abc123"}'
-```
-
-4. **Add to configuration.yaml** and restart Home Assistant
-
----
-
-## Migration Management
-
-### Get Migration Status
-
-Check if migration has been performed and get migration details.
-
-**Endpoint:** `GET /api/migration/status`
-
-**Response:**
-```json
-{
-  "has_metadata": true,
-  "entity_count": 15,
-  "migration_performed": true,
-  "migration_info": {
-    "migrated_at": "2025-10-11T22:30:00",
-    "migrated_entities": 15,
-    "skipped_devices": 2,
-    "errors": 0,
-    "broadlink_devices": 3
-  }
-}
-```
-
-### Check and Migrate
-
-Check if migration is needed and perform it automatically.
-
-**Endpoint:** `POST /api/migration/check`
-
-**Response:**
-```json
-{
-  "success": true,
-  "needed": true,
-  "migrated_entities": 15,
-  "entities": [
-    "living_room_ceiling_fan",
-    "bedroom_fan",
-    "office_light"
-  ],
-  "skipped_devices": [
-    {
-      "device_name": "unknown_device",
-      "reason": "No valid entities detected from commands",
-      "command_count": 3
+  -d '{
+    "device_name": "Living Room AC",
+    "device": "climate.living_room_ac",
+    "device_type": "smartir",
+    "area": "Living Room",
+    "smartir_config": {
+      "platform": "climate",
+      "code_id": 1080,
+      "manufacturer": "Samsung",
+      "model": "AR09FSSEDWUNEU"
     }
-  ],
-  "errors": [],
-  "migration_info": {
-    "migrated_at": "2025-10-11T22:30:00",
-    "migrated_entities": 15,
-    "skipped_devices": 1,
-    "errors": 0,
-    "broadlink_devices": 3
-  },
-  "message": "Successfully migrated 15 entities from 8 devices"
-}
+  }'
 ```
-
-### Force Migration
-
-Force migration even if metadata already exists.
-
-**Endpoint:** `POST /api/migration/force`
-
-**Request Body:**
-```json
-{
-  "overwrite": false
-}
-```
-
-**Parameters:**
-- `overwrite` (boolean): If `true`, replaces existing entities. If `false`, only adds new ones.
-
-**Response:**
-```json
-{
-  "success": true,
-  "needed": true,
-  "forced": true,
-  "overwrite": false,
-  "migrated_entities": 5,
-  "entities": [
-    "new_device_1",
-    "new_device_2"
-  ],
-  "message": "Successfully migrated 5 entities from 2 devices"
-}
-```
-
----
-
-## WebSocket API (Future)
-
-WebSocket support for real-time updates is planned for future versions.
-
----
-
-## Rate Limiting
-
-Currently, there is no rate limiting. Use responsibly to avoid overwhelming your Broadlink devices.
 
 ---
 
 ## Support
 
 For issues or questions about the API:
-- Check the [main documentation](README.md)
-- Review [entity generation docs](ENTITY_GENERATION.md)
+- Check the [Data Model documentation](DATA_MODEL.md)
+- Review [Architecture documentation](ARCHITECTURE.md)
 - Open an [issue on GitHub](https://github.com/tonyperkins/homeassistant-broadlink-manager/issues)

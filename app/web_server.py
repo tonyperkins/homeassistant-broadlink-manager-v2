@@ -574,7 +574,7 @@ class BroadlinkWebServer:
 
         @self.app.route("/api/entities/generate", methods=["POST"])
         def generate_entities():
-            """Generate YAML entity files and reload Broadlink configuration"""
+            """Generate YAML entity files for both Broadlink and SmartIR devices"""
             try:
                 data = request.get_json()
                 device_id = data.get(
@@ -583,53 +583,129 @@ class BroadlinkWebServer:
 
                 logger.info("🔄 Manual entity generation triggered...")
 
-                # Get all Broadlink commands
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                broadlink_commands = loop.run_until_complete(
-                    self._get_all_broadlink_commands()
-                )
 
                 # Sync devices.json to metadata.json
                 self._sync_devices_to_metadata()
 
-                # Generate entities (device_id is now optional - entities specify their own broadlink_entity)
-                generator = EntityGenerator(self.storage_manager, device_id)
-                result = generator.generate_all(broadlink_commands)
+                # Separate devices by type
+                all_devices = self.device_manager.get_all_devices()
+                broadlink_devices = {
+                    k: v for k, v in all_devices.items() 
+                    if v.get("device_type", "broadlink") == "broadlink"
+                }
+                smartir_devices = {
+                    k: v for k, v in all_devices.items() 
+                    if v.get("device_type") == "smartir"
+                }
 
-                if result.get("success"):
-                    logger.info(
-                        f"✅ Generated {result.get('entities_count', 0)} entities"
+                results = {
+                    "success": True,
+                    "broadlink_count": 0,
+                    "smartir_count": 0,
+                    "total_count": 0,
+                    "errors": []
+                }
+
+                # Generate Broadlink native entities
+                if broadlink_devices:
+                    logger.info(f"📝 Generating {len(broadlink_devices)} Broadlink native entities...")
+                    broadlink_commands = loop.run_until_complete(
+                        self._get_all_broadlink_commands()
                     )
+                    
+                    # Temporarily filter metadata to only include Broadlink devices
+                    original_metadata = self.storage_manager.get_all_entities()
+                    broadlink_metadata = {
+                        k: v for k, v in original_metadata.items()
+                        if v.get("device_type", "broadlink") == "broadlink"
+                    }
+                    
+                    # Temporarily replace metadata
+                    self.storage_manager.metadata["entities"] = broadlink_metadata
+                    
+                    generator = EntityGenerator(self.storage_manager, device_id)
+                    broadlink_result = generator.generate_all(broadlink_commands)
+                    
+                    # Restore original metadata
+                    self.storage_manager.metadata["entities"] = original_metadata
+                    
+                    if broadlink_result.get("success"):
+                        results["broadlink_count"] = broadlink_result.get("entities_count", 0)
+                        logger.info(f"✅ Generated {results['broadlink_count']} Broadlink entities")
+                    else:
+                        results["errors"].append(f"Broadlink: {broadlink_result.get('message', 'Unknown error')}")
 
-                    # Reload Broadlink configuration
+                # Generate SmartIR entities
+                if smartir_devices:
+                    logger.info(f"📝 Generating {len(smartir_devices)} SmartIR entities...")
+                    from smartir_yaml_generator import SmartIRYAMLGenerator
+                    
+                    smartir_generator = SmartIRYAMLGenerator(str(self.config_loader.get_config_path()))
+                    
+                    # Get Broadlink device list for IP lookup
+                    broadlink_device_list = loop.run_until_complete(
+                        self._get_broadlink_devices()
+                    )
+                    
+                    smartir_success_count = 0
+                    for device_id, device_data in smartir_devices.items():
+                        smartir_result = smartir_generator.generate_device_config(
+                            device_id, device_data, broadlink_device_list
+                        )
+                        
+                        if smartir_result.get("success"):
+                            smartir_success_count += 1
+                        else:
+                            error_msg = smartir_result.get("error", "Unknown error")
+                            results["errors"].append(f"SmartIR {device_id}: {error_msg}")
+                            logger.error(f"Failed to generate SmartIR config for {device_id}: {error_msg}")
+                    
+                    results["smartir_count"] = smartir_success_count
+                    logger.info(f"✅ Generated {smartir_success_count} SmartIR entities")
+
+                # Calculate totals
+                results["total_count"] = results["broadlink_count"] + results["smartir_count"]
+                results["entities_count"] = results["total_count"]  # For backward compatibility
+
+                # Build message
+                messages = []
+                if results["broadlink_count"] > 0:
+                    messages.append(f"{results['broadlink_count']} Broadlink native")
+                if results["smartir_count"] > 0:
+                    messages.append(f"{results['smartir_count']} SmartIR")
+                
+                if results["total_count"] > 0:
+                    results["message"] = f"Generated {' and '.join(messages)} entity configuration(s)"
+                else:
+                    results["success"] = False
+                    results["message"] = "No entities configured"
+
+                # Reload configurations if we generated anything
+                if results["total_count"] > 0:
                     logger.info("🔄 Reloading Broadlink configuration...")
                     reload_success = loop.run_until_complete(
                         self._reload_broadlink_config()
                     )
 
-                    # Reload YAML configuration to pick up new template entities
                     logger.info("🔄 Reloading Home Assistant YAML configuration...")
                     yaml_reload_success = loop.run_until_complete(
                         self.area_manager.reload_config()
                     )
 
                     if reload_success and yaml_reload_success:
-                        result["config_reloaded"] = True
-                        result["message"] = (
-                            f"{result.get('message', '')} Configuration reloaded successfully."
-                        )
+                        results["config_reloaded"] = True
+                        results["message"] += " Configuration reloaded successfully."
                     else:
-                        result["config_reloaded"] = False
-                        result["message"] = (
-                            f"{result.get('message', '')} Warning: Configuration reload failed."
-                        )
+                        results["config_reloaded"] = False
+                        results["message"] += " Warning: Configuration reload failed."
 
                 loop.close()
 
-                return jsonify(result)
+                return jsonify(results)
             except Exception as e:
-                logger.error(f"Error generating entities: {e}")
+                logger.error(f"Error generating entities: {e}", exc_info=True)
                 return jsonify({"error": str(e)}), 500
 
         @self.app.route("/api/entities/types")
@@ -853,17 +929,8 @@ class BroadlinkWebServer:
                 if self.device_manager.delete_device(device_id):
                     logger.info(f"Deleted device: {device_id}")
 
-                    # If user wants to delete commands too, delete them from HA storage
-                    if delete_commands and device.get("commands"):
-                        logger.info(
-                            f"Also deleting {len(device['commands'])} commands for device {device_id}"
-                        )
-                        # TODO: Implement command deletion from HA storage
-                        # This would require calling the /api/delete endpoint for each command
-                        # For now, just log it
-                        logger.warning(
-                            "Command deletion from HA storage not yet implemented"
-                        )
+                    # Note: Command deletion is now handled by the device manager API
+                    # See app/api/devices.py delete_managed_device endpoint
 
                     return jsonify(
                         {"success": True, "deleted_commands": delete_commands}
@@ -1170,8 +1237,15 @@ class BroadlinkWebServer:
 
                                     entity_id = entity.get("entity_id")
 
-                                    # Get device status
+                                    # Get device status and attributes (including IP)
                                     status = await self._get_device_status(entity_id)
+                                    
+                                    # Get entity state to extract IP address
+                                    entity_state = await self._make_ha_request("GET", f"states/{entity_id}")
+                                    host = None
+                                    if entity_state:
+                                        attributes = entity_state.get("attributes", {})
+                                        host = attributes.get("host") or attributes.get("friendly_name")
 
                                     broadlink_devices.append(
                                         {
@@ -1182,6 +1256,8 @@ class BroadlinkWebServer:
                                             "area_id": area_id,
                                             "area_name": area_name,
                                             "status": status,
+                                            "host": host,
+                                            "ip": host,  # Alias for compatibility
                                         }
                                     )
                     except Exception as e:

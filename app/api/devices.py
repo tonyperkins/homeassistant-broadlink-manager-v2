@@ -27,6 +27,8 @@ def normalize_device_name(name):
     """
     # Remove or replace special characters (keep only alphanumeric and spaces)
     name = re.sub(r"[^\w\s]", "", name)
+    # Collapse multiple spaces into single space
+    name = re.sub(r'\s+', ' ', name)
     # Replace spaces with underscores and convert to lowercase
     return name.strip().replace(' ', '_').lower()
 
@@ -121,8 +123,9 @@ def create_device():
         if not device_name:
             device_name = normalize_device_name(name)
         
-        # Generate entity_id from device name
-        entity_id = f"{entity_type}.{device_name}"
+        # Use device_name as entity_id (without entity type prefix)
+        # The entity generator will use this as the key in the YAML
+        entity_id = device_name
         
         # Check if already exists
         if storage.get_entity(entity_id):
@@ -185,7 +188,8 @@ def update_device(device_id):
                 # No commands in metadata yet - safe to rename entity_id
                 new_device_name = normalize_device_name(data['name'])
                 entity_type = entity_data.get('entity_type', 'switch')
-                new_entity_id = f"{entity_type}.{new_device_name}"
+                # Use device_name as entity_id (without entity type prefix)
+                new_entity_id = new_device_name
                 
                 # If entity_id is changing, we need to delete old and create new
                 if new_entity_id != device_id:
@@ -211,6 +215,29 @@ def update_device(device_id):
             entity_data['enabled'] = data['enabled']
         if 'commands' in data:
             entity_data['commands'] = data['commands']
+        
+        # Update SmartIR-specific fields
+        device_type = entity_data.get('device_type', 'broadlink')
+        if device_type == 'smartir':
+            # Support both direct fields and smartir_config object
+            smartir_config = data.get('smartir_config', {})
+            
+            if 'manufacturer' in data or 'manufacturer' in smartir_config:
+                entity_data['manufacturer'] = data.get('manufacturer') or smartir_config.get('manufacturer', '')
+            if 'model' in data or 'model' in smartir_config:
+                entity_data['model'] = data.get('model') or smartir_config.get('model', '')
+            if 'device_code' in data or 'code_id' in smartir_config:
+                entity_data['device_code'] = data.get('device_code') or smartir_config.get('code_id', '')
+            if 'controller_device' in data or 'controller_device' in smartir_config:
+                entity_data['controller_device'] = data.get('controller_device') or smartir_config.get('controller_device', '')
+            
+            # Optional climate-specific fields
+            if 'temperature_sensor' in data:
+                entity_data['temperature_sensor'] = data['temperature_sensor']
+            if 'humidity_sensor' in data:
+                entity_data['humidity_sensor'] = data['humidity_sensor']
+            if 'power_sensor' in data:
+                entity_data['power_sensor'] = data['power_sensor']
         
         # Save entity (with new ID if renamed, or same ID if not)
         storage.save_entity(new_entity_id, entity_data)
@@ -423,6 +450,7 @@ def create_managed_device():
     """Create a new managed device (supports both Broadlink and SmartIR types)"""
     try:
         data = request.json
+        logger.info(f"Received device creation request: {data}")
         device_manager = get_device_manager()
         
         if not device_manager:
@@ -471,11 +499,13 @@ def create_managed_device():
         
         if device_type == 'smartir':
             # SmartIR device - validate and add SmartIR-specific fields
+            # Support both direct fields and smartir_config object
+            smartir_config = data.get('smartir_config', {})
             device_data.update({
-                'manufacturer': data.get('manufacturer', ''),
-                'model': data.get('model', ''),
-                'device_code': data.get('device_code', ''),
-                'controller_device': data.get('controller_device', '')
+                'manufacturer': data.get('manufacturer') or smartir_config.get('manufacturer', ''),
+                'model': data.get('model') or smartir_config.get('model', ''),
+                'device_code': data.get('device_code') or smartir_config.get('code_id', ''),
+                'controller_device': data.get('controller_device') or smartir_config.get('controller_device', '')
             })
             
             # Optional fields for climate entities
@@ -599,6 +629,21 @@ def update_managed_device(device_id):
             **data,
             'device_type': existing_device.get('device_type', 'broadlink')  # Preserve device_type
         }
+        
+        # Handle SmartIR config if present
+        if 'smartir_config' in data and existing_device.get('device_type') == 'smartir':
+            smartir_config = data['smartir_config']
+            # Extract SmartIR fields from nested config to top level
+            if 'manufacturer' in smartir_config:
+                updated_data['manufacturer'] = smartir_config['manufacturer']
+            if 'model' in smartir_config:
+                updated_data['model'] = smartir_config['model']
+            if 'code_id' in smartir_config:
+                updated_data['device_code'] = smartir_config['code_id']
+            if 'controller_device' in smartir_config:
+                updated_data['controller_device'] = smartir_config['controller_device']
+            # Remove the nested config object
+            del updated_data['smartir_config']
         
         # Update the device
         if device_manager.update_device(device_id, updated_data):

@@ -36,11 +36,3 @@ def get_areas():
         logger.error(f"Error getting areas: {e}")
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/areas/<area_id>', methods=['GET'])
-def get_area(area_id):
-    """Get a specific area"""
-    # TODO: Implement single area fetch
-    return jsonify({
-        'area': None,
-        'message': f'Get area {area_id} - Coming soon'
-    })

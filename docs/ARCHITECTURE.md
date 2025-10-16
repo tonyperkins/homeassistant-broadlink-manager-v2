@@ -25,7 +25,44 @@ Broadlink Manager creates Home Assistant entities (lights, fans, switches, media
 
 ## Data Model
 
-### Entity Metadata Structure
+### Device Manager Structure (New in v2)
+
+Broadlink Manager v2 uses a Device Manager to track both Broadlink and SmartIR devices:
+
+```json
+{
+  "devices": {
+    "samsung_model1": {
+      "device_id": "samsung_model1",
+      "device_type": "broadlink",
+      "device_name": "Samsung TV",
+      "broadlink_entity": "remote.master_bedroom_rm4_pro",
+      "area": "Master Bedroom",
+      "commands": {
+        "turn_on": "turn_on",
+        "turn_off": "turn_off",
+        "volume_up": "volume_up"
+      },
+      "created_at": "2025-10-15T19:30:00Z"
+    },
+    "climate.living_room_ac": {
+      "device_id": "climate.living_room_ac",
+      "device_type": "smartir",
+      "device_name": "Living Room AC",
+      "area": "Living Room",
+      "smartir_config": {
+        "platform": "climate",
+        "code_id": 1080,
+        "manufacturer": "Samsung",
+        "model": "AR09FSSEDWUNEU"
+      },
+      "created_at": "2025-10-15T19:30:00Z"
+    }
+  }
+}
+```
+
+### Legacy Entity Metadata Structure (v1 Compatibility)
 
 ```json
 {
@@ -51,7 +88,20 @@ Broadlink Manager creates Home Assistant entities (lights, fans, switches, media
 }
 ```
 
-### Field Descriptions
+### Device Manager Field Descriptions
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `device_id` | Unique device identifier | `samsung_model1` |
+| `device_type` | Type of device | `broadlink` or `smartir` |
+| `device_name` | Display name | `Samsung TV` |
+| `broadlink_entity` | Which Broadlink remote (Broadlink devices only) | `remote.master_bedroom_rm4_pro` |
+| `area` | Where the device is located | `Master Bedroom` |
+| `commands` | Command mappings (Broadlink devices only) | `{"turn_on": "turn_on"}` |
+| `smartir_config` | SmartIR configuration (SmartIR devices only) | `{"platform": "climate", "code_id": 1080}` |
+| `created_at` | Creation timestamp | `2025-10-15T19:30:00Z` |
+
+### Legacy Entity Field Descriptions
 
 | Field | Description | Example |
 |-------|-------------|---------|
@@ -122,19 +172,32 @@ Bedroom Broadlink (remote.bedroom_broadlink)
 
 ## How It Works
 
-### 1. Learning Commands
+### 1. Device Discovery & Adoption
+1. **Discovery**: Scan Broadlink storage for untracked devices
+2. **Find Owner**: Identify which Broadlink remote owns the commands
+3. **Adoption**: Create managed device entry in Device Manager
+4. Device saved to `/config/broadlink_manager/devices.json`
+
+### 2. Learning Commands (Broadlink Devices)
 1. Commands are learned using a specific Broadlink device
 2. Stored in `/config/.storage/broadlink_remote_<unique_id>_codes`
-3. Organized by device name (e.g., `living_room_ceiling_fan`)
+3. Organized by device name (e.g., `samsung_model1`)
+4. **Note**: 10-30 second latency for storage writes
 
-### 2. Creating Entities
+### 3. SmartIR Device Setup
+1. Search SmartIR code library for device
+2. Select manufacturer and model
+3. Create device with SmartIR configuration
+4. Device uses pre-configured IR codes from SmartIR
+
+### 4. Creating Entities (Legacy)
 1. User selects which commands to use
 2. User specifies:
    - **Broadlink Entity**: Which remote sends the commands
    - **Area**: Where the controlled device is located
 3. Entity metadata is saved to `/config/broadlink_manager/metadata.json`
 
-### 3. Generating YAML
+### 5. Generating YAML
 1. Generator reads metadata
 2. For each entity, creates template configuration
 3. Uses `broadlink_entity` field to determine which remote to call
@@ -157,23 +220,31 @@ fan:
               command: fan_on
 ```
 
-## Migration from Old Approach
+## Migration from v1 to v2
 
-### Old Approach (Area from Name)
-- Entity name: `tony_s_office_ceiling_fan`
-- Area extracted from name: "Tony's Office"
-- **Problem**: Assumes Broadlink is in same area as controlled device
+### v1 Approach (Entity-Based)
+- Entities stored in `metadata.json`
+- Each entity has its own commands
+- Multiple entities can share same device
+- **Problem**: Duplicate command storage, complex management
 
-### New Approach (Explicit Assignment)
-- Entity name: `tony_s_office_ceiling_fan`
-- Area: Explicitly set to "Tony's Office"
-- Broadlink: Explicitly set to `remote.kitchen_broadlink`
-- **Benefit**: Broadlink can be anywhere; area represents actual device location
+### v2 Approach (Device-Based)
+- Devices stored in `devices.json`
+- Each device has commands once
+- Supports both Broadlink and SmartIR
+- **Benefit**: Cleaner data model, easier device adoption
+
+### Dual Storage System
+- **Device Manager** (`devices.json`): New device-centric model
+- **Storage Manager** (`metadata.json`): Legacy entity-centric model
+- Both systems coexist for backward compatibility
+- Auto-migration on first run
 
 ### Backward Compatibility
-- If `broadlink_entity` is not specified, falls back to default device ID
-- Existing entities continue to work
-- Can be migrated by adding `broadlink_entity` field to metadata
+- Existing `metadata.json` continues to work
+- Auto-migration creates device entries
+- No manual intervention required
+- Can use both systems simultaneously
 
 ## Best Practices
 

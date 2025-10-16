@@ -6,7 +6,7 @@
       </div>
       
       <div class="modal-body">
-        <p>{{ message }}</p>
+        <p class="message-text">{{ message }}</p>
         
         <!-- Optional checkbox for additional action -->
         <div v-if="checkboxLabel" class="checkbox-option">
@@ -18,7 +18,7 @@
       </div>
       
       <div class="modal-footer">
-        <button @click.stop="cancel" class="btn btn-secondary">
+        <button v-if="showCancel" @click.stop="cancel" class="btn btn-secondary">
           {{ cancelText }}
         </button>
         <button @click.stop="confirm" class="btn" :class="dangerMode ? 'btn-danger' : 'btn-primary'">
@@ -52,6 +52,10 @@ const props = defineProps({
   cancelText: {
     type: String,
     default: 'Cancel'
+  },
+  showCancel: {
+    type: Boolean,
+    default: true
   },
   dangerMode: {
     type: Boolean,
@@ -98,7 +102,7 @@ const cancel = () => {
 }
 
 .confirm-dialog {
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
 }
 
@@ -128,6 +132,12 @@ const cancel = () => {
   margin: 0 0 16px 0;
   color: var(--ha-text-primary-color);
   line-height: 1.5;
+}
+
+.message-text {
+  white-space: pre-line;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
 }
 
 .checkbox-option {

@@ -70,6 +70,11 @@ export const useDeviceStore = defineStore('devices', {
           commands: deviceData.commands || {}
         }
         
+        // Add SmartIR config if it's a SmartIR device
+        if (deviceData.device_type === 'smartir' && deviceData.smartir_config) {
+          backendData.smartir_config = deviceData.smartir_config
+        }
+        
         console.log('🏪 Store: Transformed data for backend:', backendData)
         
         // Use the new managed devices endpoint that supports device_type

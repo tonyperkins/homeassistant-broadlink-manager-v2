@@ -1,43 +1,21 @@
 # Development Documentation
 
-This folder contains documentation used during the development process, including implementation plans, refactoring roadmaps, testing guides, and completion summaries.
+**Last Updated:** October 15, 2025
+
+This folder contains active development documentation including implementation plans, refactoring roadmaps, and testing guides.
 
 ## Active Development Plans
 
-### Current Focus
-- **[SMARTIR_DEVICE_TYPE_IMPLEMENTATION.md](SMARTIR_DEVICE_TYPE_IMPLEMENTATION.md)** - Active implementation plan for adding SmartIR device type support with manufacturer/model selection
-
 ### SmartIR Integration
-- **[SMARTIR_IMPLEMENTATION_PLAN.md](SMARTIR_IMPLEMENTATION_PLAN.md)** - Original SmartIR integration plan
-- **[SMARTIR_INTEGRATION_ROADMAP.md](SMARTIR_INTEGRATION_ROADMAP.md)** - Roadmap for SmartIR features
 - **[SMARTIR_SOFT_INTEGRATION.md](SMARTIR_SOFT_INTEGRATION.md)** - Soft integration approach
 - **[SMARTIR_INTEGRATION_SUMMARY.md](SMARTIR_INTEGRATION_SUMMARY.md)** - Summary of SmartIR integration work
 - **[SMARTIR_PROFILE_MANAGEMENT_COMPLETE.md](SMARTIR_PROFILE_MANAGEMENT_COMPLETE.md)** - Profile management completion notes
 
 ### Architecture & Refactoring
 - **[REFACTORING_ROADMAP.md](REFACTORING_ROADMAP.md)** - Long-term refactoring plans and technical debt
-- **[DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md)** - Dual mode (standalone/addon) implementation details
-
-## Completion Summaries
-
-### API & Backend
-- **[API_IMPLEMENTATION_COMPLETE.md](API_IMPLEMENTATION_COMPLETE.md)** - API implementation completion summary
-- **[API_SETUP_COMPLETE.md](API_SETUP_COMPLETE.md)** - Initial API setup notes
 
 ### Frontend
 - **[VUE_SETUP_COMPLETE.md](VUE_SETUP_COMPLETE.md)** - Vue.js frontend setup completion
-- **[COMPONENTS_CREATED.md](COMPONENTS_CREATED.md)** - Component creation summary
-
-### Features
-- **[COMMAND_LEARNING_COMPLETE.md](COMMAND_LEARNING_COMPLETE.md)** - Command learning feature completion
-- **[PHASE_3_1_COMPLETE.md](PHASE_3_1_COMPLETE.md)** - Phase 3.1 milestone completion
-
-### Bug Fixes
-- **[BUGFIX_MEDIA_PLAYER.md](BUGFIX_MEDIA_PLAYER.md)** - Media player bug fix documentation
-
-### General
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Overall implementation summary
-- **[RECENT_UPDATES.md](RECENT_UPDATES.md)** - Recent updates and changes
 
 ## Testing Documentation
 
@@ -47,7 +25,17 @@ This folder contains documentation used during the development process, includin
 
 ### Test Summaries
 - **[TEST_SUMMARY.md](TEST_SUMMARY.md)** - Test coverage and results summary
-- **[BROWSER_TESTING_SUMMARY.md](BROWSER_TESTING_SUMMARY.md)** - Browser testing results
+
+## Archived Documentation
+
+Historical development documentation has been moved to the **[archive/](archive/)** folder. This includes:
+- API implementation milestones
+- Component creation summaries
+- Bug fix documentation
+- SmartIR implementation plans
+- Phase completion summaries
+
+See **[archive/README.md](archive/README.md)** for a complete list of archived documents.
 
 ## User-Facing Documentation
 

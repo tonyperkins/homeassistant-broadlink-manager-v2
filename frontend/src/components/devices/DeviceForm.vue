@@ -423,10 +423,15 @@ const handleSubmit = async () => {
       return
     }
     
-    // Merge SmartIR data into form data
+    // Create SmartIR config object
     const submitData = {
       ...formData.value,
-      ...smartirData.value
+      smartir_config: {
+        manufacturer: smartirData.value.manufacturer,
+        model: smartirData.value.model,
+        code_id: smartirData.value.device_code,
+        controller_device: smartirData.value.controller_device
+      }
     }
     
     emit('save', submitData)

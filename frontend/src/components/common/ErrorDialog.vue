@@ -19,9 +19,45 @@
               <i class="mdi mdi-lightbulb-on"></i>
               {{ suggestion }}
             </p>
-            <details v-if="details" class="error-details">
-              <summary>Technical Details</summary>
-              <pre>{{ details }}</pre>
+            
+            <!-- Debug Information Section -->
+            <details class="debug-section" :open="debugExpanded">
+              <summary @click="debugExpanded = !debugExpanded">
+                <i class="mdi" :class="debugExpanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"></i>
+                Debug Information
+              </summary>
+              <div class="debug-content">
+                <div class="debug-actions">
+                  <button @click="copyDebugInfo" class="btn-debug btn-copy">
+                    <i class="mdi mdi-content-copy"></i>
+                    Copy to Clipboard
+                  </button>
+                  <button @click="downloadDebugInfo" class="btn-debug btn-download">
+                    <i class="mdi mdi-download"></i>
+                    Download Report
+                  </button>
+                </div>
+                
+                <div class="debug-info">
+                  <div class="debug-section-title">Error Details</div>
+                  <pre>{{ debugInfo.error }}</pre>
+                  
+                  <div class="debug-section-title">Request Information</div>
+                  <pre>{{ debugInfo.request }}</pre>
+                  
+                  <div class="debug-section-title">Response Information</div>
+                  <pre>{{ debugInfo.response }}</pre>
+                  
+                  <div class="debug-section-title">Browser Information</div>
+                  <pre>{{ debugInfo.browser }}</pre>
+                  
+                  <div class="debug-section-title">Application State</div>
+                  <pre>{{ debugInfo.appState }}</pre>
+                  
+                  <div v-if="debugInfo.stackTrace" class="debug-section-title">Stack Trace</div>
+                  <pre v-if="debugInfo.stackTrace">{{ debugInfo.stackTrace }}</pre>
+                </div>
+              </div>
             </details>
           </div>
           
@@ -37,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed, inject } from 'vue'
 
 const props = defineProps({
   isOpen: {
@@ -59,13 +95,144 @@ const props = defineProps({
   details: {
     type: String,
     default: ''
+  },
+  error: {
+    type: Object,
+    default: null
+  },
+  context: {
+    type: Object,
+    default: () => ({})
   }
 })
 
 const emit = defineEmits(['close'])
+const toast = inject('toast')
+
+const debugExpanded = ref(false)
 
 const handleClose = () => {
   emit('close')
+}
+
+// Collect comprehensive debug information
+const debugInfo = computed(() => {
+  const timestamp = new Date().toISOString()
+  const error = props.error || {}
+  
+  return {
+    error: JSON.stringify({
+      message: props.message,
+      title: props.title,
+      details: props.details,
+      errorObject: error.message || error.toString(),
+      timestamp
+    }, null, 2),
+    
+    request: JSON.stringify({
+      method: error.config?.method?.toUpperCase() || 'N/A',
+      url: error.config?.url || 'N/A',
+      baseURL: error.config?.baseURL || 'N/A',
+      headers: error.config?.headers || {},
+      data: error.config?.data ? JSON.parse(error.config.data) : 'N/A',
+      params: error.config?.params || {}
+    }, null, 2),
+    
+    response: JSON.stringify({
+      status: error.response?.status || 'N/A',
+      statusText: error.response?.statusText || 'N/A',
+      data: error.response?.data || 'N/A',
+      headers: error.response?.headers || {}
+    }, null, 2),
+    
+    browser: JSON.stringify({
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      onLine: navigator.onLine,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      screenResolution: `${window.screen.width}x${window.screen.height}`,
+      colorDepth: window.screen.colorDepth,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timestamp
+    }, null, 2),
+    
+    appState: JSON.stringify({
+      currentRoute: window.location.pathname,
+      currentURL: window.location.href,
+      referrer: document.referrer || 'N/A',
+      context: props.context || {},
+      localStorage: {
+        smartir_simulate: localStorage.getItem('smartir_simulate_not_installed'),
+        theme: localStorage.getItem('theme')
+      }
+    }, null, 2),
+    
+    stackTrace: error.stack || null
+  }
+})
+
+const copyDebugInfo = async () => {
+  const debugText = generateDebugReport()
+  try {
+    await navigator.clipboard.writeText(debugText)
+    toast?.success('Debug information copied to clipboard', '✅ Copied')
+  } catch (err) {
+    console.error('Failed to copy:', err)
+    toast?.error('Failed to copy to clipboard', '❌ Copy Failed')
+  }
+}
+
+const downloadDebugInfo = () => {
+  const debugText = generateDebugReport()
+  const blob = new Blob([debugText], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+  link.download = `broadlink-manager-error-${timestamp}.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  toast?.success('Debug report downloaded', '✅ Downloaded')
+}
+
+const generateDebugReport = () => {
+  return `Broadlink Manager - Error Report
+${'='.repeat(60)}
+
+Generated: ${new Date().toISOString()}
+Title: ${props.title}
+Message: ${props.message}
+${props.suggestion ? `Suggestion: ${props.suggestion}\n` : ''}
+${'='.repeat(60)}
+
+ERROR DETAILS
+${'-'.repeat(60)}
+${debugInfo.value.error}
+
+REQUEST INFORMATION
+${'-'.repeat(60)}
+${debugInfo.value.request}
+
+RESPONSE INFORMATION
+${'-'.repeat(60)}
+${debugInfo.value.response}
+
+BROWSER INFORMATION
+${'-'.repeat(60)}
+${debugInfo.value.browser}
+
+APPLICATION STATE
+${'-'.repeat(60)}
+${debugInfo.value.appState}
+
+${debugInfo.value.stackTrace ? `STACK TRACE\n${'-'.repeat(60)}\n${debugInfo.value.stackTrace}\n\n` : ''}
+${'='.repeat(60)}
+End of Report
+`
 }
 
 // Close on Escape key
@@ -263,6 +430,131 @@ watch(() => props.isOpen, (isOpen) => {
   color: var(--ha-text-secondary-color);
   overflow-x: auto;
   font-family: 'Courier New', monospace;
+}
+
+/* Debug Section Styles */
+.debug-section {
+  margin-top: 20px;
+  padding: 0;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.debug-section summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 600;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ha-card-background);
+  transition: background 0.2s;
+}
+
+.debug-section summary:hover {
+  background: var(--ha-hover-color);
+}
+
+.debug-section summary i {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.debug-content {
+  padding: 16px;
+  border-top: 1px solid var(--ha-border-color);
+}
+
+.debug-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-debug {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--ha-border-color);
+  background: var(--ha-card-background);
+  color: var(--ha-text-primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-debug:hover {
+  background: var(--ha-hover-color);
+  border-color: var(--ha-primary-color);
+}
+
+.btn-debug i {
+  font-size: 16px;
+}
+
+.btn-copy {
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.btn-copy:hover {
+  background: rgba(33, 150, 243, 0.1);
+  border-color: rgba(33, 150, 243, 0.6);
+  color: rgba(33, 150, 243, 0.9);
+}
+
+.btn-download {
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.btn-download:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: rgba(76, 175, 80, 0.6);
+  color: rgba(76, 175, 80, 0.9);
+}
+
+.debug-info {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.debug-section-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ha-text-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ha-border-color);
+}
+
+.debug-section-title:first-child {
+  margin-top: 0;
+}
+
+.debug-info pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--ha-text-secondary-color);
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .modal-footer {

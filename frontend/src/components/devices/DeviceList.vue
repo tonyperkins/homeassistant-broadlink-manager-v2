@@ -15,6 +15,15 @@
       </div>
       <div class="header-right">
         <button 
+          @click.stop="generateEntities" 
+          class="btn btn-secondary"
+          v-if="isExpanded"
+          :disabled="generatingEntities"
+        >
+          <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
+          {{ generatingEntities ? 'Generating...' : 'Generate Entities' }}
+        </button>
+        <button 
           @click.stop="showCreateForm = true" 
           class="btn btn-primary"
           v-if="isExpanded"
@@ -193,7 +202,21 @@
       :message="errorDialog.message"
       :suggestion="errorDialog.suggestion"
       :details="errorDialog.details"
+      :error="errorDialog.error"
+      :context="errorDialog.context"
       @close="closeErrorDialog"
+    />
+
+    <!-- Entity Generation Result Dialog -->
+    <ConfirmDialog
+      :isOpen="showGenerationResultDialog"
+      :title="generationResult.title"
+      :message="generationResult.message"
+      confirmText="OK"
+      :showCancel="false"
+      :dangerMode="!generationResult.success"
+      @confirm="closeGenerationResultDialog"
+      @cancel="closeGenerationResultDialog"
     />
   </div>
 </template>
@@ -201,6 +224,7 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
+import { useToast } from '@/composables/useToast'
 import DeviceCard from './DeviceCard.vue'
 import DeviceForm from './DeviceForm.vue'
 import CommandLearner from '../commands/CommandLearner.vue'
@@ -210,6 +234,7 @@ import DeviceDiscovery from './DeviceDiscovery.vue'
 import api from '@/services/api'
 
 const deviceStore = useDeviceStore()
+const toast = useToast()
 const showCreateForm = ref(false)
 const showCommandLearner = ref(false)
 const selectedDevice = ref(null)
@@ -217,6 +242,7 @@ const showDeleteConfirm = ref(false)
 const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
 const isExpanded = ref(true)
+const generatingEntities = ref(false)
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -228,7 +254,17 @@ const errorDialog = ref({
   title: 'Error',
   message: '',
   suggestion: '',
-  details: ''
+  details: '',
+  error: null,
+  context: {}
+})
+
+// Entity generation result dialog state
+const showGenerationResultDialog = ref(false)
+const generationResult = ref({
+  success: false,
+  title: '',
+  message: ''
 })
 
 // Filters
@@ -453,7 +489,12 @@ const handleSave = async (deviceData) => {
       details = `Status: ${error.response.status}\nURL: ${error.config?.url || 'N/A'}`
     }
     
-    showError('Failed to Save Device', errorMessage, suggestion, details)
+    // Pass full error object and context
+    showError('Failed to Save Device', errorMessage, suggestion, details, error, {
+      action: 'save_device',
+      deviceData: deviceData,
+      isEdit: !!selectedDevice.value?.id
+    })
   }
 }
 
@@ -472,18 +513,24 @@ const closeCommandLearner = () => {
   selectedDevice.value = null
 }
 
-const showError = (title, message, suggestion = '', details = '') => {
+const showError = (title, message, suggestion = '', details = '', error = null, context = {}) => {
   errorDialog.value = {
     title,
     message,
     suggestion,
-    details
+    details,
+    error,
+    context
   }
   showErrorDialog.value = true
 }
 
 const closeErrorDialog = () => {
   showErrorDialog.value = false
+}
+
+const closeGenerationResultDialog = () => {
+  showGenerationResultDialog.value = false
 }
 
 const handleCommandLearned = async (updateData) => {
@@ -691,6 +738,93 @@ const adoptDevice = async (discoveredDevice) => {
   selectedDevice.value.commands = commandMapping
   
   showCreateForm.value = true
+}
+
+const generateEntities = async () => {
+  generatingEntities.value = true
+  try {
+    const response = await api.post('/api/entities/generate', {})
+    
+    if (response.data.success) {
+      // Build detailed success message
+      const broadlinkCount = response.data.broadlink_count || 0
+      const smartirCount = response.data.smartir_count || 0
+      const totalCount = response.data.total_count || 0
+      const errors = response.data.errors || []
+      
+      let title = '✅ Entity Generation Successful'
+      let messageParts = []
+      
+      // Summary
+      const summaryParts = []
+      if (broadlinkCount > 0) {
+        summaryParts.push(`${broadlinkCount} Broadlink native`)
+      }
+      if (smartirCount > 0) {
+        summaryParts.push(`${smartirCount} SmartIR`)
+      }
+      
+      if (summaryParts.length > 0) {
+        messageParts.push(`Generated ${summaryParts.join(' and ')} entity configuration${totalCount !== 1 ? 's' : ''}.`)
+      }
+      
+      // File locations
+      if (broadlinkCount > 0) {
+        messageParts.push('\n📁 Broadlink entities created in:')
+        messageParts.push('  • broadlink_manager/entities.yaml')
+        messageParts.push('  • broadlink_manager/helpers.yaml')
+      }
+      
+      if (smartirCount > 0) {
+        messageParts.push('\n📁 SmartIR entities created in:')
+        messageParts.push('  • smartir/climate.yaml')
+        messageParts.push('  • smartir/media_player.yaml')
+        messageParts.push('  • smartir/fan.yaml')
+      }
+      
+      // Configuration instructions
+      messageParts.push('\n📝 Next steps:')
+      messageParts.push('1. Check your configuration.yaml includes the generated files')
+      messageParts.push('2. Restart Home Assistant to load the new entities')
+      
+      // Show errors if any
+      if (errors.length > 0) {
+        title = '⚠️ Entity Generation Completed with Errors'
+        messageParts.push(`\n⚠️ ${errors.length} error${errors.length !== 1 ? 's' : ''} occurred:`)
+        errors.forEach(err => {
+          messageParts.push(`  • ${err}`)
+        })
+      }
+      
+      generationResult.value = {
+        success: true,
+        title: title,
+        message: messageParts.join('\n')
+      }
+      showGenerationResultDialog.value = true
+      
+    } else {
+      // Show failure dialog
+      generationResult.value = {
+        success: false,
+        title: '❌ Entity Generation Failed',
+        message: response.data.message || 'Failed to generate entities.\n\nPlease check that you have at least one device configured.'
+      }
+      showGenerationResultDialog.value = true
+    }
+  } catch (error) {
+    console.error('Error generating entities:', error)
+    const errorMsg = error.response?.data?.error || error.message || 'Unknown error occurred'
+    
+    generationResult.value = {
+      success: false,
+      title: '❌ Entity Generation Error',
+      message: `Failed to generate entities:\n\n${errorMsg}\n\nPlease check the logs for more details.`
+    }
+    showGenerationResultDialog.value = true
+  } finally {
+    generatingEntities.value = false
+  }
 }
 </script>
 

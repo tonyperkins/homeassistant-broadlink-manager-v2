@@ -1159,18 +1159,13 @@ class EntityGenerator:
                     "initial": "off",
                 }
 
-                # Add direction selector if reverse/direction command exists
-                commands = entity_data.get("commands", {})
-                if (
-                    "reverse" in commands
-                    or "direction" in commands
-                    or "fan_reverse" in commands
-                ):
-                    helpers["input_select"][f"{entity_id}_direction"] = {
-                        "name": f"{display_name} Direction",
-                        "options": ["forward", "reverse"],
-                        "initial": "forward",
-                    }
+                # Always add direction selector for fans (matches fan generator behavior)
+                # Even if no reverse command exists, the UI can still show direction controls
+                helpers["input_select"][f"{entity_id}_direction"] = {
+                    "name": f"{display_name} Direction",
+                    "options": ["forward", "reverse"],
+                    "initial": "forward",
+                }
 
             # Climate entities are not supported (template.climate removed from HA)
             # Users should use SmartIR custom integration for AC control

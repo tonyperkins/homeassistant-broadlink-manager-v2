@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <!-- SmartIR Banner -->
-    <SmartIRBanner />
+    <SmartIRBanner v-if="smartirEnabled" />
 
     <!-- Welcome Banner -->
     <div class="welcome-banner">
@@ -31,6 +31,8 @@
 
     <!-- SmartIR Status Card -->
     <SmartIRStatusCard 
+      v-if="smartirEnabled"
+      ref="smartirStatusCard"
       @create-profile="handleCreateProfile"
       @edit-profile="handleEditProfile"
       @show-install-guide="handleShowInstallGuide"
@@ -92,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 import { useToast } from '@/composables/useToast'
 import DeviceList from '@/components/devices/DeviceList.vue'
 import SmartIRBanner from '@/components/common/SmartIRBanner.vue'
@@ -100,10 +102,12 @@ import SmartIRStatusCard from '@/components/smartir/SmartIRStatusCard.vue'
 import SmartIRProfileBuilder from '@/components/smartir/SmartIRProfileBuilder.vue'
 
 const toast = useToast()
+const smartirEnabled = inject('smartirEnabled')
 
 const showProfileBuilder = ref(false)
 const editMode = ref(false)
 const editData = ref(null)
+const smartirStatusCard = ref(null)
 
 // Event handlers for SmartIR Status Card
 function handleCreateProfile() {
@@ -167,10 +171,16 @@ function handleShowInstallGuide() {
   window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
 }
 
-function handleProfileSave(result) {
+async function handleProfileSave(result) {
   console.log('Profile saved:', result)
   // Close the builder
   handleCloseProfileBuilder()
+  
+  // Refresh the profiles list to show updated data
+  if (smartirStatusCard.value && smartirStatusCard.value.loadAllProfiles) {
+    await smartirStatusCard.value.loadAllProfiles()
+    console.log('✅ Profiles list refreshed')
+  }
 }
 </script>
 

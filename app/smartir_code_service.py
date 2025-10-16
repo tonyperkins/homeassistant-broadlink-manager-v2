@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SmartIR Code Service for Broadlink Manager Add-on
-Fetches and caches SmartIR device codes from GitHub repository
+Fetches and caches SmartIR device codes from local index file
 """
 
 import json
@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 class SmartIRCodeService:
     """Service to fetch and cache SmartIR codes from GitHub"""
 
-    GITHUB_API_BASE = "https://api.github.com/repos/smartHomeHub/SmartIR"
-    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/smartHomeHub/SmartIR/master"
+    # Using stable fork for reliable device code database
+    # Original: https://github.com/smartHomeHub/SmartIR
+    GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-device-database"
+    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-device-database/master"
+    DEVICE_INDEX_URL = "https://raw.githubusercontent.com/tonyperkins/smartir-device-database/master/smartir_device_index.json"
     CACHE_TTL_HOURS = 24
     
     def __init__(self, cache_path: str = "/config/broadlink_manager/cache"):
@@ -32,7 +35,12 @@ class SmartIRCodeService:
         self.cache_path = Path(cache_path)
         self.cache_path.mkdir(parents=True, exist_ok=True)
         self.cache_file = self.cache_path / "smartir_codes_cache.json"
+        
+        # Index is bundled with the app, not cached
+        self.bundled_index_file = Path(__file__).parent.parent / "smartir_device_index.json"
+        
         self._cache = self._load_cache()
+        self._device_index = self._load_device_index()
         self._last_refresh_errors = {}  # Track errors per entity type
         
     def _load_cache(self) -> Dict[str, Any]:
@@ -64,6 +72,27 @@ class SmartIRCodeService:
         except Exception as e:
             logger.error(f"Error saving cache: {e}")
             return False
+    
+    def _load_device_index(self) -> Dict[str, Any]:
+        """Load device index from bundled file"""
+        # Load from bundled index file
+        if self.bundled_index_file.exists():
+            try:
+                with open(self.bundled_index_file, "r") as f:
+                    index = json.load(f)
+                logger.info(f"✓ Loaded device index v{index.get('version', 'unknown')}")
+                return index
+            except Exception as e:
+                logger.error(f"Error loading bundled device index: {e}")
+        else:
+            logger.warning(f"Bundled device index not found at {self.bundled_index_file}")
+        
+        # Return empty index on error
+        return {
+            "version": "0.0.0",
+            "last_updated": None,
+            "platforms": {}
+        }
     
     def _is_cache_valid(self) -> bool:
         """Check if cache is still valid"""
@@ -238,7 +267,7 @@ class SmartIRCodeService:
     
     def get_manufacturers(self, entity_type: str) -> List[str]:
         """
-        Get list of manufacturers for an entity type
+        Get list of manufacturers for an entity type (from index)
         
         Args:
             entity_type: Entity type (climate, fan, media_player, light)
@@ -246,16 +275,14 @@ class SmartIRCodeService:
         Returns:
             Sorted list of manufacturer names
         """
-        # Ensure cache is populated
-        if not self._is_cache_valid() or entity_type not in self._cache.get("manufacturers", {}):
-            self.refresh_codes(entity_type)
-        
-        manufacturers = self._cache.get("manufacturers", {}).get(entity_type, {})
+        # Use device index for instant results
+        platform_data = self._device_index.get("platforms", {}).get(entity_type, {})
+        manufacturers = platform_data.get("manufacturers", {})
         return sorted(manufacturers.keys())
     
     def get_models(self, entity_type: str, manufacturer: str) -> List[Dict[str, Any]]:
         """
-        Get list of models for a manufacturer
+        Get list of models for a manufacturer (from index)
         
         Args:
             entity_type: Entity type (climate, fan, media_player, light)
@@ -264,15 +291,43 @@ class SmartIRCodeService:
         Returns:
             List of model info dicts with code_id, models, controller
         """
-        # Ensure cache is populated
-        if not self._is_cache_valid() or entity_type not in self._cache.get("manufacturers", {}):
-            self.refresh_codes(entity_type)
+        # Use device index for instant results
+        platform_data = self._device_index.get("platforms", {}).get(entity_type, {})
+        manufacturer_data = platform_data.get("manufacturers", {}).get(manufacturer, {})
+        models = manufacturer_data.get("models", [])
         
-        manufacturers = self._cache.get("manufacturers", {}).get(entity_type, {})
-        models = manufacturers.get(manufacturer, [])
+        # Sort by code
+        return sorted(models, key=lambda x: int(x["code"]) if x["code"].isdigit() else 0)
+    
+    def refresh_device_index(self) -> Dict[str, Any]:
+        """Fetch latest device index from GitHub and update bundled file"""
+        logger.info("Refreshing device index from GitHub...")
         
-        # Sort by code_id
-        return sorted(models, key=lambda x: int(x["code_id"]) if x["code_id"].isdigit() else 0)
+        try:
+            response = requests.get(self.DEVICE_INDEX_URL, timeout=30)
+            response.raise_for_status()
+            index = response.json()
+            
+            # Save to bundled index file
+            with open(self.bundled_index_file, "w") as f:
+                json.dump(index, f, indent=2)
+            
+            # Update in-memory index
+            self._device_index = index
+            
+            logger.info(f"✓ Device index updated to v{index.get('version', 'unknown')}")
+            return {
+                "success": True,
+                "version": index.get("version"),
+                "last_updated": index.get("last_updated"),
+                "total_devices": sum(p.get("total_devices", 0) for p in index.get("platforms", {}).values())
+            }
+        except Exception as e:
+            logger.error(f"Error refreshing device index: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     def get_code_info(self, entity_type: str, code_id: str) -> Optional[Dict[str, Any]]:
         """

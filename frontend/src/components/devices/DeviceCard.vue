@@ -98,6 +98,10 @@ const props = defineProps({
   device: {
     type: Object,
     required: true
+  },
+  broadlinkDevices: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -112,8 +116,6 @@ const isSmartIRDisabled = computed(() => {
 })
 
 defineEmits(['edit', 'delete', 'learn'])
-
-const broadlinkDevices = ref([])
 const smartirCommandCount = ref(null)
 
 const deviceIcon = computed(() => {
@@ -168,7 +170,7 @@ const commandCount = computed(() => {
 
 const getControllerName = (entityId) => {
   if (!entityId) return ''
-  const device = broadlinkDevices.value.find(d => d.entity_id === entityId)
+  const device = props.broadlinkDevices.find(d => d.entity_id === entityId)
   return device ? (device.name || entityId) : entityId
 }
 
@@ -187,7 +189,7 @@ const showStorageName = computed(() => {
 const broadlinkFriendlyName = computed(() => {
   if (!props.device.broadlink_entity) return ''
   
-  const device = broadlinkDevices.value.find(d => d.entity_id === props.device.broadlink_entity)
+  const device = props.broadlinkDevices.find(d => d.entity_id === props.device.broadlink_entity)
   return device ? (device.name || props.device.broadlink_entity) : props.device.broadlink_entity
 })
 
@@ -215,13 +217,6 @@ const fetchSmartIRCommandCount = async () => {
 }
 
 onMounted(async () => {
-  try {
-    const response = await api.get('/api/broadlink/devices')
-    broadlinkDevices.value = response.data.devices || []
-  } catch (error) {
-    console.error('Error loading Broadlink devices:', error)
-  }
-  
   // Fetch SmartIR command count if this is a SmartIR device
   const deviceType = props.device.device_type || 'broadlink'
   if (deviceType === 'smartir') {

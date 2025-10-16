@@ -15,6 +15,16 @@
       </div>
       <div class="header-right">
         <button 
+          @click.stop="syncAllAreas" 
+          class="btn btn-secondary"
+          v-if="isExpanded"
+          :disabled="syncingAreas"
+          title="Sync all areas from Home Assistant"
+        >
+          <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
+          {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
+        </button>
+        <button 
           @click.stop="generateEntities" 
           class="btn btn-secondary"
           v-if="isExpanded"
@@ -155,6 +165,7 @@
         v-for="device in filteredDevices"
         :key="device.id"
         :device="device"
+        :broadlink-devices="broadlinkDevices"
         @edit="editDevice"
         @delete="confirmDelete"
         @learn="learnCommands"
@@ -243,6 +254,7 @@ const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
 const isExpanded = ref(true)
 const generatingEntities = ref(false)
+const syncingAreas = ref(false)
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -280,6 +292,7 @@ const broadlinkDevices = ref([])
 
 // Inject SmartIR status
 const smartirStatus = inject('smartirStatus')
+const smartirEnabled = inject('smartirEnabled')
 const smartirInstalled = computed(() => {
   // Check if simulating not-installed
   const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
@@ -372,6 +385,12 @@ const filteredDevices = computed(() => {
     devices = devices.filter(d => d.device_type === 'smartir')
   }
 
+  // Hide SmartIR devices if SmartIR integration is disabled or simulating not-installed
+  const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
+  if (!smartirEnabled?.value || isSimulating) {
+    devices = devices.filter(d => d.device_type !== 'smartir')
+  }
+
   return devices
 })
 
@@ -402,6 +421,9 @@ onMounted(async () => {
     deviceStore.loadDevices(),
     loadBroadlinkDevices()
   ])
+  
+  // Note: Auto-sync removed to prevent UI flickering on page load
+  // Users can manually sync areas using the "Sync Areas" button if needed
 })
 
 const editDevice = (device) => {
@@ -739,6 +761,19 @@ const adoptDevice = async (discoveredDevice) => {
   selectedDevice.value.commands = commandMapping
   
   showCreateForm.value = true
+}
+
+const syncAllAreas = async () => {
+  syncingAreas.value = true
+  try {
+    await deviceStore.syncAllAreas()
+    toast.success('Areas synced from Home Assistant')
+  } catch (error) {
+    console.error('Error syncing areas:', error)
+    toast.error('Failed to sync areas')
+  } finally {
+    syncingAreas.value = false
+  }
 }
 
 const generateEntities = async () => {

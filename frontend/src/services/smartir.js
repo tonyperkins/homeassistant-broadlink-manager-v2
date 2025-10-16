@@ -1,6 +1,12 @@
 /**
  * SmartIR API Service
  * Handles communication with SmartIR detection endpoints
+ * 
+ * Device codes are fetched from a stable fork:
+ * https://github.com/tonyperkins/smartir-device-database
+ * 
+ * Original SmartIR project:
+ * https://github.com/smartHomeHub/SmartIR
  */
 
 // Use relative path for ingress compatibility

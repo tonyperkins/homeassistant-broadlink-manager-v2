@@ -18,6 +18,7 @@ class StorageManager:
     def __init__(self, base_path: str = "/config/broadlink_manager"):
         self.base_path = Path(base_path)
         self.metadata_file = self.base_path / "metadata.json"
+        self.backup_file = self.base_path / "metadata.json.backup"
         self.entities_file = self.base_path / "entities.yaml"
         self.helpers_file = self.base_path / "helpers.yaml"
         self.package_file = self.base_path / "package.yaml"
@@ -25,6 +26,17 @@ class StorageManager:
 
         self._ensure_directory()
         self._ensure_readme()
+        
+        # Auto-restore from backup if metadata.json is missing
+        if not self.metadata_file.exists() and self.backup_file.exists():
+            logger.warning("metadata.json missing but backup found - restoring from backup")
+            try:
+                import shutil
+                shutil.copy2(self.backup_file, self.metadata_file)
+                logger.info("Successfully restored metadata.json from backup")
+            except Exception as e:
+                logger.error(f"Failed to restore from backup: {e}")
+        
         self.metadata = self._load_metadata()
 
     def _ensure_directory(self):
@@ -146,21 +158,60 @@ For issues or questions, visit the Broadlink Manager add-on page.
             return {"version": 1, "entities": {}, "last_generated": None}
 
     def _save_metadata(self):
-        """Save metadata to file"""
+        """Save metadata to file with automatic backup"""
+        import shutil
+        
         try:
-            with open(self.metadata_file, "w") as f:
+            # Create backup of existing file before modifying
+            if self.metadata_file.exists():
+                try:
+                    shutil.copy2(self.metadata_file, self.backup_file)
+                    logger.debug("Created backup of metadata.json")
+                except Exception as e:
+                    logger.warning(f"Failed to create backup: {e}")
+                    # Continue anyway - backup failure shouldn't stop the save
+            
+            # Write to temporary file first, then rename (atomic operation)
+            temp_file = self.metadata_file.with_suffix('.tmp')
+            with open(temp_file, "w") as f:
                 json.dump(self.metadata, f, indent=2)
+                f.flush()
+            
+            # Atomic rename
+            temp_file.replace(self.metadata_file)
             logger.info("Metadata saved successfully")
         except Exception as e:
             logger.error(f"Failed to save metadata: {e}")
+            
+            # Clean up temp file if it exists
+            temp_file = self.metadata_file.with_suffix('.tmp')
+            if temp_file.exists():
+                temp_file.unlink()
+            
+            # If save failed and we have a backup, restore it
+            if self.backup_file.exists() and not self.metadata_file.exists():
+                logger.warning("Save failed - restoring from backup")
+                try:
+                    shutil.copy2(self.backup_file, self.metadata_file)
+                    logger.info("Restored metadata.json from backup after failed save")
+                except Exception as restore_error:
+                    logger.error(f"Failed to restore from backup: {restore_error}")
+            
             raise
 
     def get_entity(self, entity_id: str) -> Optional[Dict[str, Any]]:
         """Get entity metadata by ID"""
         return self.metadata["entities"].get(entity_id)
 
-    def get_all_entities(self) -> Dict[str, Dict[str, Any]]:
-        """Get all entity metadata"""
+    def get_all_entities(self, reload: bool = False) -> Dict[str, Dict[str, Any]]:
+        """
+        Get all entity metadata
+        
+        Args:
+            reload: If True, reload metadata from disk first
+        """
+        if reload:
+            self.metadata = self._load_metadata()
         return self.metadata["entities"]
 
     def get_entities_by_type(self, entity_type: str) -> Dict[str, Dict[str, Any]]:

@@ -24,13 +24,17 @@ export const useDeviceStore = defineStore('devices', {
   },
   
   actions: {
-    async loadDevices() {
+    async loadDevices(bustCache = false) {
       this.loading = true
       this.error = null
       
       try {
         // Use managed devices endpoint to get devices with proper device_type field
-        const response = await api.get('/api/devices/managed')
+        // Add cache-busting timestamp if requested
+        const url = bustCache 
+          ? `/api/devices/managed?_t=${Date.now()}` 
+          : '/api/devices/managed'
+        const response = await api.get(url)
         this.devices = response.data.devices || []
         console.log('📥 Loaded devices:', this.devices)
         this.devices.forEach(device => {
@@ -138,6 +142,59 @@ export const useDeviceStore = defineStore('devices', {
     
     clearError() {
       this.error = null
+    },
+    
+    async syncAllAreas() {
+      // Sync areas from Home Assistant for all devices
+      if (!this.devices || this.devices.length === 0) {
+        console.log('⚠️ No devices to sync')
+        return // Silent return if no devices
+      }
+      
+      console.log(`🔄 Syncing areas from Home Assistant for ${this.devices.length} devices...`)
+      
+      try {
+        // Sync each device's area (in parallel)
+        const results = await Promise.all(
+          this.devices.map(device => {
+            console.log(`🔄 Syncing device: ${device.id} (${device.name})`)
+            return api.post(`/api/devices/${device.id}/sync-area`)
+              .then(response => {
+                if (response.data.success && response.data.area) {
+                  console.log(`✅ Synced area for ${device.name}: ${response.data.area}`)
+                  return { status: 'synced', device: device.name }
+                }
+                return { status: 'no_area' }
+              })
+              .catch(err => {
+                // Check if it's a 404 (entity not found in HA)
+                if (err.response?.status === 404) {
+                  console.log(`❌ Device not found in HA: ${device.id}`)
+                  return { status: 'not_found' }
+                } else {
+                  console.warn(`⚠️ Failed to sync area for ${device.id}:`, err.message)
+                  return { status: 'error', error: err.message }
+                }
+              })
+          })
+        )
+        
+        // Count results
+        const syncedCount = results.filter(r => r.status === 'synced').length
+        const notFoundCount = results.filter(r => r.status === 'not_found').length
+        
+        // Reload to show updated areas with cache busting
+        await this.loadDevices(true)
+        
+        if (syncedCount > 0) {
+          console.log(`✅ Area sync complete: ${syncedCount} synced, ${notFoundCount} not found in HA`)
+        } else if (notFoundCount > 0) {
+          console.log(`ℹ️ No areas synced - ${notFoundCount} entities not found in HA registry (generate entities first)`)
+        }
+      } catch (error) {
+        // Silent failure - this is a background operation
+        console.debug('Area sync error:', error)
+      }
     }
   }
 })

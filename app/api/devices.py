@@ -4,7 +4,10 @@ Device API endpoints
 
 import logging
 import re
-from flask import jsonify, request, current_app
+import json
+import io
+import zipfile
+from flask import jsonify, request, current_app, send_file
 from . import api_bp
 
 logger = logging.getLogger(__name__)
@@ -40,8 +43,8 @@ def get_devices():
         if not storage:
             return jsonify({'error': 'Storage manager not available'}), 500
         
-        # Get all entities from storage
-        entities = storage.get_all_entities()
+        # Get all entities from storage (reload from disk to get latest data)
+        entities = storage.get_all_entities(reload=True)
         
         # Convert entities to device format for frontend
         devices = []
@@ -723,4 +726,236 @@ def delete_managed_device(device_id):
     
     except Exception as e:
         logger.error(f"Error deleting managed device: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/devices/<device_id>/sync-area', methods=['POST'])
+def sync_device_area(device_id):
+    """Sync area from Home Assistant entity registry"""
+    import asyncio
+    
+    try:
+        device_manager = get_device_manager()
+        storage_manager = get_storage_manager()
+        area_manager = current_app.config.get('area_manager')
+        
+        if not area_manager:
+            return jsonify({'error': 'Area manager not available'}), 500
+        
+        # Try to find device in device_manager first (SmartIR devices)
+        device_data = None
+        use_device_manager = False
+        
+        try:
+            if device_manager:
+                device_data = device_manager.get_device(device_id)
+                if device_data:
+                    use_device_manager = True
+                    logger.info(f"Found device '{device_id}' in device_manager")
+        except Exception as e:
+            logger.warning(f"Error checking device_manager: {e}")
+        
+        # If not found, try storage_manager (Broadlink devices)
+        try:
+            if not device_data and storage_manager:
+                device_data = storage_manager.get_entity(device_id)
+                if device_data:
+                    use_device_manager = False
+                    logger.info(f"Found device '{device_id}' in storage_manager")
+        except Exception as e:
+            logger.warning(f"Error checking storage_manager: {e}")
+        
+        if not device_data:
+            logger.warning(f"Device '{device_id}' not found in either manager")
+            return jsonify({'error': 'Device not found'}), 404
+        
+        # Build full entity_id
+        entity_type = device_data.get('entity_type', 'switch')
+        full_entity_id = f"{entity_type}.{device_id}"
+        
+        logger.info(f"Syncing area for entity: {full_entity_id}")
+        
+        # Get entity details from HA (includes area_id)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            entity_details = loop.run_until_complete(
+                area_manager.get_entity_details(full_entity_id)
+            )
+            
+            if not entity_details:
+                loop.close()
+                return jsonify({
+                    'success': False,
+                    'message': 'Entity not found in HA registry. Make sure entities are generated and HA has been restarted.',
+                    'area': None
+                }), 404
+            
+            area_id = entity_details.get('area_id')
+            
+            if area_id:
+                # Get area name from area_id
+                areas = loop.run_until_complete(
+                    area_manager._send_ws_command("config/area_registry/list")
+                )
+                
+                area_name = next((a['name'] for a in areas if a['area_id'] == area_id), None)
+                
+                # Update device data using appropriate manager
+                device_data['area'] = area_name
+                device_data['area_id'] = area_id
+                
+                if use_device_manager:
+                    # Only pass the fields we want to update
+                    updates = {'area': area_name, 'area_id': area_id}
+                    result = device_manager.update_device(device_id, updates)
+                    logger.info(f"Device manager update result: {result}")
+                else:
+                    storage_manager.save_entity(device_id, device_data)
+                
+                logger.info(f"Synced area '{area_name}' for device '{device_id}' (using {'device_manager' if use_device_manager else 'storage_manager'})")
+                
+                return jsonify({
+                    'success': True,
+                    'area': area_name,
+                    'area_id': area_id,
+                    'message': f'Area synced: {area_name}'
+                })
+            else:
+                # No area assigned in HA
+                device_data['area'] = ''
+                device_data['area_id'] = None
+                
+                if use_device_manager:
+                    # Only pass the fields we want to update
+                    updates = {'area': '', 'area_id': None}
+                    result = device_manager.update_device(device_id, updates)
+                    logger.info(f"Device manager update result: {result}")
+                else:
+                    storage_manager.save_entity(device_id, device_data)
+                
+                logger.info(f"No area assigned for device '{device_id}' in HA (using {'device_manager' if use_device_manager else 'storage_manager'})")
+                
+                return jsonify({
+                    'success': True,
+                    'area': None,
+                    'message': 'No area assigned in Home Assistant'
+                })
+        finally:
+            loop.close()
+    
+    except Exception as e:
+        logger.error(f"Error syncing area for device {device_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/diagnostics', methods=['GET'])
+def get_diagnostics():
+    """Get diagnostic information as JSON"""
+    try:
+        from diagnostics import DiagnosticsCollector
+        
+        device_manager = get_device_manager()
+        storage_manager = get_storage_manager()
+        storage_path = current_app.config.get('storage_path', '/config/broadlink_manager')
+        
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        data = collector.collect_all()
+        sanitized = collector.sanitize_data(data)
+        
+        return jsonify({
+            'success': True,
+            'diagnostics': sanitized
+        })
+    
+    except Exception as e:
+        logger.error(f"Error collecting diagnostics: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/diagnostics/markdown', methods=['GET'])
+def get_diagnostics_markdown():
+    """Get diagnostic information as markdown"""
+    try:
+        from diagnostics import DiagnosticsCollector
+        
+        device_manager = get_device_manager()
+        storage_manager = get_storage_manager()
+        storage_path = current_app.config.get('storage_path', '/config/broadlink_manager')
+        
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        data = collector.collect_all()
+        sanitized = collector.sanitize_data(data)
+        markdown = collector.generate_markdown_report(sanitized)
+        
+        return jsonify({
+            'success': True,
+            'markdown': markdown
+        })
+    
+    except Exception as e:
+        logger.error(f"Error generating markdown diagnostics: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/diagnostics/download', methods=['GET'])
+def download_diagnostics():
+    """Download diagnostic bundle as ZIP file"""
+    try:
+        from diagnostics import DiagnosticsCollector
+        from datetime import datetime
+        
+        device_manager = get_device_manager()
+        storage_manager = get_storage_manager()
+        storage_path = current_app.config.get('storage_path', '/config/broadlink_manager')
+        
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        data = collector.collect_all()
+        sanitized = collector.sanitize_data(data)
+        markdown = collector.generate_markdown_report(sanitized)
+        
+        # Create ZIP file in memory
+        memory_file = io.BytesIO()
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            # Add diagnostics JSON
+            zf.writestr('diagnostics.json', json.dumps(sanitized, indent=2))
+            
+            # Add markdown report
+            zf.writestr('README.md', markdown)
+            
+            # Add sanitized device data if available
+            if device_manager:
+                devices = device_manager.get_all_devices()
+                # Remove sensitive command data
+                sanitized_devices = {}
+                for device_id, device_data in devices.items():
+                    sanitized_device = device_data.copy()
+                    if 'commands' in sanitized_device:
+                        sanitized_device['commands'] = {
+                            cmd_name: {"type": cmd_data.get("command_type", "unknown")}
+                            for cmd_name, cmd_data in sanitized_device['commands'].items()
+                        }
+                    sanitized_devices[device_id] = sanitized_device
+                
+                zf.writestr('devices_sanitized.json', json.dumps(sanitized_devices, indent=2))
+            
+            # Add command structure (names only, no codes)
+            if sanitized.get('command_structure'):
+                zf.writestr('command_structure.json', json.dumps(sanitized['command_structure'], indent=2))
+        
+        memory_file.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'broadlink_manager_diagnostics_{timestamp}.zip'
+        
+        return send_file(
+            memory_file,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        logger.error(f"Error creating diagnostic bundle: {e}")
         return jsonify({'error': str(e)}), 500

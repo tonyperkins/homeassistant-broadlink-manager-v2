@@ -1,0 +1,69 @@
+name: Update SmartIR Device Index
+
+on:
+  # Run when fork is updated (manual or scheduled sync)
+  push:
+    branches:
+      - master
+    paths:
+      - 'codes/**'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+  
+  # Run monthly to catch any updates
+  schedule:
+    - cron: '0 0 1 * *'  # First day of each month
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Generate device index
+        run: python scripts/generate_device_index.py
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet smartir_device_index.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push if changed
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add smartir_device_index.json
+          git commit -m "chore: update SmartIR device index [skip ci]"
+          git push
+      
+      - name: Create summary
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "✅ SmartIR device index has been updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The index file has been regenerated with the latest device codes." >> $GITHUB_STEP_SUMMARY
+      
+      - name: No changes summary
+        if: steps.check_changes.outputs.changed == 'false'
+        run: |
+          echo "ℹ️ No changes to device index" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The device index is already up to date." >> $GITHUB_STEP_SUMMARY

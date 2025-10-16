@@ -84,7 +84,7 @@
           >
             <option value="">-- Select Device Type --</option>
             <option value="broadlink">📡 Broadlink Device (Learn IR Codes)</option>
-            <option value="smartir" :disabled="!smartirInstalled || !isSmartIRSupported">
+            <option v-if="smartirEnabled" value="smartir" :disabled="!smartirInstalled || !isSmartIRSupported">
               🌐 SmartIR Device {{ getSmartIROptionLabel }}
             </option>
           </select>
@@ -94,15 +94,38 @@
           <small v-else>Choose how to configure this device</small>
         </div>
 
-        <div class="form-group">
+        <!-- Area field removed from creation - will be set in HA after entity generation -->
+        <div v-if="isEdit" class="form-group">
           <label for="device-area">Area</label>
-          <select id="device-area" v-model="formData.area">
-            <option value="">-- No Area --</option>
-            <option v-for="area in areas" :key="area" :value="area">
-              {{ area }}
-            </option>
-          </select>
-          <small>Optional: Assign to a Home Assistant area</small>
+          <div class="area-display-readonly">
+            <input 
+              id="device-area" 
+              :value="formData.area || 'Not assigned'" 
+              type="text" 
+              readonly
+              class="readonly-input"
+            />
+            <button 
+              type="button"
+              @click="syncArea" 
+              :disabled="syncingArea"
+              class="sync-area-btn"
+              title="Sync area from Home Assistant"
+            >
+              <i :class="syncingArea ? 'mdi mdi-loading mdi-spin' : 'mdi mdi-refresh'"></i>
+            </button>
+          </div>
+          <small>
+            <i class="mdi mdi-information-outline"></i>
+            Set area in Home Assistant, then click sync. 
+            <a :href="getEntityUrl()" target="_blank" class="inline-link">Open in HA →</a>
+          </small>
+        </div>
+        <div v-else class="form-group">
+          <div class="info-notice">
+            <i class="mdi mdi-information-outline"></i>
+            <span><strong>Area Assignment:</strong> After generating entities and restarting Home Assistant, you can assign areas in HA and sync them here.</span>
+          </div>
         </div>
 
         <div class="form-group">
@@ -192,8 +215,9 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'cancel'])
 
-// Inject SmartIR status
+// Inject SmartIR status and enabled state
 const smartirStatus = inject('smartirStatus')
+const smartirEnabled = inject('smartirEnabled')
 const smartirInstalled = computed(() => {
   // Check if simulating not-installed
   const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
@@ -417,6 +441,46 @@ watch(() => formData.value.icon, (newIcon, oldIcon) => {
   }
 })
 
+const syncingArea = ref(false)
+
+const syncArea = async () => {
+  if (!props.device?.id) return
+  
+  syncingArea.value = true
+  try {
+    const response = await api.post(`/api/devices/${props.device.id}/sync-area`)
+    
+    if (response.data.success) {
+      formData.value.area = response.data.area || ''
+      
+      if (response.data.area) {
+        // Success notification
+        console.log(`Area synced: ${response.data.area}`)
+      } else {
+        // Info notification
+        console.log('No area assigned in Home Assistant')
+      }
+    } else {
+      // Warning notification
+      console.warn(response.data.message || 'Entity not found in HA')
+    }
+  } catch (error) {
+    console.error('Failed to sync area:', error)
+  } finally {
+    syncingArea.value = false
+  }
+}
+
+const getEntityUrl = () => {
+  if (!props.device?.id || !formData.value.entity_type) return '#'
+  
+  const entityType = formData.value.entity_type
+  const entityId = `${entityType}.${props.device.id}`
+  
+  // Use relative path that works in both direct and ingress modes
+  return `/config/entities/entity/${entityId}`
+}
+
 const handleSubmit = async () => {
   // Validate SmartIR fields if SmartIR device
   if (formData.value.device_type === 'smartir') {
@@ -618,6 +682,83 @@ const handleSmartIRChange = (data) => {
 }
 
 .smartir-link:hover {
+  text-decoration: underline;
+}
+
+/* Area Display (Read-only) */
+.area-display-readonly {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.readonly-input {
+  flex: 1;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-divider-color, #e0e0e0);
+  color: var(--ha-primary-text-color);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sync-area-btn {
+  padding: 8px 12px;
+  background: var(--ha-primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  min-width: 40px;
+}
+
+.sync-area-btn:hover:not(:disabled) {
+  background: var(--ha-primary-color-dark, #0288d1);
+  transform: scale(1.05);
+}
+
+.sync-area-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sync-area-btn i {
+  font-size: 18px;
+}
+
+.info-notice {
+  background: rgba(3, 169, 244, 0.1);
+  border: 1px solid rgba(3, 169, 244, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ha-primary-text-color);
+}
+
+.info-notice i {
+  color: #03a9f4;
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-notice span {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.inline-link {
+  color: var(--ha-primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.inline-link:hover {
   text-decoration: underline;
 }
 

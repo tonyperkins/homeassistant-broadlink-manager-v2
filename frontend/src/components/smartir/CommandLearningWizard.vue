@@ -2,6 +2,33 @@
   <div class="command-wizard">
     <h3>Learn IR Commands</h3>
     
+    <!-- Device Selection -->
+    <div class="device-selection-section">
+      <div class="form-group">
+        <label>Broadlink Device *</label>
+        <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
+          <option value="">Select Broadlink device...</option>
+          <option 
+            v-for="device in broadlinkDevices" 
+            :key="device.entity_id"
+            :value="device.entity_id"
+          >
+            {{ device.name }} ({{ device.area_name }})
+          </option>
+        </select>
+        <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
+      </div>
+
+      <div class="form-group">
+        <label>Command Type *</label>
+        <select v-model="localCommandType" @change="updateCommandType">
+          <option value="ir">📡 Infrared (IR) - Most common for AC, TV, etc.</option>
+          <option value="rf">📻 Radio Frequency (RF) - For RF remotes</option>
+        </select>
+        <small>Select the type of commands your device uses</small>
+      </div>
+    </div>
+    
     <!-- Edit Mode Banner -->
     <div v-if="learnedCount > 0 && !hasLearnedAny" class="edit-mode-banner">
       <i class="mdi mdi-information-outline"></i>
@@ -174,7 +201,7 @@ const props = defineProps({
   },
   broadlinkDevice: {
     type: String,
-    required: true
+    default: ''
   },
   manufacturer: {
     type: String,
@@ -190,10 +217,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'update:broadlinkDevice', 'update:commandType'])
 
 const commands = ref({ ...props.modelValue })
 const learningCommand = ref(null)
+const broadlinkDevices = ref([])
+const localBroadlinkDevice = ref(props.broadlinkDevice)
+const localCommandType = ref(props.commandType)
 const sequentialLearning = ref(false)
 const sequentialQueue = ref([])
 const hasLearnedAny = ref(false) // Track if user has learned any commands in this session
@@ -351,10 +381,10 @@ async function learnCommand(cmd) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        entity_id: props.broadlinkDevice,
+        entity_id: localBroadlinkDevice.value,
         device: deviceName,
         command: cmd.key,
-        command_type: props.commandType // Use the selected command type (ir or rf)
+        command_type: localCommandType.value // Use the selected command type (ir or rf)
       })
     })
     
@@ -490,6 +520,44 @@ async function loadExistingCommands() {
     // Don't show error to user, just log it
   }
 }
+
+function updateBroadlinkDevice() {
+  emit('update:broadlinkDevice', localBroadlinkDevice.value)
+}
+
+function updateCommandType() {
+  emit('update:commandType', localCommandType.value)
+}
+
+async function loadBroadlinkDevices() {
+  try {
+    const response = await fetch('/api/remote/devices')
+    if (response.ok) {
+      const data = await response.json()
+      const devices = data.devices || []
+      broadlinkDevices.value = devices
+    }
+  } catch (error) {
+    console.error('Error loading remote devices:', error)
+    broadlinkDevices.value = []
+  }
+}
+
+// Watch for prop changes and update local refs
+watch(() => props.broadlinkDevice, (newVal) => {
+  localBroadlinkDevice.value = newVal
+})
+
+watch(() => props.commandType, (newVal) => {
+  localCommandType.value = newVal
+})
+
+// Load devices on mount
+onMounted(async () => {
+  await loadBroadlinkDevices()
+  // Also try to load existing commands
+  await loadExistingCommands()
+})
 </script>
 
 <style scoped>
@@ -498,6 +566,57 @@ async function loadExistingCommands() {
   font-size: 20px;
   font-weight: 600;
   color: var(--primary-text-color);
+}
+
+.device-selection-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.05);
+  border-radius: 8px;
+  border: 1px solid var(--ha-border-color);
+}
+
+.device-selection-section .form-group {
+  margin: 0;
+}
+
+.device-selection-section label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ha-text-primary-color);
+}
+
+.device-selection-section select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 6px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.device-selection-section select:hover {
+  border-color: var(--ha-primary-color);
+}
+
+.device-selection-section select:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
+}
+
+.device-selection-section small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ha-text-secondary-color);
 }
 
 .edit-mode-banner {

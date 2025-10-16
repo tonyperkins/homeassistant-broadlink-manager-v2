@@ -187,6 +187,63 @@ class AreaManager:
             logger.debug(f"Entity {entity_id} not found: {e}")
             return False
 
+    async def get_entity_area(self, entity_id: str) -> Optional[str]:
+        """
+        Get the area assigned to an entity (if any)
+
+        Args:
+            entity_id: Full entity ID to check
+
+        Returns:
+            Area ID if entity is assigned to an area, None otherwise
+        """
+        try:
+            # Get entity details from registry
+            result = await self._send_ws_command(
+                "config/entity_registry/get", entity_id=entity_id
+            )
+
+            if result:
+                area_id = result.get("area_id")
+                if area_id:
+                    logger.info(f"Entity {entity_id} is assigned to area: {area_id}")
+                else:
+                    logger.info(f"Entity {entity_id} has no area assignment")
+                return area_id
+            else:
+                logger.warning(f"Entity {entity_id} not found in registry")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error getting area for entity {entity_id}: {e}")
+            return None
+
+    async def get_entity_details(self, entity_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get full entity details from registry including area assignment
+
+        Args:
+            entity_id: Full entity ID to check
+
+        Returns:
+            Entity details dict with area_id, name, etc., or None if not found
+        """
+        try:
+            result = await self._send_ws_command(
+                "config/entity_registry/get", entity_id=entity_id
+            )
+
+            if result:
+                logger.info(f"Retrieved details for entity {entity_id}")
+                return result
+            else:
+                logger.warning(f"Entity {entity_id} not found in registry")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error getting entity details for {entity_id}: {e}")
+            return None
+
     async def assign_entities_to_areas(
         self, entities_metadata: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Any]:

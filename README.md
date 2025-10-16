@@ -105,13 +105,17 @@ Tired of juggling multiple remotes? Want to control your TV, AC, fans, and legac
 - **Command Browser**: View all learned commands organized by device
 - **Import/Export**: Backup and restore your command library
 
-### 🌟 SmartIR Integration
+### 🌟 SmartIR Integration (Optional)
+
+Broadlink Manager integrates with [SmartIR](https://github.com/smartHomeHub/SmartIR), a Home Assistant integration for managing climate devices, media players, fans, and lights using IR/RF controllers. SmartIR is a separate project developed by Vassilis Panos and contributors.
+
 - **1000+ Device Profiles**: Access pre-configured codes for popular devices
 - **Profile Builder**: Create custom climate profiles with step-by-step wizard
 - **Code Browser**: Preview and select from extensive device database
 - **Command Learning**: Fill in missing commands for existing profiles
 - **Climate Control**: Full support for AC units with temperature, modes, and fan speeds
 - **Media Players**: Control TVs, receivers, and media devices
+- **Optional Feature**: SmartIR integration can be enabled/disabled in settings
 
 ### 🏠 Home Assistant Integration
 - **Entity Auto-Generation**: Create lights, fans, switches, and climate entities automatically
@@ -427,6 +431,20 @@ Thank you for being involved! :heart_eyes:
 The original setup of this repository is by [Tony Perkins](https://github.com/tonyperkins).
 
 For a full list of all authors and contributors, check [the contributor's page][contributors].
+
+## Third-Party Integrations
+
+### SmartIR
+
+This project integrates with [SmartIR](https://github.com/smartHomeHub/SmartIR), a Home Assistant custom integration for controlling IR/RF devices. SmartIR is an independent project and is not included with Broadlink Manager.
+
+**SmartIR License**: MIT License  
+**Copyright**: (c) 2019 Vassilis Panos  
+**Repository**: https://github.com/smartHomeHub/SmartIR
+
+Broadlink Manager provides optional integration features to work alongside SmartIR, including profile creation, command learning, and YAML configuration generation. SmartIR must be installed separately via HACS or manually.
+
+**Device Code Database**: Broadlink Manager uses a [stable fork of the SmartIR device codes](https://github.com/tonyperkins/smartir-device-database) to ensure reliability and consistent availability. This fork is periodically updated from the original SmartIR repository.
 
 ## License
 

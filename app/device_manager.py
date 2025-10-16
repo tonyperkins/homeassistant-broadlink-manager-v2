@@ -9,8 +9,12 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+import threading
 
 logger = logging.getLogger(__name__)
+
+# Global lock for file writes (shared across all DeviceManager instances)
+_global_write_lock = threading.Lock()
 
 
 class DeviceManager:
@@ -26,10 +30,22 @@ class DeviceManager:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.devices_file = self.storage_path / "devices.json"
+        self.backup_file = self.storage_path / "devices.json.backup"
 
         # Ensure devices file exists
         if not self.devices_file.exists():
-            self._save_devices({})
+            # Check if backup exists
+            if self.backup_file.exists():
+                logger.warning("devices.json missing but backup found - restoring from backup")
+                try:
+                    import shutil
+                    shutil.copy2(self.backup_file, self.devices_file)
+                    logger.info("Successfully restored devices.json from backup")
+                except Exception as e:
+                    logger.error(f"Failed to restore from backup: {e}")
+                    self._save_devices({})
+            else:
+                self._save_devices({})
 
     def _load_devices(self) -> Dict[str, Any]:
         """Load devices from storage"""
@@ -42,7 +58,7 @@ class DeviceManager:
 
     def _save_devices(self, devices: Dict[str, Any]) -> bool:
         """
-        Save devices to storage
+        Save devices to storage with automatic backup and thread-safe locking
 
         Args:
             devices: Device data to save
@@ -50,13 +66,67 @@ class DeviceManager:
         Returns:
             True if successful, False otherwise
         """
-        try:
-            with open(self.devices_file, "w") as f:
-                json.dump(devices, f, indent=2)
-            return True
-        except Exception as e:
-            logger.error(f"Error saving devices: {e}")
-            return False
+        import shutil
+        
+        # Use global lock to prevent concurrent writes across all instances
+        with _global_write_lock:
+            try:
+                # Create backup of existing file before modifying
+                if self.devices_file.exists():
+                    try:
+                        shutil.copy2(self.devices_file, self.backup_file)
+                        logger.debug("Created backup of devices.json")
+                    except Exception as e:
+                        logger.warning(f"Failed to create backup: {e}")
+                        # Continue anyway - backup failure shouldn't stop the save
+                
+                # Write to temporary file first, then rename (atomic operation)
+                temp_file = self.devices_file.with_suffix('.tmp')
+                
+                # Write and explicitly close before rename
+                with open(temp_file, "w") as f:
+                    json.dump(devices, f, indent=2)
+                    f.flush()  # Ensure data is written
+                # File is now closed
+                
+                # Small delay to ensure Windows releases the file handle
+                import time
+                time.sleep(0.01)
+                
+                # Atomic rename with retry for Windows file locking issues
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        temp_file.replace(self.devices_file)
+                        break
+                    except PermissionError as pe:
+                        if attempt < max_retries - 1:
+                            logger.warning(f"File locked, retrying... (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                        else:
+                            raise
+                logger.debug(f"Successfully saved devices.json")
+                return True
+            except Exception as e:
+                logger.error(f"Error saving devices: {e}")
+                # Clean up temp file if it exists
+                temp_file = self.devices_file.with_suffix('.tmp')
+                if temp_file.exists():
+                    try:
+                        temp_file.unlink()
+                    except:
+                        pass
+                
+                # If save failed and we have a backup, restore it
+                if self.backup_file.exists() and not self.devices_file.exists():
+                    logger.warning("Save failed - restoring from backup")
+                    try:
+                        shutil.copy2(self.backup_file, self.devices_file)
+                        logger.info("Restored devices.json from backup after failed save")
+                    except Exception as restore_error:
+                        logger.error(f"Failed to restore from backup: {restore_error}")
+                
+                return False
 
     def create_device(self, device_id: str, device_data: Dict[str, Any]) -> bool:
         """

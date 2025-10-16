@@ -172,9 +172,16 @@
                   {{ formatPlatformName(profile.platform) }}
                 </span>
                 <span class="code-badge">Code: {{ profile.code }}</span>
-                <span v-if="profile.commandCount" class="command-count">
+                <span v-if="profile.controllerBrand" class="controller-badge">
                   <i class="mdi mdi-remote"></i>
+                  {{ profile.controllerBrand }}
+                </span>
+                <span v-if="profile.commandCount" class="command-count" :class="{ 'has-learned': profile.learnedCount > 0 }">
+                  <i class="mdi mdi-code-braces"></i>
                   {{ profile.commandCount }} command{{ profile.commandCount !== 1 ? 's' : '' }}
+                  <span v-if="profile.learnedCount > 0" class="learned-indicator">
+                    ({{ profile.learnedCount }} learned)
+                  </span>
                 </span>
               </div>
             </div>
@@ -228,6 +235,10 @@
           <i class="mdi mdi-download"></i>
           Install SmartIR
         </button>
+        <button @click="openSmartIRGitHub" class="btn-secondary">
+          <i class="mdi mdi-github"></i>
+          View on GitHub
+        </button>
         <button @click="viewDocumentation" class="btn-secondary">
           <i class="mdi mdi-help-circle"></i>
           Learn More
@@ -260,6 +271,7 @@ const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'
 
 // Inject SmartIR status from App.vue
 const smartirStatus = inject('smartirStatus')
+const smartirEnabled = inject('smartirEnabled')
 const refreshSmartIR = inject('refreshSmartIR')
 
 const loading = ref(false)
@@ -413,6 +425,10 @@ function viewDocumentation() {
   window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
 }
 
+function openSmartIRGitHub() {
+  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
+}
+
 async function loadAllProfiles() {
   loadingAllProfiles.value = true
   const allProfilesData = []
@@ -549,6 +565,12 @@ onMounted(async () => {
   if (status.value?.installed) {
     await loadAllProfiles()
   }
+})
+
+// Expose methods for parent components
+defineExpose({
+  loadAllProfiles,
+  refreshStatus
 })
 </script>
 
@@ -1002,6 +1024,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   transition: all 0.2s;
+  min-height: 140px;
 }
 
 .profile-card:hover {
@@ -1034,10 +1057,13 @@ onMounted(async () => {
 .profile-details {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .profile-details h4 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--ha-text-primary-color);
@@ -1049,12 +1075,13 @@ onMounted(async () => {
 .profile-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .platform-badge,
 .code-badge,
+.controller-badge,
 .command-count {
   display: inline-flex;
   align-items: center;
@@ -1079,13 +1106,32 @@ onMounted(async () => {
   color: var(--ha-text-secondary-color);
 }
 
+.controller-badge {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.controller-badge i {
+  font-size: 14px;
+}
+
 .command-count {
   background: rgba(76, 175, 80, 0.1);
   color: #4caf50;
 }
 
+.command-count.has-learned {
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+
 .command-count i {
   font-size: 14px;
+}
+
+.learned-indicator {
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 .profile-card-actions {

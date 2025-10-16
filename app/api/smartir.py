@@ -14,6 +14,63 @@ logger = logging.getLogger(__name__)
 smartir_bp = Blueprint("smartir", __name__, url_prefix="/api/smartir")
 
 
+def _count_commands(commands_obj):
+    """
+    Recursively count all command codes in a SmartIR commands structure.
+    
+    SmartIR commands can be:
+    - Flat: {"power": "JgBQAAA...", "volumeUp": "JgBQAAA..."}
+    - Nested (climate): {"cool": {"16": {"auto": "JgBQAAA..."}}}
+    
+    Args:
+        commands_obj: The commands object from SmartIR profile
+        
+    Returns:
+        int: Total number of command codes
+    """
+    if not isinstance(commands_obj, dict):
+        return 0
+    
+    count = 0
+    for value in commands_obj.values():
+        if isinstance(value, str):
+            # This is an actual command code (base64 string)
+            count += 1
+        elif isinstance(value, dict):
+            # This is a nested structure, recurse
+            count += _count_commands(value)
+    
+    return count
+
+
+def _extract_command_names(commands_obj, prefix=''):
+    """
+    Extract all command names from a SmartIR commands structure.
+    
+    Args:
+        commands_obj: The commands object from SmartIR profile
+        prefix: Prefix for nested command names
+        
+    Returns:
+        list: List of command names
+    """
+    if not isinstance(commands_obj, dict):
+        return []
+    
+    names = []
+    for key, value in commands_obj.items():
+        if isinstance(value, str):
+            # This is an actual command - add the full path as name
+            name = f"{prefix}{key}" if prefix else key
+            names.append(name)
+        elif isinstance(value, dict):
+            # Nested structure - recurse with prefix
+            new_prefix = f"{prefix}{key}_" if prefix else f"{key}_"
+            names.extend(_extract_command_names(value, new_prefix))
+    
+    return names
+
+
 def init_smartir_routes(smartir_detector, smartir_code_service=None):
     """Initialize SmartIR routes with detector instance and code service"""
 
@@ -112,6 +169,25 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
         except Exception as e:
             logger.error(f"Error getting install instructions: {e}")
             return jsonify({"error": str(e)}), 500
+    
+    @smartir_bp.route("/refresh-index", methods=["POST"])
+    def refresh_index():
+        """Refresh the SmartIR device index from GitHub"""
+        try:
+            if smartir_code_service:
+                result = smartir_code_service.refresh_device_index()
+                return jsonify(result), 200 if result.get("success") else 500
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "SmartIR code service not available"
+                }), 503
+        except Exception as e:
+            logger.error(f"Error refreshing device index: {e}")
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 500
 
     @smartir_bp.route("/profiles", methods=["POST"])
     def save_profile():
@@ -245,6 +321,33 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     "profiles": []
                 }), 200
             
+            # Load YAML config to get controller data
+            from flask import current_app
+            import yaml
+            
+            config_path = current_app.config.get('config_path', '/config')
+            config_path = Path(config_path)
+            platform_file = config_path / "smartir" / f"{platform}.yaml"
+            
+            # Build a map of code -> controller_data
+            controller_map = {}
+            if platform_file.exists():
+                try:
+                    with open(platform_file, 'r', encoding='utf-8') as f:
+                        yaml_config = yaml.safe_load(f) or []
+                    
+                    for device in yaml_config:
+                        device_code = str(device.get('device_code', ''))
+                        controller_data = device.get('controller_data', '')
+                        if device_code and controller_data:
+                            controller_map[device_code] = controller_data
+                except Exception as e:
+                    logger.warning(f"Could not read {platform_file}: {e}")
+            
+            # Get Broadlink storage path to check for learned commands
+            config_path = current_app.config.get('config_path', '/config')
+            storage_path = Path(config_path) / '.storage'
+            
             # Read all JSON files in the directory
             profiles = []
             for file_path in codes_dir.glob("*.json"):
@@ -252,11 +355,72 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     with open(file_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     
+                    code = file_path.stem
+                    controller = controller_map.get(code, None)
+                    
+                    # Count commands in the profile
+                    command_count = _count_commands(data.get("commands", {}))
+                    
+                    # Count learned commands if controller is set
+                    learned_count = 0
+                    if controller and storage_path.exists():
+                        try:
+                            # Extract command names from SmartIR profile
+                            profile_commands = set(_extract_command_names(data.get("commands", {})))
+                            
+                            # Generate expected device name from manufacturer and model
+                            import re
+                            manufacturer = re.sub(r'[^a-z0-9]+', '_', data.get("manufacturer", "").lower())
+                            model = re.sub(r'[^a-z0-9]+', '_', data.get("supportedModels", [""])[0].lower()) if data.get("supportedModels") else ""
+                            expected_device_name = f"{manufacturer}_{model}" if manufacturer and model else None
+                            
+                            logger.debug(f"Looking for learned commands in device: {expected_device_name}")
+                            
+                            # Find Broadlink storage files
+                            for storage_file in storage_path.glob("broadlink_remote_*_codes"):
+                                try:
+                                    with open(storage_file, 'r', encoding='utf-8') as sf:
+                                        storage_data = json.load(sf)
+                                    
+                                    # Only check the specific device for this profile
+                                    if expected_device_name:
+                                        device_data = storage_data.get("data", {}).get(expected_device_name, {})
+                                        if device_data:
+                                            learned_commands = set(device_data.keys())
+                                            # Count matching commands (case-insensitive)
+                                            profile_lower = {cmd.lower() for cmd in profile_commands}
+                                            learned_lower = {cmd.lower() for cmd in learned_commands}
+                                            matches = profile_lower.intersection(learned_lower)
+                                            learned_count = len(matches)
+                                            logger.debug(f"Found {learned_count} learned commands for {expected_device_name}")
+                                            break  # Found the device, stop searching
+                                except Exception as e:
+                                    logger.debug(f"Error reading storage file {storage_file}: {e}")
+                        except Exception as e:
+                            logger.debug(f"Error checking learned commands for {code}: {e}")
+                    
+                    # Extract controller brand from entity ID (e.g., "remote.master_bedroom_rm4_pro" -> "Broadlink")
+                    controller_brand = "Not Set"
+                    if controller:
+                        # Default to "Broadlink" if the entity contains common Broadlink patterns
+                        if any(x in controller.lower() for x in ['rm4', 'rm3', 'rm_pro', 'broadlink']):
+                            controller_brand = "Broadlink"
+                        elif 'xiaomi' in controller.lower():
+                            controller_brand = "Xiaomi"
+                        elif 'harmony' in controller.lower():
+                            controller_brand = "Harmony Hub"
+                        else:
+                            controller_brand = "IR Remote"
+                    
                     profiles.append({
-                        "code": file_path.stem,
+                        "code": code,
                         "manufacturer": data.get("manufacturer", "Unknown"),
                         "model": data.get("supportedModels", ["Unknown"])[0] if data.get("supportedModels") else "Unknown",
-                        "file_name": file_path.name
+                        "file_name": file_path.name,
+                        "controller": controller,
+                        "controllerBrand": controller_brand,
+                        "commandCount": command_count,
+                        "learnedCount": learned_count
                     })
                 except Exception as e:
                     logger.warning(f"Could not read profile {file_path}: {e}")

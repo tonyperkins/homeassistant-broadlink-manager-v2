@@ -64,30 +64,6 @@
             />
             <small>Enter model number or "Multiple" if it works with many models</small>
           </div>
-
-          <div class="form-group">
-            <label>Broadlink Device *</label>
-            <select v-model="profile.broadlinkDevice">
-              <option value="">Select Broadlink device...</option>
-              <option 
-                v-for="device in broadlinkDevices" 
-                :key="device.entity_id"
-                :value="device.entity_id"
-              >
-                {{ device.name }} ({{ device.area_name }})
-              </option>
-            </select>
-            <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
-          </div>
-
-          <div class="form-group">
-            <label>Command Type *</label>
-            <select v-model="profile.commandType">
-              <option value="ir">📡 Infrared (IR) - Most common for AC, TV, etc.</option>
-              <option value="rf">📻 Radio Frequency (RF) - For RF remotes</option>
-            </select>
-            <small>Select the type of commands your device uses</small>
-          </div>
         </div>
 
         <!-- Step 2: Platform-Specific Configuration -->
@@ -238,10 +214,10 @@
             v-model="profile.commands"
             :platform="profile.platform"
             :config="profile.config"
-            :broadlinkDevice="profile.broadlinkDevice"
+            v-model:broadlinkDevice="profile.broadlinkDevice"
             :manufacturer="profile.manufacturer"
             :model="profile.model"
-            :commandType="profile.commandType"
+            v-model:commandType="profile.commandType"
           />
         </div>
 
@@ -692,9 +668,7 @@ const canProceed = computed(() => {
     case 0:
       return profile.value.platform && 
              profile.value.manufacturer && 
-             profile.value.model &&
-             profile.value.broadlinkDevice &&
-             profile.value.commandType
+             profile.value.model
     case 1:
       // Platform-specific validation
       if (profile.value.platform === 'climate') {
@@ -704,8 +678,10 @@ const canProceed = computed(() => {
       }
       return true
     case 2:
-      // At least some commands learned
-      return Object.keys(profile.value.commands).length > 0
+      // Require device selection and at least some commands learned
+      return profile.value.broadlinkDevice && 
+             profile.value.commandType &&
+             Object.keys(profile.value.commands).length > 0
     case 3:
       return true
     default:

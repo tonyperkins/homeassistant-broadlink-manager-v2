@@ -794,7 +794,7 @@ async function saveToSmartIR() {
   try {
     // Check if setup is needed
     if (!setupCompleted.value) {
-      const configCheck = await fetch('/api/smartir/config/check')
+      const configCheck = await fetch('api/smartir/config/check')
       if (configCheck.ok) {
         const configStatus = await configCheck.json()
         
@@ -827,7 +827,7 @@ async function saveToSmartIR() {
       console.log('📝 Edit mode: Using existing code', codeNumber)
     } else {
       // Get next available code for new profile
-      const codeResponse = await fetch(`/api/smartir/platforms/${profile.value.platform}/next-code`)
+      const codeResponse = await fetch(`api/smartir/platforms/${profile.value.platform}/next-code`)
       if (!codeResponse.ok) {
         throw new Error('Failed to get next code number')
       }
@@ -838,7 +838,7 @@ async function saveToSmartIR() {
     }
     
     // Save profile to SmartIR directory
-    const response = await fetch('/api/smartir/profiles', {
+    const response = await fetch('api/smartir/profiles', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -865,7 +865,7 @@ async function saveToSmartIR() {
       controller_data: profile.value.broadlinkDevice
     }
     
-    const configResponse = await fetch('/api/smartir/config/add-device', {
+    const configResponse = await fetch('api/smartir/config/add-device', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1013,13 +1013,13 @@ function generateYamlConfig(profile) {
 
 async function loadBroadlinkDevices() {
   try {
-    console.log('Fetching Broadlink devices from /api/broadlink/devices...')
-    const response = await fetch('/api/broadlink/devices')
+    console.log('Fetching remote devices from api/remote/devices...')
+    const response = await fetch('api/remote/devices')
     console.log('Response status:', response.status, response.ok)
     
     if (response.ok) {
       const data = await response.json()
-      console.log('Loaded Broadlink devices response:', data)
+      console.log('Loaded remote devices response:', data)
       
       // The API wraps the devices in a 'devices' property
       const devices = data.devices || []
@@ -1034,7 +1034,7 @@ async function loadBroadlinkDevices() {
       broadlinkDevices.value = []
     }
   } catch (error) {
-    console.error('Error loading Broadlink devices:', error)
+    console.error('Error loading remote devices:', error)
     broadlinkDevices.value = []
   }
 }

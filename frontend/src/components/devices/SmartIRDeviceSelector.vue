@@ -37,7 +37,8 @@
     <!-- Controller Device Selection -->
     <div class="form-group">
       <label for="controller-device">
-        Broadlink Controller *
+        <i class="mdi mdi-remote"></i>
+        Controller Device *
       </label>
       <select
         id="controller-device"
@@ -45,7 +46,7 @@
         required
         @change="handleControllerChange"
       >
-        <option value="">-- Select Broadlink Device --</option>
+        <option value="">-- Select Controller Device --</option>
         <option
           v-for="device in broadlinkDevices"
           :key="device.entity_id"
@@ -55,7 +56,7 @@
           <template v-if="device.area_name"> - {{ device.area_name }}</template>
         </option>
       </select>
-      <small>Which Broadlink device will send the IR codes</small>
+      <small>Which remote device will send the IR/RF commands</small>
       <div v-if="errors.controller" class="error-message">{{ errors.controller }}</div>
     </div>
 

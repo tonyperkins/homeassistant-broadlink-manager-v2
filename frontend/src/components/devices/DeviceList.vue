@@ -62,7 +62,7 @@
           <label>
             <i class="mdi mdi-access-point"></i>
             <select v-model="filters.broadlinkDevice">
-              <option value="">All Broadlink Devices</option>
+              <option value="">All Controller Devices</option>
               <option v-for="device in broadlinkDeviceOptions" :key="device.entity_id" :value="device.entity_id">
                 {{ device.friendly_name }}
               </option>
@@ -389,10 +389,11 @@ const clearFilters = () => {
 
 const loadBroadlinkDevices = async () => {
   try {
-    const response = await api.get('/api/broadlink/devices')
+    // Use new endpoint that returns all remote devices (Broadlink, Xiaomi, etc.)
+    const response = await api.get('/api/remote/devices')
     broadlinkDevices.value = response.data.devices || []
   } catch (error) {
-    console.error('Error loading Broadlink devices:', error)
+    console.error('Error loading remote devices:', error)
   }
 }
 

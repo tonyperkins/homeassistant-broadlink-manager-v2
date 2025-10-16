@@ -30,7 +30,7 @@ class SmartIRYAMLGenerator:
         self,
         device_id: str,
         device_data: Dict[str, Any],
-        broadlink_devices: List[Dict[str, Any]]
+        broadlink_devices: List[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Generate SmartIR device configuration
@@ -38,7 +38,7 @@ class SmartIRYAMLGenerator:
         Args:
             device_id: Device identifier
             device_data: Device metadata from device manager
-            broadlink_devices: List of available Broadlink devices
+            broadlink_devices: List of available Broadlink devices (deprecated, kept for compatibility)
             
         Returns:
             Dict with generation result
@@ -52,18 +52,17 @@ class SmartIRYAMLGenerator:
                     "error": f"Unsupported entity type for SmartIR: {entity_type}"
                 }
             
-            # Get controller IP from broadlink_devices
+            # Get controller entity ID - SmartIR supports any remote entity, not just Broadlink
             controller_entity = device_data.get("controller_device")
-            controller_ip = self._get_controller_ip(controller_entity, broadlink_devices)
             
-            if not controller_ip:
+            if not controller_entity:
                 return {
                     "success": False,
-                    "error": f"Could not find IP for controller: {controller_entity}"
+                    "error": "No controller_device specified. Please select a remote entity."
                 }
             
             # Build device configuration
-            config = self._build_device_config(device_id, device_data, controller_ip)
+            config = self._build_device_config(device_id, device_data, controller_entity)
             
             # Write to platform-specific file
             platform_file = self.smartir_dir / f"{entity_type}.yaml"
@@ -89,13 +88,18 @@ class SmartIRYAMLGenerator:
                 "error": str(e)
             }
     
+    # Deprecated: SmartIR uses entity IDs directly, not IP addresses
+    # Kept for backward compatibility but no longer used
     def _get_controller_ip(
         self,
         controller_entity: str,
         broadlink_devices: List[Dict[str, Any]]
     ) -> Optional[str]:
         """
-        Get IP address for a Broadlink controller entity
+        DEPRECATED: Get IP address for a Broadlink controller entity
+        
+        SmartIR now uses entity IDs directly in controller_data.
+        This method is kept for backward compatibility only.
         
         Args:
             controller_entity: Broadlink entity ID (e.g., "remote.master_bedroom_rm4_pro")
@@ -104,6 +108,7 @@ class SmartIRYAMLGenerator:
         Returns:
             IP address or None if not found
         """
+        logger.warning("_get_controller_ip is deprecated. SmartIR uses entity IDs directly.")
         for device in broadlink_devices:
             if device.get("entity_id") == controller_entity:
                 return device.get("host") or device.get("ip")
@@ -115,7 +120,7 @@ class SmartIRYAMLGenerator:
         self,
         device_id: str,
         device_data: Dict[str, Any],
-        controller_ip: str
+        controller_entity: str
     ) -> Dict[str, Any]:
         """
         Build SmartIR device configuration dict
@@ -123,7 +128,8 @@ class SmartIRYAMLGenerator:
         Args:
             device_id: Device identifier
             device_data: Device metadata
-            controller_ip: IP address of Broadlink controller
+            controller_entity: Remote entity ID (e.g., "remote.master_bedroom_rm4_pro")
+                             Can be any HA remote entity, not just Broadlink
             
         Returns:
             Device configuration dict
@@ -131,12 +137,14 @@ class SmartIRYAMLGenerator:
         entity_type = device_data.get("entity_type")
         
         # Base configuration
+        # SmartIR supports entity IDs directly in controller_data
+        # This works with Broadlink, Xiaomi, Harmony Hub, and any HA remote entity
         config = {
             "platform": "smartir",
             "name": device_data.get("name"),
             "unique_id": device_id,
             "device_code": int(device_data.get("device_code")),
-            "controller_data": controller_ip
+            "controller_data": controller_entity  # Entity ID, not IP address
         }
         
         # Add entity type-specific fields

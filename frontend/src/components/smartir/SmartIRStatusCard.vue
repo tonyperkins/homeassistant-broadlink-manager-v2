@@ -421,7 +421,7 @@ async function loadAllProfiles() {
     // Load profiles from all platforms
     for (const platform of allPlatforms) {
       try {
-        const response = await fetch(`/api/smartir/platforms/${platform}/profiles`)
+        const response = await fetch(`api/smartir/platforms/${platform}/profiles`)
         if (response.ok) {
           const data = await response.json()
           const platformProfiles = (data.profiles || []).map(p => ({
@@ -449,7 +449,7 @@ function editProfile(platform, profile) {
 async function downloadProfile(platform, profile) {
   try {
     // Fetch the full profile JSON
-    const response = await fetch(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
+    const response = await fetch(`api/smartir/platforms/${platform}/profiles/${profile.code}`)
     if (!response.ok) {
       throw new Error('Failed to fetch profile')
     }
@@ -496,7 +496,7 @@ async function handleDeleteConfirm() {
   confirmDelete.value.show = false
   
   try {
-    const response = await fetch(`/api/smartir/profiles/${profile.code}`, {
+    const response = await fetch(`api/smartir/profiles/${profile.code}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ platform })

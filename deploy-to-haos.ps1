@@ -51,6 +51,40 @@ if (-not (Test-Path $HA_ADDONS_PATH)) {
 
 Write-Success "Home Assistant addons path found: $HA_ADDONS_PATH"
 
+# Build frontend
+Write-Host ""
+Write-Info "Building frontend..."
+$frontendDir = Join-Path $SOURCE_DIR "frontend"
+if (Test-Path $frontendDir) {
+    Push-Location $frontendDir
+    try {
+        Write-Info "Running npm install..."
+        npm install --silent 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning-Custom "npm install had warnings, continuing..."
+        }
+        
+        Write-Info "Running npm run build..."
+        npm run build
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error-Custom "Frontend build failed!"
+            Pop-Location
+            exit 1
+        }
+        Write-Success "Frontend built successfully"
+    }
+    catch {
+        Write-Error-Custom "Error during frontend build: $_"
+        Pop-Location
+        exit 1
+    }
+    finally {
+        Pop-Location
+    }
+} else {
+    Write-Warning-Custom "Frontend directory not found, skipping build"
+}
+
 if (Test-Path $TARGET_DIR) {
     Write-Warning-Custom "Target directory already exists: $TARGET_DIR"
     $response = Read-Host "Do you want to overwrite it? (y/N)"

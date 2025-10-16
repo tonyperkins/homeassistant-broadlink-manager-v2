@@ -16,13 +16,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'app'))
 from device_manager import DeviceManager
 from area_manager import AreaManager
 from storage_manager import StorageManager
+from entity_generator import EntityGenerator
+
+# Import mocks
+from tests.mocks.ha_api_mock import MockHAAPI
+from tests.mocks.broadlink_storage_mock import MockBroadlinkStorage
+from tests.mocks.websocket_mock import MockWebSocketAPI
 
 
 @pytest.fixture
 def temp_storage_dir():
     """Create a temporary storage directory for tests"""
     temp_dir = tempfile.mkdtemp()
-    yield temp_dir
+    yield Path(temp_dir)
     shutil.rmtree(temp_dir)
 
 
@@ -41,7 +47,7 @@ def area_manager():
 @pytest.fixture
 def storage_manager(temp_storage_dir):
     """Create a StorageManager instance with temporary storage"""
-    return StorageManager(storage_path=temp_storage_dir)
+    return StorageManager(base_path=str(temp_storage_dir / 'broadlink_manager'))
 
 
 @pytest.fixture
@@ -162,3 +168,191 @@ def client(flask_app):
 def runner(flask_app):
     """Create a test CLI runner for the Flask app"""
     return flask_app.test_cli_runner()
+
+
+# ============================================================================
+# Mock Fixtures for HA Integration Testing
+# ============================================================================
+
+@pytest.fixture
+def mock_ha_api():
+    """Mock Home Assistant REST API"""
+    api = MockHAAPI()
+    
+    # Add default Broadlink devices
+    api.add_broadlink_device(
+        "remote.master_bedroom_rm4_pro",
+        "Master Bedroom RM4 Pro",
+        "master_bedroom",
+        "abc123"  # unique_id for storage file mapping
+    )
+    api.add_broadlink_device(
+        "remote.living_room_rm_mini",
+        "Living Room RM Mini",
+        "living_room",
+        "def456"
+    )
+    
+    # Add default areas
+    api.add_area("master_bedroom", "Master Bedroom")
+    api.add_area("living_room", "Living Room")
+    api.add_area("office", "Office")
+    
+    yield api
+    
+    # Cleanup
+    api.reset()
+
+
+@pytest.fixture
+def mock_broadlink_storage(temp_storage_dir):
+    """Mock Broadlink storage file system"""
+    storage = MockBroadlinkStorage(temp_storage_dir)
+    
+    # Add some default commands for testing
+    storage.create_storage_file(
+        "abc123",  # device unique_id
+        "samsung_tv",  # device name
+        {
+            "power": "JgBQAAABKZIUEhQSFDcUNxQ3FDcUEhQSFBIUNxQSFBIUEhQSFBIUNxQSFBIUEhQ3FDcUNxQ3FBIUNxQ3FDcUNxQ3FAANBQ==",
+            "volume_up": "JgBQAAABKZIUEhQSFDcUNxQ3FDcUEhQSFBIUNxQSFBIUEhQSFBIUNxQSFBIUEhQ3FDcUNxQ3FBIUNxQ3FDcUNxQ3FAANBQ==",
+            "volume_down": "JgBQAAABKZIUEhQSFDcUNxQ3FDcUEhQSFBIUNxQSFBIUEhQSFBIUNxQSFBIUEhQ3FDcUNxQ3FBIUNxQ3FDcUNxQ3LAANBQ=="
+        }
+    )
+    
+    yield storage
+    
+    # Cleanup
+    storage.clear()
+
+
+@pytest.fixture
+def mock_websocket_api():
+    """Mock WebSocket API for area management"""
+    ws = MockWebSocketAPI()
+    
+    # Add default areas
+    ws.add_area("master_bedroom", "Master Bedroom")
+    ws.add_area("living_room", "Living Room")
+    ws.add_area("office", "Office")
+    
+    yield ws
+    
+    # Cleanup
+    ws.reset()
+
+
+@pytest.fixture
+def entity_generator(storage_manager):
+    """Create an EntityGenerator instance"""
+    return EntityGenerator(
+        storage_manager=storage_manager,
+        broadlink_device_id="remote.test_rm4_pro"
+    )
+
+
+@pytest.fixture
+def area_manager_with_mock(mock_websocket_api):
+    """Create an AreaManager with mocked WebSocket"""
+    manager = AreaManager(
+        ha_url="http://localhost:8123",
+        ha_token="test_token"
+    )
+    
+    # Patch the _send_ws_command method
+    manager._send_ws_command = mock_websocket_api.send_command
+    
+    return manager
+
+
+@pytest.fixture
+def web_server_with_mocks(temp_storage_dir, mock_ha_api, mock_broadlink_storage, device_manager, storage_manager):
+    """Create a mock BroadlinkWebServer with mocked dependencies"""
+    # Create a minimal mock server object with async methods
+    # We don't call the real implementation to avoid event loop issues
+    server = Mock()
+    server.device_manager = device_manager
+    server.storage_manager = storage_manager
+    server.ha_url = 'http://localhost:8123'
+    server.ha_token = 'test_token'
+    server.storage_path = temp_storage_dir
+    
+    # Create simple async mock methods that use the mock HA API
+    async def _learn_command(data):
+        """Mock learn command that simulates the behavior"""
+        entity_id = data.get("entity_id")
+        device = data.get("device")
+        command = data.get("command")
+        command_type = data.get("command_type", "ir")
+        
+        # Call the mock HA API to simulate service call
+        await mock_ha_api.make_request(
+            "POST",
+            "services/remote/learn_command",
+            {
+                "target": {"entity_id": entity_id},
+                "data": {
+                    "device": device,
+                    "command": command,
+                    "command_type": command_type
+                }
+            }
+        )
+        
+        # Create a notification like the real implementation would
+        mock_ha_api.add_notification(
+            f"Broadlink: Command Learned",
+            f"Successfully learned command '{command}' for device '{device}'"
+        )
+        
+        return {"success": True, "message": f"Command {command} learned successfully"}
+    
+    async def _delete_command(data):
+        """Mock delete command that simulates the behavior"""
+        entity_id = data.get("entity_id")
+        device = data.get("device")
+        command = data.get("command")
+        
+        # Call the mock HA API to simulate service call
+        await mock_ha_api.make_request(
+            "POST",
+            "services/remote/delete_command",
+            {
+                "entity_id": entity_id,
+                "device": device,
+                "command": command
+            }
+        )
+        
+        return {"success": True, "message": f"Command {command} deleted successfully"}
+    
+    server._learn_command = _learn_command
+    server._delete_command = _delete_command
+    server._make_ha_request = mock_ha_api.make_request
+    
+    yield server
+
+
+@pytest.fixture
+def sample_entity_config():
+    """Sample entity configuration for testing"""
+    return {
+        "bedroom_light": {
+            "device": "bedroom_light",
+            "entity_type": "light",
+            "name": "Bedroom Light",
+            "area": "Master Bedroom",
+            "enabled": True,
+            "commands": {
+                "turn_on": "bedroom_light_on",
+                "turn_off": "bedroom_light_off"
+            },
+            "broadlink_entity": "remote.master_bedroom_rm4_pro"
+        }
+    }
+
+
+@pytest.fixture
+def sample_ir_code():
+    """Sample IR code for testing"""
+    return "JgBQAAABKZIUEhQSFDcUNxQ3FDcUEhQSFBIUNxQSFBIUEhQSFBIUNxQSFBIUEhQ3FDcUNxQ3FBIUNxQ3FDcUNxQ3FAANBQ=="

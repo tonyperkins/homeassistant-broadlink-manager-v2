@@ -3,7 +3,8 @@
  * Handles communication with SmartIR detection endpoints
  */
 
-// Use relative path (no leading slash) for Ingress compatibility
+// Use relative path for ingress compatibility
+// In add-on mode, absolute paths (/) go to HA root, not ingress path
 const API_BASE = 'api/smartir';
 
 export const smartirService = {

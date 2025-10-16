@@ -115,7 +115,7 @@ function handleCreateProfile() {
 async function handleEditProfile({ platform, profile }) {
   try {
     // Fetch the full profile data
-    const response = await fetch(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
+    const response = await fetch(`api/smartir/platforms/${platform}/profiles/${profile.code}`)
     if (!response.ok) {
       throw new Error('Failed to load profile')
     }
@@ -125,7 +125,7 @@ async function handleEditProfile({ platform, profile }) {
     // Try to find controller_data from YAML config
     let controllerData = ''
     try {
-      const configResponse = await fetch(`/api/smartir/config/get-device?platform=${platform}&code=${profile.code}`)
+      const configResponse = await fetch(`api/smartir/config/get-device?platform=${platform}&code=${profile.code}`)
       if (configResponse.ok) {
         const configData = await configResponse.json()
         controllerData = configData.controller_data || ''
@@ -253,12 +253,18 @@ function handleProfileSave(result) {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 16px;
   padding: 16px;
   background: var(--ha-surface-color);
   border-top: 1px solid var(--ha-border-color);
   z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .info-cards {
+    grid-template-columns: 1fr;
+  }
 }
 
 .info-card {

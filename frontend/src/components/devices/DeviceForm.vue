@@ -115,9 +115,9 @@
           <small>Optional: Material Design Icon name</small>
         </div>
 
-        <!-- Broadlink Device Selection (for Broadlink type) -->
+        <!-- Remote Device Selection (for Broadlink type) -->
         <div v-if="formData.device_type === 'broadlink'" class="form-group">
-          <label for="broadlink-entity">Broadlink Device *</label>
+          <label for="broadlink-entity">Remote Device *</label>
           <select 
             v-if="!isEdit || !hasCommands"
             id="broadlink-entity"
@@ -126,7 +126,7 @@
             required
             @change="clearValidation('broadlinkSelect')"
           >
-            <option value="">-- Select Broadlink Device --</option>
+            <option value="">-- Select Remote Device --</option>
             <option 
               v-for="device in broadlinkDevices" 
               :key="device.entity_id" 
@@ -144,8 +144,8 @@
             readonly
             disabled
           />
-          <small v-if="!isEdit || !hasCommands">Required: Select which Broadlink device to use</small>
-          <small v-else>Cannot change Broadlink device after commands are learned</small>
+          <small v-if="!isEdit || !hasCommands">Required: Select which remote device to use for sending commands</small>
+          <small v-else>Cannot change remote device after commands are learned</small>
         </div>
 
         <!-- SmartIR Device Configuration (for SmartIR type) -->
@@ -309,13 +309,14 @@ const loadAreas = async () => {
 
 const loadBroadlinkDevices = async () => {
   try {
-    const response = await api.get('/api/broadlink/devices')
+    // Use new endpoint that returns all remote devices (Broadlink, Xiaomi, etc.)
+    const response = await api.get('/api/remote/devices')
     // The response is wrapped in a 'devices' property
     const devices = response.data.devices || []
     broadlinkDevices.value = devices
-    console.log('Loaded Broadlink devices:', devices)
+    console.log('Loaded remote devices:', devices)
   } catch (error) {
-    console.error('Error loading Broadlink devices:', error)
+    console.error('Error loading remote devices:', error)
     broadlinkDevices.value = []
   }
 }

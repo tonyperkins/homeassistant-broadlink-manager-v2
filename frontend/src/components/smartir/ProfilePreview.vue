@@ -155,6 +155,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useToast } from '@/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps({
   profile: {
@@ -192,7 +195,7 @@ async function copyJson() {
     }, 2000)
   } catch (error) {
     console.error('Failed to copy JSON:', error)
-    alert('Failed to copy to clipboard')
+    toast.error('Failed to copy to clipboard')
   }
 }
 
@@ -205,7 +208,7 @@ async function copyYaml() {
     }, 2000)
   } catch (error) {
     console.error('Failed to copy YAML:', error)
-    alert('Failed to copy to clipboard')
+    toast.error('Failed to copy to clipboard')
   }
 }
 </script>

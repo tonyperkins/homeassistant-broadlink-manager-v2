@@ -190,7 +190,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             }
             
             # Check each platform file
-            for platform in ["climate", "media_player", "fan"]:
+            for platform in ["climate", "media_player", "fan", "light"]:
                 platform_file = smartir_dir / f"{platform}.yaml"
                 result["platforms"][platform] = {
                     "file_exists": platform_file.exists(),
@@ -206,7 +206,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     # Simple detection - look for platform entries
                     result["configuration_warnings"] = []
                     
-                    for platform in ["climate", "media_player", "fan"]:
+                    for platform in ["climate", "media_player", "fan", "light"]:
                         # Check if platform is defined directly (not as include)
                         if f"\n{platform}:" in config_content or f"\n{platform} :" in config_content:
                             # Check if it's NOT an include
@@ -525,9 +525,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             try:
                 entity_type = request.args.get("entity_type", "climate")
                 
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 manufacturers = smartir_code_service.get_manufacturers(entity_type)
@@ -558,9 +558,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         "error": "Missing manufacturer parameter"
                     }), 400
                 
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 models = smartir_code_service.get_models(entity_type, manufacturer)
@@ -593,10 +593,10 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         "error": "entity_type and code_id are required"
                     }), 400
                 
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
                         "success": False,
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 # Fetch full code from GitHub
@@ -623,9 +623,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
         def get_code_details(entity_type, code_id):
             """Get full code details from GitHub"""
             try:
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 # Try to get from cache first
@@ -677,9 +677,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         "error": "Missing query parameter"
                     }), 400
                 
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 results = smartir_code_service.search_codes(entity_type, query)
@@ -707,9 +707,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 entity_type = data.get("entity_type", "climate")
                 force = data.get("force", False)
                 
-                if entity_type not in ["climate", "fan", "media_player"]:
+                if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({
-                        "error": "Invalid entity_type. Must be: climate, fan, or media_player"
+                        "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
                 success = smartir_code_service.refresh_codes(entity_type, force=force)

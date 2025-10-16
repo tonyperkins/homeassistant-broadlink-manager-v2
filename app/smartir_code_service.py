@@ -103,7 +103,7 @@ class SmartIRCodeService:
         Fetch and parse a code file from GitHub
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             code_id: Code ID (e.g., "1000")
             
         Returns:
@@ -131,7 +131,7 @@ class SmartIRCodeService:
         Refresh code cache for a specific entity type
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             force: Force refresh even if cache is valid
             
         Returns:
@@ -241,7 +241,7 @@ class SmartIRCodeService:
         Get list of manufacturers for an entity type
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             
         Returns:
             Sorted list of manufacturer names
@@ -258,7 +258,7 @@ class SmartIRCodeService:
         Get list of models for a manufacturer
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             manufacturer: Manufacturer name
             
         Returns:
@@ -279,7 +279,7 @@ class SmartIRCodeService:
         Get cached information about a specific code
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             code_id: Code ID
             
         Returns:
@@ -293,7 +293,7 @@ class SmartIRCodeService:
         Fetch full code data from GitHub (not cached)
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             code_id: Code ID
             
         Returns:
@@ -306,7 +306,7 @@ class SmartIRCodeService:
         Search codes by manufacturer or model name
         
         Args:
-            entity_type: Entity type (climate, fan, media_player)
+            entity_type: Entity type (climate, fan, media_player, light)
             query: Search query
             
         Returns:

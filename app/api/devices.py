@@ -300,10 +300,21 @@ def discover_untracked_devices():
         broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
         loop.close()
         
-        # Get all tracked devices from metadata
-        entities = storage.get_all_entities()
+        # Get all tracked devices from device manager AND old metadata
+        device_manager = get_device_manager()
         tracked_device_names = set()
         
+        # Get devices from new device manager
+        if device_manager:
+            devices = device_manager.get_all_devices()
+            for device_id, device_data in devices.items():
+                # For Broadlink devices, the device_id IS the storage name (e.g., "samsung_model1")
+                # For devices with area prefix, we need to extract just the device part
+                if device_data.get('device_type') == 'broadlink':
+                    tracked_device_names.add(device_id)
+        
+        # Also check old metadata for backward compatibility
+        entities = storage.get_all_entities()
         for entity_id, entity_data in entities.items():
             device_name = entity_data.get('device')
             if device_name:
@@ -339,6 +350,74 @@ def discover_untracked_devices():
         logger.error(f"Error discovering untracked devices: {e}")
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/devices/untracked/<device_name>', methods=['DELETE'])
+def delete_untracked_device(device_name):
+    """Delete all commands for an untracked device from Broadlink storage"""
+    try:
+        import asyncio
+        
+        web_server = current_app.config.get('web_server')
+        
+        if not web_server:
+            return jsonify({'error': 'Web server not available'}), 500
+        
+        # Get the device's commands from Broadlink storage
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        
+        # Check if device exists
+        if device_name not in broadlink_commands:
+            loop.close()
+            return jsonify({'error': f'Device {device_name} not found'}), 404
+        
+        commands = broadlink_commands[device_name]
+        
+        # Find which Broadlink entity owns these commands
+        broadlink_entity = loop.run_until_complete(web_server._find_broadlink_entity_for_device(device_name))
+        
+        if not broadlink_entity:
+            loop.close()
+            return jsonify({'error': f'Could not determine Broadlink entity for device {device_name}'}), 400
+        
+        # Delete all commands
+        deleted_count = 0
+        failed_commands = []
+        
+        for command_name in commands.keys():
+            delete_data = {
+                'entity_id': broadlink_entity,
+                'device': device_name,
+                'command': command_name
+            }
+            
+            result = loop.run_until_complete(web_server._delete_command(delete_data))
+            
+            if result.get('success'):
+                deleted_count += 1
+            else:
+                failed_commands.append(command_name)
+        
+        loop.close()
+        
+        if failed_commands:
+            return jsonify({
+                'success': False,
+                'deleted_count': deleted_count,
+                'failed_commands': failed_commands,
+                'error': f'Failed to delete {len(failed_commands)} command(s)'
+            }), 207  # Multi-Status
+        
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'Successfully deleted {deleted_count} command(s) from device {device_name}'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error deleting untracked device: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/devices/managed', methods=['POST'])
 def create_managed_device():
     """Create a new managed device (supports both Broadlink and SmartIR types)"""
@@ -349,19 +428,26 @@ def create_managed_device():
         if not device_manager:
             return jsonify({'error': 'Device manager not available'}), 500
         
-        # Extract device data
-        name = data.get('name', '')
+        # Extract device data - support both 'name' and 'device_name' for compatibility
+        name = data.get('device_name') or data.get('name', '')
+        storage_name = data.get('device')  # Storage name for adopted devices
         entity_type = data.get('entity_type', 'switch')
         device_type = data.get('device_type', 'broadlink')
-        area = data.get('area', '')
+        area = data.get('area_name') or data.get('area', '')
+        area_id = data.get('area_id', '')
         icon = data.get('icon', '')
         
         if not name:
             return jsonify({'error': 'Device name is required'}), 400
         
-        # Generate device_id (includes area to allow same device name in different areas)
-        area_id = area.lower().replace(' ', '_') if area else 'no_area'
-        device_id = device_manager.generate_device_id(area_id, name)
+        # Use storage name as device ID if provided (adopted device)
+        # Otherwise generate new ID from area + device name
+        if storage_name:
+            device_id = storage_name
+        else:
+            # Generate device_id (includes area to allow same device name in different areas)
+            area_id_for_gen = area_id or (area.lower().replace(' ', '_') if area else '')
+            device_id = device_manager.generate_device_id(area_id_for_gen, name)
         
         # Check if device already exists
         existing_device = device_manager.get_device(device_id)
@@ -411,6 +497,11 @@ def create_managed_device():
                 return jsonify({'error': 'broadlink_entity is required for Broadlink devices'}), 400
             
             device_data['broadlink_entity'] = broadlink_entity
+            
+            # Include commands if provided (for adopted devices)
+            commands = data.get('commands', {})
+            if commands:
+                device_data['commands'] = commands
         
         # Create the device
         if device_manager.create_device(device_id, device_data):
@@ -525,20 +616,65 @@ def update_managed_device(device_id):
 
 @api_bp.route('/devices/managed/<device_id>', methods=['DELETE'])
 def delete_managed_device(device_id):
-    """Delete a managed device"""
+    """Delete a managed device and optionally its commands from Broadlink storage"""
     try:
+        import asyncio
+        import time
+        
         device_manager = get_device_manager()
+        web_server = current_app.config.get('web_server')
         
         if not device_manager:
             return jsonify({'error': 'Device manager not available'}), 500
         
-        if device_manager.delete_device(device_id):
-            return jsonify({
-                'success': True,
-                'message': f'Device {device_id} deleted'
-            })
-        else:
+        # Check if we should also delete commands from Broadlink storage
+        data = request.get_json() or {}
+        delete_commands = data.get('delete_commands', False)
+        
+        # Get device info before deleting (to know which commands to delete)
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({'error': 'Device not found'}), 404
+        
+        # Delete the device from metadata
+        if not device_manager.delete_device(device_id):
             return jsonify({'error': 'Failed to delete device'}), 500
+        
+        # If requested, also delete commands from Broadlink storage
+        if delete_commands and device.get('device_type') == 'broadlink' and web_server:
+            commands = device.get('commands', {})
+            broadlink_entity = device.get('broadlink_entity')
+            
+            if commands and broadlink_entity:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                for command_name in commands.keys():
+                    try:
+                        loop.run_until_complete(
+                            web_server._delete_command({
+                                'entity_id': broadlink_entity,
+                                'device': device_id,
+                                'command': command_name
+                            })
+                        )
+                        logger.info(f"Deleted command '{command_name}' from Broadlink storage")
+                        
+                        # Mark command as recently deleted to filter from discovery
+                        web_server._add_to_deletion_cache(device_id, command_name)
+                    except Exception as cmd_error:
+                        logger.warning(f"Failed to delete command '{command_name}': {cmd_error}")
+                
+                loop.close()
+                
+                # Small delay to allow HA storage to sync (reduce race condition)
+                time.sleep(0.5)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Device {device_id} deleted',
+            'commands_deleted': delete_commands
+        })
     
     except Exception as e:
         logger.error(f"Error deleting managed device: {e}")

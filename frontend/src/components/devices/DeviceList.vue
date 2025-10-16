@@ -1,15 +1,31 @@
 <template>
-  <div class="device-list">
-    <div class="device-list-header">
-      <div class="header-left">
-        <h2>Managed Devices</h2>
-        <span class="device-count">{{ deviceStore.deviceCount }} devices</span>
-      </div>
-      <button @click="showCreateForm = true" class="btn btn-primary">
-        <i class="mdi mdi-plus"></i>
-        Add Device
+  <div class="device-list-card">
+    <div class="card-header">
+      <button class="icon-button chevron-button" @click="toggleExpanded">
+        <i class="mdi" :class="isExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
       </button>
+      <div class="header-left" @click="toggleExpanded">
+        <div class="header-icon">
+          <i class="mdi mdi-devices"></i>
+        </div>
+        <h3>Managed Devices</h3>
+        <div class="header-badges">
+          <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button 
+          @click.stop="showCreateForm = true" 
+          class="btn btn-primary"
+          v-if="isExpanded"
+        >
+          <i class="mdi mdi-plus"></i>
+          Add Device
+        </button>
+      </div>
     </div>
+
+    <div v-show="isExpanded" class="card-body">
 
     <!-- Device Discovery Banner -->
     <DeviceDiscovery ref="discoveryRef" @adopt="adoptDevice" />
@@ -67,11 +83,12 @@
               <option value="switch">Switch</option>
               <option value="media_player">Media Player</option>
               <option value="cover">Cover</option>
+              <option value="climate">Climate</option>
             </select>
           </label>
         </div>
 
-        <div class="filter-group filter-toggle">
+        <div v-if="smartirInstalled" class="filter-group filter-toggle">
           <label class="toggle-label">
             <span class="toggle-text">
               <img src="@/assets/images/smartir-logo.png" alt="SmartIR" class="smartir-icon" />
@@ -139,12 +156,11 @@
     <div v-if="deviceStore.hasDevices && filteredDevices.length === 0" class="no-results">
       <i class="mdi mdi-filter-off"></i>
       <h3>No devices match your filters</h3>
-      <button @click="clearFilters" class="btn btn-secondary">
-        Clear Filters
-      </button>
+      <p>Try adjusting your search or filter criteria</p>
+    </div>
     </div>
 
-    <!-- Create/Edit Form Modal -->
+    <!-- Modals (outside card-body) -->
     <DeviceForm
       v-if="showCreateForm"
       :device="selectedDevice"
@@ -152,7 +168,6 @@
       @cancel="closeForm"
     />
 
-    <!-- Command Learner Modal -->
     <CommandLearner
       v-if="showCommandLearner"
       :device="selectedDevice"
@@ -160,7 +175,6 @@
       @cancel="closeCommandLearner"
     />
 
-    <!-- Delete Confirmation Dialog -->
     <ConfirmDialog
       :isOpen="showDeleteConfirm"
       :title="`Delete ${deviceToDelete?.name}?`"
@@ -173,7 +187,6 @@
       @cancel="cancelDelete"
     />
 
-    <!-- Error Dialog -->
     <ErrorDialog
       :isOpen="showErrorDialog"
       :title="errorDialog.title"
@@ -186,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import DeviceCard from './DeviceCard.vue'
 import DeviceForm from './DeviceForm.vue'
@@ -203,6 +216,11 @@ const selectedDevice = ref(null)
 const showDeleteConfirm = ref(false)
 const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
+const isExpanded = ref(true)
+
+const toggleExpanded = () => {
+  isExpanded.value = !isExpanded.value
+}
 
 // Error dialog state
 const showErrorDialog = ref(false)
@@ -223,6 +241,15 @@ const filters = ref({
 })
 
 const broadlinkDevices = ref([])
+
+// Inject SmartIR status
+const smartirStatus = inject('smartirStatus')
+const smartirInstalled = computed(() => {
+  // Check if simulating not-installed
+  const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
+  if (isSimulating) return false
+  return smartirStatus?.value?.installed || false
+})
 
 // Filter options (computed from available devices)
 const broadlinkDeviceOptions = computed(() => {
@@ -289,7 +316,11 @@ const filteredDevices = computed(() => {
   }
 
   if (filters.value.broadlinkDevice) {
-    devices = devices.filter(d => d.broadlink_entity === filters.value.broadlinkDevice)
+    devices = devices.filter(d => {
+      // For SmartIR devices, check controller_device; for Broadlink devices, check broadlink_entity
+      return d.broadlink_entity === filters.value.broadlinkDevice || 
+             d.controller_device === filters.value.broadlinkDevice
+    })
   }
 
   if (filters.value.area) {
@@ -372,23 +403,8 @@ const handleDeleteConfirm = async (deleteCommands) => {
   showDeleteConfirm.value = false
   
   try {
-    // If user chose to delete commands, delete them first
-    if (deleteCommands && device.commands) {
-      const commandNames = Object.values(device.commands)
-      const deviceName = device.device || device.id.split('.')[1]
-      
-      // Delete each command from Broadlink storage
-      for (const commandName of commandNames) {
-        try {
-          await api.delete(`/api/commands/${device.id}/${Object.keys(device.commands).find(k => device.commands[k] === commandName)}`)
-        } catch (error) {
-          console.error(`Failed to delete command ${commandName}:`, error)
-        }
-      }
-    }
-    
-    // Delete the device from metadata
-    await deviceStore.deleteDevice(device.id)
+    // Delete the device (backend will handle command deletion if requested)
+    await deviceStore.deleteDevice(device.id, deleteCommands)
     
     // Refresh discovery to show newly untracked device
     if (discoveryRef.value) {
@@ -404,6 +420,10 @@ const handleDeleteConfirm = async (deleteCommands) => {
 
 const handleSave = async (deviceData) => {
   try {
+    console.log('💾 Saving device data:', deviceData)
+    console.log('💾 Device commands:', deviceData.commands)
+    console.log('💾 Selected device:', selectedDevice.value)
+    
     // Check if we're editing (has valid id) or creating (id is null/undefined)
     if (selectedDevice.value?.id && selectedDevice.value.id !== null) {
       await deviceStore.updateDevice(selectedDevice.value.id, deviceData)
@@ -566,7 +586,7 @@ const detectIcon = (deviceName, entityType) => {
 
 const detectAreaFromName = (deviceName) => {
   // Try to detect area from device name
-  // Common patterns: "living_room_tv", "master_bedroom_fan", "tony_s_office_lamp"
+  // Common patterns: "living_room_tv", "master_bedroom_fan", "tony_s_office"
   const parts = deviceName.toLowerCase().split('_')
   
   // Check for possessive patterns (name_s_room) - e.g., "tony_s_office"
@@ -675,30 +695,104 @@ const adoptDevice = async (discoveredDevice) => {
 </script>
 
 <style scoped>
-.device-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+.device-list-card {
+  background: var(--ha-card-background);
+  border-radius: 8px;
+  border: 1px solid var(--ha-border-color);
+  overflow: hidden;
 }
 
-.device-list-header {
+.card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ha-border-color);
+  background: rgba(3, 169, 244, 0.12);
+  transition: background 0.2s;
+  user-select: none;
+  gap: 12px;
+}
+
+.card-header:hover {
+  background: rgba(3, 169, 244, 0.18);
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  cursor: pointer;
 }
 
-.header-left h2 {
-  margin: 0;
+.header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(var(--ha-primary-rgb), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon i {
   font-size: 24px;
+  color: var(--ha-primary-color);
+}
+
+.header-left h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
   font-weight: 500;
   color: var(--ha-text-primary-color);
+}
+
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+}
+
+.header-info {
+  font-size: 13px;
+  color: var(--secondary-text-color);
+  padding: 4px 8px;
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
+  border-radius: 4px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  color: var(--ha-text-secondary-color);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.icon-button:hover {
+  background: var(--ha-hover-color);
+  color: var(--ha-text-primary-color);
+}
+
+.icon-button i {
+  font-size: 20px;
+}
+
+.chevron-button {
+  pointer-events: none;
 }
 
 .device-count {
@@ -709,14 +803,22 @@ const adoptDevice = async (discoveredDevice) => {
   font-size: 14px;
 }
 
+.card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .filter-bar {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  background: var(--ha-card-background);
-  border-radius: 12px;
+  background: rgba(var(--ha-primary-rgb), 0.03);
+  border-radius: 8px;
   border: 1px solid var(--ha-border-color);
+  margin-bottom: 20px;
 }
 
 .filter-row {
@@ -865,17 +967,20 @@ const adoptDevice = async (discoveredDevice) => {
 }
 
 .btn-clear-filters:hover {
-  background: var(--ha-hover-color);
-  border-color: var(--ha-primary-color);
-  color: var(--ha-text-primary-color);
+  background: var(--ha-error-color);
+  color: white;
+  border-color: var(--ha-error-color);
 }
 
 .filter-results {
-  color: var(--ha-text-secondary-color);
-  font-size: 14px;
-  white-space: nowrap;
   margin-left: auto;
+  padding: 8px 12px;
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ha-text-secondary-color);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .no-results {
@@ -927,10 +1032,12 @@ const adoptDevice = async (discoveredDevice) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px 32px;
+  padding: 4px 12px;
   background: rgba(var(--ha-error-rgb), 0.1);
+  color: var(--ha-error-color);
   border-radius: 12px;
-  border: 1px solid var(--ha-error-color);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .error-state i {
@@ -951,34 +1058,32 @@ const adoptDevice = async (discoveredDevice) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px 32px;
-  background: var(--ha-card-background);
-  border-radius: 12px;
-  border: 1px solid var(--ha-border-color);
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ha-text-secondary-color);
 }
 
 .empty-state i {
   font-size: 64px;
-  color: var(--ha-text-secondary-color);
+  opacity: 0.3;
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
-  font-size: 20px;
+  font-size: 18px;
   color: var(--ha-text-primary-color);
 }
 
 .empty-state p {
   margin: 0 0 24px 0;
-  color: var(--ha-text-secondary-color);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 /* Device Grid */
 .device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 

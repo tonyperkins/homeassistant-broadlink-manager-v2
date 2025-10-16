@@ -1,6 +1,6 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="cancel">
-    <div class="modal-dialog confirm-dialog">
+  <div v-if="isOpen" class="modal-overlay" @click.self.stop="cancel">
+    <div class="modal-dialog confirm-dialog" @click.stop>
       <div class="modal-header">
         <h2>{{ title }}</h2>
       </div>
@@ -18,10 +18,10 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="cancel" class="btn btn-secondary">
+        <button @click.stop="cancel" class="btn btn-secondary">
           {{ cancelText }}
         </button>
-        <button @click="confirm" class="btn" :class="dangerMode ? 'btn-danger' : 'btn-primary'">
+        <button @click.stop="confirm" class="btn" :class="dangerMode ? 'btn-danger' : 'btn-primary'">
           {{ confirmText }}
         </button>
       </div>
@@ -94,7 +94,7 @@ const cancel = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10001;
 }
 
 .confirm-dialog {

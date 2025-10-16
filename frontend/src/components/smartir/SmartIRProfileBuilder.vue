@@ -42,6 +42,7 @@
               <option value="climate">🌡️ Climate (AC, Heater, Heat Pump)</option>
               <option value="media_player">📺 Media Player (TV, Receiver)</option>
               <option value="fan">🌀 Fan</option>
+              <option value="light">💡 Light (LED Strip, IR Light)</option>
             </select>
           </div>
 
@@ -98,18 +99,136 @@
           
           <div v-else-if="profile.platform === 'media_player'" class="platform-form">
             <h3>Media Player Configuration</h3>
-            <p class="info-message">
+            <p class="help-text">
               <i class="mdi mdi-information"></i>
-              Media player profiles coming soon! For now, focus on climate devices.
+              Configure the features your media player supports. You'll learn the IR commands in the next step.
             </p>
+            
+            <div class="form-section">
+              <h4>Supported Features</h4>
+              <div class="checkbox-grid">
+                <label class="checkbox-item">
+                  <input type="checkbox" value="turn_on" v-model="mediaPlayerFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-power"></i>
+                    Power On/Off
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="volume" v-model="mediaPlayerFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-volume-high"></i>
+                    Volume Control
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="mute" v-model="mediaPlayerFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-volume-mute"></i>
+                    Mute
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="source" v-model="mediaPlayerFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-import"></i>
+                    Source Selection
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="channel" v-model="mediaPlayerFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-numeric"></i>
+                    Channel Control
+                  </span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="profile.platform === 'fan'" class="platform-form">
             <h3>Fan Configuration</h3>
-            <p class="info-message">
+            <p class="help-text">
               <i class="mdi mdi-information"></i>
-              Fan profiles coming soon! For now, focus on climate devices.
+              Configure the features your fan supports. You'll learn the IR commands in the next step.
             </p>
+            
+            <div class="form-section">
+              <h4>Fan Speed Levels</h4>
+              <div class="form-group">
+                <label>Number of Speed Levels *</label>
+                <select v-model.number="fanSpeedLevels">
+                  <option :value="1">1 Speed</option>
+                  <option :value="2">2 Speeds</option>
+                  <option :value="3">3 Speeds (Low/Med/High)</option>
+                  <option :value="4">4 Speeds</option>
+                  <option :value="5">5 Speeds</option>
+                  <option :value="6">6 Speeds</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-section">
+              <h4>Additional Features</h4>
+              <div class="checkbox-grid">
+                <label class="checkbox-item">
+                  <input type="checkbox" value="oscillate" v-model="fanFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-sync"></i>
+                    Oscillation
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="direction" v-model="fanFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-rotate-3d-variant"></i>
+                    Direction (Forward/Reverse)
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="profile.platform === 'light'" class="platform-form">
+            <h3>Light Configuration</h3>
+            <p class="help-text">
+              <i class="mdi mdi-information"></i>
+              Configure the features your light supports. You'll learn the IR commands in the next step.
+            </p>
+            
+            <div class="form-section">
+              <h4>Supported Features</h4>
+              <div class="checkbox-grid">
+                <label class="checkbox-item">
+                  <input type="checkbox" value="turn_on" v-model="lightFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-power"></i>
+                    Power On/Off
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="brightness" v-model="lightFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-brightness-6"></i>
+                    Brightness Control
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="color_temp" v-model="lightFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-thermometer"></i>
+                    Color Temperature
+                  </span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" value="rgb" v-model="lightFeatures" />
+                  <span class="checkbox-label">
+                    <i class="mdi mdi-palette"></i>
+                    RGB Color
+                  </span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -193,6 +312,29 @@
       @close="showSetupWizard = false"
       @complete="completeSetup"
     />
+
+    <!-- Confirm Dialogs -->
+    <ConfirmDialog
+      :isOpen="showCommandTypeConfirm"
+      title="Change Command Type?"
+      message="Changing the command type will clear all learned commands. Continue?"
+      confirmText="Continue"
+      cancelText="Cancel"
+      :dangerMode="true"
+      @confirm="confirmCommandTypeChange"
+      @cancel="cancelCommandTypeChange"
+    />
+
+    <ConfirmDialog
+      :isOpen="showCloseConfirm"
+      title="Close Profile Builder?"
+      message="Are you sure you want to close? Your progress will be lost."
+      confirmText="Close"
+      cancelText="Keep Editing"
+      :dangerMode="true"
+      @confirm="confirmClose"
+      @cancel="showCloseConfirm = false"
+    />
   </div>
 </template>
 
@@ -202,6 +344,7 @@ import ClimateProfileForm from './ClimateProfileForm.vue'
 import CommandLearningWizard from './CommandLearningWizard.vue'
 import ProfilePreview from './ProfilePreview.vue'
 import SmartIRSetupWizard from './SmartIRSetupWizard.vue'
+import ConfirmDialog from '../common/ConfirmDialog.vue'
 
 const props = defineProps({
   show: {
@@ -230,6 +373,11 @@ const configWarnings = ref([])
 const configPath = ref('/config')
 const setupCompleted = ref(false)
 const pendingSaveData = ref(null)
+const showCommandTypeConfirm = ref(false)
+const showCloseConfirm = ref(false)
+const pendingCommandType = ref('')
+const previousCommandType = ref('ir')
+const isInitialLoad = ref(false)
 
 const steps = [
   { label: 'Device Info', key: 'info' },
@@ -247,6 +395,48 @@ const profile = ref({
   config: {},
   commands: {}
 })
+
+// Platform-specific feature selections
+const mediaPlayerFeatures = ref(['turn_on'])
+const fanSpeedLevels = ref(3)
+const fanFeatures = ref([])
+const lightFeatures = ref(['turn_on'])
+
+// Watch for platform changes to update config
+watch(() => profile.value.platform, (newPlatform) => {
+  if (newPlatform === 'media_player') {
+    profile.value.config = { features: mediaPlayerFeatures.value }
+  } else if (newPlatform === 'fan') {
+    profile.value.config = { speedLevels: fanSpeedLevels.value, features: fanFeatures.value }
+  } else if (newPlatform === 'light') {
+    profile.value.config = { features: lightFeatures.value }
+  }
+})
+
+// Watch feature changes
+watch(mediaPlayerFeatures, (newFeatures) => {
+  if (profile.value.platform === 'media_player') {
+    profile.value.config = { features: newFeatures }
+  }
+}, { deep: true })
+
+watch(fanSpeedLevels, (newLevels) => {
+  if (profile.value.platform === 'fan') {
+    profile.value.config = { speedLevels: newLevels, features: fanFeatures.value }
+  }
+})
+
+watch(fanFeatures, (newFeatures) => {
+  if (profile.value.platform === 'fan') {
+    profile.value.config = { speedLevels: fanSpeedLevels.value, features: newFeatures }
+  }
+}, { deep: true })
+
+watch(lightFeatures, (newFeatures) => {
+  if (profile.value.platform === 'light') {
+    profile.value.config = { features: newFeatures }
+  }
+}, { deep: true })
 
 // Helper functions to infer modes from command keys
 function inferModesFromCommands(commands) {
@@ -290,10 +480,119 @@ function inferSwingModesFromCommands(commands) {
   return Array.from(swingModes)
 }
 
+// Helper function to infer media player features from commands
+function inferMediaPlayerFeaturesFromCommands(commands) {
+  const features = []
+  const commandKeys = Object.keys(commands)
+  
+  if (commandKeys.some(k => k.includes('turn_on') || k.includes('turn_off') || k.includes('power'))) {
+    features.push('turn_on')
+  }
+  if (commandKeys.some(k => k.includes('volume_up') || k.includes('volume_down') || k.includes('volume'))) {
+    features.push('volume')
+  }
+  if (commandKeys.some(k => k.includes('mute'))) {
+    features.push('mute')
+  }
+  if (commandKeys.some(k => k.includes('source') || k.includes('hdmi') || k.includes('input'))) {
+    features.push('source')
+  }
+  if (commandKeys.some(k => k.includes('channel'))) {
+    features.push('channel')
+  }
+  
+  return features
+}
+
+// Helper function to infer fan features from commands
+function inferFanFeaturesFromCommands(commands) {
+  const features = []
+  const commandKeys = Object.keys(commands)
+  let maxSpeed = 0
+  
+  // Detect speed levels
+  commandKeys.forEach(k => {
+    const speedMatch = k.match(/speed[_\s]?(\d+)/i)
+    if (speedMatch) {
+      const speed = parseInt(speedMatch[1])
+      if (speed > maxSpeed) maxSpeed = speed
+    }
+  })
+  
+  if (commandKeys.some(k => k.includes('oscillate'))) {
+    features.push('oscillate')
+  }
+  if (commandKeys.some(k => k.includes('direction'))) {
+    features.push('direction')
+  }
+  
+  return { speedLevels: maxSpeed || 3, features }
+}
+
+// Helper function to infer light features from commands
+function inferLightFeaturesFromCommands(commands) {
+  const features = []
+  const commandKeys = Object.keys(commands)
+  
+  if (commandKeys.some(k => k.includes('turn_on') || k.includes('turn_off') || k.includes('power'))) {
+    features.push('turn_on')
+  }
+  if (commandKeys.some(k => k.includes('brightness'))) {
+    features.push('brightness')
+  }
+  if (commandKeys.some(k => k.includes('color_temp') || k.includes('warm') || k.includes('cool'))) {
+    features.push('color_temp')
+  }
+  if (commandKeys.some(k => k.includes('color') || k.includes('rgb') || k.includes('red') || k.includes('green') || k.includes('blue'))) {
+    features.push('rgb')
+  }
+  
+  return features
+}
+
+// Helper function to infer command type from commands
+function inferCommandTypeFromCommands(commands) {
+  // RF commands start with 'sc' prefix, IR commands have different preambles (e.g., '26', base64, etc.)
+  // Check if any command code starts with 'sc' (RF) or is a list starting with 'sc'
+  for (const commandValue of Object.values(commands)) {
+    if (typeof commandValue === 'string' && commandValue.startsWith('sc')) {
+      return 'rf'
+    }
+    if (Array.isArray(commandValue) && commandValue.length > 0 && 
+        typeof commandValue[0] === 'string' && commandValue[0].startsWith('sc')) {
+      return 'rf'
+    }
+  }
+  return 'ir' // Default to IR if no 'sc' prefix found
+}
+
+// Watch for command type changes
+watch(() => profile.value.commandType, (newType, oldType) => {
+  // Skip if this is the initial load or if we're in the middle of a confirmation
+  if (!oldType || showCommandTypeConfirm.value || isInitialLoad.value) {
+    return
+  }
+  
+  // Check if there are existing commands
+  if (Object.keys(profile.value.commands).length > 0 && newType !== oldType) {
+    // Store the new value and revert to old
+    pendingCommandType.value = newType
+    profile.value.commandType = oldType
+    // Show confirmation dialog
+    showCommandTypeConfirm.value = true
+  } else if (newType !== oldType) {
+    // No commands, just update the tracker
+    previousCommandType.value = newType
+  }
+})
+
 // Watch for edit data and populate profile
 watch(() => props.editData, async (newData) => {
   if (newData && props.editMode) {
     console.log('🔧 Edit mode activated, loading profile data:', newData)
+    
+    // Set initial load flag to prevent command type change warning
+    isInitialLoad.value = true
     
     // Ensure Broadlink devices are loaded first
     if (broadlinkDevices.value.length === 0) {
@@ -307,34 +606,84 @@ watch(() => props.editData, async (newData) => {
     console.log('🎮 Controller data from profile:', controllerData)
     console.log('🎮 Available devices:', broadlinkDevices.value.map(d => d.entity_id))
     
-    // Infer modes from commands if not explicitly defined
+    // Infer command type from the commands
     const commands = profileData.commands || {}
-    const inferredModes = profileData.operationModes || inferModesFromCommands(commands)
-    const inferredFanModes = profileData.fanModes || inferFanModesFromCommands(commands)
-    const inferredSwingModes = profileData.swingModes || inferSwingModesFromCommands(commands)
+    const inferredCommandType = inferCommandTypeFromCommands(commands)
     
-    console.log('🔍 Inferred modes:', inferredModes)
-    console.log('🔍 Inferred fan modes:', inferredFanModes)
-    console.log('🔍 Inferred swing modes:', inferredSwingModes)
+    console.log('🔍 Inferred command type:', inferredCommandType)
     
-    profile.value = {
-      platform: newData.platform,
-      manufacturer: profileData.manufacturer || '',
-      model: profileData.supportedModels?.[0] || '',
-      broadlinkDevice: controllerData || '',
-      config: {
+    // Build config based on platform type
+    let config = {}
+    
+    if (newData.platform === 'climate') {
+      const inferredModes = profileData.operationModes || inferModesFromCommands(commands)
+      const inferredFanModes = profileData.fanModes || inferFanModesFromCommands(commands)
+      const inferredSwingModes = profileData.swingModes || inferSwingModesFromCommands(commands)
+      
+      console.log('🔍 Inferred modes:', inferredModes)
+      console.log('🔍 Inferred fan modes:', inferredFanModes)
+      console.log('🔍 Inferred swing modes:', inferredSwingModes)
+      
+      config = {
         minTemp: profileData.minTemperature,
         maxTemp: profileData.maxTemperature,
         precision: profileData.precision,
         modes: inferredModes,
         fanModes: inferredFanModes,
         swingModes: inferredSwingModes
-      },
+      }
+    } else if (newData.platform === 'media_player') {
+      // Infer features from commands
+      const features = []
+      if (commands.on || commands.off) features.push('turn_on')
+      if (commands.volumeUp || commands.volumeDown) features.push('volume')
+      if (commands.mute) features.push('mute')
+      if (commands.sources) features.push('source')
+      if (commands.channelUp || commands.channelDown) features.push('channel')
+      
+      config = { features }
+      mediaPlayerFeatures.value = features
+      console.log('🔍 Inferred media player features:', features)
+    } else if (newData.platform === 'fan') {
+      // Infer speed levels from commands or speed array
+      const speedLevels = profileData.speed?.length || Object.keys(commands.default || {}).length || 3
+      const features = []
+      if (commands.oscillate_on || commands.oscillate_off) features.push('oscillate')
+      if (commands.direction_forward || commands.direction_reverse) features.push('direction')
+      
+      config = { speedLevels, features }
+      fanSpeedLevels.value = speedLevels
+      fanFeatures.value = features
+      console.log('🔍 Inferred fan config:', config)
+    } else if (newData.platform === 'light') {
+      // Infer features from commands
+      const features = []
+      config = { features }
+      lightFeatures.value = features
+      console.log('🔍 Inferred light features:', features)
+    }
+    
+    profile.value = {
+      platform: newData.platform,
+      manufacturer: profileData.manufacturer || '',
+      model: profileData.supportedModels?.[0] || '',
+      broadlinkDevice: controllerData || '',
+      commandType: inferredCommandType,
+      config: config,
       commands: commands
     }
     
     console.log('✅ Profile populated:', profile.value)
     console.log('✅ Selected device:', profile.value.broadlinkDevice)
+    console.log('✅ Command type:', profile.value.commandType)
+    
+    // Set the previous command type tracker
+    previousCommandType.value = inferredCommandType
+    
+    // Clear initial load flag after a short delay to allow all watchers to settle
+    setTimeout(() => {
+      isInitialLoad.value = false
+    }, 100)
   }
 }, { immediate: true })
 
@@ -382,6 +731,21 @@ function handlePlatformChange() {
   profile.value.commands = {}
 }
 
+function confirmCommandTypeChange() {
+  // Apply the pending change and clear commands
+  showCommandTypeConfirm.value = false
+  profile.value.commandType = pendingCommandType.value
+  previousCommandType.value = pendingCommandType.value
+  profile.value.commands = {}
+  pendingCommandType.value = ''
+}
+
+function cancelCommandTypeChange() {
+  // Just close the dialog, commandType is already reverted
+  showCommandTypeConfirm.value = false
+  pendingCommandType.value = ''
+}
+
 function nextStep() {
   if (canProceed.value && currentStep.value < steps.length - 1) {
     currentStep.value++
@@ -395,9 +759,15 @@ function previousStep() {
 }
 
 function handleOverlayClick() {
-  if (confirm('Are you sure you want to close? Your progress will be lost.')) {
-    close()
+  // Don't show close confirm if another dialog is already open
+  if (!showCommandTypeConfirm.value) {
+    showCloseConfirm.value = true
   }
+}
+
+function confirmClose() {
+  showCloseConfirm.value = false
+  close()
 }
 
 function close() {
@@ -410,9 +780,11 @@ function close() {
       manufacturer: '',
       model: '',
       broadlinkDevice: '',
+      commandType: 'ir',
       config: {},
       commands: {}
     }
+    previousCommandType.value = 'ir'
   }, 300)
 }
 
@@ -848,6 +1220,7 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  min-height: 0;
 }
 
 .step-content {
@@ -933,6 +1306,7 @@ onMounted(() => {
   padding: 20px 24px;
   border-top: 1px solid var(--ha-border-color);
   background: var(--ha-card-header-background, var(--ha-card-background));
+  flex-shrink: 0;
 }
 
 .spacer {
@@ -996,8 +1370,106 @@ onMounted(() => {
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
 }
 
+/* Platform Form Styles */
+.platform-form {
+  max-width: 800px;
+}
+
+.help-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 4px solid #2196f3;
+  border-radius: 4px;
+  color: var(--primary-text-color);
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.help-text i {
+  font-size: 20px;
+  color: #2196f3;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.form-section {
+  margin-bottom: 32px;
+}
+
+.form-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-text-color);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--ha-border-color);
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ha-card-background);
+  border: 2px solid var(--ha-border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checkbox-item:hover {
+  border-color: var(--ha-primary-color);
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--ha-primary-color);
+}
+
+.checkbox-item input[type="checkbox"]:checked + .checkbox-label {
+  color: var(--ha-primary-color);
+  font-weight: 600;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--primary-text-color);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label i {
+  font-size: 18px;
+}
+
 /* Dark mode adjustments */
-:global(.dark-mode) .info-message {
+:global(.dark-mode) .info-message,
+:global(.dark-mode) .help-text {
   background: rgba(33, 150, 243, 0.15);
+}
+
+:global(.dark-mode) .checkbox-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(.dark-mode) .checkbox-item:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 </style>

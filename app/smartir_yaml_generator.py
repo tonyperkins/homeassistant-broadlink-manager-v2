@@ -46,7 +46,7 @@ class SmartIRYAMLGenerator:
         try:
             entity_type = device_data.get("entity_type")
             
-            if entity_type not in ["climate", "fan", "media_player"]:
+            if entity_type not in ["climate", "fan", "media_player", "light"]:
                 return {
                     "success": False,
                     "error": f"Unsupported entity type for SmartIR: {entity_type}"
@@ -157,6 +157,11 @@ class SmartIRYAMLGenerator:
         
         elif entity_type == "media_player":
             # Media player-specific fields
+            if device_data.get("power_sensor"):
+                config["power_sensor"] = device_data["power_sensor"]
+        
+        elif entity_type == "light":
+            # Light-specific fields
             if device_data.get("power_sensor"):
                 config["power_sensor"] = device_data["power_sensor"]
         
@@ -307,7 +312,7 @@ class SmartIRYAMLGenerator:
             
             # Check for includes
             includes_needed = []
-            for entity_type in ["climate", "fan", "media_player"]:
+            for entity_type in ["climate", "fan", "media_player", "light"]:
                 include_line = f"!include smartir/{entity_type}.yaml"
                 if include_line not in content:
                     includes_needed.append(entity_type)

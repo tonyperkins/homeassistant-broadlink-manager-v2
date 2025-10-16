@@ -38,15 +38,13 @@
 
     <!-- Info Cards -->
     <div class="info-cards">
-      <div class="info-card">
+      <div class="info-card compact">
         <i class="mdi mdi-information"></i>
-        <h3>Development Status</h3>
-        <p>This is a beta version. Features are being migrated from v1 incrementally.</p>
+        <p>Beta version under development</p>
       </div>
 
-      <div class="info-card">
+      <div class="info-card compact">
         <i class="mdi mdi-github"></i>
-        <h3>Repository</h3>
         <p>
           <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2" target="_blank">
             View on GitHub
@@ -54,13 +52,29 @@
         </p>
       </div>
 
-      <div class="info-card">
+      <div class="info-card compact">
         <i class="mdi mdi-bug"></i>
-        <h3>Report Issues</h3>
         <p>
-          Found a bug? 
           <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/issues" target="_blank">
             Report it on GitHub Issues
+          </a>
+        </p>
+      </div>
+
+      <div class="info-card compact">
+        <i class="mdi mdi-reddit"></i>
+        <p>
+          <a href="https://www.reddit.com/r/homeassistant/comments/1o1q3kf/release_broadlink_manager_addon_a_modern_web_ui/" target="_blank">
+            Join the discussion on Reddit
+          </a>
+        </p>
+      </div>
+
+      <div class="info-card compact">
+        <i class="mdi mdi-forum"></i>
+        <p>
+          <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/discussions/1" target="_blank">
+            Chat on GitHub Discussions
           </a>
         </p>
       </div>
@@ -79,10 +93,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useToast } from '@/composables/useToast'
 import DeviceList from '@/components/devices/DeviceList.vue'
 import SmartIRBanner from '@/components/common/SmartIRBanner.vue'
 import SmartIRStatusCard from '@/components/smartir/SmartIRStatusCard.vue'
 import SmartIRProfileBuilder from '@/components/smartir/SmartIRProfileBuilder.vue'
+
+const toast = useToast()
 
 const showProfileBuilder = ref(false)
 const editMode = ref(false)
@@ -133,7 +150,7 @@ async function handleEditProfile({ platform, profile }) {
     showProfileBuilder.value = true
   } catch (err) {
     console.error('Error loading profile for edit:', err)
-    alert('Failed to load profile for editing')
+    toast.error('Failed to load profile for editing')
   }
 }
 
@@ -217,13 +234,13 @@ function handleProfileSave(result) {
 }
 
 .badge.success {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
 }
 
 .badge.warning {
-  background: rgba(255, 152, 0, 0.2);
-  color: #ff9800;
+  background: rgba(255, 152, 0, 0.9);
+  color: white;
 }
 
 .badge i {
@@ -258,6 +275,10 @@ function handleProfileSave(result) {
   font-size: 24px;
   color: var(--ha-primary-color);
   flex-shrink: 0;
+}
+
+.info-card.compact i {
+  font-size: 12px;
 }
 
 .info-card h3 {

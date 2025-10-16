@@ -153,8 +153,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+
+const toast = useToast()
 
 const props = defineProps({
   modelValue: {
@@ -202,42 +205,111 @@ const confirmDelete = ref({
 const confirmClearAll = ref(false)
 
 const commandList = computed(() => {
-  if (props.platform !== 'climate') return []
-  
   const list = []
-  const modes = props.config.modes || []
-  const fanModes = props.config.fanModes || []
-  const minTemp = props.config.minTemp || 16
-  const maxTemp = props.config.maxTemp || 30
   
-  // Generate commands for each mode/temp/fan combination
-  modes.forEach(mode => {
-    if (mode === 'off') {
-      list.push({
-        key: 'off',
-        label: 'Power Off',
-        description: 'Turn device off',
-        icon: 'mdi mdi-power',
-        mode: 'off'
-      })
-    } else {
-      // For each temperature
-      for (let temp = minTemp; temp <= maxTemp; temp++) {
-        fanModes.forEach(fanMode => {
-          const key = `${mode}_${temp}_${fanMode}`
-          list.push({
-            key,
-            label: `${mode.toUpperCase()} ${temp}°C ${fanMode}`,
-            description: `Mode: ${mode}, Temp: ${temp}°C, Fan: ${fanMode}`,
-            icon: getModeIcon(mode),
-            mode,
-            temp,
-            fanMode
-          })
+  if (props.platform === 'climate') {
+    const modes = props.config.modes || []
+    const fanModes = props.config.fanModes || []
+    const minTemp = props.config.minTemp || 16
+    const maxTemp = props.config.maxTemp || 30
+    
+    // Generate commands for each mode/temp/fan combination
+    modes.forEach(mode => {
+      if (mode === 'off') {
+        list.push({
+          key: 'off',
+          label: 'Power Off',
+          description: 'Turn device off',
+          icon: 'mdi mdi-power',
+          mode: 'off'
         })
+      } else {
+        // For each temperature
+        for (let temp = minTemp; temp <= maxTemp; temp++) {
+          fanModes.forEach(fanMode => {
+            const key = `${mode}_${temp}_${fanMode}`
+            list.push({
+              key,
+              label: `${mode.toUpperCase()} ${temp}°C ${fanMode}`,
+              description: `Mode: ${mode}, Temp: ${temp}°C, Fan: ${fanMode}`,
+              icon: getModeIcon(mode),
+              mode,
+              temp,
+              fanMode
+            })
+          })
+        }
       }
+    })
+  } else if (props.platform === 'media_player') {
+    const features = props.config.features || []
+    
+    if (features.includes('turn_on')) {
+      list.push({ key: 'turn_on', label: 'Power On', description: 'Turn on the device', icon: 'mdi mdi-power' })
+      list.push({ key: 'turn_off', label: 'Power Off', description: 'Turn off the device', icon: 'mdi mdi-power-off' })
     }
-  })
+    if (features.includes('volume')) {
+      list.push({ key: 'volume_up', label: 'Volume Up', description: 'Increase volume', icon: 'mdi mdi-volume-plus' })
+      list.push({ key: 'volume_down', label: 'Volume Down', description: 'Decrease volume', icon: 'mdi mdi-volume-minus' })
+    }
+    if (features.includes('mute')) {
+      list.push({ key: 'mute', label: 'Mute', description: 'Toggle mute', icon: 'mdi mdi-volume-mute' })
+    }
+    if (features.includes('source')) {
+      list.push({ key: 'source_hdmi1', label: 'Source: HDMI 1', description: 'Switch to HDMI 1', icon: 'mdi mdi-import' })
+      list.push({ key: 'source_hdmi2', label: 'Source: HDMI 2', description: 'Switch to HDMI 2', icon: 'mdi mdi-import' })
+      list.push({ key: 'source_hdmi3', label: 'Source: HDMI 3', description: 'Switch to HDMI 3', icon: 'mdi mdi-import' })
+    }
+    if (features.includes('channel')) {
+      list.push({ key: 'channel_up', label: 'Channel Up', description: 'Next channel', icon: 'mdi mdi-chevron-up' })
+      list.push({ key: 'channel_down', label: 'Channel Down', description: 'Previous channel', icon: 'mdi mdi-chevron-down' })
+    }
+  } else if (props.platform === 'fan') {
+    const speedLevels = props.config.speedLevels || 3
+    const features = props.config.features || []
+    
+    list.push({ key: 'turn_on', label: 'Power On', description: 'Turn on the fan', icon: 'mdi mdi-power' })
+    list.push({ key: 'turn_off', label: 'Power Off', description: 'Turn off the fan', icon: 'mdi mdi-power-off' })
+    
+    for (let i = 1; i <= speedLevels; i++) {
+      const speedName = i === 1 ? 'Low' : i === speedLevels ? 'High' : i === 2 && speedLevels === 3 ? 'Medium' : `Speed ${i}`
+      list.push({ 
+        key: `speed_${i}`, 
+        label: `${speedName}`, 
+        description: `Set fan to speed level ${i}`, 
+        icon: 'mdi mdi-fan' 
+      })
+    }
+    
+    if (features.includes('oscillate')) {
+      list.push({ key: 'oscillate_on', label: 'Oscillate On', description: 'Enable oscillation', icon: 'mdi mdi-sync' })
+      list.push({ key: 'oscillate_off', label: 'Oscillate Off', description: 'Disable oscillation', icon: 'mdi mdi-sync-off' })
+    }
+    if (features.includes('direction')) {
+      list.push({ key: 'direction_forward', label: 'Direction: Forward', description: 'Set direction to forward', icon: 'mdi mdi-rotate-right' })
+      list.push({ key: 'direction_reverse', label: 'Direction: Reverse', description: 'Set direction to reverse', icon: 'mdi mdi-rotate-left' })
+    }
+  } else if (props.platform === 'light') {
+    const features = props.config.features || []
+    
+    if (features.includes('turn_on')) {
+      list.push({ key: 'turn_on', label: 'Power On', description: 'Turn on the light', icon: 'mdi mdi-lightbulb-on' })
+      list.push({ key: 'turn_off', label: 'Power Off', description: 'Turn off the light', icon: 'mdi mdi-lightbulb-off' })
+    }
+    if (features.includes('brightness')) {
+      list.push({ key: 'brightness_up', label: 'Brightness Up', description: 'Increase brightness', icon: 'mdi mdi-brightness-7' })
+      list.push({ key: 'brightness_down', label: 'Brightness Down', description: 'Decrease brightness', icon: 'mdi mdi-brightness-5' })
+    }
+    if (features.includes('color_temp')) {
+      list.push({ key: 'color_temp_warm', label: 'Warm White', description: 'Set to warm white', icon: 'mdi mdi-weather-sunset' })
+      list.push({ key: 'color_temp_cool', label: 'Cool White', description: 'Set to cool white', icon: 'mdi mdi-weather-sunny' })
+    }
+    if (features.includes('rgb')) {
+      list.push({ key: 'color_red', label: 'Color: Red', description: 'Set color to red', icon: 'mdi mdi-palette' })
+      list.push({ key: 'color_green', label: 'Color: Green', description: 'Set color to green', icon: 'mdi mdi-palette' })
+      list.push({ key: 'color_blue', label: 'Color: Blue', description: 'Set color to blue', icon: 'mdi mdi-palette' })
+    }
+  }
   
   return list
 })
@@ -314,7 +386,7 @@ async function learnCommand(cmd) {
     }
   } catch (error) {
     console.error('Error learning command:', error)
-    alert(`Error learning command: ${error.message}`)
+    toast.error(`Error learning command: ${error.message}`)
     sequentialLearning.value = false
     sequentialQueue.value = []
   } finally {
@@ -371,6 +443,53 @@ function handleClearAllConfirm() {
 watch(() => props.modelValue, (newValue) => {
   commands.value = { ...newValue }
 }, { deep: true })
+
+// Load existing commands from Broadlink storage when component mounts
+onMounted(async () => {
+  await loadExistingCommands()
+})
+
+async function loadExistingCommands() {
+  try {
+    // Create device name from manufacturer and model
+    const manufacturer = props.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    const model = props.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    const deviceName = `${manufacturer}_${model}`
+    
+    // Fetch all Broadlink commands
+    const response = await fetch(`/api/commands/broadlink/${deviceName}`)
+    
+    if (!response.ok) {
+      // Device might not exist yet, that's okay
+      return
+    }
+    
+    const result = await response.json()
+    
+    if (result.commands) {
+      // Merge existing commands with current commands
+      // Only add commands that are in our command list
+      const validCommandKeys = commandList.value.map(cmd => cmd.key)
+      const existingCommands = {}
+      
+      for (const [key, code] of Object.entries(result.commands)) {
+        if (validCommandKeys.includes(key)) {
+          existingCommands[key] = code
+        }
+      }
+      
+      // Update commands if we found any
+      if (Object.keys(existingCommands).length > 0) {
+        commands.value = { ...commands.value, ...existingCommands }
+        emit('update:modelValue', commands.value)
+        console.log(`Loaded ${Object.keys(existingCommands).length} existing commands for ${deviceName}`)
+      }
+    }
+  } catch (error) {
+    console.error('Error loading existing commands:', error)
+    // Don't show error to user, just log it
+  }
+}
 </script>
 
 <style scoped>

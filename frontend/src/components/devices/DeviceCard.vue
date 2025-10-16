@@ -1,5 +1,5 @@
 <template>
-  <div class="device-card">
+  <div class="device-card" :class="{ 'disabled': isSmartIRDisabled }">
     <div class="device-header">
       <div class="device-icon">
         <i :class="`mdi mdi-${deviceIcon}`"></i>
@@ -51,16 +51,39 @@
     </div>
 
     <div class="device-actions">
-      <button @click="$emit('learn', device)" class="action-btn primary" title="Manage Commands">
+      <button 
+        @click="!isSmartIRDisabled && $emit('learn', device)" 
+        class="action-btn" 
+        title="Manage Commands"
+        :disabled="isSmartIRDisabled"
+      >
         <i class="mdi mdi-remote-tv"></i>
         <span>Commands</span>
       </button>
-      <button @click="$emit('edit', device)" class="action-btn" title="Edit">
+      <button 
+        @click="!isSmartIRDisabled && $emit('edit', device)" 
+        class="action-btn" 
+        title="Edit"
+        :disabled="isSmartIRDisabled"
+      >
         <i class="mdi mdi-pencil"></i>
       </button>
-      <button @click="$emit('delete', device)" class="action-btn danger" title="Delete">
+      <button 
+        @click="!isSmartIRDisabled && $emit('delete', device)" 
+        class="action-btn danger" 
+        title="Delete"
+        :disabled="isSmartIRDisabled"
+      >
         <i class="mdi mdi-delete"></i>
       </button>
+    </div>
+    
+    <!-- SmartIR Disabled Overlay -->
+    <div v-if="isSmartIRDisabled" class="disabled-overlay">
+      <div class="disabled-message">
+        <i class="mdi mdi-eye-off"></i>
+        <span>SmartIR Not Installed</span>
+      </div>
     </div>
   </div>
 </template>
@@ -76,6 +99,16 @@ const props = defineProps({
     type: Object,
     required: true
   }
+})
+
+// Check if SmartIR simulation mode is active
+const isSmartIRSimulating = computed(() => {
+  return localStorage.getItem('smartir_simulate_not_installed') === 'true'
+})
+
+// Check if this is a SmartIR device and simulation is active
+const isSmartIRDisabled = computed(() => {
+  return props.device.device_type === 'smartir' && isSmartIRSimulating.value
 })
 
 defineEmits(['edit', 'delete', 'learn'])
@@ -207,11 +240,59 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
 }
 
 .device-card:hover {
   box-shadow: var(--ha-shadow-md);
   border-color: var(--ha-primary-color);
+}
+
+.device-card.disabled {
+  pointer-events: none;
+  filter: grayscale(40%);
+}
+
+.device-card.disabled:hover {
+  box-shadow: none;
+  border-color: var(--ha-border-color);
+}
+
+.disabled-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--ha-card-background-rgb, 255, 255, 255), 0.75);
+  backdrop-filter: blur(1px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 10;
+  pointer-events: all;
+}
+
+.disabled-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.disabled-message i {
+  font-size: 48px;
+  color: var(--ha-warning-color, #ff9800);
+  opacity: 0.7;
+}
+
+.disabled-message span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ha-text-primary-color);
 }
 
 .device-header {
@@ -251,6 +332,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   white-space: normal;
   line-height: 1.3;
@@ -370,24 +452,15 @@ onMounted(async () => {
 }
 
 .action-btn:hover {
-  background: var(--ha-hover-color);
-  border-color: var(--ha-primary-color);
-}
-
-.action-btn.primary {
   background: var(--ha-primary-color);
   color: white;
   border-color: var(--ha-primary-color);
 }
 
-.action-btn.primary:hover {
-  opacity: 0.9;
-}
-
 .action-btn.danger:hover {
-  background: rgba(var(--ha-error-rgb), 0.1);
-  border-color: var(--ha-error-color);
-  color: var(--ha-error-color);
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  border-color: var(--ha-error-color, #f44336);
 }
 
 .action-btn i {

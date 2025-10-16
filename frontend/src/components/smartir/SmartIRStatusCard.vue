@@ -1,25 +1,42 @@
 <template>
   <div class="smartir-status-card">
     <div class="card-header">
-      <div class="header-left">
+      <button class="icon-button chevron-button" @click="isExpanded = !isExpanded">
+        <i class="mdi" :class="isExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
+      </button>
+      <div class="header-left" @click="isExpanded = !isExpanded">
         <img :src="smartirLogo" alt="SmartIR" class="smartir-logo" />
         <h3>SmartIR Integration</h3>
         
         <!-- Compact Status Info -->
-        <div v-if="status?.installed" class="header-badges">
-          <div class="status-badge-mini success">
-            <i class="mdi mdi-check-circle"></i>
-            <span>Installed</span>
+        <div class="header-badges">
+          <!-- Always show simulation toggle pill -->
+          <div 
+            class="simulation-toggle-pill" 
+            :class="{ active: simulatingNotInstalled }"
+            @click.stop="toggleInstallSimulation"
+            :title="simulatingNotInstalled ? 'Click to show as installed' : 'Click to simulate not-installed'"
+          >
+            <i class="mdi" :class="simulatingNotInstalled ? 'mdi-eye-off' : 'mdi-eye'"></i>
+            <span>{{ simulatingNotInstalled ? 'Simulating: Not Installed' : 'Simulation Mode' }}</span>
           </div>
-          <span class="header-info">v{{ status.version || 'Unknown' }}</span>
-          <span class="header-info">{{ platformCount }} platform{{ platformCount !== 1 ? 's' : '' }}</span>
-          <span class="header-info">{{ totalDevices }} device{{ totalDevices !== 1 ? 's' : '' }}</span>
+          
+          <!-- Status badges (only when showing as installed) -->
+          <template v-if="displayStatus?.installed">
+            <div class="status-badge-mini success">
+              <i class="mdi mdi-check-circle"></i>
+              <span>Installed</span>
+            </div>
+            <span class="header-info">v{{ displayStatus.version || 'Unknown' }}</span>
+            <span class="header-info">{{ platformCount }} platform{{ platformCount !== 1 ? 's' : '' }}</span>
+            <span class="header-info">{{ totalDevices }} device{{ totalDevices !== 1 ? 's' : '' }}</span>
+          </template>
         </div>
       </div>
       <div class="header-right">
         <button 
-          v-if="status?.installed" 
-          @click="showHelp = !showHelp" 
+          v-if="status?.installed && isExpanded" 
+          @click.stop="showHelp = !showHelp" 
           class="icon-button"
           :class="{ active: showHelp }"
           title="Show help"
@@ -27,33 +44,42 @@
           <i class="mdi mdi-help-circle"></i>
         </button>
         <button 
-          v-if="status?.installed" 
-          @click="refreshStatus" 
+          v-if="status?.installed && isExpanded" 
+          @click.stop="refreshStatus" 
           class="icon-button"
           title="Refresh status"
         >
           <i class="mdi mdi-refresh"></i>
         </button>
+        <button 
+          v-if="status?.installed && isExpanded" 
+          @click.stop="createProfile" 
+          class="btn btn-primary"
+        >
+          <i class="mdi mdi-plus"></i>
+          Create SmartIR Profile
+        </button>
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="card-body loading-state">
-      <div class="spinner"></div>
-      <p>Checking SmartIR installation...</p>
-    </div>
+    <div v-show="isExpanded">
+      <!-- Loading State -->
+      <div v-if="loading" class="card-body loading-state">
+        <div class="spinner"></div>
+        <p>Checking SmartIR installation...</p>
+      </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="card-body error-state">
-      <i class="mdi mdi-alert-circle"></i>
-      <p>{{ error }}</p>
-      <button @click="refreshStatus" class="btn-secondary">
-        Try Again
-      </button>
-    </div>
+      <!-- Error State -->
+      <div v-else-if="error" class="card-body error-state">
+        <i class="mdi mdi-alert-circle"></i>
+        <p>{{ error }}</p>
+        <button @click="refreshStatus" class="btn-secondary">
+          Try Again
+        </button>
+      </div>
 
-    <!-- SmartIR Installed -->
-    <div v-else-if="status?.installed" class="card-body installed-state">
+      <!-- SmartIR Installed -->
+      <div v-else-if="displayStatus?.installed" class="card-body installed-state">
       <!-- Help Panel (Collapsible) -->
       <div v-if="showHelp" class="help-panel">
         <div v-if="status.recommendation" class="recommendation">
@@ -67,86 +93,113 @@
             </ul>
           </div>
         </div>
+        <div class="help-actions">
+          <button @click="viewDocumentation" class="btn-secondary">
+            <i class="mdi mdi-book-open-variant"></i>
+            View Documentation
+          </button>
+        </div>
       </div>
 
-      <!-- Platform Details with Profiles -->
-      <div class="platforms-section">
-        <h4>Available Platforms</h4>
-        <div class="platform-list">
-          <div 
-            v-for="platform in displayPlatforms" 
-            :key="platform.name"
-            class="platform-card"
-            :class="{ 
-              expanded: expandedPlatforms[platform.name],
-              'not-installed': !platform.installed
-            }"
-          >
-            <div class="platform-header" @click="platform.installed && togglePlatform(platform.name)">
-              <div class="platform-icon">
-                <i :class="getPlatformIcon(platform.name)"></i>
-              </div>
-              <div class="platform-info">
-                <span class="platform-name">{{ formatPlatformName(platform.name) }}</span>
-                <span class="device-count" v-if="platform.installed">
-                  {{ platform.deviceCount }} device{{ platform.deviceCount !== 1 ? 's' : '' }}
-                </span>
-                <span class="not-installed-label" v-else>
-                  Not Installed
-                </span>
-              </div>
-              <i v-if="platform.installed" class="mdi" :class="expandedPlatforms[platform.name] ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
-            </div>
-            
-            <!-- Expanded Profile List -->
-            <div v-if="platform.installed && expandedPlatforms[platform.name]" class="platform-profiles">
-              <div v-if="loadingProfiles[platform.name]" class="profiles-loading">
-                <div class="spinner-small"></div>
-                <span>Loading profiles...</span>
-              </div>
-              <div v-else-if="profiles[platform.name]?.length" class="profile-list">
-                <div 
-                  v-for="profile in profiles[platform.name]" 
-                  :key="`${platform.name}-${profile.code}`"
-                  class="profile-item"
-                >
-                  <div class="profile-info">
-                    <span class="profile-name">{{ profile.manufacturer }} {{ profile.model }}</span>
-                    <span class="profile-code">Code: {{ profile.code }}</span>
-                  </div>
-                  <div class="profile-actions">
-                    <button @click="editProfile(platform.name, profile)" class="action-btn" title="Edit">
-                      <i class="mdi mdi-pencil"></i>
-                    </button>
-                    <button @click="downloadProfile(platform.name, profile)" class="action-btn" title="Download">
-                      <i class="mdi mdi-download"></i>
-                    </button>
-                    <button @click="deleteProfile(platform.name, profile)" class="action-btn delete" title="Delete">
-                      <i class="mdi mdi-delete"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="no-profiles">
-                <i class="mdi mdi-information-outline"></i>
-                <p>No profiles created yet</p>
-              </div>
-            </div>
+      <!-- Filter Bar -->
+      <div v-if="allProfiles.length > 0 && !simulatingNotInstalled" class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-group filter-search">
+            <label>
+              <i class="mdi mdi-magnify"></i>
+              <input
+                v-model="filters.search"
+                type="text"
+                placeholder="Search profiles..."
+                class="search-input"
+              />
+            </label>
+          </div>
+
+          <div class="filter-group">
+            <label>
+              <i class="mdi mdi-shape"></i>
+              <select v-model="filters.platform">
+                <option value="">All Platforms</option>
+                <option value="climate">Climate</option>
+                <option value="media_player">Media Player</option>
+                <option value="fan">Fan</option>
+                <option value="light">Light</option>
+              </select>
+            </label>
+          </div>
+
+          <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
+            <i class="mdi mdi-filter-remove"></i>
+            Clear
+          </button>
+
+          <div class="filter-results">
+            {{ filteredProfiles.length }} of {{ allProfiles.length }}
           </div>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="card-actions">
-        <button @click="createProfile" class="btn-primary">
-          <i class="mdi mdi-plus-circle"></i>
-          Create SmartIR Profile
-        </button>
-        <button @click="viewDocumentation" class="btn-secondary">
-          <i class="mdi mdi-book-open-variant"></i>
-          Documentation
-        </button>
+      <!-- Loading State -->
+      <div v-if="loadingAllProfiles" class="loading-state">
+        <i class="mdi mdi-loading mdi-spin"></i>
+        <p>Loading profiles...</p>
       </div>
+
+      <!-- Empty State -->
+      <div v-else-if="allProfiles.length === 0" class="empty-state">
+        <i class="mdi mdi-file-document-outline"></i>
+        <h3>No Profiles Yet</h3>
+        <p>Create your first SmartIR profile to get started</p>
+      </div>
+
+      <!-- Profile Cards Grid -->
+      <div v-else-if="!simulatingNotInstalled" class="profiles-grid">
+        <div 
+          v-for="profile in filteredProfiles" 
+          :key="`${profile.platform}-${profile.code}`"
+          class="profile-card"
+        >
+          <div class="profile-card-header">
+            <div class="profile-icon">
+              <i :class="getPlatformIcon(profile.platform)"></i>
+            </div>
+            <div class="profile-details">
+              <h4>{{ profile.manufacturer }} {{ profile.model }}</h4>
+              <div class="profile-meta">
+                <span class="platform-badge">
+                  <i :class="getPlatformIcon(profile.platform)"></i>
+                  {{ formatPlatformName(profile.platform) }}
+                </span>
+                <span class="code-badge">Code: {{ profile.code }}</span>
+                <span v-if="profile.commandCount" class="command-count">
+                  <i class="mdi mdi-remote"></i>
+                  {{ profile.commandCount }} command{{ profile.commandCount !== 1 ? 's' : '' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="profile-card-actions">
+            <button @click="editProfile(profile.platform, profile)" class="action-btn" title="Edit">
+              <i class="mdi mdi-pencil"></i>
+            </button>
+            <button @click="downloadProfile(profile.platform, profile)" class="action-btn" title="Download">
+              <i class="mdi mdi-download"></i>
+            </button>
+            <button @click="deleteProfile(profile.platform, profile)" class="action-btn delete" title="Delete">
+              <i class="mdi mdi-delete"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div v-if="allProfiles.length > 0 && filteredProfiles.length === 0 && !simulatingNotInstalled" class="no-results">
+        <i class="mdi mdi-filter-off"></i>
+        <h3>No profiles match your filters</h3>
+        <p>Try adjusting your search or filter criteria</p>
+      </div>
+
     </div>
 
     <!-- SmartIR Not Installed -->
@@ -181,6 +234,7 @@
         </button>
       </div>
     </div>
+    </div>
 
     <!-- Confirm Delete Dialog -->
     <ConfirmDialog
@@ -211,10 +265,16 @@ const refreshSmartIR = inject('refreshSmartIR')
 const loading = ref(false)
 const error = ref(null)
 const status = ref(smartirStatus?.value || null)
+// Load simulation state from localStorage
+const simulatingNotInstalled = ref(localStorage.getItem('smartir_simulate_not_installed') === 'true')
 const showHelp = ref(false)
-const expandedPlatforms = ref({})
-const profiles = ref({})
-const loadingProfiles = ref({})
+const isExpanded = ref(true)
+const allProfiles = ref([])
+const loadingAllProfiles = ref(false)
+const filters = ref({
+  search: '',
+  platform: ''
+})
 const confirmDelete = ref({
   show: false,
   title: '',
@@ -233,23 +293,77 @@ const defaultBenefits = [
 // All supported SmartIR platforms
 const allPlatforms = ['climate', 'media_player', 'fan', 'light']
 
+// Display status that can be toggled for simulation
+const displayStatus = computed(() => {
+  if (simulatingNotInstalled.value) {
+    return {
+      installed: false,
+      recommendation: {
+        message: 'Install SmartIR to unlock climate device support!',
+        benefits: [
+          'Full climate entity support (AC, heaters)',
+          '120+ pre-configured device profiles',
+          'Temperature and humidity sensor integration',
+          'HVAC mode control (heat, cool, auto, dry, fan)'
+        ]
+      }
+    }
+  }
+  return status.value
+})
+
 const platformCount = computed(() => {
-  return status.value?.platforms?.length || 0
+  return displayStatus.value?.platforms?.length || 0
 })
 
 const totalDevices = computed(() => {
-  if (!status.value?.device_counts) return 0
-  return Object.values(status.value.device_counts).reduce((sum, count) => sum + count, 0)
+  if (!displayStatus.value?.device_counts) return 0
+  return Object.values(displayStatus.value.device_counts).reduce((sum, count) => sum + count, 0)
 })
 
-const displayPlatforms = computed(() => {
-  // Show all 4 platforms, mark which ones are installed
-  return allPlatforms.map(platform => ({
-    name: platform,
-    installed: status.value?.platforms?.includes(platform) || false,
-    deviceCount: status.value?.device_counts?.[platform] || 0
-  }))
+function toggleInstallSimulation() {
+  simulatingNotInstalled.value = !simulatingNotInstalled.value
+  // Persist to localStorage
+  localStorage.setItem('smartir_simulate_not_installed', simulatingNotInstalled.value.toString())
+  
+  // Reload profiles when toggling back to installed
+  if (!simulatingNotInstalled.value && status.value?.installed) {
+    loadAllProfiles()
+  }
+}
+
+const filteredProfiles = computed(() => {
+  let profiles = allProfiles.value
+
+  // Text search
+  if (filters.value.search) {
+    const searchLower = filters.value.search.toLowerCase()
+    profiles = profiles.filter(p => {
+      return (
+        p.manufacturer?.toLowerCase().includes(searchLower) ||
+        p.model?.toLowerCase().includes(searchLower) ||
+        p.code?.toString().includes(searchLower) ||
+        p.platform?.toLowerCase().includes(searchLower)
+      )
+    })
+  }
+
+  // Platform filter
+  if (filters.value.platform) {
+    profiles = profiles.filter(p => p.platform === filters.value.platform)
+  }
+
+  return profiles
 })
+
+const hasActiveFilters = computed(() => {
+  return filters.value.search || filters.value.platform
+})
+
+function clearFilters() {
+  filters.value.search = ''
+  filters.value.platform = ''
+}
 
 function getPlatformIcon(platform) {
   const icons = {
@@ -299,45 +413,31 @@ function viewDocumentation() {
   window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
 }
 
-async function togglePlatform(platform) {
-  // Accordion behavior - close all others
-  const wasExpanded = expandedPlatforms.value[platform]
-  
-  // Close all platforms
-  Object.keys(expandedPlatforms.value).forEach(key => {
-    expandedPlatforms.value[key] = false
-  })
-  
-  // Toggle current platform (opposite of what it was)
-  expandedPlatforms.value[platform] = !wasExpanded
-  
-  // Load profiles if expanding and not already loaded
-  if (expandedPlatforms.value[platform] && !profiles.value[platform]) {
-    await loadProfiles(platform)
-  }
-}
-
-async function loadProfiles(platform) {
-  loadingProfiles.value[platform] = true
+async function loadAllProfiles() {
+  loadingAllProfiles.value = true
+  const allProfilesData = []
   
   try {
-    const response = await fetch(`/api/smartir/platforms/${platform}/profiles`)
-    if (response.ok) {
-      const data = await response.json()
-      // Use Object.assign to ensure reactivity
-      profiles.value = {
-        ...profiles.value,
-        [platform]: data.profiles || []
+    // Load profiles from all platforms
+    for (const platform of allPlatforms) {
+      try {
+        const response = await fetch(`/api/smartir/platforms/${platform}/profiles`)
+        if (response.ok) {
+          const data = await response.json()
+          const platformProfiles = (data.profiles || []).map(p => ({
+            ...p,
+            platform
+          }))
+          allProfilesData.push(...platformProfiles)
+        }
+      } catch (err) {
+        console.error(`Error loading ${platform} profiles:`, err)
       }
     }
-  } catch (err) {
-    console.error(`Error loading ${platform} profiles:`, err)
-    profiles.value = {
-      ...profiles.value,
-      [platform]: []
-    }
+    
+    allProfiles.value = allProfilesData
   } finally {
-    loadingProfiles.value[platform] = false
+    loadingAllProfiles.value = false
   }
 }
 
@@ -403,17 +503,14 @@ async function handleDeleteConfirm() {
     })
     
     if (response.ok) {
-      // Reload profiles first
-      console.log('🔄 Reloading profiles for platform:', platform)
-      await loadProfiles(platform)
-      console.log('🔄 Updated profiles:', profiles.value[platform])
+      // Reload all profiles
+      await loadAllProfiles()
       
       // Wait for DOM update
       await nextTick()
       
       // Then refresh status
       await refreshStatus()
-      console.log('🔄 Status refreshed')
       
       // Show success toast after everything is updated
       toastRef.value?.success(
@@ -447,6 +544,11 @@ onMounted(async () => {
   if (!status.value) {
     await refreshStatus()
   }
+  
+  // Load all profiles if SmartIR is installed
+  if (status.value?.installed) {
+    await loadAllProfiles()
+  }
 })
 </script>
 
@@ -460,11 +562,21 @@ onMounted(async () => {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--ha-border-color);
-  background: var(--ha-card-header-background, var(--ha-card-background));
+  background: rgba(3, 169, 244, 0.12);
+  transition: background 0.2s;
+  user-select: none;
+  gap: 12px;
+}
+
+.card-header:hover {
+  background: rgba(3, 169, 244, 0.18);
+}
+
+.chevron-button {
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -472,6 +584,8 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  flex: 1;
+  cursor: pointer;
 }
 
 .header-left i {
@@ -516,6 +630,49 @@ onMounted(async () => {
 
 .status-badge-mini i {
   font-size: 14px;
+}
+
+/* Simulation Toggle Pill */
+.simulation-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.1);
+  color: var(--ha-text-secondary-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.simulation-toggle-pill:hover {
+  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.2);
+  transform: scale(1.05);
+}
+
+.simulation-toggle-pill.active {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  border-color: rgba(255, 152, 0, 0.3);
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+.simulation-toggle-pill i {
+  font-size: 14px;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
 }
 
 .header-info {
@@ -652,75 +809,290 @@ onMounted(async () => {
   color: var(--primary-text-color);
 }
 
-/* Platforms Section */
-.platforms-section {
-  margin-bottom: 24px;
+/* Filter Bar */
+.filter-bar {
+  padding: 16px;
+  background: rgba(var(--ha-primary-rgb), 0.03);
+  border-radius: 8px;
+  border: 1px solid var(--ha-border-color);
+  margin-bottom: 20px;
 }
 
-.platforms-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--primary-text-color);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.platform-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.platform-item {
+.filter-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
-  border-radius: 8px;
-  border: 1px solid var(--ha-border-color);
+  flex-wrap: wrap;
 }
 
-.platform-icon {
-  width: 40px;
-  height: 40px;
+.filter-group {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 300px;
+}
+
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ha-text-secondary-color);
+}
+
+.filter-group i {
+  font-size: 18px;
+  color: var(--ha-primary-color);
+}
+
+.filter-group select {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-group select:hover {
+  border-color: var(--ha-primary-color);
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
+}
+
+.filter-search {
+  flex: 1;
+  width: 100%;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--ha-surface-color);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
+  opacity: 0.7;
+}
+
+.search-input:hover {
+  border-color: var(--ha-primary-color);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
+}
+
+.btn-clear-filters {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 6px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-clear-filters:hover {
+  background: var(--ha-error-color);
+  color: white;
+  border-color: var(--ha-error-color);
+}
+
+.filter-results {
+  margin-left: auto;
+  padding: 8px 12px;
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ha-text-secondary-color);
+  font-weight: 500;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ha-text-secondary-color);
+}
+
+.empty-state i {
+  font-size: 64px;
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--ha-text-primary-color);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* No Results */
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ha-text-secondary-color);
+}
+
+.no-results i {
+  font-size: 64px;
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.no-results h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--ha-text-primary-color);
+}
+
+.no-results p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Profiles Grid */
+.profiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.profile-card {
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.profile-card:hover {
+  box-shadow: var(--ha-shadow-md);
+  border-color: var(--ha-primary-color);
+}
+
+.profile-card-header {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.profile-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-color);
-  color: white;
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
   border-radius: 8px;
 }
 
-.platform-icon i {
-  font-size: 20px;
+.profile-icon i {
+  font-size: 24px;
+  color: var(--ha-primary-color);
 }
 
-.platform-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.profile-details {
+  flex: 1;
+  min-width: 0;
 }
 
-.platform-name {
+.profile-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--primary-text-color);
+  color: var(--ha-text-primary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.platform-badge,
+.code-badge,
+.command-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.platform-badge {
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+  color: var(--ha-primary-color);
+}
+
+.platform-badge i {
   font-size: 14px;
 }
 
-.device-count {
-  font-size: 13px;
+.code-badge {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
   color: var(--ha-text-secondary-color);
 }
 
-.not-installed-label {
-  font-size: 12px;
-  color: var(--ha-text-secondary-color);
-  font-style: italic;
-  padding: 2px 8px;
-  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.1);
-  border-radius: 4px;
+.command-count {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.command-count i {
+  font-size: 14px;
+}
+
+.profile-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ha-border-color);
 }
 
 /* Benefits Section */
@@ -796,6 +1168,12 @@ onMounted(async () => {
   color: var(--primary-text-color);
 }
 
+.help-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+}
+
 /* Card Actions */
 .card-actions {
   display: flex;
@@ -861,155 +1239,19 @@ onMounted(async () => {
   }
 }
 
-/* Platform Cards */
-.platform-card {
-  background: var(--ha-card-background);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 12px;
-  transition: all 0.3s ease;
-}
-
-.platform-card.not-installed {
-  opacity: 0.6;
-  background: var(--ha-surface-color);
-}
-
-.platform-card.not-installed .platform-header {
-  cursor: default;
-}
-
-.platform-card.not-installed .platform-icon {
-  background: rgba(var(--ha-text-secondary-rgb, 128, 128, 128), 0.1);
-}
-
-.platform-card.not-installed .platform-icon i {
-  color: var(--ha-text-secondary-color);
-}
-
-.platform-card.expanded {
-  grid-column: 1 / -1;
-  max-width: 100%;
-}
-
-.platform-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.platform-header:hover {
-  background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
-}
-
-.platform-header .mdi-chevron-up,
-.platform-header .mdi-chevron-down {
-  margin-left: auto;
-  color: var(--secondary-text-color);
-  font-size: 20px;
-}
-
-/* Platform Profiles */
-.platform-profiles {
-  border-top: 1px solid var(--ha-border-color);
-  padding: 12px;
-  background: var(--ha-hover-background, rgba(0, 0, 0, 0.02));
-  animation: expandDown 0.3s ease-out;
-  overflow: hidden;
-}
-
-@keyframes expandDown {
-  from {
-    opacity: 0;
-    max-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-  to {
-    opacity: 1;
-    max-height: 1000px;
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-}
-
-.profiles-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 20px;
-  color: var(--secondary-text-color);
-}
-
-.spinner-small {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--ha-border-color);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.profile-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-}
-
-.profile-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--ha-card-background);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.profile-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-.profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.profile-name {
-  font-weight: 600;
-  color: var(--primary-text-color);
-  font-size: 14px;
-}
-
-.profile-code {
-  font-size: 12px;
-  color: var(--secondary-text-color);
-}
-
-.profile-actions {
-  display: flex;
-  gap: 4px;
-}
-
 .action-btn {
+  flex: 1;
   background: transparent;
   border: 1px solid var(--ha-border-color);
-  color: var(--primary-text-color);
+  color: var(--ha-text-primary-color);
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .action-btn:hover {
@@ -1019,32 +1261,12 @@ onMounted(async () => {
 }
 
 .action-btn.delete:hover {
-  background: var(--error-color, #f44336);
-  border-color: var(--error-color, #f44336);
+  background: var(--ha-error-color, #f44336);
+  border-color: var(--ha-error-color, #f44336);
 }
 
 .action-btn i {
-  font-size: 16px;
-}
-
-.no-profiles {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px;
-  color: var(--secondary-text-color);
-  text-align: center;
-}
-
-.no-profiles i {
-  font-size: 32px;
-  opacity: 0.5;
-}
-
-.no-profiles p {
-  margin: 0;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 /* Dark mode adjustments */

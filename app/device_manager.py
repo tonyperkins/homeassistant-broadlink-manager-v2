@@ -67,7 +67,7 @@ class DeviceManager:
             device_data: Device metadata
                 Required fields:
                 - name: Device display name
-                - entity_type: Entity type (climate, fan, media_player, switch)
+                - entity_type: Entity type (climate, fan, media_player, light, switch)
                 - device_type: 'broadlink' or 'smartir'
                 
                 For Broadlink devices:
@@ -102,8 +102,8 @@ class DeviceManager:
             device_data["device_type"] = device_type
             device_data["created_at"] = datetime.now().isoformat()
             
-            # Initialize commands for Broadlink devices
-            if device_type == "broadlink":
+            # Initialize commands for Broadlink devices (only if not already provided)
+            if device_type == "broadlink" and "commands" not in device_data:
                 device_data["commands"] = {}
 
             devices[device_id] = device_data
@@ -304,13 +304,16 @@ class DeviceManager:
     def generate_device_id(self, area_id: str, device_name: str) -> str:
         """
         Generate a device ID from area and device name
+        
+        Uses <area>_<device> format for new devices created via UI/API.
+        This makes device IDs intuitive and human-readable.
 
         Args:
-            area_id: Area identifier (e.g., "master_bedroom")
+            area_id: Area identifier (e.g., "master_bedroom" or "" for no area)
             device_name: Device name (e.g., "Stereo")
 
         Returns:
-            Device ID (e.g., "master_bedroom_stereo")
+            Device ID (e.g., "master_bedroom_stereo" or "stereo" if no area)
         """
         # Convert to lowercase and replace spaces/special chars with underscores
         clean_name = device_name.lower().replace(" ", "_")
@@ -319,7 +322,11 @@ class DeviceManager:
             filter(None, clean_name.split("_"))
         )  # Remove multiple underscores
 
-        return f"{area_id}_{clean_name}"
+        # If area is provided and not empty, use area_device format
+        # Otherwise just use device name (for adopted devices or no-area devices)
+        if area_id and area_id.strip():
+            return f"{area_id}_{clean_name}"
+        return clean_name
     
     def get_devices_by_type(self, device_type: str) -> Dict[str, Any]:
         """
@@ -379,7 +386,7 @@ class DeviceManager:
         
         # Validate entity_type for SmartIR
         entity_type = device_data.get("entity_type")
-        if entity_type not in ["climate", "fan", "media_player"]:
+        if entity_type not in ["climate", "fan", "media_player", "light"]:
             return False, f"Invalid entity_type for SmartIR: {entity_type}"
         
         # Validate device_code is numeric

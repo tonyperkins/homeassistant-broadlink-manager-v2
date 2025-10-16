@@ -397,6 +397,23 @@ You have several options to get them answered:
 
 You could also [open an issue here][issue] on GitHub.
 
+## 💬 Community & Support
+
+<p align="center">
+  <a href="https://www.reddit.com/r/homeassistant/comments/1o1q3kf/release_broadlink_manager_addon_a_modern_web_ui/">
+    <img src="https://img.shields.io/badge/Reddit-Announcement-FF4500?style=for-the-badge&logo=reddit&logoColor=white" alt="Reddit Announcement">
+  </a>
+  <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/discussions/1">
+    <img src="https://img.shields.io/badge/GitHub-Discussions-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions">
+  </a>
+</p>
+
+<p align="center">
+  Join the conversation! Share your experience, ask questions, or get help from the community.
+</p>
+
+---
+
 ## Contributing
 
 This is an active open-source project. We are always open to people who want to use the code or contribute to it.

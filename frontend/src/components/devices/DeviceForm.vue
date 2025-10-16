@@ -8,26 +8,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
-        <!-- Device Type Selection -->
-        <div class="form-group">
-          <label for="device-type">Device Type *</label>
-          <select
-            id="device-type"
-            v-model="formData.device_type"
-            required
-            :disabled="isEdit"
-          >
-            <option value="">-- Select Device Type --</option>
-            <option value="broadlink">📡 Broadlink Device (Learn IR Codes)</option>
-            <option value="smartir" :disabled="!smartirInstalled">
-              🌐 SmartIR Device {{ smartirInstalled ? '(Pre-configured Codes)' : '(Requires SmartIR)' }}
-            </option>
-          </select>
-          <small v-if="!isEdit">Choose how to control this device</small>
-          <small v-else>Device type cannot be changed after creation</small>
-        </div>
-
+      <form id="device-form" @submit.prevent="handleSubmit" class="modal-body">
         <div class="form-group">
           <label for="device-name">Device Name *</label>
           <input
@@ -79,9 +60,38 @@
             </div>
           </div>
           
-          <small v-else-if="!smartirInstalled">
-            💡 Tip: Install <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="inline-link">SmartIR</a> for climate device support
+          <!-- SmartIR Optional Notice for other supported types -->
+          <div v-else-if="smartirInstalled && ['media_player', 'fan', 'light'].includes(formData.entity_type)" class="smartir-notice">
+            <div class="notice-info">
+              <i class="mdi mdi-information"></i>
+              <span>💡 SmartIR available! You can use pre-configured codes or learn your own.</span>
+            </div>
+          </div>
+          
+          <small v-else-if="!smartirInstalled && formData.entity_type">
+            💡 Tip: Install <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="inline-link">SmartIR</a> for pre-configured {{ formData.entity_type === 'climate' ? 'climate' : formData.entity_type }} device codes
           </small>
+        </div>
+
+        <!-- Device Type Selection -->
+        <div class="form-group">
+          <label for="device-type">Device Type *</label>
+          <select
+            id="device-type"
+            v-model="formData.device_type"
+            required
+            :disabled="isEdit"
+          >
+            <option value="">-- Select Device Type --</option>
+            <option value="broadlink">📡 Broadlink Device (Learn IR Codes)</option>
+            <option value="smartir" :disabled="!smartirInstalled || !isSmartIRSupported">
+              🌐 SmartIR Device {{ getSmartIROptionLabel }}
+            </option>
+          </select>
+          <small v-if="isEdit">Cannot change device type after creation</small>
+          <small v-else-if="formData.device_type === 'smartir'">Using pre-configured codes from SmartIR repository</small>
+          <small v-else-if="formData.device_type === 'broadlink'">Learn and store your own IR codes</small>
+          <small v-else>Choose how to configure this device</small>
         </div>
 
         <div class="form-group">
@@ -152,17 +162,17 @@
             @change="handleSmartIRChange"
           />
         </div>
-
-        <div class="modal-footer">
-          <button type="button" @click="$emit('cancel')" class="btn btn-secondary">
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-primary">
-            <i class="mdi mdi-check"></i>
-            {{ isEdit ? 'Update' : 'Create' }}
-          </button>
-        </div>
       </form>
+
+      <div class="modal-footer">
+        <button type="button" @click="$emit('cancel')" class="btn btn-secondary">
+          Cancel
+        </button>
+        <button type="submit" form="device-form" class="btn btn-primary">
+          <i class="mdi mdi-check"></i>
+          {{ isEdit ? 'Update' : 'Create' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -184,9 +194,31 @@ const emit = defineEmits(['save', 'cancel'])
 
 // Inject SmartIR status
 const smartirStatus = inject('smartirStatus')
-const smartirInstalled = computed(() => smartirStatus?.value?.installed || false)
+const smartirInstalled = computed(() => {
+  // Check if simulating not-installed
+  const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
+  if (isSimulating) return false
+  return smartirStatus?.value?.installed || false
+})
 
 const isEdit = computed(() => !!props.device)
+
+// Check if current entity type supports SmartIR
+const isSmartIRSupported = computed(() => {
+  const supportedTypes = ['climate', 'media_player', 'fan', 'light']
+  return supportedTypes.includes(formData.value.entity_type)
+})
+
+// Get SmartIR option label based on installation and entity type support
+const getSmartIROptionLabel = computed(() => {
+  if (!smartirInstalled.value) {
+    return '(Requires SmartIR)'
+  }
+  if (!isSmartIRSupported.value && formData.value.entity_type) {
+    return '(Not supported for this type)'
+  }
+  return '(Pre-configured Codes)'
+})
 
 const hasCommands = computed(() => {
   const commands = props.device?.commands || {}
@@ -204,9 +236,11 @@ const formData = ref({
   name: '',
   entity_type: '',
   device_type: 'broadlink', // Default to broadlink
+  device: '', // Storage name for Broadlink devices
   area: '',
   icon: '',
   broadlink_entity: '',
+  enabled: true,
   commands: {}
 })
 
@@ -475,6 +509,7 @@ const handleSmartIRChange = (data) => {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .form-group {
@@ -556,6 +591,19 @@ const handleSmartIRChange = (data) => {
   opacity: 0.9;
 }
 
+.notice-info {
+  background: rgba(3, 169, 244, 0.1);
+  border: 1px solid rgba(3, 169, 244, 0.3);
+  color: #03a9f4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice-info i {
+  font-size: 20px;
+}
+
 .smartir-link {
   color: var(--ha-primary-color);
   text-decoration: none;
@@ -596,8 +644,10 @@ const handleSmartIRChange = (data) => {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding-top: 20px;
+  padding: 20px 24px;
   border-top: 1px solid var(--ha-border-color);
+  background: var(--ha-card-background);
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

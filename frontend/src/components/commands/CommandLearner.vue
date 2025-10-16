@@ -352,10 +352,25 @@ const loadLearnedCommands = async () => {
         learnedCommands.value = Object.keys(commands)
       }
     } else {
-      // For Broadlink devices, load learned commands
-      const response = await api.get(`/api/commands/${props.device.id}`)
-      const commands = response.data.commands || {}
-      learnedCommands.value = Object.keys(commands)
+      // For Broadlink devices, check if commands are already in the device object (for new/adopted devices)
+      console.log('📋 Loading commands for device:', props.device)
+      console.log('📋 Device commands:', props.device.commands)
+      console.log('📋 Device ID:', props.device.id)
+      
+      if (props.device.commands && Object.keys(props.device.commands).length > 0) {
+        console.log('✅ Using commands from device object')
+        learnedCommands.value = Object.keys(props.device.commands)
+      } else if (props.device.id) {
+        // Only fetch from API if device has an ID (saved device)
+        console.log('🌐 Fetching commands from API for device ID:', props.device.id)
+        const response = await api.get(`/api/commands/${props.device.id}`)
+        const commands = response.data.commands || {}
+        learnedCommands.value = Object.keys(commands)
+      } else {
+        console.log('⚠️ No commands found and no device ID')
+      }
+      
+      console.log('📋 Final learned commands:', learnedCommands.value)
     }
   } catch (error) {
     console.error('Error loading commands:', error)
@@ -621,6 +636,7 @@ const handleImportConfirm = async () => {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .smartir-info {
@@ -932,8 +948,10 @@ const handleImportConfirm = async () => {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding: 24px;
+  padding: 20px 24px;
   border-top: 1px solid var(--ha-border-color);
+  background: var(--ha-card-background);
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

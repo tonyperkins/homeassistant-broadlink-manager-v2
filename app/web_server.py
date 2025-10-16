@@ -755,20 +755,39 @@ class BroadlinkWebServer:
         @self.app.route("/api/devices/managed", methods=["POST"])
         def create_managed_device():
             """Create a new managed device"""
+            print("=" * 80)
+            print("🔵 POST /api/devices/managed endpoint hit!")
+            print("=" * 80)
+            logger.info("🔵 POST /api/devices/managed endpoint hit!")
             try:
                 data = request.get_json()
+                logger.info(f"📥 Received device creation request: {data}")
+                
                 device_name = data.get("device_name")
-                area_id = data.get("area_id")
-                area_name = data.get("area_name")
+                storage_name = data.get("device")  # Storage name for adopted devices
+                area_id = data.get("area_id", "")  # Allow empty area
+                area_name = data.get("area_name", "")
                 entity_type = data.get("entity_type")
                 icon = data.get("icon")
                 broadlink_entity = data.get("broadlink_entity")
 
-                if not all([device_name, area_id, entity_type, broadlink_entity]):
-                    return jsonify({"error": "Missing required fields"}), 400
+                logger.info(f"📥 Parsed fields - device_name: {device_name}, storage_name: {storage_name}, entity_type: {entity_type}, broadlink_entity: {broadlink_entity}")
 
-                # Generate device ID
-                device_id = self.device_manager.generate_device_id(area_id, device_name)
+                # Validate required fields (area is optional)
+                if not device_name:
+                    logger.error(f"❌ Validation failed: device_name is missing or empty")
+                    return jsonify({"error": "Device name is required"}), 400
+                if not entity_type:
+                    return jsonify({"error": "Entity type is required"}), 400
+                if not broadlink_entity:
+                    return jsonify({"error": "Broadlink device is required"}), 400
+
+                # Use storage name as device ID if provided (adopted device)
+                # Otherwise generate new ID from area + device name
+                if storage_name:
+                    device_id = storage_name
+                else:
+                    device_id = self.device_manager.generate_device_id(area_id, device_name)
 
                 # Create device data
                 device_data = {
@@ -1003,7 +1022,17 @@ class BroadlinkWebServer:
         async with aiohttp.ClientSession() as session:
             if method.upper() == "GET":
                 async with session.get(url, headers=headers) as response:
-                    logger.info(f"Response status: {response.status}")
+                    # Color-coded status logging
+                    status = response.status
+                    if status == 200:
+                        logger.info(f"✅ Response status: {status}")
+                    elif 400 <= status < 500:
+                        logger.warning(f"⚠️  Response status: {status} (Client Error)")
+                    elif status >= 500:
+                        logger.error(f"❌ Response status: {status} (Server Error)")
+                    else:
+                        logger.info(f"ℹ️  Response status: {status}")
+                    
                     if response.status == 200:
                         result = await response.json()
                         logger.info(
@@ -1017,7 +1046,17 @@ class BroadlinkWebServer:
                         return {}
             elif method.upper() == "POST":
                 async with session.post(url, headers=headers, json=data) as response:
-                    logger.info(f"POST Response status: {response.status}")
+                    # Color-coded status logging
+                    status = response.status
+                    if status == 200:
+                        logger.info(f"✅ POST Response status: {status}")
+                    elif 400 <= status < 500:
+                        logger.warning(f"⚠️  POST Response status: {status} (Client Error)")
+                    elif status >= 500:
+                        logger.error(f"❌ POST Response status: {status} (Server Error)")
+                    else:
+                        logger.info(f"ℹ️  POST Response status: {status}")
+                    
                     response_text = await response.text()
                     logger.info(f"POST Response body: {response_text}")
                     if response.status == 200:

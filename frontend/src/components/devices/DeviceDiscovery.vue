@@ -44,10 +44,15 @@
                   </span>
                 </div>
               </div>
-              <button @click="adoptDevice(device)" class="btn btn-primary">
-                <i class="mdi mdi-plus"></i>
-                Adopt
-              </button>
+              <div class="device-actions">
+                <button @click="adoptDevice(device)" class="btn btn-primary">
+                  <i class="mdi mdi-plus"></i>
+                  Adopt
+                </button>
+                <button @click="confirmDeleteDevice(device)" class="btn btn-danger" title="Delete all commands">
+                  <i class="mdi mdi-delete"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -59,17 +64,56 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
+      <div class="modal-dialog modal-dialog-small">
+        <div class="modal-header">
+          <h2>Delete Untracked Device</h2>
+          <button @click="showDeleteConfirm = false" class="close-btn">
+            <i class="mdi mdi-close"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="warning-message">
+            <i class="mdi mdi-alert"></i>
+            <div>
+              <p><strong>Are you sure you want to delete "{{ deviceToDelete?.device_name }}"?</strong></p>
+              <p>This will permanently delete all {{ deviceToDelete?.command_count }} command{{ deviceToDelete?.command_count > 1 ? 's' : '' }} from Broadlink storage.</p>
+              <p class="warning-text">This action cannot be undone.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="showDeleteConfirm = false" class="btn btn-secondary" :disabled="deleting">
+            Cancel
+          </button>
+          <button @click="deleteDevice" class="btn btn-danger" :disabled="deleting">
+            <i class="mdi" :class="deleting ? 'mdi-loading mdi-spin' : 'mdi-delete'"></i>
+            {{ deleting ? 'Deleting...' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useToast } from '@/composables/useToast'
 import api from '@/services/api'
+
+const toast = useToast()
 
 const emit = defineEmits(['adopt'])
 
 const untrackedDevices = ref([])
 const showDiscovery = ref(false)
+const showDeleteConfirm = ref(false)
+const deviceToDelete = ref(null)
+const deleting = ref(false)
 
 const hasUntrackedDevices = computed(() => untrackedDevices.value.length > 0)
 
@@ -90,6 +134,42 @@ const loadUntrackedDevices = async () => {
 const adoptDevice = (device) => {
   showDiscovery.value = false
   emit('adopt', device)
+}
+
+const confirmDeleteDevice = (device) => {
+  deviceToDelete.value = device
+  showDeleteConfirm.value = true
+}
+
+const deleteDevice = async () => {
+  if (!deviceToDelete.value) return
+  
+  deleting.value = true
+  
+  try {
+    const response = await api.delete(`/api/devices/untracked/${encodeURIComponent(deviceToDelete.value.device_name)}`)
+    
+    if (response.data.success) {
+      // Remove from list
+      untrackedDevices.value = untrackedDevices.value.filter(
+        d => d.device_name !== deviceToDelete.value.device_name
+      )
+      
+      // Close modals
+      showDeleteConfirm.value = false
+      deviceToDelete.value = null
+      
+      // Show success message (you can add a toast notification here)
+      console.log('Device deleted successfully')
+    } else {
+      throw new Error(response.data.error || 'Failed to delete device')
+    }
+  } catch (error) {
+    console.error('Error deleting device:', error)
+    toast.error(`Failed to delete device: ${error.message}`)
+  } finally {
+    deleting.value = false
+  }
 }
 
 // Expose method to refresh from parent
@@ -222,6 +302,7 @@ defineExpose({
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .info-text {
@@ -255,6 +336,12 @@ defineExpose({
 .discovered-device:hover {
   border-color: var(--ha-primary-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.device-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .device-info {
@@ -303,6 +390,8 @@ defineExpose({
   border-top: 1px solid var(--ha-border-color);
   display: flex;
   justify-content: flex-end;
+  background: var(--ha-card-background);
+  flex-shrink: 0;
 }
 
 .btn {
@@ -339,5 +428,55 @@ defineExpose({
 
 .btn i {
   font-size: 18px;
+}
+
+.btn-danger {
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  padding: 10px 12px;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #d32f2f;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-dialog-small {
+  max-width: 500px;
+}
+
+.warning-message {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(var(--ha-error-rgb, 244, 67, 54), 0.1);
+  border-left: 3px solid var(--ha-error-color, #f44336);
+  border-radius: 4px;
+}
+
+.warning-message i {
+  font-size: 24px;
+  color: var(--ha-error-color, #f44336);
+  flex-shrink: 0;
+}
+
+.warning-message p {
+  margin: 0 0 8px 0;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.warning-message p:last-child {
+  margin-bottom: 0;
+}
+
+.warning-text {
+  color: var(--ha-error-color, #f44336);
+  font-weight: 500;
 }
 </style>

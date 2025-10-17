@@ -246,12 +246,12 @@ const loadModels = async (manufacturer) => {
       models.value = modelData.map(model => {
         const modelNames = model.models && model.models.length > 0 
           ? model.models.join(', ') 
-          : `Code ${model.code_id}`
+          : `Code ${model.code}`
         
         return {
-          code_id: model.code_id,
+          code: model.code,
           label: modelNames,  // Show model names as label
-          description: `Code: ${model.code_id}`,  // Show code as description
+          description: `Code: ${model.code}`,  // Show code as description
           models: model.models,
           controller: model.controller
         }

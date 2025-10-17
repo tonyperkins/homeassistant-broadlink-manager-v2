@@ -97,13 +97,17 @@ docker run -d \\
 
 ## 📸 Screenshots
 
-Check out the full gallery in the [repository](https://github.com/tonyperkins/homeassistant-broadlink-manager-v2#screenshots) including:
+### Light Theme
+![Dashboard Overview](https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager-v2/main/docs/images/screenshots/dashboard-overview.png)
 
-- **Dashboard Overview** - Modern interface with SmartIR integration
-- **Device Management** - Manage all your Broadlink and SmartIR devices
-- **SmartIR Device Setup** - Use pre-configured device profiles
-- **Command Learning** - Learn IR/RF commands from your remotes
-- **Mobile Responsive** - Works beautifully on all devices
+![Device Management](https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager-v2/main/docs/images/screenshots/device-list.png)
+
+### Dark Theme
+![Dark Mode Dashboard](https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager-v2/main/docs/images/screenshots/dashboard-dark.png)
+
+![Dark Mode Device List](https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager-v2/main/docs/images/screenshots/device-list-dark.png)
+
+*View the [full gallery](https://github.com/tonyperkins/homeassistant-broadlink-manager-v2#screenshots) including mobile and tablet views*
 
 ## 🆕 Latest Updates
 

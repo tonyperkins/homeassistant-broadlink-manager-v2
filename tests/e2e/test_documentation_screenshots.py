@@ -186,3 +186,61 @@ class TestDocumentationScreenshots:
             path=str(docs_screenshot_dir / "tablet-dashboard.png"),
             full_page=False
         )
+    
+    def test_12_dashboard_dark_mode(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture dashboard in dark mode"""
+        page.goto(base_url)
+        page.wait_for_load_state("networkidle")
+        
+        # Click settings to open menu
+        settings_btn = page.locator("button[aria-label='Settings'], .settings-icon, i.mdi-cog")
+        if settings_btn.is_visible():
+            settings_btn.click()
+            page.wait_for_timeout(500)
+            
+            # Click dark theme option
+            dark_theme_btn = page.locator("button:has-text('Dark'), [data-theme='dark']")
+            if dark_theme_btn.is_visible():
+                dark_theme_btn.click()
+                page.wait_for_timeout(1000)
+                
+                # Close settings menu
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(500)
+                
+                # Capture dark mode dashboard
+                page.screenshot(
+                    path=str(docs_screenshot_dir / "dashboard-dark.png"),
+                    full_page=True
+                )
+    
+    def test_13_device_list_dark_mode(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture device list in dark mode"""
+        page.goto(base_url)
+        page.wait_for_load_state("networkidle")
+        
+        # Switch to dark mode
+        settings_btn = page.locator("button[aria-label='Settings'], .settings-icon, i.mdi-cog")
+        if settings_btn.is_visible():
+            settings_btn.click()
+            page.wait_for_timeout(500)
+            
+            dark_theme_btn = page.locator("button:has-text('Dark'), [data-theme='dark']")
+            if dark_theme_btn.is_visible():
+                dark_theme_btn.click()
+                page.wait_for_timeout(1000)
+                
+                # Close settings and navigate to devices
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(500)
+        
+        # Navigate to devices page
+        page.goto(f"{base_url}/#/devices")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1000)
+        
+        # Capture dark mode device list
+        page.screenshot(
+            path=str(docs_screenshot_dir / "device-list-dark.png"),
+            full_page=True
+        )

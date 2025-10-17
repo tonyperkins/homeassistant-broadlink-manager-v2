@@ -127,11 +127,11 @@
             <span class="command-type-badge" :class="localCommandType">
               {{ localCommandType.toUpperCase() }}
             </span>
-            <button @click="deleteCommand(cmd.key)" class="icon-btn danger" title="Delete and re-learn" style="margin-left:auto">
-              <i class="mdi mdi-delete"></i>
-            </button>
-            <button @click="testCommand(cmd.key)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.key">
+            <button @click="testCommand(cmd.key)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.key" style="margin-left:auto">
               <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.key }"></i>
+            </button>
+            <button @click="deleteCommand(cmd.key)" class="icon-btn danger" title="Delete and re-learn" >
+              <i class="mdi mdi-delete"></i>
             </button>
           </div>
         </div>

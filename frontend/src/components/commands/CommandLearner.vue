@@ -473,6 +473,21 @@ const testCommand = async (command) => {
       ? props.device.controller_device 
       : (selectedBroadlink.value || props.device.broadlink_entity)
     
+    // Validate required fields
+    if (!entityId) {
+      console.error('Missing entity_id for test command:', {
+        isSmartIR: isSmartIR.value,
+        controller_device: props.device.controller_device,
+        broadlink_entity: props.device.broadlink_entity,
+        selectedBroadlink: selectedBroadlink.value,
+        device: props.device
+      })
+      resultMessage.value = 'Missing Broadlink remote entity. Please select a Broadlink device.'
+      resultType.value = 'error'
+      testingCommand.value = ''
+      return
+    }
+    
     const response = await api.post('/api/commands/test', {
       entity_id: entityId,
       device: deviceName,

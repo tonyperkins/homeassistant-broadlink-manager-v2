@@ -73,6 +73,11 @@ def _extract_command_names(commands_obj, prefix=''):
 
 def init_smartir_routes(smartir_detector, smartir_code_service=None):
     """Initialize SmartIR routes with detector instance and code service"""
+    
+    # Check if routes are already registered (for testing)
+    if len(smartir_bp.deferred_functions) > 0:
+        # Routes already registered, just return the blueprint
+        return smartir_bp
 
     @smartir_bp.route("/status", methods=["GET"])
     def get_status():

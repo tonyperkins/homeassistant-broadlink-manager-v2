@@ -639,6 +639,13 @@ watch(() => props.editData, async (newData) => {
       console.log('🔍 Inferred light features:', features)
     }
     
+    // Fetch learned commands from Broadlink storage to replace "pending" placeholders
+    const mergedCommands = await fetchLearnedCommandsForEdit(
+      profileData.manufacturer,
+      profileData.supportedModels?.[0],
+      commands
+    )
+    
     profile.value = {
       platform: newData.platform,
       manufacturer: profileData.manufacturer || '',
@@ -646,12 +653,13 @@ watch(() => props.editData, async (newData) => {
       broadlinkDevice: controllerData || '',
       commandType: inferredCommandType,
       config: config,
-      commands: commands
+      commands: mergedCommands
     }
     
     console.log('✅ Profile populated:', profile.value)
     console.log('✅ Selected device:', profile.value.broadlinkDevice)
     console.log('✅ Command type:', profile.value.commandType)
+    console.log('✅ Commands (with learned codes):', mergedCommands)
     
     // Set the previous command type tracker
     previousCommandType.value = inferredCommandType
@@ -689,11 +697,47 @@ const canProceed = computed(() => {
   }
 })
 
-const generatedJson = computed(() => {
-  if (currentStep.value !== 3) return null
+const generatedJson = ref(null)
+
+async function updateGeneratedJson() {
+  if (currentStep.value !== 3) {
+    generatedJson.value = null
+    return
+  }
   
-  return generateSmartIRJson(profile.value)
-})
+  console.log('🔍 Generating JSON with commands:', profile.value.commands)
+  
+  // Check if any commands are still "pending"
+  const hasPending = Object.values(profile.value.commands).some(cmd => {
+    if (typeof cmd === 'string') return cmd === 'pending'
+    if (typeof cmd === 'object') {
+      return Object.values(cmd).some(v => {
+        if (typeof v === 'string') return v === 'pending'
+        if (typeof v === 'object') return Object.values(v).some(vv => vv === 'pending')
+        return false
+      })
+    }
+    return false
+  })
+  
+  if (hasPending) {
+    console.warn('⚠️ Commands still contain "pending" placeholders!')
+    console.log('📦 Attempting to fetch from Broadlink storage...')
+    
+    // Fetch learned commands from storage
+    const mergedCommands = await fetchLearnedCommandsForEdit(
+      profile.value.manufacturer,
+      profile.value.model,
+      profile.value.commands
+    )
+    
+    profile.value.commands = mergedCommands
+    console.log('✅ Updated commands:', mergedCommands)
+  }
+  
+  generatedJson.value = generateSmartIRJson(profile.value)
+  console.log('📄 Generated JSON:', generatedJson.value)
+}
 
 const generatedYaml = computed(() => {
   if (currentStep.value !== 3) return null
@@ -722,9 +766,14 @@ function cancelCommandTypeChange() {
   pendingCommandType.value = ''
 }
 
-function nextStep() {
-  if (canProceed.value && currentStep.value < steps.length - 1) {
+async function nextStep() {
+  if (currentStep.value < steps.length - 1) {
     currentStep.value++
+    
+    // If moving to preview step, fetch learned commands
+    if (currentStep.value === 3) {
+      await updateGeneratedJson()
+    }
   }
 }
 
@@ -929,12 +978,68 @@ function downloadLocally() {
   }
 }
 
+async function fetchLearnedCommandsForEdit(manufacturer, model, commands) {
+  // Create device name from manufacturer and model (same as CommandLearningWizard)
+  const mfr = manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+  const mdl = model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
+  const deviceName = `${mfr}_${mdl}`
+  
+  try {
+    // Fetch all Broadlink commands
+    const response = await fetch('/api/commands/all')
+    if (!response.ok) {
+      console.error('Failed to fetch commands from Broadlink storage')
+      return commands // Return original commands if fetch fails
+    }
+    
+    const data = await response.json()
+    const deviceCommands = data[deviceName] || {}
+    
+    console.log(`🔍 Fetching learned commands for device: ${deviceName}`)
+    console.log('📦 Device commands from storage:', deviceCommands)
+    
+    // Merge learned commands with profile commands
+    // Replace "pending" placeholders with actual learned codes
+    const mergedCommands = { ...commands }
+    
+    for (const [key, value] of Object.entries(mergedCommands)) {
+      if (value === 'pending' && deviceCommands[key]) {
+        mergedCommands[key] = deviceCommands[key]
+      } else if (typeof value === 'object') {
+        // Handle nested commands (climate temperature-based commands)
+        for (const [tempKey, tempValue] of Object.entries(value)) {
+          if (typeof tempValue === 'object') {
+            for (const [fanKey, fanValue] of Object.entries(tempValue)) {
+              const commandKey = `${key}_${tempKey}_${fanKey}`
+              if (fanValue === 'pending' && deviceCommands[commandKey]) {
+                mergedCommands[key][tempKey][fanKey] = deviceCommands[commandKey]
+              }
+            }
+          } else if (tempValue === 'pending') {
+            const commandKey = `${key}_${tempKey}`
+            if (deviceCommands[commandKey]) {
+              mergedCommands[key][tempKey] = deviceCommands[commandKey]
+            }
+          }
+        }
+      }
+    }
+    
+    console.log('✅ Merged commands:', mergedCommands)
+    return mergedCommands
+  } catch (error) {
+    console.error('Error fetching learned commands:', error)
+    return commands // Return original commands if error
+  }
+}
+
 function generateSmartIRJson(profile) {
   const json = {
     manufacturer: profile.manufacturer,
     supportedModels: [profile.model],
     supportedController: "Broadlink",
     commandsEncoding: "Base64",
+    commandType: profile.commandType || 'ir',  // Store IR or RF type
     commands: {}
   }
   

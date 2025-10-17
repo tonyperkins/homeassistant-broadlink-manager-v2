@@ -155,49 +155,14 @@
 
       <!-- Profile Cards Grid -->
       <div v-else-if="!simulatingNotInstalled" class="profiles-grid">
-        <div 
-          v-for="profile in filteredProfiles" 
+        <SmartIRProfileCard
+          v-for="profile in filteredProfiles"
           :key="`${profile.platform}-${profile.code}`"
-          class="profile-card"
-        >
-          <div class="profile-card-header">
-            <div class="profile-icon">
-              <i :class="getPlatformIcon(profile.platform)"></i>
-            </div>
-            <div class="profile-details">
-              <h4>{{ profile.manufacturer }} {{ profile.model }}</h4>
-              <div class="profile-meta">
-                <span class="platform-badge">
-                  <i :class="getPlatformIcon(profile.platform)"></i>
-                  {{ formatPlatformName(profile.platform) }}
-                </span>
-                <span class="code-badge">Code: {{ profile.code }}</span>
-                <span v-if="profile.controllerBrand" class="controller-badge">
-                  <i class="mdi mdi-remote"></i>
-                  {{ profile.controllerBrand }}
-                </span>
-                <span v-if="profile.commandCount" class="command-count" :class="{ 'has-learned': profile.learnedCount > 0 }">
-                  <i class="mdi mdi-code-braces"></i>
-                  {{ profile.commandCount }} command{{ profile.commandCount !== 1 ? 's' : '' }}
-                  <span v-if="profile.learnedCount > 0" class="learned-indicator">
-                    ({{ profile.learnedCount }} learned)
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="profile-card-actions">
-            <button @click="editProfile(profile.platform, profile)" class="action-btn" title="Edit">
-              <i class="mdi mdi-pencil"></i>
-            </button>
-            <button @click="downloadProfile(profile.platform, profile)" class="action-btn" title="Download">
-              <i class="mdi mdi-download"></i>
-            </button>
-            <button @click="deleteProfile(profile.platform, profile)" class="action-btn delete" title="Delete">
-              <i class="mdi mdi-delete"></i>
-            </button>
-          </div>
-        </div>
+          :profile="profile"
+          @edit="editProfile(profile.platform, profile)"
+          @download="downloadProfile(profile.platform, profile)"
+          @delete="deleteProfile(profile.platform, profile)"
+        />
       </div>
 
       <!-- No Results -->
@@ -265,6 +230,7 @@
 import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import SmartIRProfileCard from './SmartIRProfileCard.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
 
 const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'])

@@ -115,23 +115,27 @@
         <div v-if="learnedCommands.length > 0" class="learned-commands">
           <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
           <div class="command-list">
-            <div v-for="cmd in learnedCommands" :key="cmd" class="command-item" :class="{ 'testing': testingCommand === cmd, 'tested': testedCommand === cmd }">
-              <span class="command-name">{{ cmd }}</span>
+            <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
+              <div class="command-info">
+                <span class="command-name">{{ cmd.name }}</span>
+              </div>
               
-              <!-- Inline status messages -->
-              <span v-if="testingCommand === cmd" class="command-status testing">
-                <i class="mdi mdi-loading mdi-spin"></i> Sending...
-              </span>
-              <span v-else-if="testedCommand === cmd" class="command-status success">
-                <i class="mdi mdi-check-circle"></i> Sent!
-              </span>
+              <!-- Learned status with IR/RF badge -->
+              <div class="learned-status">
+                <i class="mdi mdi-check-circle"></i>
+                <span>Learned</span>
+                <span class="command-type-badge" :class="cmd.type || 'ir'">
+                  {{ (cmd.type || 'ir').toUpperCase() }}
+                </span>
+              </div>
               
+              <!-- Action buttons -->
               <div class="command-actions">
-                <button type="button" @click="testCommand(cmd)" class="icon-btn" title="Test" :disabled="testingCommand !== ''">
-                  <i class="mdi mdi-play"></i>
-                </button>
-                <button type="button" @click="deleteCommand(cmd)" class="icon-btn danger" title="Delete" :disabled="testingCommand !== ''">
+                <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
                   <i class="mdi mdi-delete"></i>
+                </button>
+                <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
+                  <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
                 </button>
               </div>
             </div>
@@ -349,7 +353,11 @@ const loadLearnedCommands = async () => {
       
       if (response.data.success && response.data.code) {
         const commands = response.data.code.commands || {}
-        learnedCommands.value = Object.keys(commands)
+        const commandType = response.data.code.commandType || 'ir'  // Get type from profile
+        learnedCommands.value = Object.keys(commands).map(name => ({
+          name,
+          type: commandType  // Use the type from the profile (ir or rf)
+        }))
       }
     } else {
       // For Broadlink devices, check if commands are already in the device object (for new/adopted devices)
@@ -359,13 +367,19 @@ const loadLearnedCommands = async () => {
       
       if (props.device.commands && Object.keys(props.device.commands).length > 0) {
         console.log('✅ Using commands from device object')
-        learnedCommands.value = Object.keys(props.device.commands)
+        learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => ({
+          name,
+          type: data.command_type || data.type || 'ir'
+        }))
       } else if (props.device.id) {
         // Only fetch from API if device has an ID (saved device)
         console.log('🌐 Fetching commands from API for device ID:', props.device.id)
         const response = await api.get(`/api/commands/${props.device.id}`)
         const commands = response.data.commands || {}
-        learnedCommands.value = Object.keys(commands)
+        learnedCommands.value = Object.entries(commands).map(([name, data]) => ({
+          name,
+          type: data.command_type || data.type || 'ir'
+        }))
       } else {
         console.log('⚠️ No commands found and no device ID')
       }
@@ -811,10 +825,17 @@ const handleImportConfirm = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  background: var(--ha-surface-color);
+  padding: 16px;
+  background: var(--ha-card-background);
   border-radius: 8px;
-  border: 1px solid var(--ha-border-color);
+  border: 2px solid #4caf50;
+}
+
+.command-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .command-name {
@@ -837,37 +858,79 @@ const handleImportConfirm = async () => {
   border-color: var(--ha-warning-color, #ff9800);
 }
 
-.command-item.testing {
-  background: rgba(3, 169, 244, 0.08);
-  border-color: #03a9f4;
-}
-
-.command-item.tested {
-  background: rgba(76, 175, 80, 0.08);
-  border-color: #4caf50;
-}
-
-.command-status {
+.learned-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  margin-left: auto;
-  margin-right: 8px;
-}
-
-.command-status.testing {
-  background: rgba(3, 169, 244, 0.15);
-  color: #03a9f4;
-}
-
-.command-status.success {
-  background: rgba(76, 175, 80, 0.15);
+  gap: 8px;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.1);
+  border-radius: 6px;
   color: #4caf50;
-  animation: fadeIn 0.3s ease-in;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.learned-status i {
+  font-size: 20px;
+}
+
+.command-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.command-type-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.command-type-badge.ir {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+}
+
+.command-type-badge.rf {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.icon-btn {
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  color: var(--ha-text-primary-color);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  background: var(--ha-error-color);
+  border-color: var(--ha-error-color);
+  color: white;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-btn i {
+  font-size: 18px;
 }
 
 @keyframes fadeIn {
@@ -899,15 +962,21 @@ const handleImportConfirm = async () => {
   gap: 4px;
 }
 
-.icon-btn:hover {
-  background: var(--ha-hover-color);
+.icon-btn:hover:not(:disabled) {
+  background: var(--ha-primary-color);
   border-color: var(--ha-primary-color);
+  color: white;
 }
 
-.icon-btn.danger:hover {
-  background: rgba(var(--ha-error-rgb), 0.1);
+.icon-btn.danger:hover:not(:disabled) {
+  background: var(--ha-error-color);
   border-color: var(--ha-error-color);
-  color: var(--ha-error-color);
+  color: white;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .custom-command-input {

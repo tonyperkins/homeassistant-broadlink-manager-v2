@@ -26,12 +26,13 @@ class SmartIRCodeService:
     DEVICE_INDEX_URL = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/smartir_device_index.json"
     CACHE_TTL_HOURS = 24
     
-    def __init__(self, cache_path: str = "/config/broadlink_manager/cache"):
+    def __init__(self, cache_path: str = "/config/broadlink_manager/cache", smartir_detector=None):
         """
         Initialize SmartIR code service
         
         Args:
             cache_path: Path to cache directory
+            smartir_detector: Optional SmartIRDetector instance for scanning custom profiles
         """
         self.cache_path = Path(cache_path)
         self.cache_path.mkdir(parents=True, exist_ok=True)
@@ -39,6 +40,9 @@ class SmartIRCodeService:
         
         # Index is bundled with the app, not cached
         self.bundled_index_file = Path(__file__).parent.parent / "smartir_device_index.json"
+        
+        # SmartIR detector for scanning custom profiles
+        self.smartir_detector = smartir_detector
         
         self._cache = self._load_cache()
         self._device_index = self._load_device_index()
@@ -268,7 +272,7 @@ class SmartIRCodeService:
     
     def get_manufacturers(self, entity_type: str) -> List[str]:
         """
-        Get list of manufacturers for an entity type (from index)
+        Get list of manufacturers for an entity type (from index + custom profiles)
         
         Args:
             entity_type: Entity type (climate, fan, media_player, light)
@@ -276,14 +280,20 @@ class SmartIRCodeService:
         Returns:
             Sorted list of manufacturer names
         """
-        # Use device index for instant results
+        # Start with manufacturers from device index
         platform_data = self._device_index.get("platforms", {}).get(entity_type, {})
-        manufacturers = platform_data.get("manufacturers", {})
-        return sorted(manufacturers.keys())
+        manufacturers = set(platform_data.get("manufacturers", {}).keys())
+        
+        # Add manufacturers from custom profiles
+        custom_profiles = self._get_custom_profiles(entity_type)
+        for profile in custom_profiles:
+            manufacturers.add(profile.get("manufacturer", "Unknown"))
+        
+        return sorted(manufacturers)
     
     def get_models(self, entity_type: str, manufacturer: str) -> List[Dict[str, Any]]:
         """
-        Get list of models for a manufacturer (from index)
+        Get list of models for a manufacturer (from index + custom profiles)
         
         Args:
             entity_type: Entity type (climate, fan, media_player, light)
@@ -292,10 +302,21 @@ class SmartIRCodeService:
         Returns:
             List of model info dicts with code_id, models, controller
         """
-        # Use device index for instant results
+        # Start with models from device index
         platform_data = self._device_index.get("platforms", {}).get(entity_type, {})
         manufacturer_data = platform_data.get("manufacturers", {}).get(manufacturer, {})
-        models = manufacturer_data.get("models", [])
+        models = list(manufacturer_data.get("models", []))
+        
+        # Add models from custom profiles for this manufacturer
+        custom_profiles = self._get_custom_profiles(entity_type)
+        for profile in custom_profiles:
+            if profile.get("manufacturer") == manufacturer:
+                models.append({
+                    "code": str(profile.get("code")),
+                    "models": profile.get("models", []),
+                    "controller": profile.get("controller", "Broadlink"),
+                    "custom": True  # Mark as custom profile
+                })
         
         # Sort by code
         return sorted(models, key=lambda x: int(x["code"]) if x["code"].isdigit() else 0)
@@ -346,7 +367,7 @@ class SmartIRCodeService:
     
     def fetch_full_code(self, entity_type: str, code_id: str) -> Optional[Dict[str, Any]]:
         """
-        Fetch full code data from GitHub (not cached)
+        Fetch full code data from local file (for custom codes) or GitHub (for repository codes)
         
         Args:
             entity_type: Entity type (climate, fan, media_player, light)
@@ -355,6 +376,27 @@ class SmartIRCodeService:
         Returns:
             Full code data or None on error
         """
+        # Check if this is a custom code (10000+) - load from local file
+        try:
+            code_num = int(code_id)
+            if code_num >= 10000 and self.smartir_detector and self.smartir_detector.is_installed():
+                # Load from local SmartIR installation
+                smartir_path = self.smartir_detector.smartir_path
+                file_path = smartir_path / "codes" / entity_type / f"{code_id}.json"
+                
+                if file_path.exists():
+                    import json
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        full_code = json.load(f)
+                    
+                    logger.info(f"Loaded custom profile {code_id} from local file: {file_path}")
+                    return full_code
+                else:
+                    logger.warning(f"Custom profile {code_id} not found at {file_path}")
+        except (ValueError, TypeError):
+            pass  # Not a numeric code, continue to GitHub fetch
+        
+        # Fetch from GitHub for repository codes (< 10000)
         return self._fetch_code_file(entity_type, code_id)
     
     def search_codes(self, entity_type: str, query: str) -> List[Dict[str, Any]]:
@@ -418,6 +460,43 @@ class SmartIRCodeService:
             status["last_refresh_errors"] = self._last_refresh_errors
         
         return status
+    
+    def _get_custom_profiles(self, entity_type: str) -> List[Dict[str, Any]]:
+        """
+        Get list of custom profiles from local SmartIR installation
+        
+        Args:
+            entity_type: Entity type (climate, fan, media_player, light)
+            
+        Returns:
+            List of custom profile info dicts
+        """
+        if not self.smartir_detector or not self.smartir_detector.is_installed():
+            return []
+        
+        try:
+            # Get device codes from SmartIR detector
+            device_codes = self.smartir_detector.get_device_codes(entity_type)
+            
+            # Filter for custom codes (10000+) and format them
+            custom_profiles = []
+            for code_info in device_codes:
+                code = code_info.get("code")
+                if code >= 10000:  # Custom codes start at 10000
+                    custom_profiles.append({
+                        "code": code,
+                        "manufacturer": code_info.get("manufacturer", "Unknown"),
+                        "models": code_info.get("models", []),
+                        "controller": "Broadlink",
+                        "file": code_info.get("file")
+                    })
+            
+            logger.debug(f"Found {len(custom_profiles)} custom profiles for {entity_type}")
+            return custom_profiles
+            
+        except Exception as e:
+            logger.error(f"Error loading custom profiles for {entity_type}: {e}")
+            return []
     
     def clear_cache(self) -> bool:
         """Clear the cache"""

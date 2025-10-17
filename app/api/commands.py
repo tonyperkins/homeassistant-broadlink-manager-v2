@@ -128,6 +128,74 @@ def learn_command():
         logger.error(f"Error learning command: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@api_bp.route('/commands/send-raw', methods=['POST'])
+def send_raw_command():
+    """Send a raw IR/RF code directly to Broadlink device"""
+    try:
+        data = request.json
+        logger.info(f"Send raw command request data: {data}")
+        
+        entity_id = data.get('entity_id')
+        command = data.get('command')  # Raw base64 IR/RF code
+        command_type = data.get('command_type', 'ir')  # 'ir' or 'rf'
+        
+        if not entity_id or not command:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: entity_id, command'
+            }), 400
+        
+        # Get web server for HA API calls
+        web_server = get_web_server()
+        if not web_server:
+            return jsonify({
+                'success': False,
+                'error': 'Web server not available'
+            }), 500
+        
+        # Send raw code directly to Home Assistant
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # For raw codes, prefix with 'b64:' to tell Broadlink it's a base64-encoded raw command
+        # This allows sending raw codes without learning them first
+        service_payload = {
+            "entity_id": entity_id,
+            "command": f"b64:{command}"  # Prefix with b64: for raw codes
+        }
+        
+        # Log what we're sending
+        if command_type == 'rf':
+            logger.info(f"Sending raw RF code to HA (code length: {len(command)} chars)")
+        else:
+            logger.info(f"Sending raw IR code to HA (code length: {len(command)} chars)")
+        
+        logger.info(f"Service payload: {service_payload}")
+        
+        result = loop.run_until_complete(
+            web_server._make_ha_request("POST", "services/remote/send_command", service_payload)
+        )
+        loop.close()
+        
+        # HA service calls return empty dict/list on success, None on failure
+        logger.info(f"HA API result: {result} (type: {type(result)})")
+        if result is not None:
+            logger.info("✅ Raw command sent successfully")
+            return jsonify({
+                'success': True,
+                'message': 'Command sent successfully'
+            })
+        else:
+            logger.error("❌ HA API returned None - command failed")
+            return jsonify({
+                'success': False,
+                'error': 'Failed to send command'
+            }), 400
+    
+    except Exception as e:
+        logger.error(f"Error sending raw command: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @api_bp.route('/commands/test', methods=['POST'])
 def test_command():
     """Test a learned command by sending it"""
@@ -155,22 +223,32 @@ def test_command():
                 'error': 'Missing required fields: entity_id, device (or device_id), command'
             }), 400
         
-        # Get storage to look up command mapping and device type
+        # Get device manager and storage to look up command mapping and device type
+        device_manager = current_app.config.get('device_manager')
         storage = get_storage_manager()
         is_smartir = False
-        if storage and device_id:
-            # Try to get entity data - device_id might be with or without entity type prefix
-            entity_data = storage.get_entity(device_id)
+        entity_data = None
+        
+        if device_id:
+            # First try device_manager (for managed devices including SmartIR)
+            if device_manager:
+                entity_data = device_manager.get_device(device_id)
+                if entity_data:
+                    logger.info(f"Found device in device_manager: {device_id}")
             
-            # If not found and device_id doesn't have a dot, try to find it in all entities
-            if not entity_data and '.' not in device_id:
-                logger.info(f"Device ID '{device_id}' not found, searching all entities...")
-                all_entities = storage.get_all_entities()
-                for entity_id, data in all_entities.items():
-                    if entity_id.endswith(f'.{device_id}') or entity_id == device_id:
-                        entity_data = data
-                        logger.info(f"Found entity: {entity_id}")
-                        break
+            # If not found, try storage_manager (for legacy/adopted devices)
+            if not entity_data and storage:
+                entity_data = storage.get_entity(device_id)
+                
+                # If not found and device_id doesn't have a dot, try to find it in all entities
+                if not entity_data and '.' not in device_id:
+                    logger.info(f"Device ID '{device_id}' not found, searching all entities...")
+                    all_entities = storage.get_all_entities()
+                    for stored_entity_id, data in all_entities.items():
+                        if stored_entity_id.endswith(f'.{device_id}') or stored_entity_id == device_id:
+                            entity_data = data
+                            logger.info(f"Found entity: {stored_entity_id}")
+                            break
             
             if entity_data:
                 is_smartir = entity_data.get('device_type') == 'smartir'
@@ -192,18 +270,78 @@ def test_command():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # Command as an array
-        command_list = [command] if isinstance(command, str) else command
-        
-        # SmartIR uses standard remote.send_command format (no device parameter)
-        # Broadlink uses custom format with device parameter
+        # For SmartIR devices, we need to look up the raw IR code from the SmartIR code file
         if is_smartir:
-            service_payload = {
-                "entity_id": entity_id,
-                "command": command_list
-            }
-            logger.info(f"Sending SmartIR payload to HA: {service_payload}")
+            logger.info(f"SmartIR device detected - looking up raw IR code for command '{command}'")
+            
+            # Get SmartIR code service to look up the raw code
+            smartir_code_service = current_app.config.get('smartir_code_service')
+            if not smartir_code_service:
+                return jsonify({
+                    'success': False,
+                    'error': 'SmartIR code service not available'
+                }), 500
+            
+            # Get device code and entity type
+            device_code = entity_data.get('device_code')
+            entity_type = entity_data.get('entity_type', 'climate')
+            
+            if not device_code:
+                return jsonify({
+                    'success': False,
+                    'error': 'SmartIR device_code not found'
+                }), 400
+            
+            # Look up the raw IR code from SmartIR code file
+            try:
+                code_data = smartir_code_service.fetch_full_code(entity_type, device_code)
+                if not code_data:
+                    return jsonify({
+                        'success': False,
+                        'error': f'SmartIR code file {device_code} not found'
+                    }), 404
+                
+                # Extract the raw code for this command
+                commands_data = code_data.get('commands', {})
+                raw_code = commands_data.get(command)
+                
+                # For climate devices, commands may be nested by temperature
+                # e.g., {"cool": {"16": "code1", "17": "code2"}}
+                if isinstance(raw_code, dict):
+                    # Get the first available temperature code (or a default like 24)
+                    default_temp = "24"
+                    if default_temp in raw_code:
+                        raw_code = raw_code[default_temp]
+                    else:
+                        # Use the first available temperature
+                        raw_code = next(iter(raw_code.values())) if raw_code else None
+                    logger.info(f"Command '{command}' is temperature-based, using temp code")
+                
+                if not raw_code or not isinstance(raw_code, str):
+                    return jsonify({
+                        'success': False,
+                        'error': f'Command "{command}" not found or invalid in SmartIR code file {device_code}'
+                    }), 404
+                
+                logger.info(f"Found raw IR code for command '{command}' in SmartIR code file {device_code}")
+                
+                # Send the raw code directly with b64: prefix
+                # The b64: prefix tells Broadlink it's a base64-encoded raw command
+                service_payload = {
+                    "entity_id": entity_id,
+                    "command": f"b64:{raw_code}"  # Prefix with b64: for raw codes
+                }
+                logger.info(f"Sending SmartIR raw code to HA (code length: {len(raw_code)} chars)")
+                
+            except Exception as e:
+                logger.error(f"Error looking up SmartIR code: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Failed to look up SmartIR code: {str(e)}'
+                }), 500
         else:
+            # Broadlink device - use command name with device parameter
+            command_list = [command] if isinstance(command, str) else command
             service_payload = {
                 "entity_id": entity_id,
                 "device": device,
@@ -216,12 +354,16 @@ def test_command():
         )
         loop.close()
         
-        if result is not None or result == []:
+        # HA service calls return empty dict/list on success, None on failure
+        logger.info(f"HA API result: {result} (type: {type(result)})")
+        if result is not None:
+            logger.info("✅ Command sent successfully")
             return jsonify({
                 'success': True,
                 'message': 'Command sent successfully'
             })
         else:
+            logger.error("❌ HA API returned None - command failed")
             return jsonify({
                 'success': False,
                 'error': 'Failed to send command'

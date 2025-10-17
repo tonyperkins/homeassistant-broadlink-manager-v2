@@ -113,7 +113,8 @@ class BroadlinkWebServer:
             str(self.config_loader.get_config_path())
         )
         self.smartir_code_service = SmartIRCodeService(
-            str(self.config_loader.get_broadlink_manager_path() / "cache")
+            str(self.config_loader.get_broadlink_manager_path() / "cache"),
+            smartir_detector=self.smartir_detector
         )
 
         # Make managers available to API endpoints

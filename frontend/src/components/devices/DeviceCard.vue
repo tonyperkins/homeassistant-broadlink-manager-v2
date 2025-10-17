@@ -1,8 +1,8 @@
 <template>
   <div class="device-card" :class="{ 'disabled': isSmartIRDisabled }">
     <div class="device-header">
-      <div class="device-icon">
-        <i :class="`mdi mdi-${deviceIcon}`"></i>
+      <div class="device-icon" :class="styles.colorClass.value">
+        <i :class="getIconClass(deviceIcon)"></i>
       </div>
       <div class="device-info">
         <h3>{{ device.name }}</h3>
@@ -91,6 +91,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import api from '@/services/api'
+import { useDeviceStyles } from '@/composables/useDeviceStyles.js'
 import broadlinkLogo from '@/assets/images/broadlink-logo.png'
 import smartirLogo from '@/assets/images/smartir-logo.png'
 
@@ -118,22 +119,24 @@ const isSmartIRDisabled = computed(() => {
 defineEmits(['edit', 'delete', 'learn'])
 const smartirCommandCount = ref(null)
 
+// Use centralized device styles
+const styles = useDeviceStyles(computed(() => props.device.entity_type))
+
 const deviceIcon = computed(() => {
-  // Use custom icon if set, otherwise use default based on entity type
+  // Use custom icon if set, otherwise use centralized icon from styles
   if (props.device.icon) {
-    // Remove 'mdi:' prefix if present
-    return props.device.icon.replace('mdi:', '')
+    return props.device.icon
   }
-  
-  const icons = {
-    light: 'lightbulb',
-    fan: 'fan',
-    switch: 'light-switch',
-    media_player: 'television',
-    cover: 'window-shutter'
-  }
-  return icons[props.device.entity_type] || 'devices'
+  return styles.icon.value
 })
+
+const getIconClass = (icon) => {
+  // Convert mdi:icon-name to mdi mdi-icon-name
+  if (icon && icon.startsWith('mdi:')) {
+    return `mdi ${icon.replace(':', ' mdi-')}`
+  }
+  return `mdi mdi-${icon}`
+}
 
 const deviceTypeLabel = computed(() => {
   const labels = {
@@ -193,6 +196,26 @@ const broadlinkFriendlyName = computed(() => {
   return device ? (device.name || props.device.broadlink_entity) : props.device.broadlink_entity
 })
 
+// Recursively count all command codes in a SmartIR commands structure
+const countCommands = (commandsObj) => {
+  if (!commandsObj || typeof commandsObj !== 'object') {
+    return 0
+  }
+  
+  let count = 0
+  for (const value of Object.values(commandsObj)) {
+    if (typeof value === 'string') {
+      // This is an actual command code (base64 string)
+      count++
+    } else if (typeof value === 'object') {
+      // This is a nested structure, recurse
+      count += countCommands(value)
+    }
+  }
+  
+  return count
+}
+
 const fetchSmartIRCommandCount = async () => {
   if (!props.device.device_code || !props.device.entity_type) return
   
@@ -206,9 +229,9 @@ const fetchSmartIRCommandCount = async () => {
     
     if (response.data.success && response.data.code) {
       const code = response.data.code
-      // Count commands in the code file
+      // Count commands in the code file using recursive function
       if (code.commands) {
-        smartirCommandCount.value = Object.keys(code.commands).length
+        smartirCommandCount.value = countCommands(code.commands)
       }
     }
   } catch (error) {
@@ -226,6 +249,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@import '@/assets/css/variables.css';
+
 .device-card {
   background: var(--ha-card-background);
   border-radius: 12px;
@@ -310,8 +335,15 @@ onMounted(async () => {
 
 .device-icon i {
   font-size: 24px;
-  color: var(--ha-primary-color);
 }
+
+/* Use variables for icon colors */
+.device-type-climate-color i { color: var(--device-type-climate-color); }
+.device-type-fan-color i { color: var(--device-type-fan-color); }
+.device-type-light-color i { color: var(--device-type-light-color); }
+.device-type-media-player-color i { color: var(--device-type-media-player-color); }
+.device-type-switch-color i { color: var(--device-type-switch-color); }
+.device-type-default-color i { color: var(--device-type-default-color); }
 
 .device-info {
   flex: 1;
@@ -344,12 +376,24 @@ onMounted(async () => {
 
 .device-type {
   display: inline-block;
-  padding: 2px 8px;
-  background: var(--ha-surface-color);
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--ha-text-secondary-color);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: var(--ha-secondary-background-color);
+  color: var(--ha-secondary-text-color);
   font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Remove colored backgrounds - all tags use same neutral style */
+.tag-climate-bg,
+.tag-fan-bg,
+.tag-light-bg,
+.tag-media-player-bg,
+.tag-switch-bg,
+.tag-default-bg {
+  background: var(--ha-secondary-background-color);
+  color: var(--ha-secondary-text-color);
 }
 
 .device-source-logo {

@@ -763,7 +763,28 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
                     }), 400
                 
-                # Fetch full code from GitHub
+                # Check if this is a custom code (10000+) - load from local file
+                try:
+                    code_num = int(code_id)
+                    if code_num >= 10000 and smartir_detector.is_installed():
+                        # Load from local SmartIR installation
+                        smartir_path = smartir_detector.smartir_path
+                        file_path = smartir_path / "codes" / entity_type / f"{code_id}.json"
+                        
+                        if file_path.exists():
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                full_code = json.load(f)
+                            
+                            logger.debug(f"Loaded custom profile {code_id} from local file")
+                            return jsonify({
+                                "success": True,
+                                "code": full_code,
+                                "custom": True
+                            }), 200
+                except (ValueError, TypeError):
+                    pass  # Not a numeric code, continue to GitHub fetch
+                
+                # Fetch full code from GitHub (for repository codes)
                 full_code = smartir_code_service.fetch_full_code(entity_type, code_id)
                 if full_code:
                     return jsonify({

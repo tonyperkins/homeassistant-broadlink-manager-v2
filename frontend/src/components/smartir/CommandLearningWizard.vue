@@ -13,7 +13,7 @@
             :key="device.entity_id"
             :value="device.entity_id"
           >
-            {{ device.name }} ({{ device.area_name }})
+            {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
           </option>
         </select>
         <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
@@ -124,8 +124,14 @@
           <div v-else class="learned-status">
             <i class="mdi mdi-check-circle"></i>
             <span>Learned</span>
-            <button @click="deleteCommand(cmd.key)" class="btn-delete" title="Delete and re-learn">
+            <span class="command-type-badge" :class="localCommandType">
+              {{ localCommandType.toUpperCase() }}
+            </span>
+            <button @click="deleteCommand(cmd.key)" class="icon-btn danger" title="Delete and re-learn" style="margin-left:auto">
               <i class="mdi mdi-delete"></i>
+            </button>
+            <button @click="testCommand(cmd.key)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.key">
+              <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.key }"></i>
             </button>
           </div>
         </div>
@@ -221,6 +227,7 @@ const emit = defineEmits(['update:modelValue', 'update:broadlinkDevice', 'update
 
 const commands = ref({ ...props.modelValue })
 const learningCommand = ref(null)
+const testingCommand = ref(null)
 const broadlinkDevices = ref([])
 const localBroadlinkDevice = ref(props.broadlinkDevice)
 const localCommandType = ref(props.commandType)
@@ -423,6 +430,48 @@ async function learnCommand(cmd) {
     if (!sequentialLearning.value) {
       learningCommand.value = null
     }
+  }
+}
+
+async function testCommand(key) {
+  if (!localBroadlinkDevice.value) {
+    toast.error('Please select a Broadlink device first')
+    return
+  }
+  
+  if (!commands.value[key]) {
+    toast.error('Command not learned yet')
+    return
+  }
+  
+  testingCommand.value = key
+  
+  try {
+    // Get the raw IR/RF code from memory (already learned)
+    const rawCode = commands.value[key]
+    
+    // Send raw code using dedicated endpoint
+    const response = await fetch('/api/commands/send-raw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entity_id: localBroadlinkDevice.value,
+        command: rawCode,  // Send the base64 IR/RF code directly
+        command_type: localCommandType.value  // 'ir' or 'rf'
+      })
+    })
+    
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to send command')
+    }
+    
+    toast.success('Command sent successfully')
+  } catch (error) {
+    console.error('Error testing command:', error)
+    toast.error(`Error testing command: ${error.message}`)
+  } finally {
+    testingCommand.value = null
   }
 }
 
@@ -831,20 +880,52 @@ onMounted(async () => {
   font-size: 20px;
 }
 
-.btn-delete {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: var(--secondary-text-color);
-  cursor: pointer;
-  padding: 4px;
+.command-type-badge {
+  padding: 2px 8px;
   border-radius: 4px;
-  transition: all 0.2s;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-.btn-delete:hover {
-  color: #f44336;
-  background: rgba(244, 67, 54, 0.1);
+.command-type-badge.ir {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+}
+
+.command-type-badge.rf {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+
+.icon-btn {
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  color: var(--ha-text-primary-color);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  background: var(--ha-error-color);
+  border-color: var(--ha-error-color);
+  color: white;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .learning-indicator {

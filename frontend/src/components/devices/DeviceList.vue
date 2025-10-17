@@ -29,6 +29,7 @@
           class="btn btn-secondary"
           v-if="isExpanded"
           :disabled="generatingEntities"
+          title="Generate entities for all devices"
         >
           <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
           {{ generatingEntities ? 'Generating...' : 'Generate Entities' }}

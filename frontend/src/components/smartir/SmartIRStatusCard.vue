@@ -985,12 +985,12 @@ defineExpose({
   background: var(--ha-card-background);
   border: 1px solid var(--ha-border-color);
   border-radius: 8px;
-  padding: 16px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   transition: all 0.2s;
-  min-height: 140px;
+  min-height: 120px;
 }
 
 .profile-card:hover {

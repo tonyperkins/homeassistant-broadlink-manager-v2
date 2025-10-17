@@ -5,7 +5,7 @@
         <i :class="getIconClass(deviceIcon)"></i>
       </div>
       <div class="device-info">
-        <h3>{{ device.name }}</h3>
+        <h3 :title="device.name">{{ device.name }}</h3>
         <div class="device-labels">
           <span class="device-type">{{ deviceTypeLabel }}</span>
         </div>
@@ -20,18 +20,18 @@
 
     <div class="device-body">
       <div class="device-stats">
-        <div class="stat" title="Command count">
+        <div class="stat" title="Learned command count">
           <i class="mdi mdi-remote"></i>
           <span>{{ commandCount }} command{{ commandCount !== 1 ? 's' : '' }}</span>
         </div>
-        <div class="stat">
+        <div class="stat" title="HA Assigned Area">
           <i class="mdi mdi-map-marker"></i>
           <span>{{ device.area || 'No area' }}</span>
         </div>
       </div>
 
       <div class="device-meta">
-        <span class="device-id">
+        <span class="device-id" title="Device ID">
           <i class="mdi mdi-identifier"></i>
           {{ device.id }}
         </span>
@@ -39,13 +39,13 @@
           <i class="mdi mdi-code-tags"></i>
           {{ device.device }}
         </span>
-        <span v-if="device.broadlink_entity" class="broadlink-entity">
+        <span v-if="device.broadlink_entity" class="broadlink-entity" title="Controller Device">
           <i class="mdi mdi-access-point"></i>
           {{ broadlinkFriendlyName }}
         </span>
         <span v-if="device.controller_device" class="controller-device">
           <i class="mdi mdi-access-point"></i>
-          Controller: {{ getControllerName(device.controller_device) }}
+          {{ getControllerName(device.controller_device) }}
         </span>
       </div>
     </div>
@@ -249,23 +249,9 @@ onMounted(async () => {
 
 <style scoped>
 @import '@/assets/css/variables.css';
+@import '@/assets/css/card-styles.css';
 
-.device-card {
-  background: var(--ha-card-background);
-  border-radius: 12px;
-  border: 1px solid var(--ha-border-color);
-  padding: 20px;
-  transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: relative;
-}
-
-.device-card:hover {
-  box-shadow: var(--ha-shadow-md);
-  border-color: var(--ha-primary-color);
-}
+/* Card base styles imported from card-styles.css */
 
 .device-card.disabled {
   pointer-events: none;
@@ -314,86 +300,13 @@ onMounted(async () => {
   color: var(--ha-text-primary-color);
 }
 
-.device-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  position: relative;
-}
-
-.device-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.device-icon i {
-  font-size: 24px;
-}
-
-/* Use variables for icon colors */
-.device-type-climate-color i { color: var(--device-type-climate-color); }
-.device-type-fan-color i { color: var(--device-type-fan-color); }
-.device-type-light-color i { color: var(--device-type-light-color); }
-.device-type-media-player-color i { color: var(--device-type-media-player-color); }
-.device-type-switch-color i { color: var(--device-type-switch-color); }
-.device-type-default-color i { color: var(--device-type-default-color); }
-
-.device-info {
-  flex: 1;
-  min-width: 0;
-}
+/* Header, icon, info, labels, and tags imported from card-styles.css */
 
 .device-info h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--ha-text-primary-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  white-space: normal;
-  line-height: 1.3;
-  max-height: 2.6em;
   padding-right: 36px;
 }
 
-.device-labels {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.device-type {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  background: var(--ha-secondary-background-color);
-  color: var(--ha-secondary-text-color);
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-/* Remove colored backgrounds - all tags use same neutral style */
-.tag-climate-bg,
-.tag-fan-bg,
-.tag-light-bg,
-.tag-media-player-bg,
-.tag-switch-bg,
-.tag-default-bg {
-  background: var(--ha-secondary-background-color);
-  color: var(--ha-secondary-text-color);
-}
+/* Tag backgrounds imported from card-styles.css */
 
 .device-source-logo {
   position: absolute;
@@ -412,93 +325,5 @@ onMounted(async () => {
   transform: scale(1.1);
 }
 
-.device-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.device-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.stat {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ha-text-secondary-color);
-  font-size: 14px;
-}
-
-.stat i {
-  font-size: 16px;
-}
-
-.device-meta {
-  padding-top: 8px;
-  border-top: 1px solid var(--ha-border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.device-id,
-.device-code,
-.storage-name,
-.broadlink-entity,
-.controller-device {
-  font-size: 12px;
-  color: var(--ha-text-secondary-color);
-  font-family: monospace;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.device-id i,
-.device-code i,
-.storage-name i,
-.broadlink-entity i,
-.controller-device i {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.device-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ha-border-color);
-  justify-content: flex-end;
-}
-
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 1px solid var(--ha-border-color);
-  background: var(--ha-card-background);
-  color: var(--ha-text-primary-color);
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.icon-btn:hover:not(:disabled) {
-  background: var(--ha-primary-color);
-  color: white;
-  border-color: var(--ha-primary-color);
-}
-
-.icon-btn.danger:hover:not(:disabled) {
-  background: var(--ha-error-color, #f44336);
-  color: white;
-  border-color: var(--ha-error-color, #f44336);
-}
-
-.icon-btn i { font-size: 18px; }
+/* Body, stats, meta, actions, and buttons imported from card-styles.css */
 </style>

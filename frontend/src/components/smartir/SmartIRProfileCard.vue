@@ -19,10 +19,10 @@
       <div class="code-badge" :title="'Device Code: ' + profile.code">{{ profile.code }}</div>
     </div>
     <div class="profile-card-footer">
-        <div class="command-info" :title="profile.commandCount + ' total commands' + (profile.learnedCount > 0 ? ', ' + profile.learnedCount + ' learned' : '')">
-            <i class="mdi mdi-remote"></i>
-            <span>{{ profile.commandCount }} command{{ profile.commandCount !== 1 ? 's' : '' }}</span>
-            <span v-if="profile.learnedCount > 0" class="learned-indicator">( {{ profile.learnedCount }} learned )</span>
+        <div class="profile-stats" :title="profile.commandCount + ' total commands' + (profile.learnedCount > 0 ? ', ' + profile.learnedCount + ' learned' : '')">
+          <i class="mdi mdi-remote"></i>
+          <span>{{ profile.commandCount }} command{{ profile.commandCount !== 1 ? 's' : '' }}</span>
+          <span v-if="profile.learnedCount > 0" class="learned-indicator">( {{ profile.learnedCount }} learned )</span>
         </div>
         <div class="profile-actions">
             <button @click="$emit('commands')" class="action-btn" title="Commands">
@@ -84,44 +84,9 @@ const getControllerClass = (brand) => {
 
 <style scoped>
 @import '@/assets/css/variables.css';
+@import '@/assets/css/card-styles.css';
 
-.profile-card {
-  background: var(--ha-card-background);
-  border: 1px solid var(--ha-divider-color);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: all 0.2s;
-}
-
-.profile-card:hover {
-  box-shadow: var(--ha-shadow-md);
-  border-color: var(--ha-primary-color);
-}
-
-.profile-card-header {
-  display: flex;
-  gap: 12px;
-  position: relative;
-}
-
-.profile-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(127, 127, 127, 0.1);
-  border-radius: 50%;
-  cursor: help;
-}
-
-.profile-icon i {
-  font-size: 24px;
-}
+/* Card base, header, and icon styles imported from card-styles.css */
 
 .code-badge {
   position: absolute;
@@ -144,45 +109,15 @@ const getControllerClass = (brand) => {
   transform: scale(1.05);
 }
 
-.device-type-climate-color i { color: var(--device-type-climate-color); }
-.device-type-fan-color i { color: var(--device-type-fan-color); }
-.device-type-light-color i { color: var(--device-type-light-color); }
-.device-type-media-player-color i { color: var(--device-type-media-player-color); }
-.device-type-switch-color i { color: var(--device-type-switch-color); }
+/* Icon colors, details, meta, stats, and tags imported from card-styles.css */
 
-.profile-details {
-  flex: 1;
-  min-width: 0;
+.profile-stats {
+  margin-top: 6px;
+  font-size: 13px;
 }
 
-.profile-details h4 {
-  margin: 0 0 8px 0;
+.profile-stats i {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--ha-text-primary-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: help;
-}
-
-.profile-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: capitalize;
-  cursor: help;
 }
 
 .platform-tag {
@@ -190,15 +125,7 @@ const getControllerClass = (brand) => {
   color: var(--ha-secondary-text-color) !important;
 }
 
-/* Remove colored backgrounds - all tags use same neutral style */
-.tag-climate-bg,
-.tag-fan-bg,
-.tag-light-bg,
-.tag-media-player-bg,
-.tag-switch-bg {
-  background: var(--ha-secondary-background-color) !important;
-  color: var(--ha-secondary-text-color) !important;
-}
+/* Tag backgrounds imported from card-styles.css */
 
 .code-tag {
   background: var(--ha-secondary-background-color) !important;
@@ -225,12 +152,9 @@ const getControllerClass = (brand) => {
     color: var(--ha-text-primary-color);
 }
 
+/* Footer styles imported from card-styles.css */
+
 .profile-card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid var(--ha-divider-color);
     font-size: 13px;
     color: var(--ha-secondary-text-color);
 }
@@ -247,37 +171,7 @@ const getControllerClass = (brand) => {
     opacity: 0.8;
 }
 
-.profile-actions {
-  display: flex;
-  gap: 4px;
-}
+/* Actions and buttons imported from card-styles.css */
 
-.action-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: var(--ha-card-background);
-  border: 1px solid var(--ha-border-color);
-  color: var(--ha-text-primary-color);
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-btn i { font-size: 18px; }
-
-.action-btn:hover {
-  background: var(--ha-primary-color);
-  color: white;
-  border-color: var(--ha-primary-color);
-}
-
-.action-btn.delete:hover {
-  background: var(--ha-error-color);
-  color: white;
-  border-color: var(--ha-error-color);
-}
+/* Delete button hover imported from card-styles.css */
 </style>

@@ -131,11 +131,11 @@
               
               <!-- Action buttons -->
               <div class="command-actions">
-                <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
-                  <i class="mdi mdi-delete"></i>
-                </button>
                 <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
                   <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
+                </button>
+                <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
+                  <i class="mdi mdi-delete"></i>
                 </button>
               </div>
             </div>
@@ -818,14 +818,14 @@ const handleImportConfirm = async () => {
 .command-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .command-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 4px;
   background: var(--ha-card-background);
   border-radius: 8px;
   border: 2px solid #4caf50;
@@ -842,6 +842,8 @@ const handleImportConfirm = async () => {
   font-family: monospace;
   color: var(--ha-text-primary-color);
   font-weight: 500;
+  padding-left: 8px;
+  font-size: 16px;
 }
 
 .untracked-badge {
@@ -862,16 +864,16 @@ const handleImportConfirm = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px;
+  padding: 5px;
   background: rgba(76, 175, 80, 0.1);
   border-radius: 6px;
   color: #4caf50;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .learned-status i {
-  font-size: 20px;
+  font-size: 16x;
 }
 
 .command-actions {
@@ -879,6 +881,7 @@ const handleImportConfirm = async () => {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  padding: 0 6px;
 }
 
 .command-type-badge {

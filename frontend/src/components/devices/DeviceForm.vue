@@ -20,6 +20,7 @@
             required
             @input="clearValidation('nameInput')"
           />
+          <small>Friendly name for this device</small>
         </div>
 
         <div class="form-group">
@@ -604,6 +605,28 @@ const handleSmartIRChange = (data) => {
   margin-top: 4px;
   font-size: 12px;
   color: var(--ha-text-secondary-color);
+}
+
+.error-message {
+  color: var(--ha-error-color, #f44336) !important;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.error-message i {
+  font-size: 14px;
+}
+
+.hint-message {
+  color: var(--ha-text-secondary-color);
+  font-style: italic;
+}
+
+.input-error {
+  border-color: var(--ha-error-color, #f44336) !important;
+  background: rgba(244, 67, 54, 0.05);
 }
 
 .inline-link {

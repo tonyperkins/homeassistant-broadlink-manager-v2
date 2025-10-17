@@ -20,9 +20,9 @@
 
     <div class="device-body">
       <div class="device-stats">
-        <div class="stat">
+        <div class="stat" title="Command count">
           <i class="mdi mdi-remote"></i>
-          <span>{{ commandCount }} commands</span>
+          <span>{{ commandCount }} command{{ commandCount !== 1 ? 's' : '' }}</span>
         </div>
         <div class="stat">
           <i class="mdi mdi-map-marker"></i>
@@ -53,16 +53,15 @@
     <div class="device-actions">
       <button 
         @click="!isSmartIRDisabled && $emit('learn', device)" 
-        class="action-btn" 
+        class="icon-btn" 
         title="Manage Commands"
         :disabled="isSmartIRDisabled"
       >
         <i class="mdi mdi-remote-tv"></i>
-        <span>Commands</span>
       </button>
       <button 
         @click="!isSmartIRDisabled && $emit('edit', device)" 
-        class="action-btn" 
+        class="icon-btn" 
         title="Edit"
         :disabled="isSmartIRDisabled"
       >
@@ -70,7 +69,7 @@
       </button>
       <button 
         @click="!isSmartIRDisabled && $emit('delete', device)" 
-        class="action-btn danger" 
+        class="icon-btn danger" 
         title="Delete"
         :disabled="isSmartIRDisabled"
       >
@@ -471,38 +470,35 @@ onMounted(async () => {
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--ha-border-color);
+  justify-content: flex-end;
 }
 
-.action-btn {
-  flex: 1;
-  padding: 8px;
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid var(--ha-border-color);
   background: var(--ha-card-background);
   color: var(--ha-text-primary-color);
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.action-btn:hover {
+.icon-btn:hover:not(:disabled) {
   background: var(--ha-primary-color);
   color: white;
   border-color: var(--ha-primary-color);
 }
 
-.action-btn.danger:hover {
+.icon-btn.danger:hover:not(:disabled) {
   background: var(--ha-error-color, #f44336);
   color: white;
   border-color: var(--ha-error-color, #f44336);
 }
 
-.action-btn i {
-  font-size: 18px;
-}
+.icon-btn i { font-size: 18px; }
 </style>

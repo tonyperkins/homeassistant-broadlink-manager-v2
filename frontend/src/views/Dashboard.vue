@@ -43,6 +43,7 @@
       :show="showProfileBuilder"
       :editMode="editMode"
       :editData="editData"
+      :startStep="profileStartStep"
       @close="handleCloseProfileBuilder"
       @save="handleProfileSave"
     />
@@ -63,16 +64,20 @@ const smartirEnabled = inject('smartirEnabled')
 const showProfileBuilder = ref(false)
 const editMode = ref(false)
 const editData = ref(null)
+const profileStartStep = ref(0)
 const smartirStatusCard = ref(null)
 
 // Event handlers for SmartIR Status Card
 function handleCreateProfile() {
   editMode.value = false
   editData.value = null
+  profileStartStep.value = 0
   showProfileBuilder.value = true
 }
 
-async function handleEditProfile({ platform, profile }) {
+async function handleEditProfile({ platform, profile, startStep }) {
+  // Set desired start step early so the modal can jump to it on open
+  profileStartStep.value = Number.isInteger(startStep) ? startStep : 0
   try {
     // Fetch the full profile data
     const response = await fetch(`api/smartir/platforms/${platform}/profiles/${profile.code}`)

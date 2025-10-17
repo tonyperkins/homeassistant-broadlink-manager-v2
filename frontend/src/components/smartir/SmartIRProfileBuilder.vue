@@ -334,6 +334,10 @@ const props = defineProps({
   editData: {
     type: Object,
     default: null
+  },
+  startStep: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -1120,9 +1124,19 @@ async function loadBroadlinkDevices() {
   }
 }
 
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    loadBroadlinkDevices()
+watch(() => props.show, (isOpen) => {
+  if (isOpen) {
+    const step = Number.isInteger(props.startStep) ? props.startStep : 0
+    // Clamp between 0 and steps.length - 1
+    currentStep.value = Math.min(Math.max(step, 0), steps.length - 1)
+  }
+})
+
+// If the desired start step changes while open, jump there
+watch(() => props.startStep, (newStep) => {
+  if (props.show) {
+    const step = Number.isInteger(newStep) ? newStep : 0
+    currentStep.value = Math.min(Math.max(step, 0), steps.length - 1)
   }
 })
 

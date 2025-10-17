@@ -160,6 +160,7 @@
           :key="`${profile.platform}-${profile.code}`"
           :profile="profile"
           @edit="editProfile(profile.platform, profile)"
+          @commands="editProfile(profile.platform, profile, 2)"
           @download="downloadProfile(profile.platform, profile)"
           @delete="deleteProfile(profile.platform, profile)"
         />
@@ -423,9 +424,8 @@ async function loadAllProfiles() {
   }
 }
 
-function editProfile(platform, profile) {
-  // Emit event to open profile builder with this profile data
-  emit('edit-profile', { platform, profile })
+function editProfile(platform, profile, startStep) {
+  emit('edit-profile', { platform, profile, startStep })
 }
 
 async function downloadProfile(platform, profile) {

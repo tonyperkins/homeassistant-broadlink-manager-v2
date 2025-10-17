@@ -25,6 +25,9 @@
             <span v-if="profile.learnedCount > 0" class="learned-indicator">( {{ profile.learnedCount }} learned )</span>
         </div>
         <div class="profile-actions">
+            <button @click="$emit('commands')" class="action-btn" title="Commands">
+                <i class="mdi mdi-remote-tv"></i>
+            </button>
             <button @click="$emit('edit')" class="action-btn" title="Edit Profile">
                 <i class="mdi mdi-pencil"></i>
             </button>
@@ -50,7 +53,7 @@ const props = defineProps({
   },
 });
 
-defineEmits(['edit', 'download', 'delete']);
+defineEmits(['edit', 'download', 'delete', 'commands']);
 
 const styles = useDeviceStyles(computed(() => props.profile.platform));
 
@@ -250,21 +253,21 @@ const getControllerClass = (brand) => {
 }
 
 .action-btn {
-  background: transparent;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--ha-card-background);
   border: 1px solid var(--ha-border-color);
   color: var(--ha-text-primary-color);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: all 0.2s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.action-btn i {
-  font-size: 18px;
-}
+.action-btn i { font-size: 18px; }
 
 .action-btn:hover {
   background: var(--ha-primary-color);

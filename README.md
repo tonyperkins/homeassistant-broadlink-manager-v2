@@ -69,25 +69,35 @@ Tired of juggling multiple remotes? Want to control your TV, AC, fans, and legac
 
 ## Screenshots
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/main-interface.png?v=2" alt="Main Interface - Command Management" width="600">
+### Dashboard Overview
+<img src="docs/images/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="700">
 
-*Main interface showing currently active broadlink devices*
+*Modern dashboard with SmartIR integration and device management*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/add-new-device.png?v=2" alt="Add New Device" width="600">
+### Device Management
+<img src="docs/images/screenshots/device-list.png" alt="Device List" width="700">
 
-*Adding a new Broadlink device to the system*
+*Manage all your Broadlink and SmartIR devices in one place*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/learn-command.png?v=2" alt="Learn Command Interface" width="600">
+### Add New Device
+<img src="docs/images/screenshots/create-device-modal.png" alt="Create Device Modal" width="500">
 
-*Easy command learning with real-time feedback*
+*Easy device creation with Broadlink or SmartIR support*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/automated-entity-helper-generator.png?v=2" alt="Automated Entity and Helper Generator" width="600">
+### Broadlink Device Setup
+<img src="docs/images/screenshots/broadlink-device-form.png" alt="Broadlink Device Form" width="500">
 
-*Auto-generate Home Assistant entities and helpers from learned commands*
+*Learn IR/RF commands from your remotes*
 
-<img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager/main/images/user-selectable-dark-mode.png?v=2" alt="User Selectable Dark Mode" width="600">
+### SmartIR Device Setup
+<img src="docs/images/screenshots/smartir-device-form.png" alt="SmartIR Device Form" width="500">
 
-*User-selectable dark mode for comfortable viewing*
+*Use pre-configured device profiles for instant setup*
+
+### Mobile Responsive
+<img src="docs/images/screenshots/mobile-dashboard.png" alt="Mobile View" width="390">
+
+*Fully responsive design works beautifully on mobile devices*
 
 ## 🎯 Key Features
 
@@ -389,6 +399,7 @@ For best auto-detection results, use these naming patterns:
 ### 📚 Additional Resources
 - **[Documentation Index](docs/DOCS.md)** - Complete documentation overview
 - **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Reddit Updates Guide](docs/REDDIT_UPDATES.md)** - Automate Reddit post updates with project info
 
 ## Support
 
@@ -444,7 +455,7 @@ This project integrates with [SmartIR](https://github.com/smartHomeHub/SmartIR),
 
 Broadlink Manager provides optional integration features to work alongside SmartIR, including profile creation, command learning, and YAML configuration generation. SmartIR must be installed separately via HACS or manually.
 
-**Device Code Database**: Broadlink Manager uses a [stable fork of the SmartIR device codes](https://github.com/tonyperkins/smartir-device-database) to ensure reliability and consistent availability. This fork is periodically updated from the original SmartIR repository.
+**Device Code Database**: Broadlink Manager uses the [SmartIR Code Aggregator](https://github.com/tonyperkins/smartir-code-aggregator), which combines device codes from SmartIR, IRDB, and other sources in a standardized SmartIR format. This provides a comprehensive database with thousands of pre-configured devices while maintaining compatibility with the SmartIR integration.
 
 ## License
 

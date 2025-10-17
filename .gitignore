@@ -118,3 +118,11 @@ Thumbs.db
 *.log
 data/
 .storage/
+
+# Test artifacts
+test-logs.txt
+test_phase*.py
+test-results/
+
+# Keep documentation screenshots
+!docs/images/screenshots/

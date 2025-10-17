@@ -1,0 +1,4070 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-10-17T00:28:58.004270+00:00",
+  "source": "https://github.com/tonyperkins/smartir-code-aggregator",
+  "description": "Aggregated IR/RF codes from SmartIR, IRDB, and other sources in SmartIR format",
+  "platforms": {
+    "climate": {
+      "manufacturers": {
+        "Toyotomi": {
+          "models": [
+            {
+              "code": "1000",
+              "models": [
+                "AKIRA GAN/GAG-A128 VL"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1000.json"
+            },
+            {
+              "code": "1001",
+              "models": [
+                "AKIRA GAN/GAG-A135FW-M"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1001.json"
+            }
+          ]
+        },
+        "Panasonic": {
+          "models": [
+            {
+              "code": "1020",
+              "models": [
+                "CS-CE7HKEW",
+                "CS-CE9HKEW",
+                "CS-CE12HKEW",
+                "CS-PC24MKF",
+                "CS-C24PKF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1020.json"
+            },
+            {
+              "code": "1021",
+              "models": [
+                "CS-RE9GKE",
+                "CS-RE12GKE",
+                "CS-RE9PKR",
+                "CSCU-Z25TKR"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1021.json"
+            },
+            {
+              "code": "1022",
+              "models": [
+                "CS-Z25TK"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1022.json"
+            },
+            {
+              "code": "1023",
+              "models": [
+                "CS-HE9JKE",
+                "CS-HE12JKE",
+                "CS-HE9LKE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1023.json"
+            },
+            {
+              "code": "1024",
+              "models": [
+                "CS-MRE7MKE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1024.json"
+            },
+            {
+              "code": "1025",
+              "models": [
+                "CS-E18FKR"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1025.json"
+            },
+            {
+              "code": "1026",
+              "models": [
+                "CS-PC12QKT"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1026.json"
+            },
+            {
+              "code": "1027",
+              "models": [
+                "CS-SA9CKP"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1027.json"
+            },
+            {
+              "code": "1028",
+              "models": [
+                "CS-U9RKR",
+                "CS-U12RKR"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1028.json"
+            },
+            {
+              "code": "1029",
+              "models": [
+                "CS-LJ22~LJ90BA2(YA2)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1029.json"
+            },
+            {
+              "code": "1030",
+              "models": [
+                "CS-E12JKDW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1030.json"
+            },
+            {
+              "code": "1031",
+              "models": [
+                "SRK25ZMP-S, SRK35ZMP-S, SRK45ZMP-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1031.json"
+            },
+            {
+              "code": "1032",
+              "models": [
+                "CS-CU-HU18YKYF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1032.json"
+            }
+          ]
+        },
+        "Ggeneral Electric": {
+          "models": [
+            {
+              "code": "1040",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1040.json"
+            },
+            {
+              "code": "1041",
+              "models": [
+                "AE1PH09IWF",
+                "AE0PH09IWO",
+                "AE1PH12IWF",
+                "AE0PH12IWO",
+                "AE4PH18IWF",
+                "AE4PH18IWF",
+                "AE5PH18IWO"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1041.json"
+            },
+            {
+              "code": "1042",
+              "models": [
+                "ASHA09LCC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1042.json"
+            }
+          ]
+        },
+        "General Electric": {
+          "models": [
+            {
+              "code": "1043",
+              "models": [
+                "ASWX09LECA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1043.json"
+            },
+            {
+              "code": "1044",
+              "models": [
+                "AHD08LXW1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1044.json"
+            }
+          ]
+        },
+        "LG": {
+          "models": [
+            {
+              "code": "1060",
+              "models": [
+                "R09AWN",
+                "R24AWN",
+                "E09EK"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1060.json"
+            },
+            {
+              "code": "1061",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1061.json"
+            },
+            {
+              "code": "1062",
+              "models": [
+                "P12RK",
+                "A06AWV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1062.json"
+            },
+            {
+              "code": "1063",
+              "models": [
+                "P12EP1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1063.json"
+            },
+            {
+              "code": "1064",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1064.json"
+            },
+            {
+              "code": "1065",
+              "models": [
+                "LG080EC",
+                "LG100EC",
+                "LG150EC",
+                "LG200EC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1065.json"
+            },
+            {
+              "code": "1066",
+              "models": [
+                "LA090HYV",
+                "LA120HYV",
+                "LAN090HYV",
+                "LAN120HYV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1066.json"
+            },
+            {
+              "code": "1067",
+              "models": [
+                "W12TCM"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1067.json"
+            },
+            {
+              "code": "1068",
+              "models": [
+                "AKB74295303"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1068.json"
+            },
+            {
+              "code": "1069",
+              "models": [
+                "AKB74295304"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1069.json"
+            },
+            {
+              "code": "1070",
+              "models": [
+                "PC09SQ NSJ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1070.json"
+            },
+            {
+              "code": "1083",
+              "models": [
+                "RAS-32CNH2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1083.json"
+            },
+            {
+              "code": "4060",
+              "models": [
+                "G09LH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4060.json"
+            },
+            {
+              "code": "7062",
+              "models": [
+                "P12RK"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7062.json"
+            },
+            {
+              "code": "7065",
+              "models": [
+                "LG080EC",
+                "LG100EC",
+                "LG150EC",
+                "LG200EC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7065.json"
+            }
+          ]
+        },
+        "Hitachi": {
+          "models": [
+            {
+              "code": "1080",
+              "models": [
+                "RAC-50HK1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1080.json"
+            },
+            {
+              "code": "1081",
+              "models": [
+                "RAC-10EH1",
+                "RAC-18EH1",
+                "RAS-10EH1",
+                "RAS-10EH3",
+                "RAS-18EH1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1081.json"
+            },
+            {
+              "code": "1082",
+              "models": [
+                "RAS-25YHA",
+                "RAS-35YHA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1082.json"
+            },
+            {
+              "code": "1084",
+              "models": [
+                "RAS-DX18HDK",
+                "RAK-35RPC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1084.json"
+            },
+            {
+              "code": "1085",
+              "models": [
+                "RPA24B3BL"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1085.json"
+            },
+            {
+              "code": "1086",
+              "models": [
+                "RAC-28NK1",
+                "RAC-36NK1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1086.json"
+            },
+            {
+              "code": "1087",
+              "models": [
+                "RAS-E25YHAB",
+                "RAS-E35YHAB",
+                "RAS-E50YHAB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1087.json"
+            },
+            {
+              "code": "1088",
+              "models": [
+                "RAF-25REX",
+                "RAF-35REX",
+                "RAF-50REX"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1088.json"
+            },
+            {
+              "code": "1089",
+              "models": [
+                "RAK-35RXE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1089.json"
+            },
+            {
+              "code": "1090",
+              "models": [
+                "RAK-50RPE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1090.json"
+            },
+            {
+              "code": "1091",
+              "models": [
+                "HSPE2700FCINV",
+                "HSPE3200FCINV",
+                "HSPE5400FCINV",
+                "HSPE6400FCINV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1091.json"
+            },
+            {
+              "code": "1092",
+              "models": [
+                "RAS-E14HB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1092.json"
+            }
+          ]
+        },
+        "Daikin": {
+          "models": [
+            {
+              "code": "1100",
+              "models": [
+                "FTXS25CVMB",
+                "FTXS35CVMB",
+                "FTXS60BVMB",
+                "FVXS25BVMB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1100.json"
+            },
+            {
+              "code": "1101",
+              "models": [
+                "FTXS20LVMA",
+                "FTXS25LVMA",
+                "FTXS35LVMA",
+                "FTXS46LVMA",
+                "FTXS50LVMA",
+                "FTXS60LVMA",
+                "FTXS71LVMA",
+                "FTXS85LVMA",
+                "FTXS95LVMA",
+                "FVXS50FV1B",
+                "FTXL35J2V1B",
+                "FTXM25UVMA",
+                "FTXM35UVMA",
+                "FTXD25DVMA",
+                "FTXS35G2V1B",
+                "FTXM71UVMA",
+                "FTM09PV2S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1101.json"
+            },
+            {
+              "code": "1102",
+              "models": [
+                "FTV20AXV14"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1102.json"
+            },
+            {
+              "code": "1103",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1103.json"
+            },
+            {
+              "code": "1104",
+              "models": [
+                "TF25DVM"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1104.json"
+            },
+            {
+              "code": "1106",
+              "models": [
+                "ATX20KV1B",
+                "ATX25KV1B",
+                "ATX35KV1B"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1106.json"
+            },
+            {
+              "code": "1107",
+              "models": [
+                "FTX25JAV1NB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1107.json"
+            },
+            {
+              "code": "1108",
+              "models": [
+                "FTXG25EV1BS",
+                "FTXG35EV1BS",
+                "FTXG35EV1BW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1108.json"
+            },
+            {
+              "code": "1109",
+              "models": [
+                "BRC4C158"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1109.json"
+            },
+            {
+              "code": "1110",
+              "models": [
+                "FTC15NV14",
+                "FTC20NV14",
+                "FTC25NV14",
+                "FTC35NV14"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1110.json"
+            },
+            {
+              "code": "1111",
+              "models": [
+                "FTE09NV25"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1111.json"
+            },
+            {
+              "code": "1112",
+              "models": [
+                "ATKC09TV2S",
+                "FTKQ12TV2S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1112.json"
+            },
+            {
+              "code": "1113",
+              "models": [
+                "FTXV35AV1B"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1113.json"
+            },
+            {
+              "code": "1114",
+              "models": [
+                "FTXM35UVMZ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1114.json"
+            },
+            {
+              "code": "1115",
+              "models": [
+                "ftxb-c"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1115.json"
+            },
+            {
+              "code": "1116",
+              "models": [
+                "FCQ100KAVEA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1116.json"
+            },
+            {
+              "code": "1117",
+              "models": [
+                "DTXF35TVMA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1117.json"
+            },
+            {
+              "code": "1118",
+              "models": [
+                "ARC452A21",
+                "FTXS09LVJU",
+                "FTXS12LVJU",
+                "FTXS15LVJU",
+                "FTXS18LVJU",
+                "FTXS24LVJU"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1118.json"
+            },
+            {
+              "code": "1119",
+              "models": [
+                "FTXS60FVMA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1119.json"
+            },
+            {
+              "code": "4100",
+              "models": [
+                "FTXS25CVMB",
+                "FTXS35CVMB",
+                "FTXS60BVMB",
+                "FVXS25BVMB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4100.json"
+            },
+            {
+              "code": "5120",
+              "models": [
+                "ARC433B51"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/5120.json"
+            }
+          ]
+        },
+        "Dalkin": {
+          "models": [
+            {
+              "code": "1105",
+              "models": [
+                "FTX12NMVJU"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1105.json"
+            }
+          ]
+        },
+        "Mitsubishi Electric": {
+          "models": [
+            {
+              "code": "1120",
+              "models": [
+                "MSZ-GL25VGD",
+                "MSZ-GL35VGD",
+                "MSZ-GL42VGD",
+                "MSZ-GL50VGD",
+                "MSZ-GL60VGD",
+                "MSZ-GL71VGD",
+                "MSZ-GL80VGD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1120.json"
+            },
+            {
+              "code": "1121",
+              "models": [
+                "MSZ-GA35VA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1121.json"
+            },
+            {
+              "code": "1123",
+              "models": [
+                "SRK25ZSX-SRC25ZSX"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1123.json"
+            },
+            {
+              "code": "1125",
+              "models": [
+                "MLZ-KP25VF",
+                "MLZ-KP35VF",
+                "MLZ-KP50VF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1125.json"
+            },
+            {
+              "code": "1126",
+              "models": [
+                "MSX09-NV II",
+                "MSH-07RV",
+                "MSH-12RV",
+                "MS-24RV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1126.json"
+            },
+            {
+              "code": "1127",
+              "models": [
+                "MSZ-HJ25VA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1127.json"
+            },
+            {
+              "code": "1128",
+              "models": [
+                "MSZ-HJ25VA",
+                "MSZ-HJ35VA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1128.json"
+            },
+            {
+              "code": "1130",
+              "models": [
+                "MS-SGD18VC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1130.json"
+            },
+            {
+              "code": "1131",
+              "models": [
+                "PAR-FL32MA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1131.json"
+            },
+            {
+              "code": "1132",
+              "models": [
+                "MSC-A12YV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1132.json"
+            },
+            {
+              "code": "1134",
+              "models": [
+                "MG-GN18VF",
+                "MS-GN18VF",
+                "MS-GN13VF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1134.json"
+            },
+            {
+              "code": "1136",
+              "models": [
+                "MSXY-FP10VG",
+                "MSXY-FP13VG",
+                "MSXY-FP18VG"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1136.json"
+            },
+            {
+              "code": "1137",
+              "models": [
+                "MSZ-HR35VF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1137.json"
+            },
+            {
+              "code": "1138",
+              "models": [
+                "Remote KM09D/166901"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1138.json"
+            },
+            {
+              "code": "4124",
+              "models": [
+                "MSZ-SF25VE3",
+                "MSZ-SF35VE3",
+                "MSZ-SF42VE3",
+                "MSZ-SF50VE3",
+                "MSZ-AP20VG",
+                "MSZ-AP25VGD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4124.json"
+            },
+            {
+              "code": "4129",
+              "models": [
+                "DXK18Z1-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4129.json"
+            },
+            {
+              "code": "5140",
+              "models": [
+                "MSC-A12WV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/5140.json"
+            }
+          ]
+        },
+        "Mitsubishi": {
+          "models": [
+            {
+              "code": "1122",
+              "models": [
+                "MSZ-AP50VGKD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1122.json"
+            },
+            {
+              "code": "1124",
+              "models": [
+                "MSZ-SF25VE3",
+                "MSZ-SF35VE3",
+                "MSZ-SF42VE3",
+                "MSZ-SF50VE3",
+                "MSZ-AP20VG",
+                "MSZ-AP25VGD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1124.json"
+            },
+            {
+              "code": "1135",
+              "models": [
+                "MSZ-GE60VAD",
+                "MSZ-GE71VAD",
+                "MSZ-GE80VAD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1135.json"
+            },
+            {
+              "code": "1139",
+              "models": [
+                "MLZ-KP09NA2",
+                "MLZ-KP18NA2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1139.json"
+            },
+            {
+              "code": "7124",
+              "models": [
+                "MSZ-SF25VE3",
+                "MSZ-SF35VE3",
+                "MSZ-SF42VE3",
+                "MSZ-SF50VE3",
+                "MSZ-AP20VG",
+                "MSZ-AP25VGD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7124.json"
+            }
+          ]
+        },
+        "Mitsubishi Electric ": {
+          "models": [
+            {
+              "code": "1129",
+              "models": [
+                "MSZ-GE22VA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1129.json"
+            }
+          ]
+        },
+        "Mitsubishi Electric Starmex": {
+          "models": [
+            {
+              "code": "1133",
+              "models": [
+                "MSXY-FN10VE",
+                "MSXY-FN07VE",
+                "MSXY-FN13VE",
+                "MSXY-FN18VE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1133.json"
+            }
+          ]
+        },
+        "Actron": {
+          "models": [
+            {
+              "code": "1140",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1140.json"
+            }
+          ]
+        },
+        "Carrier": {
+          "models": [
+            {
+              "code": "1160",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1160.json"
+            },
+            {
+              "code": "1161",
+              "models": [
+                "40GKX-024RB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1161.json"
+            },
+            {
+              "code": "1162",
+              "models": [
+                "42TVGS024-703"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1162.json"
+            },
+            {
+              "code": "1163",
+              "models": [
+                "40MAQB12B--3",
+                "40MAQB18B--3"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1163.json"
+            },
+            {
+              "code": "1164",
+              "models": [
+                "42LUVH025N-1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1164.json"
+            },
+            {
+              "code": "1165",
+              "models": [
+                "42P250HX",
+                "53P250HX"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1165.json"
+            },
+            {
+              "code": "1166",
+              "models": [
+                "CS-A121N"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1166.json"
+            }
+          ]
+        },
+        "Gree": {
+          "models": [
+            {
+              "code": "1180",
+              "models": [
+                "GWH12-KF-K3DNA5G-I"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1180.json"
+            },
+            {
+              "code": "1181",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1181.json"
+            },
+            {
+              "code": "1182",
+              "models": [
+                "GMV-R45G/NaB-K"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1182.json"
+            },
+            {
+              "code": "1183",
+              "models": [
+                "Gree Smart inverter models. WiFi off. Health on. Swing modes: [swing]_[led]"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1183.json"
+            },
+            {
+              "code": "1184",
+              "models": [
+                "GWH09KF",
+                "GC-EAF09HR"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1184.json"
+            },
+            {
+              "code": "1185",
+              "models": [
+                "KFR-50LW",
+                "YAP1F2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1185.json"
+            },
+            {
+              "code": "1186",
+              "models": [
+                "GWH18ACD-D3DNA 1M"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1186.json"
+            },
+            {
+              "code": "1187",
+              "models": [
+                "Unknown model"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1187.json"
+            },
+            {
+              "code": "1188",
+              "models": [
+                "VIR18HP230V1AH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1188.json"
+            },
+            {
+              "code": "4180",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4180.json"
+            },
+            {
+              "code": "4181",
+              "models": [
+                "YB1FA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4181.json"
+            }
+          ]
+        },
+        "Tosot": {
+          "models": [
+            {
+              "code": "1200",
+              "models": [
+                "T09H-SJ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1200.json"
+            }
+          ]
+        },
+        "Sungold": {
+          "models": [
+            {
+              "code": "1220",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1220.json"
+            }
+          ]
+        },
+        "Consul": {
+          "models": [
+            {
+              "code": "1240",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1240.json"
+            },
+            {
+              "code": "1241",
+              "models": [
+                "CBV12CBBNA",
+                "CBY12DBBNA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1241.json"
+            }
+          ]
+        },
+        "Toshiba": {
+          "models": [
+            {
+              "code": "1260",
+              "models": [
+                "RAS-13NKV-E / RAS-13NAV-E",
+                "RAS-13NKV-A / RAS-13NAV-A",
+                "RAS-16NKV-E / RAS-16NAV-E",
+                "RAS-16NKV-A / RAS-16NAV-A",
+                "RAS-M10SKV-E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1260.json"
+            },
+            {
+              "code": "1262",
+              "models": [
+                "RAC-PD0812CRRU",
+                "RAC-PD1013CWRU",
+                "RAC-PD1213CWRU",
+                "RAC-PD1414CWRU"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1262.json"
+            },
+            {
+              "code": "1263",
+              "models": [
+                "RAS-B07J2KVSG-E",
+                "RAS-B10J2KVSG-E",
+                "RAS-B13J2KVSG-E",
+                "RAS-B10SKVP-E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1263.json"
+            },
+            {
+              "code": "1264",
+              "models": [
+                "RAS-13SKVR-A"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1264.json"
+            },
+            {
+              "code": "1265",
+              "models": [
+                "RAS-25SKVP2-ND",
+                "RAS-35SKVP2-ND"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1265.json"
+            },
+            {
+              "code": "7260",
+              "models": [
+                "RAS-18NKV-E / RAS-18NAV-E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7260.json"
+            }
+          ]
+        },
+        " Toshiba": {
+          "models": [
+            {
+              "code": "1261",
+              "models": [
+                "WH-TA05NE",
+                "WH-TA11EJ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1261.json"
+            }
+          ]
+        },
+        "Fujitsu": {
+          "models": [
+            {
+              "code": "1280",
+              "models": [
+                "AR-RBE1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1280.json"
+            },
+            {
+              "code": "1281",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1281.json"
+            },
+            {
+              "code": "1282",
+              "models": [
+                "AR-JW11"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1282.json"
+            },
+            {
+              "code": "1283",
+              "models": [
+                "AR-AB5"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1283.json"
+            },
+            {
+              "code": "1284",
+              "models": [
+                "AR-REG1U"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1284.json"
+            },
+            {
+              "code": "1285",
+              "models": [
+                "AR-RCE1E",
+                "AR-PZ2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1285.json"
+            },
+            {
+              "code": "1286",
+              "models": [
+                "AR-JE5"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1286.json"
+            },
+            {
+              "code": "1287",
+              "models": [
+                "ASYG-LMCE",
+                "AR-REB1E",
+                "AR-REM7E",
+                "AR-REW2E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1287.json"
+            },
+            {
+              "code": "1288",
+              "models": [
+                "AR-AB8"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1288.json"
+            },
+            {
+              "code": "1289",
+              "models": [
+                "AR-REW1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1289.json"
+            },
+            {
+              "code": "1290",
+              "models": [
+                "AR-RFL7J"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1290.json"
+            },
+            {
+              "code": "1291",
+              "models": [
+                "AR-REF1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1291.json"
+            },
+            {
+              "code": "1292",
+              "models": [
+                "ASYG18LF",
+                "AR-RY12"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1292.json"
+            },
+            {
+              "code": "1293",
+              "models": [
+                "ASYG07LM",
+                "ASYG09LM",
+                "AR-REB1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1293.json"
+            },
+            {
+              "code": "1294",
+              "models": [
+                "AR-RY4"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1294.json"
+            },
+            {
+              "code": "4285",
+              "models": [
+                "AR-RCE1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4285.json"
+            },
+            {
+              "code": "7285",
+              "models": [
+                "AR-RCE1E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7285.json"
+            }
+          ]
+        },
+        "Sharp": {
+          "models": [
+            {
+              "code": "1300",
+              "models": [
+                "AY-B22DM"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1300.json"
+            },
+            {
+              "code": "1301",
+              "models": [
+                "AY-X13BE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1301.json"
+            }
+          ]
+        },
+        "Haier": {
+          "models": [
+            {
+              "code": "1320",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1320.json"
+            },
+            {
+              "code": "1321",
+              "models": [
+                "Top-Tech 14"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1321.json"
+            },
+            {
+              "code": "1322",
+              "models": [
+                "HSU-09HPL03/R03"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1322.json"
+            }
+          ]
+        },
+        "Tadiran": {
+          "models": [
+            {
+              "code": "1340",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1340.json"
+            },
+            {
+              "code": "1341",
+              "models": [
+                "TAC490"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1341.json"
+            },
+            {
+              "code": "1342",
+              "models": [
+                "Tadiran-10i/15i/inv220a"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1342.json"
+            },
+            {
+              "code": "1343",
+              "models": [
+                "Alpha Series"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1343.json"
+            },
+            {
+              "code": "1344",
+              "models": [
+                "Remote Control YB1FA",
+                "Tadiran Inverter"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1344.json"
+            },
+            {
+              "code": "1345",
+              "models": [
+                "TAC 297"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1345.json"
+            },
+            {
+              "code": "1346",
+              "models": [
+                "TAC 297H V3.2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1346.json"
+            },
+            {
+              "code": "1560",
+              "models": [
+                "WIND 3P"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1560.json"
+            }
+          ]
+        },
+        "Springer": {
+          "models": [
+            {
+              "code": "1360",
+              "models": [
+                "Split Hi Wall Maxiflex"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1360.json"
+            }
+          ]
+        },
+        "Midea": {
+          "models": [
+            {
+              "code": "1380",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1380.json"
+            },
+            {
+              "code": "1381",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1381.json"
+            },
+            {
+              "code": "1382",
+              "models": [
+                "MSY-12HRDN1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1382.json"
+            },
+            {
+              "code": "1383",
+              "models": [
+                "KFR-35G"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1383.json"
+            },
+            {
+              "code": "1384",
+              "models": [
+                "MSMACU-18HRFN1-QRD0GW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1384.json"
+            },
+            {
+              "code": "1385",
+              "models": [
+                "R11HG/E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1385.json"
+            },
+            {
+              "code": "1386",
+              "models": [
+                "KFR-32GW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1386.json"
+            },
+            {
+              "code": "1387",
+              "models": [
+                "RG70E/BGEF (Remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1387.json"
+            },
+            {
+              "code": "1388",
+              "models": [
+                "42MAQA09S5"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1388.json"
+            },
+            {
+              "code": "1389",
+              "models": [
+                "MAP05R1WWT"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1389.json"
+            },
+            {
+              "code": "1390",
+              "models": [
+                "RG52C1/BGE (Remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1390.json"
+            },
+            {
+              "code": "1391",
+              "models": [
+                "RG58E3/BGEF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1391.json"
+            },
+            {
+              "code": "1392",
+              "models": [
+                "MPD-12CRN7"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1392.json"
+            },
+            {
+              "code": "1393",
+              "models": [
+                "MPPHB-09CRN7-QB6-N"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1393.json"
+            },
+            {
+              "code": "1394",
+              "models": [
+                "RG70C/BGEF (Remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1394.json"
+            },
+            {
+              "code": "1395",
+              "models": [
+                "RG10B(D1)/BGEFU1 (Remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1395.json"
+            },
+            {
+              "code": "4380",
+              "models": [
+                "MCD-24HRN1-Q1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4380.json"
+            },
+            {
+              "code": "4381",
+              "models": [
+                "RG70C1/BGEF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4381.json"
+            },
+            {
+              "code": "7386",
+              "models": [
+                "KFR-32GW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7386.json"
+            }
+          ]
+        },
+        "Samsung": {
+          "models": [
+            {
+              "code": "1400",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1400.json"
+            },
+            {
+              "code": "1401",
+              "models": [
+                "AR**HSF/JFS**"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1401.json"
+            },
+            {
+              "code": "1402",
+              "models": [
+                "AR**TSHGAWK"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1402.json"
+            },
+            {
+              "code": "1403",
+              "models": [
+                "AR**TXHZ***"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1403.json"
+            },
+            {
+              "code": "1404",
+              "models": [
+                "AR**TSHZ****"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1404.json"
+            },
+            {
+              "code": "1405",
+              "models": [
+                "AR**TSHQBURN"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1405.json"
+            },
+            {
+              "code": "1406",
+              "models": [
+                "AQV12PWD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1406.json"
+            },
+            {
+              "code": "1407",
+              "models": [
+                "AR**NXWS***"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1407.json"
+            },
+            {
+              "code": "1408",
+              "models": [
+                "AR18HSFSAWKNEU Ver.01"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1408.json"
+            }
+          ]
+        },
+        "Sintech": {
+          "models": [
+            {
+              "code": "1420",
+              "models": [
+                "KFR-34GW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1420.json"
+            }
+          ]
+        },
+        "Akai": {
+          "models": [
+            {
+              "code": "1440",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1440.json"
+            },
+            {
+              "code": "1441",
+              "models": [
+                "TEM-26CHSAAK5",
+                "TEM-70CHSAAK5",
+                "TEM-26CHSAKA5",
+                "TEM-35CHSAKA",
+                "TEM-50CHSAKA",
+                "TEM-35CHSABH",
+                "TEM-35CHSF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1441.json"
+            }
+          ]
+        },
+        "Alliance": {
+          "models": [
+            {
+              "code": "1460",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1460.json"
+            }
+          ]
+        },
+        "Junkers": {
+          "models": [
+            {
+              "code": "1480",
+              "models": [
+                "Excellence"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1480.json"
+            },
+            {
+              "code": "1481",
+              "models": [
+                "Excellence"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1481.json"
+            }
+          ]
+        },
+        "Sanyo": {
+          "models": [
+            {
+              "code": "1500",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1500.json"
+            },
+            {
+              "code": "1501",
+              "models": [
+                "SAP-KR124EHEA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1501.json"
+            }
+          ]
+        },
+        "Hisense": {
+          "models": [
+            {
+              "code": "1520",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1520.json"
+            },
+            {
+              "code": "1521",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1521.json"
+            },
+            {
+              "code": "1522",
+              "models": [
+                "DGR11R2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1522.json"
+            },
+            {
+              "code": "5520",
+              "models": [
+                "AS-07UR4SYDD815G"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/5520.json"
+            }
+          ]
+        },
+        "Whirlpool": {
+          "models": [
+            {
+              "code": "1540",
+              "models": [
+                "SPIS412L"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1540.json"
+            }
+          ]
+        },
+        "Chigo": {
+          "models": [
+            {
+              "code": "1580",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1580.json"
+            },
+            {
+              "code": "1581",
+              "models": [
+                "ZH/TY-01"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1581.json"
+            },
+            {
+              "code": "1582",
+              "models": [
+                "ZH/TT-14"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1582.json"
+            },
+            {
+              "code": "4580",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4580.json"
+            },
+            {
+              "code": "4581",
+              "models": [
+                "ZH/LW-03"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4581.json"
+            }
+          ]
+        },
+        "Beko": {
+          "models": [
+            {
+              "code": "1600",
+              "models": [
+                "BEVCA 120"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1600.json"
+            },
+            {
+              "code": "1601",
+              "models": [
+                "BPAK 120"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1601.json"
+            },
+            {
+              "code": "1602",
+              "models": [
+                "BXK 120"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1602.json"
+            },
+            {
+              "code": "1603",
+              "models": [
+                "BXEU 090"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1603.json"
+            },
+            {
+              "code": "1604",
+              "models": [
+                "BPEU 120"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1604.json"
+            }
+          ]
+        },
+        "Tornado": {
+          "models": [
+            {
+              "code": "1620",
+              "models": [
+                "Super - Inverter A, i",
+                "Inverter",
+                "Inverter A",
+                "Super Design",
+                "Super Plasma",
+                "Gold i",
+                "Multi ON-OFF",
+                "Multi Inverter",
+                "Super Gold i",
+                "Plasma Gold"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1620.json"
+            },
+            {
+              "code": "1621",
+              "models": [
+                "Super Legend 40"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1621.json"
+            },
+            {
+              "code": "1622",
+              "models": [
+                "Master-22 X"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1622.json"
+            },
+            {
+              "code": "1623",
+              "models": [
+                "Inverter VRF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1623.json"
+            },
+            {
+              "code": "1624",
+              "models": [
+                "Super Legend 40"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1624.json"
+            },
+            {
+              "code": "1625",
+              "models": [
+                "Inverter VRF BOX"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1625.json"
+            },
+            {
+              "code": "1626",
+              "models": [
+                "MASTER-35 X 1PH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1626.json"
+            },
+            {
+              "code": "1627",
+              "models": [
+                "MASTER-12A PLUS"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1627.json"
+            }
+          ]
+        },
+        "FUJIKO": {
+          "models": [
+            {
+              "code": "1640",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1640.json"
+            }
+          ]
+        },
+        "ROYAL": {
+          "models": [
+            {
+              "code": "1660",
+              "models": [
+                "08HPN1T1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1660.json"
+            },
+            {
+              "code": "1661",
+              "models": [
+                "RC-G25HN"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1661.json"
+            }
+          ]
+        },
+        "Mitsubishi Heavy": {
+          "models": [
+            {
+              "code": "1680",
+              "models": [
+                "SRK25ZJ-S1",
+                "SRK13CRV-S1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1680.json"
+            },
+            {
+              "code": "1681",
+              "models": [
+                "SRK71ZK-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1681.json"
+            },
+            {
+              "code": "1682",
+              "models": [
+                "SRKM25H",
+                "SRK40HBE",
+                "RKS502A502",
+                "RKS502A503"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1682.json"
+            },
+            {
+              "code": "1683",
+              "models": [
+                "DXK12ZMA-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1683.json"
+            },
+            {
+              "code": "1685",
+              "models": [
+                "SRK50ZS-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1685.json"
+            },
+            {
+              "code": "1686",
+              "models": [
+                "SRK20ZSA-W",
+                "SRK25ZSA-W",
+                "SRK35ZSA-W",
+                "SRK50ZSA-W"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1686.json"
+            },
+            {
+              "code": "1687",
+              "models": [
+                "SRK35ZJX-S",
+                "SRK20ZJX-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1687.json"
+            },
+            {
+              "code": "1688",
+              "models": [
+                "SRK25ZSP-W",
+                "SRK35ZSP-W",
+                "SRK45ZSP-W"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1688.json"
+            },
+            {
+              "code": "1689",
+              "models": [
+                "DXK12ZSA-W"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1689.json"
+            },
+            {
+              "code": "1690",
+              "models": [
+                "FDUM VF2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1690.json"
+            },
+            {
+              "code": "1691",
+              "models": [
+                "SRK71ZRA-W"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1691.json"
+            },
+            {
+              "code": "1692",
+              "models": [
+                "DXK12Z3-S",
+                "DXK09Z5-S",
+                "DXK15Z5-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1692.json"
+            }
+          ]
+        },
+        "Mitsubishi Heavy Industries": {
+          "models": [
+            {
+              "code": "1684",
+              "models": [
+                "DXK24ZRA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1684.json"
+            }
+          ]
+        },
+        "Electrolux": {
+          "models": [
+            {
+              "code": "1700",
+              "models": [
+                "EACS/I-HAT/N3"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1700.json"
+            },
+            {
+              "code": "1701",
+              "models": [
+                "EACS-HA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1701.json"
+            },
+            {
+              "code": "1702",
+              "models": [
+                "QI/QE09F",
+                "QI/QE09R",
+                "QI/QE12F",
+                "QI/QE12R",
+                "QI/QE18F",
+                "QI/QE18R",
+                "QI/QE22F",
+                "QI/QE22R",
+                "XI/XE09F",
+                "XI/XE09R",
+                "XI/XE12F",
+                "XI/XE12R",
+                "XI/XE18F",
+                "XI/XE18R",
+                "XI/XE22F",
+                "XI/XE22R"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1702.json"
+            },
+            {
+              "code": "1703",
+              "models": [
+                "EXP26U758CW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1703.json"
+            },
+            {
+              "code": "1704",
+              "models": [
+                "EPI12LEIWI"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1704.json"
+            },
+            {
+              "code": "1705",
+              "models": [
+                "EACM-10 HR/N3"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1705.json"
+            }
+          ]
+        },
+        "Erisson": {
+          "models": [
+            {
+              "code": "1720",
+              "models": [
+                "EC-S07T2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1720.json"
+            }
+          ]
+        },
+        "Kelvinator": {
+          "models": [
+            {
+              "code": "1740",
+              "models": [
+                "KSV25HRG"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1740.json"
+            },
+            {
+              "code": "1741",
+              "models": [
+                "KSV26CRC",
+                "KSV26HRC",
+                "KSV35CRC",
+                "KSV35HRC",
+                "KSV53HRC",
+                "KSV62HRC",
+                "KSV70CRC",
+                "KCV70HRC",
+                "KSV80HRC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1741.json"
+            },
+            {
+              "code": "7740",
+              "models": [
+                "KSV25HWH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7740.json"
+            }
+          ]
+        },
+        "Daitsu": {
+          "models": [
+            {
+              "code": "1760",
+              "models": [
+                "DS12U-RV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1760.json"
+            },
+            {
+              "code": "1761",
+              "models": [
+                "DS-9KIDT"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1761.json"
+            },
+            {
+              "code": "1762",
+              "models": [
+                "ASD9KI-DT"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1762.json"
+            },
+            {
+              "code": "1763",
+              "models": [
+                "DOS12KIDB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1763.json"
+            },
+            {
+              "code": "1764",
+              "models": [
+                "DS-12KIDC(WD)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1764.json"
+            }
+          ]
+        },
+        "Trotec": {
+          "models": [
+            {
+              "code": "1780",
+              "models": [
+                "YX1F6"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1780.json"
+            },
+            {
+              "code": "1781",
+              "models": [
+                "YX1F"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1781.json"
+            },
+            {
+              "code": "1782",
+              "models": [
+                "RG57H3(B)/BGCEF-M",
+                "PAC 2100 X",
+                "PAC 2600 X"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1782.json"
+            }
+          ]
+        },
+        "Ballu": {
+          "models": [
+            {
+              "code": "1800",
+              "models": [
+                "YKR-K/002E"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1800.json"
+            },
+            {
+              "code": "1801",
+              "models": [
+                "BSD/in-09HN1_20Y"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1801.json"
+            }
+          ]
+        },
+        "Riello": {
+          "models": [
+            {
+              "code": "1820",
+              "models": [
+                "WSI XN",
+                "RAR-3U4"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1820.json"
+            }
+          ]
+        },
+        "Hualing": {
+          "models": [
+            {
+              "code": "1840",
+              "models": [
+                "KFR-45GW/JNV",
+                "KFR-45G/JNV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1840.json"
+            }
+          ]
+        },
+        "Simbio": {
+          "models": [
+            {
+              "code": "1860",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1860.json"
+            }
+          ]
+        },
+        "Saunier Duval": {
+          "models": [
+            {
+              "code": "1880",
+              "models": [
+                "1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1880.json"
+            }
+          ]
+        },
+        "TCL": {
+          "models": [
+            {
+              "code": "1900",
+              "models": [
+                "TAC-12CHSD/XA21I"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1900.json"
+            },
+            {
+              "code": "1901",
+              "models": [
+                "TAC-12CHSD/XA71IN"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1901.json"
+            }
+          ]
+        },
+        "Aokesi": {
+          "models": [
+            {
+              "code": "1920",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1920.json"
+            }
+          ]
+        },
+        "Electra": {
+          "models": [
+            {
+              "code": "1940",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1940.json"
+            },
+            {
+              "code": "1941",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1941.json"
+            },
+            {
+              "code": "1942",
+              "models": [
+                "Electra Classic"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1942.json"
+            },
+            {
+              "code": "1943",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1943.json"
+            },
+            {
+              "code": "1944",
+              "models": [
+                "Electra Platinum Plus Inverter"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1944.json"
+            },
+            {
+              "code": "1945",
+              "models": [
+                "Electra"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1945.json"
+            },
+            {
+              "code": "1946",
+              "models": [
+                "RC-3"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1946.json"
+            },
+            {
+              "code": "1947",
+              "models": [
+                "Electra"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1947.json"
+            },
+            {
+              "code": "1948",
+              "models": [
+                "Classic 10"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1948.json"
+            }
+          ]
+        },
+        "AUX": {
+          "models": [
+            {
+              "code": "1960",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1960.json"
+            },
+            {
+              "code": "1961",
+              "models": [
+                "AUX FREEDOM AUX-09FH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1961.json"
+            },
+            {
+              "code": "1962",
+              "models": [
+                "iClima ICI-09A"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1962.json"
+            },
+            {
+              "code": "1963",
+              "models": [
+                "Kendal Split Inverter"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1963.json"
+            }
+          ]
+        },
+        "Fuji": {
+          "models": [
+            {
+              "code": "1980",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1980.json"
+            }
+          ]
+        },
+        "Aeronik": {
+          "models": [
+            {
+              "code": "2000",
+              "models": [
+                "ASO-12IL",
+                "ASI-12IL"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2000.json"
+            }
+          ]
+        },
+        "Ariston": {
+          "models": [
+            {
+              "code": "2020",
+              "models": [
+                "A-IFWHxx-IGX"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2020.json"
+            }
+          ]
+        },
+        "Pioneer": {
+          "models": [
+            {
+              "code": "2040",
+              "models": [
+                "WYS018GMFI17RL",
+                "WYS009GMFI17RL",
+                "CB018GMFILCFHD",
+                "CB012GMFILCFHD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2040.json"
+            },
+            {
+              "code": "2041",
+              "models": [
+                "WT018GLFI19HLD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2041.json"
+            }
+          ]
+        },
+        "Dimplex": {
+          "models": [
+            {
+              "code": "2060",
+              "models": [
+                "GDPAC12RC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2060.json"
+            }
+          ]
+        },
+        "Sendo": {
+          "models": [
+            {
+              "code": "2080",
+              "models": [
+                "SND-18/IK"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2080.json"
+            }
+          ]
+        },
+        "Mirage": {
+          "models": [
+            {
+              "code": "2100",
+              "models": [
+                "Magnum Inverter 19"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2100.json"
+            }
+          ]
+        },
+        "Technibel": {
+          "models": [
+            {
+              "code": "2120",
+              "models": [
+                "MPAF13A0R5IAA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2120.json"
+            }
+          ]
+        },
+        "Unionaire": {
+          "models": [
+            {
+              "code": "2140",
+              "models": [
+                "Artify"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2140.json"
+            }
+          ]
+        },
+        "Lennox": {
+          "models": [
+            {
+              "code": "2160",
+              "models": [
+                "2018",
+                "2019"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2160.json"
+            },
+            {
+              "code": "2161",
+              "models": [
+                "LNMTE026V2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2161.json"
+            },
+            {
+              "code": "2162",
+              "models": [
+                "LNINVE052",
+                "LNINVC052"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2162.json"
+            }
+          ]
+        },
+        "Hokkaido": {
+          "models": [
+            {
+              "code": "2180",
+              "models": [
+                "LA09-DUAL H1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2180.json"
+            }
+          ]
+        },
+        "IGC": {
+          "models": [
+            {
+              "code": "2200",
+              "models": [
+                "RAK-12NH",
+                "RAK-18NH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2200.json"
+            }
+          ]
+        },
+        "Blueridge": {
+          "models": [
+            {
+              "code": "2220",
+              "models": [
+                "RG57A4",
+                "BGEFU1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2220.json"
+            }
+          ]
+        },
+        "DeLonghi": {
+          "models": [
+            {
+              "code": "2240",
+              "models": [
+                "PAC N82ECO",
+                "PAC AN111"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2240.json"
+            },
+            {
+              "code": "2241",
+              "models": [
+                "PAC EM77"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2241.json"
+            },
+            {
+              "code": "2242",
+              "models": [
+                "PAC AN140HPEW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2242.json"
+            },
+            {
+              "code": "2243",
+              "models": [
+                "DL3000"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2243.json"
+            }
+          ]
+        },
+        "Profio": {
+          "models": [
+            {
+              "code": "2260",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2260.json"
+            }
+          ]
+        },
+        "Hantech": {
+          "models": [
+            {
+              "code": "2280",
+              "models": [
+                "A018-12KR2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2280.json"
+            },
+            {
+              "code": "2281",
+              "models": [
+                "A016-09KR2/A"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2281.json"
+            }
+          ]
+        },
+        "Zanussi": {
+          "models": [
+            {
+              "code": "2300",
+              "models": [
+                "ZH/TT-02"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2300.json"
+            },
+            {
+              "code": "2301",
+              "models": [
+                "ZACS/I-07 HPF/A17/N1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2301.json"
+            }
+          ]
+        },
+        "Whynter": {
+          "models": [
+            {
+              "code": "2320",
+              "models": [
+                "ARC-08WB",
+                "ARC-10WB",
+                "ARC-126MD",
+                "ARC-126MDB",
+                "ARC-148MS"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2320.json"
+            },
+            {
+              "code": "2321",
+              "models": [
+                "ARC-12S",
+                "ARC-12SD",
+                "ARC-122DS",
+                "ARC-14S",
+                "ARC-141BG",
+                "ARC-143MX",
+                "ARC-101CW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2321.json"
+            }
+          ]
+        },
+        "Vortex": {
+          "models": [
+            {
+              "code": "2340",
+              "models": [
+                "VOR-12C3/407"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2340.json"
+            }
+          ]
+        },
+        "Flouu": {
+          "models": [
+            {
+              "code": "2360",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2360.json"
+            }
+          ]
+        },
+        "BAXI": {
+          "models": [
+            {
+              "code": "2380",
+              "models": [
+                "Unknow"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2380.json"
+            }
+          ]
+        },
+        "Yamatsu": {
+          "models": [
+            {
+              "code": "2400",
+              "models": [
+                "YAM-12KDA",
+                "AUS-07C53R013L24"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2400.json"
+            }
+          ]
+        },
+        "VS": {
+          "models": [
+            {
+              "code": "2420",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2420.json"
+            }
+          ]
+        },
+        "Vaillant": {
+          "models": [
+            {
+              "code": "2440",
+              "models": [
+                "ClimaVair VAI 8-025"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2440.json"
+            }
+          ]
+        },
+        "FanWorld": {
+          "models": [
+            {
+              "code": "2460",
+              "models": [
+                "FW6-3000"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2460.json"
+            }
+          ]
+        },
+        "Rotenso": {
+          "models": [
+            {
+              "code": "2480",
+              "models": [
+                "Ukura",
+                "Maze (remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2480.json"
+            }
+          ]
+        },
+        "Endesa": {
+          "models": [
+            {
+              "code": "2500",
+              "models": [
+                "DGR11"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2500.json"
+            }
+          ]
+        },
+        "Galanz": {
+          "models": [
+            {
+              "code": "2520",
+              "models": [
+                "GZ-1002B-E3"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2520.json"
+            }
+          ]
+        },
+        "Audinac": {
+          "models": [
+            {
+              "code": "2540",
+              "models": [
+                "SP3500"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2540.json"
+            }
+          ]
+        },
+        "Mistral": {
+          "models": [
+            {
+              "code": "2560",
+              "models": [
+                "MPAC15CY28"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2560.json"
+            }
+          ]
+        },
+        "KOREL": {
+          "models": [
+            {
+              "code": "2580",
+              "models": [
+                "KSAL2-09DCEH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2580.json"
+            }
+          ]
+        },
+        "Equation": {
+          "models": [
+            {
+              "code": "2600",
+              "models": [
+                "RCH-143"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2600.json"
+            }
+          ]
+        },
+        "Komeco": {
+          "models": [
+            {
+              "code": "2620",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2620.json"
+            }
+          ]
+        },
+        "Fisher": {
+          "models": [
+            {
+              "code": "2640",
+              "models": [
+                "FPR-91DE4-R",
+                "FPR-121DE4-R",
+                "FPR-141DE4-R"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2640.json"
+            },
+            {
+              "code": "2641",
+              "models": [
+                "FSOAI-SU-90AE2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2641.json"
+            }
+          ]
+        },
+        "Hyundai": {
+          "models": [
+            {
+              "code": "2660",
+              "models": [
+                "HSE09PH5V"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2660.json"
+            },
+            {
+              "code": "2661",
+              "models": [
+                "HY6INV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2661.json"
+            }
+          ]
+        },
+        "Hyndai": {
+          "models": [
+            {
+              "code": "2662",
+              "models": [
+                "H-ARI22-09H"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2662.json"
+            }
+          ]
+        },
+        "Kolin": {
+          "models": [
+            {
+              "code": "2700",
+              "models": [
+                "RC-M7B1 (remote)",
+                "KSA-D201",
+                "KSA-D252",
+                "KSA-D562",
+                "KSA-D912",
+                "KSA-D202",
+                "KSA-D322",
+                "KSA-D632",
+                "KSA-20D",
+                "KSA-D362",
+                "KSA-D682",
+                "KSA-25D",
+                "KSA-D452",
+                "KSA-D782"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2700.json"
+            },
+            {
+              "code": "8700",
+              "models": [
+                "KAG-145RSINV"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/8700.json"
+            }
+          ]
+        },
+        "AEG": {
+          "models": [
+            {
+              "code": "2720",
+              "models": [
+                "AXP35U538CW"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2720.json"
+            }
+          ]
+        },
+        "Bosch": {
+          "models": [
+            {
+              "code": "2740",
+              "models": [
+                "5000i"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2740.json"
+            }
+          ]
+        },
+        "Tristar": {
+          "models": [
+            {
+              "code": "2760",
+              "models": [
+                "AC-5400"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2760.json"
+            }
+          ]
+        },
+        "Xiaomi": {
+          "models": [
+            {
+              "code": "2780",
+              "models": [
+                "KFR-35G/F3C1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2780.json"
+            }
+          ]
+        },
+        "ELGIN": {
+          "models": [
+            {
+              "code": "2800",
+              "models": [
+                "HVQI18B2IA"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2800.json"
+            },
+            {
+              "code": "2801",
+              "models": [
+                "HVQI12B2FB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2801.json"
+            }
+          ]
+        },
+        "Pearl": {
+          "models": [
+            {
+              "code": "2820",
+              "models": [
+                "EXGC24FCBC1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2820.json"
+            }
+          ]
+        },
+        "HTW": {
+          "models": [
+            {
+              "code": "2840",
+              "models": [
+                "HTWS035IX21D2-R32-I"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2840.json"
+            }
+          ]
+        },
+        "Senville": {
+          "models": [
+            {
+              "code": "2860",
+              "models": [
+                "SENA/12HF/IZ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2860.json"
+            }
+          ]
+        },
+        "Bora": {
+          "models": [
+            {
+              "code": "2880",
+              "models": [
+                "18SRA-HE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2880.json"
+            }
+          ]
+        },
+        "Goodman": {
+          "models": [
+            {
+              "code": "2900",
+              "models": [
+                "MSH123E21AXAA",
+                "MST183E20ACAA",
+                "RG57E1/BGEU1 (remote)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2900.json"
+            }
+          ]
+        },
+        "Best": {
+          "models": [
+            {
+              "code": "2920",
+              "models": [
+                "BSTS18CNE2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2920.json"
+            }
+          ]
+        },
+        "SAGA": {
+          "models": [
+            {
+              "code": "2940",
+              "models": [
+                "SAGA-A-22(CH)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2940.json"
+            }
+          ]
+        },
+        "EcoAir": {
+          "models": [
+            {
+              "code": "2960",
+              "models": [
+                "Split Type Wall Air Conditioner"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2960.json"
+            }
+          ]
+        },
+        "Agratto": {
+          "models": [
+            {
+              "code": "2980",
+              "models": [
+                "ECST12FR4-02",
+                "ECST19QFIR4-02"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/2980.json"
+            }
+          ]
+        },
+        "Philco": {
+          "models": [
+            {
+              "code": "3000",
+              "models": [
+                "Philco AC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3000.json"
+            }
+          ]
+        },
+        "Klasse": {
+          "models": [
+            {
+              "code": "3020",
+              "models": [
+                "DOZ-S06JT"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3020.json"
+            }
+          ]
+        },
+        "Viessmann": {
+          "models": [
+            {
+              "code": "3040",
+              "models": [
+                "Vitoclima 300-S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3040.json"
+            }
+          ]
+        },
+        "HappyTree": {
+          "models": [
+            {
+              "code": "3060",
+              "models": [
+                "TAC-12CHSD/XA81"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3060.json"
+            }
+          ]
+        },
+        "Voltas": {
+          "models": [
+            {
+              "code": "3080",
+              "models": [
+                "VOLTAS INV/AC 1.5T 183V MZJ3 3S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3080.json"
+            }
+          ]
+        },
+        "Cecotec": {
+          "models": [
+            {
+              "code": "3100",
+              "models": [
+                "EnergySilence 12000 AirClima (05290)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3100.json"
+            }
+          ]
+        },
+        "Cooper & Hunter": {
+          "models": [
+            {
+              "code": "3120",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3120.json"
+            }
+          ]
+        },
+        "Argo": {
+          "models": [
+            {
+              "code": "3140",
+              "models": [
+                "Ulisse13"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3140.json"
+            }
+          ]
+        },
+        "AquaThermal": {
+          "models": [
+            {
+              "code": "3160",
+              "models": [
+                "LM AURI-12"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3160.json"
+            }
+          ]
+        },
+        "Devanti": {
+          "models": [
+            {
+              "code": "3180",
+              "models": [
+                "WAC-05C-WH"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3180.json"
+            }
+          ]
+        },
+        "Friedrich": {
+          "models": [
+            {
+              "code": "3200",
+              "models": [
+                "CP12G10B"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3200.json"
+            }
+          ]
+        },
+        "Mundoclima": {
+          "models": [
+            {
+              "code": "3220",
+              "models": [
+                "MUPR-09-H9A",
+                "MUPR-12-H9A",
+                "MUPR-18-H9A",
+                "MUPR-24-H9A",
+                "MUPR-09-H5A",
+                "MUPR-12-H5A",
+                "MUPR-18-H5A",
+                "MUPR-24-H5A"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3220.json"
+            }
+          ]
+        },
+        "Casper": {
+          "models": [
+            {
+              "code": "3240",
+              "models": [
+                "SC-09FS32"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3240.json"
+            }
+          ]
+        },
+        "PARKAIR": {
+          "models": [
+            {
+              "code": "3300",
+              "models": [
+                "DI-A"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3300.json"
+            }
+          ]
+        },
+        "Chunlan": {
+          "models": [
+            {
+              "code": "3320",
+              "models": [
+                "KFR-25GW/VW (CH-9)"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3320.json"
+            }
+          ]
+        },
+        "Wide": {
+          "models": [
+            {
+              "code": "3340",
+              "models": [
+                "WDS12ECO"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3340.json"
+            }
+          ]
+        },
+        "Kaden": {
+          "models": [
+            {
+              "code": "3360",
+              "models": [
+                "KS09",
+                "KS12",
+                "KS18",
+                "KS24",
+                "KS28"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3360.json"
+            }
+          ]
+        },
+        "Zephir": {
+          "models": [
+            {
+              "code": "3380",
+              "models": [
+                "DualSplit"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/3380.json"
+            }
+          ]
+        },
+        "TechnoLux": {
+          "models": [
+            {
+              "code": "4800",
+              "models": [
+                "KFR-25GW/F"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/4800.json"
+            }
+          ]
+        },
+        "SHARP": {
+          "models": [
+            {
+              "code": "7300",
+              "models": [
+                "AH-AP9GMY"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7300.json"
+            }
+          ]
+        },
+        "Family": {
+          "models": [
+            {
+              "code": "7741",
+              "models": [
+                "12WIFI"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/7741.json"
+            }
+          ]
+        },
+        "Viomi": {
+          "models": [
+            {
+              "code": "8720",
+              "models": [
+                "KF-26GW/Y4PF5-A5"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/8720.json"
+            }
+          ]
+        },
+        "Sigma": {
+          "models": [
+            {
+              "code": "8800",
+              "models": [
+                "SGS32H13NE"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/8800.json"
+            }
+          ]
+        }
+      },
+      "total_devices": 356
+    },
+    "media_player": {
+      "manufacturers": {
+        "Philips": {
+          "models": [
+            {
+              "code": "1000",
+              "models": [
+                "26PFL560H"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1000.json"
+            },
+            {
+              "code": "1001",
+              "models": [
+                "42PFL3007H/60",
+                "37PF9641D/10"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1001.json"
+            },
+            {
+              "code": "1002",
+              "models": [
+                "47PFG4109/77"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1002.json"
+            }
+          ]
+        },
+        "Sony": {
+          "models": [
+            {
+              "code": "1020",
+              "models": [
+                "KDL-46HX800"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1020.json"
+            },
+            {
+              "code": "7020",
+              "models": [
+                "KDL46EX620",
+                "RM-YD063"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/7020.json"
+            }
+          ]
+        },
+        "LG": {
+          "models": [
+            {
+              "code": "1040",
+              "models": [
+                "22MT47DC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1040.json"
+            },
+            {
+              "code": "1041",
+              "models": [
+                "LH6235D"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1041.json"
+            },
+            {
+              "code": "1042",
+              "models": [
+                "43UM7510PSB",
+                "OLED55B8SSC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1042.json"
+            },
+            {
+              "code": "1043",
+              "models": [
+                "32LC2R"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1043.json"
+            }
+          ]
+        },
+        "Samsung": {
+          "models": [
+            {
+              "code": "1060",
+              "models": [
+                "UE40F6500",
+                "UE40H7000SL"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1060.json"
+            },
+            {
+              "code": "1061",
+              "models": [
+                "UE40C6000",
+                "UE40D6500",
+                "UE32H5500",
+                "UE22D5000"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1061.json"
+            },
+            {
+              "code": "1062",
+              "models": [
+                "UE40C6000",
+                "UE40D6500",
+                "UE32H5500",
+                "UE22D5000"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1062.json"
+            },
+            {
+              "code": "1063",
+              "models": [
+                "UN55JU7500"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1063.json"
+            },
+            {
+              "code": "1064",
+              "models": [
+                "QE49Q7FAM"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1064.json"
+            },
+            {
+              "code": "1065",
+              "models": [
+                "QE65Q67RAUXRU"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1065.json"
+            },
+            {
+              "code": "7060",
+              "models": [
+                "UA32EH5000M"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/7060.json"
+            }
+          ]
+        },
+        "Insignia": {
+          "models": [
+            {
+              "code": "1080",
+              "models": [
+                "NS-42D510NA15"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1080.json"
+            }
+          ]
+        },
+        "Toshiba": {
+          "models": [
+            {
+              "code": "1100",
+              "models": [
+                "42C3530D"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1100.json"
+            }
+          ]
+        },
+        "Yamaha": {
+          "models": [
+            {
+              "code": "1120",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1120.json"
+            },
+            {
+              "code": "1121",
+              "models": [
+                "HTR-3065",
+                "RX-V373",
+                "RX-V373BL",
+                "RX-V375",
+                "RX-V375BL",
+                "YHT-497",
+                "YHT-497BL"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1121.json"
+            },
+            {
+              "code": "1122",
+              "models": [
+                "VR50590"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1122.json"
+            },
+            {
+              "code": "1123",
+              "models": [
+                "AS201"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1123.json"
+            },
+            {
+              "code": "1124",
+              "models": [
+                "YAS-109"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1124.json"
+            },
+            {
+              "code": "9999",
+              "models": [
+                "AX-380"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/9999.json"
+            }
+          ]
+        },
+        "RME": {
+          "models": [
+            {
+              "code": "1140",
+              "models": [
+                "ADI-2 DAC FS"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1140.json"
+            }
+          ]
+        },
+        "Logitech": {
+          "models": [
+            {
+              "code": "1160",
+              "models": [
+                "Z906"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1160.json"
+            },
+            {
+              "code": "1161",
+              "models": [
+                "Z-5500"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1161.json"
+            },
+            {
+              "code": "1162",
+              "models": [
+                "Z-5450"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1162.json"
+            }
+          ]
+        },
+        "TCL": {
+          "models": [
+            {
+              "code": "1180",
+              "models": [
+                "55EP640"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1180.json"
+            },
+            {
+              "code": "1181",
+              "models": [
+                "43S6500FS",
+                "32A325"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1181.json"
+            }
+          ]
+        },
+        "Pace": {
+          "models": [
+            {
+              "code": "1200",
+              "models": [
+                "TDS850NNZ",
+                "TDC850NF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1200.json"
+            }
+          ]
+        },
+        "Silver": {
+          "models": [
+            {
+              "code": "1220",
+              "models": [
+                "MEO"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1220.json"
+            }
+          ]
+        },
+        "TurboX": {
+          "models": [
+            {
+              "code": "1240",
+              "models": [
+                "TXV-2420"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1240.json"
+            }
+          ]
+        },
+        "Thomson": {
+          "models": [
+            {
+              "code": "1260",
+              "models": [
+                "40FA3203"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1260.json"
+            }
+          ]
+        },
+        "Grunding": {
+          "models": [
+            {
+              "code": "1280",
+              "models": [
+                "GSB-810"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1280.json"
+            }
+          ]
+        },
+        "OKI": {
+          "models": [
+            {
+              "code": "1300",
+              "models": [
+                "V19B-LED4"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1300.json"
+            }
+          ]
+        },
+        "Sky": {
+          "models": [
+            {
+              "code": "1320",
+              "models": [
+                "SkyQ black",
+                "SkyQ mini"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1320.json"
+            }
+          ]
+        },
+        "Bauhn": {
+          "models": [
+            {
+              "code": "1340",
+              "models": [
+                "Aldi"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1340.json"
+            }
+          ]
+        },
+        "OPTOMA": {
+          "models": [
+            {
+              "code": "1360",
+              "models": [
+                "HD27"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1360.json"
+            }
+          ]
+        },
+        "Xiaomi": {
+          "models": [
+            {
+              "code": "1380",
+              "models": [
+                "MiBox",
+                "MItv"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1380.json"
+            }
+          ]
+        },
+        "Pioneer": {
+          "models": [
+            {
+              "code": "1400",
+              "models": [
+                "X-CM56"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1400.json"
+            }
+          ]
+        },
+        "JBL": {
+          "models": [
+            {
+              "code": "1420",
+              "models": [
+                "Cinema SB160"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1420.json"
+            },
+            {
+              "code": "1421",
+              "models": [
+                "jblbar20aioblkep"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1421.json"
+            }
+          ]
+        },
+        "Edifier": {
+          "models": [
+            {
+              "code": "1460",
+              "models": [
+                "R1280DB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1460.json"
+            },
+            {
+              "code": "1461",
+              "models": [
+                "R2000DB"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1461.json"
+            }
+          ]
+        },
+        "Kanto": {
+          "models": [
+            {
+              "code": "1480",
+              "models": [
+                "YU6"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1480.json"
+            }
+          ]
+        },
+        "Onkyo": {
+          "models": [
+            {
+              "code": "1500",
+              "models": [
+                "TX-SR508",
+                "TX-SR700"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1500.json"
+            }
+          ]
+        },
+        "JVC": {
+          "models": [
+            {
+              "code": "1520",
+              "models": [
+                "RX-5022R"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1520.json"
+            }
+          ]
+        },
+        "Epson": {
+          "models": [
+            {
+              "code": "1540",
+              "models": [
+                "MG-850HD"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1540.json"
+            }
+          ]
+        },
+        "Dialog": {
+          "models": [
+            {
+              "code": "1580",
+              "models": [
+                "J-103BF"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1580.json"
+            }
+          ]
+        },
+        "Kivi": {
+          "models": [
+            {
+              "code": "1600",
+              "models": [
+                "40F600GU"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1600.json"
+            }
+          ]
+        },
+        "Sharp": {
+          "models": [
+            {
+              "code": "1620",
+              "models": [
+                "LC-32LE700E",
+                "LC-32LE700S",
+                "LC-40LE700E",
+                "LC-40LE700S",
+                "LC-46LE700E",
+                "LC-46LE700S",
+                "LC-52LE700E",
+                "LC-52LE700S",
+                "LC-32LX700E",
+                "LC-40LX700E",
+                "LC-46LX700E",
+                "LC-32LU700E",
+                "LC-32LU700S",
+                "LC-40LU700E",
+                "LC-40LU700S",
+                "LC-46LU700E",
+                "LC-46LU700S",
+                "LC-32LE705E",
+                "LC-32LE705S",
+                "LC-40LE705E",
+                "LC-40LE705S",
+                "LC-46LE705E",
+                "LC-46LE705S",
+                "LC-52LE705E",
+                "LC-52LE705S",
+                "LC-32LX705E",
+                "LC-40LX705E",
+                "LC-46LX705E",
+                "LC-32LU705E",
+                "LC-32LU705S",
+                "LC-40LU705E",
+                "LC-40LU705S",
+                "LC-46LU705E",
+                "LC-46LU705S"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1620.json"
+            }
+          ]
+        },
+        "Noblex": {
+          "models": [
+            {
+              "code": "1640",
+              "models": [
+                "Noblex 32LC818H",
+                "Sansei TLS1032H",
+                "Admiral TLC3200A",
+                "Fisher FTL320H",
+                "Recco RLCD32H10"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/1640.json"
+            }
+          ]
+        },
+        "ZTE": {
+          "models": [
+            {
+              "code": "7460",
+              "models": [
+                "B860H"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/7460.json"
+            }
+          ]
+        },
+        "Cambridge Audio": {
+          "models": [
+            {
+              "code": "8100",
+              "models": [
+                "AXR100"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/media_player/8100.json"
+            }
+          ]
+        }
+      },
+      "total_devices": 55
+    },
+    "fan": {
+      "manufacturers": {
+        "Kaze": {
+          "models": [
+            {
+              "code": "1000",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1000.json"
+            }
+          ]
+        },
+        "Acorn": {
+          "models": [
+            {
+              "code": "1020",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1020.json"
+            }
+          ]
+        },
+        "Lucci Air": {
+          "models": [
+            {
+              "code": "1040",
+              "models": [
+                "Aria"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1040.json"
+            },
+            {
+              "code": "1041",
+              "models": [
+                "Whitehaven DC"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1041.json"
+            },
+            {
+              "code": "7040",
+              "models": [
+                "Aria"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/7040.json"
+            }
+          ]
+        },
+        "Super Fan": {
+          "models": [
+            {
+              "code": "1060",
+              "models": [
+                "Super Fan A1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1060.json"
+            }
+          ]
+        },
+        "Harbor Breeze": {
+          "models": [
+            {
+              "code": "1080",
+              "models": [
+                "A25-TX001-R1"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1080.json"
+            },
+            {
+              "code": "1081",
+              "models": [
+                "A25-TX025"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1081.json"
+            }
+          ]
+        },
+        "Pacific": {
+          "models": [
+            {
+              "code": "1100",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1100.json"
+            }
+          ]
+        },
+        "Europace": {
+          "models": [
+            {
+              "code": "1120",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1120.json"
+            }
+          ]
+        },
+        "SMC": {
+          "models": [
+            {
+              "code": "1140",
+              "models": [
+                "SP486",
+                "SP483"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1140.json"
+            }
+          ]
+        },
+        "Atomberg": {
+          "models": [
+            {
+              "code": "1160",
+              "models": [
+                "Efficio"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1160.json"
+            },
+            {
+              "code": "1170",
+              "models": [
+                "Renesa"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1170.json"
+            }
+          ]
+        },
+        "Argo": {
+          "models": [
+            {
+              "code": "1180",
+              "models": [
+                "Standy"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1180.json"
+            }
+          ]
+        },
+        "DCG": {
+          "models": [
+            {
+              "code": "1200",
+              "models": [
+                "Unknown"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1200.json"
+            }
+          ]
+        },
+        "Mitsubishi": {
+          "models": [
+            {
+              "code": "1220",
+              "models": [
+                "C56-RW5"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1220.json"
+            }
+          ]
+        },
+        "Mallory": {
+          "models": [
+            {
+              "code": "1240",
+              "models": [
+                "Air Timer TS+"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/fan/1240.json"
+            }
+          ]
+        }
+      },
+      "total_devices": 17
+    },
+    "light": {
+      "manufacturers": {
+        "Iris Ohyama": {
+          "models": [
+            {
+              "code": "1000",
+              "models": [
+                "LEDHCL-R2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/light/1000.json"
+            }
+          ]
+        },
+        "NEC": {
+          "models": [
+            {
+              "code": "1021",
+              "models": [
+                "RE0201-CH2"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/light/1021.json"
+            }
+          ]
+        },
+        "Toshiba": {
+          "models": [
+            {
+              "code": "1040",
+              "models": [
+                "FRC-199T"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/light/1040.json"
+            }
+          ]
+        },
+        "Takizumi": {
+          "models": [
+            {
+              "code": "1060",
+              "models": [
+                "TLR-002"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/light/1060.json"
+            }
+          ]
+        }
+      },
+      "total_devices": 4
+    }
+  }
+}

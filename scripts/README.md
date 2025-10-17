@@ -1,19 +1,19 @@
 # Scripts
 
-Utility scripts for maintaining Broadlink Manager.
+This directory contains utility scripts for maintaining Broadlink Manager.
 
 ## generate_device_index.py
 
-Generates a device index from the SmartIR device database for fast lookups.
+Generates a searchable index of all device codes from the SmartIR Code Aggregator database.
 
 ### Purpose
 
-Instead of scanning the entire GitHub repository every time a user opens the SmartIR device configuration, we maintain a pre-built index that lists all manufacturers, models, and device codes. This provides:
-
-- **Instant loading** of manufacturer/model lists
-- **No API rate limiting** issues
-- **Better user experience** with fast UI responses
-- **Offline capability** (after initial cache)
+The device index allows Broadlink Manager to:
+- Load manufacturer/model lists instantly (no GitHub API calls)
+- Avoid GitHub API rate limits
+- Work offline with cached data
+- Provide fast autocomplete in the UI
+- Access codes from multiple sources (SmartIR, IRDB, etc.)
 
 ### Usage
 
@@ -34,8 +34,8 @@ This will:
 ### When to Run
 
 Run this script:
-- **After forking** SmartIR repository
-- **Periodically** (monthly/quarterly) to get new devices
+- **After updating** the smartir-code-aggregator repository
+- **Periodically** (monthly/quarterly) to get new devices from aggregated sources
 - **Before releases** to ensure index is up-to-date
 
 ### Output
@@ -46,7 +46,8 @@ Creates `smartir_device_index.json` with structure:
 {
   "version": "1.0.0",
   "last_updated": "2025-10-16T17:00:00Z",
-  "source": "https://github.com/tonyperkins/smartir-device-database",
+  "source": "https://github.com/tonyperkins/smartir-code-aggregator",
+  "description": "Aggregated IR/RF codes from SmartIR, IRDB, and other sources",
   "platforms": {
     "climate": {
       "manufacturers": {
@@ -69,7 +70,7 @@ Creates `smartir_device_index.json` with structure:
 ### Automation
 
 A GitHub Action is included at `.github/workflows/update-smartir-index.yml` that automatically regenerates the index when:
-- The fork's `codes/` directory is updated
+- The aggregator's `codes/` directory is updated
 - Manually triggered via GitHub Actions
 - Monthly (first day of each month)
 
@@ -82,5 +83,72 @@ The workflow will:
 
 - The index file is **bundled with Broadlink Manager** (not fetched from GitHub)
 - Users can manually update via **Settings → Update Device Index**
-- The GitHub Action keeps the fork's index up-to-date automatically
+- The GitHub Action keeps the aggregator's index up-to-date automatically
 - No automatic refresh - updates are manual or via GitHub Action only
+- The aggregator combines codes from SmartIR, IRDB, and other sources
+
+## update_reddit_post.py
+
+Updates Reddit posts programmatically with the latest Broadlink Manager information.
+
+### Purpose
+
+Automatically update Reddit announcement posts with:
+- Latest features and capabilities
+- Current changelog/release notes
+- Installation instructions
+- Links to documentation
+- Auto-generated timestamp
+
+### Setup
+
+1. **Create a Reddit App** at https://www.reddit.com/prefs/apps
+   - Choose "script" as the app type
+   - Note your client_id and client_secret
+
+2. **Set Environment Variables** (see `.env.example`):
+   ```bash
+   REDDIT_CLIENT_ID=your_client_id
+   REDDIT_CLIENT_SECRET=your_client_secret
+   REDDIT_USERNAME=your_username
+   REDDIT_PASSWORD=your_password
+   REDDIT_USER_AGENT=BroadlinkManager:v2.0:script (by /u/YourUsername)
+   ```
+
+3. **Install Dependencies**:
+   ```bash
+   pip install praw
+   ```
+
+### Usage
+
+**Preview content (dry run)**:
+```bash
+python scripts/update_reddit_post.py --dry-run
+```
+
+**Update a post**:
+```bash
+python scripts/update_reddit_post.py abc123
+```
+Replace `abc123` with your Reddit post ID from the URL.
+
+### Automation
+
+You can automate updates via:
+- **GitHub Actions** - Update on releases
+- **Cron Jobs** - Scheduled updates (weekly/monthly)
+- **Manual** - Run after major changes
+
+See `docs/REDDIT_UPDATES.md` for detailed setup and automation examples.
+
+### Limitations
+
+- Can only edit self-posts (text posts), not link posts
+- Cannot change post title after creation
+- Must be the post author
+- Rate limited to 60 requests/minute
+
+### Documentation
+
+Full documentation: `docs/REDDIT_UPDATES.md`

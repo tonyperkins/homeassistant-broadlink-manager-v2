@@ -1,0 +1,42 @@
+name: Update Reddit Post
+
+# Automatically update Reddit post when a new release is published
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-reddit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install praw
+      
+      - name: Update Reddit post
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}
+          REDDIT_PASSWORD: ${{ secrets.REDDIT_PASSWORD }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+        run: |
+          python scripts/update_reddit_post.py ${{ secrets.REDDIT_POST_ID }}
+      
+      - name: Post status
+        if: success()
+        run: echo "✅ Reddit post updated successfully"
+      
+      - name: Post failure
+        if: failure()
+        run: echo "❌ Failed to update Reddit post"

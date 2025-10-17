@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
 """
-Generate device index from SmartIR device database
-This script scans the device database and creates an index file
+Generate device index from SmartIR Code Aggregator
+This script scans the aggregator's codes directory and creates an index file
 for fast lookups without hitting GitHub API repeatedly.
 
-Run this periodically to update the index.
+Usage:
+  # From GitHub (requires codes to be pushed):
+  python scripts/generate_device_index.py
+  
+  # From local aggregator directory:
+  python scripts/generate_device_index.py --local ../smartir-code-aggregator
 """
 
 import json
+import sys
+import argparse
 import requests
 from pathlib import Path
-from typing import Dict, List, Any
-from datetime import datetime
+from typing import Dict, List, Any, Optional
+from datetime import datetime, timezone
 
-GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-device-database"
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-device-database/master"
+GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-code-aggregator"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main"
 PLATFORMS = ["climate", "media_player", "fan", "light"]
 
 
-def fetch_directory(path: str) -> List[Dict[str, Any]]:
+def fetch_directory_github(path: str) -> List[Dict[str, Any]]:
     """Fetch directory listing from GitHub API"""
     url = f"{GITHUB_API_BASE}/contents/{path}"
     response = requests.get(url, timeout=30)
@@ -26,22 +33,39 @@ def fetch_directory(path: str) -> List[Dict[str, Any]]:
     return response.json()
 
 
-def fetch_device_metadata(platform: str, code: str) -> Dict[str, Any]:
-    """Fetch device JSON to extract metadata"""
+def fetch_directory_local(path: Path) -> List[Dict[str, Any]]:
+    """Get directory listing from local filesystem"""
+    if not path.exists():
+        return []
+    return [{"name": f.name, "type": "file"} for f in path.iterdir() if f.is_file()]
+
+
+def fetch_device_metadata_github(platform: str, code: str) -> Dict[str, Any]:
+    """Fetch device JSON from GitHub"""
     url = f"{GITHUB_RAW_BASE}/codes/{platform}/{code}.json"
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return response.json()
 
 
-def generate_index() -> Dict[str, Any]:
+def fetch_device_metadata_local(platform_path: Path, code: str) -> Dict[str, Any]:
+    """Fetch device JSON from local filesystem"""
+    file_path = platform_path / f"{code}.json"
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def generate_index(local_path: Optional[Path] = None) -> Dict[str, Any]:
     """Generate complete device index"""
     index = {
         "version": "1.0.0",
-        "last_updated": datetime.utcnow().isoformat() + "Z",
-        "source": "https://github.com/tonyperkins/smartir-device-database",
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+        "source": "https://github.com/tonyperkins/smartir-code-aggregator",
+        "description": "Aggregated IR/RF codes from SmartIR, IRDB, and other sources in SmartIR format",
         "platforms": {}
     }
+    
+    use_local = local_path is not None
     
     for platform in PLATFORMS:
         print(f"Processing {platform}...")
@@ -52,7 +76,15 @@ def generate_index() -> Dict[str, Any]:
         
         try:
             # Get all JSON files in platform directory
-            files = fetch_directory(f"codes/{platform}")
+            if use_local:
+                platform_path = local_path / "codes" / platform
+                if not platform_path.exists():
+                    print(f"  ⚠️  Directory not found: {platform_path}")
+                    continue
+                files = fetch_directory_local(platform_path)
+            else:
+                files = fetch_directory_github(f"codes/{platform}")
+            
             json_files = [f for f in files if f["name"].endswith(".json")]
             
             for file_info in json_files:
@@ -60,7 +92,10 @@ def generate_index() -> Dict[str, Any]:
                 
                 try:
                     # Fetch device metadata
-                    device_data = fetch_device_metadata(platform, code)
+                    if use_local:
+                        device_data = fetch_device_metadata_local(platform_path, code)
+                    else:
+                        device_data = fetch_device_metadata_github(platform, code)
                     manufacturer = device_data.get("manufacturer", "Unknown")
                     supported_models = device_data.get("supportedModels", [])
                     
@@ -102,10 +137,23 @@ def generate_index() -> Dict[str, Any]:
 
 def main():
     """Main entry point"""
-    print("Generating SmartIR device index...")
+    parser = argparse.ArgumentParser(description="Generate SmartIR device index")
+    parser.add_argument(
+        "--local",
+        type=str,
+        help="Path to local smartir-code-aggregator directory"
+    )
+    args = parser.parse_args()
+    
+    local_path = Path(args.local) if args.local else None
+    
+    if local_path:
+        print(f"Generating SmartIR device index from local directory: {local_path}")
+    else:
+        print("Generating SmartIR device index from GitHub...")
     print("=" * 60)
     
-    index = generate_index()
+    index = generate_index(local_path)
     
     # Save to file
     output_file = Path(__file__).parent.parent / "smartir_device_index.json"

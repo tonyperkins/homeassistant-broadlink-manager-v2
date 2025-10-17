@@ -38,50 +38,6 @@
       @show-install-guide="handleShowInstallGuide"
     />
 
-    <!-- Info Cards -->
-    <div class="info-cards">
-      <div class="info-card compact">
-        <i class="mdi mdi-information"></i>
-        <p>Beta version under development</p>
-      </div>
-
-      <div class="info-card compact">
-        <i class="mdi mdi-github"></i>
-        <p>
-          <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2" target="_blank">
-            View on GitHub
-          </a>
-        </p>
-      </div>
-
-      <div class="info-card compact">
-        <i class="mdi mdi-bug"></i>
-        <p>
-          <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/issues" target="_blank">
-            Report it on GitHub Issues
-          </a>
-        </p>
-      </div>
-
-      <div class="info-card compact">
-        <i class="mdi mdi-reddit"></i>
-        <p>
-          <a href="https://www.reddit.com/r/homeassistant/comments/1o1q3kf/release_broadlink_manager_addon_a_modern_web_ui/" target="_blank">
-            Join the discussion on Reddit
-          </a>
-        </p>
-      </div>
-
-      <div class="info-card compact">
-        <i class="mdi mdi-forum"></i>
-        <p>
-          <a href="https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/discussions/1" target="_blank">
-            Chat on GitHub Discussions
-          </a>
-        </p>
-      </div>
-    </div>
-
     <!-- SmartIR Profile Builder Modal -->
     <SmartIRProfileBuilder
       :show="showProfileBuilder"
@@ -191,7 +147,6 @@ async function handleProfileSave(result) {
   gap: 24px;
   min-height: 100vh;
   position: relative;
-  padding-bottom: 200px; /* Space for fixed footer */
 }
 
 .welcome-banner {
@@ -255,68 +210,5 @@ async function handleProfileSave(result) {
 
 .badge i {
   font-size: 14px;
-}
-
-.info-cards {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
-  gap: 16px;
-  padding: 16px;
-  background: var(--ha-surface-color);
-  border-top: 1px solid var(--ha-border-color);
-  z-index: 10;
-}
-
-@media (max-width: 768px) {
-  .info-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-.info-card {
-  background: var(--ha-card-background);
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid var(--ha-border-color);
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.info-card i {
-  font-size: 24px;
-  color: var(--ha-primary-color);
-  flex-shrink: 0;
-}
-
-.info-card.compact i {
-  font-size: 12px;
-}
-
-.info-card h3 {
-  margin: 0 0 4px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ha-text-primary-color);
-}
-
-.info-card p {
-  margin: 0;
-  color: var(--ha-text-secondary-color);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.info-card a {
-  color: var(--ha-primary-color);
-  text-decoration: none;
-}
-
-.info-card a:hover {
-  text-decoration: underline;
 }
 </style>

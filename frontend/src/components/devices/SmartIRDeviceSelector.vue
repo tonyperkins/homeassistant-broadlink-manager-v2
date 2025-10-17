@@ -21,7 +21,7 @@
         v-model="selectedModel"
         :options="models"
         :option-label="'label'"
-        :option-value="'code_id'"
+        :option-value="'code'"
         :option-description="'description'"
         label="Model"
         placeholder="Search models..."
@@ -174,10 +174,10 @@ onMounted(async () => {
       
       // Set selectedCodeInfo after models are loaded
       if (selectedModel.value && models.value.length > 0) {
-        const matchingModel = models.value.find(m => m.code_id === selectedModel.value)
+        const matchingModel = models.value.find(m => m.code === selectedModel.value)
         if (matchingModel) {
           selectedCodeInfo.value = {
-            code_id: matchingModel.code_id,
+            code: matchingModel.code,
             manufacturer: selectedManufacturer.value,
             models: matchingModel.models,
             controller: matchingModel.controller
@@ -281,19 +281,17 @@ const handleManufacturerChange = async (value) => {
   emitChange()
 }
 
-const handleModelChange = (value, option) => {
-  selectedModel.value = value
-  
-  // Store code info for display
-  if (option) {
+const handleModelChange = () => {
+  // Find the selected model info
+  const modelInfo = models.value.find(m => m.code === selectedModel.value)
+  if (modelInfo) {
     selectedCodeInfo.value = {
-      code_id: option.code_id,
+      code: modelInfo.code,
       manufacturer: selectedManufacturer.value,
-      models: option.models,
-      controller: option.controller
+      models: modelInfo.models,
+      controller: modelInfo.controller
     }
   }
-  
   emitChange()
 }
 

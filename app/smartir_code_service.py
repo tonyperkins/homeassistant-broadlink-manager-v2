@@ -18,11 +18,12 @@ logger = logging.getLogger(__name__)
 class SmartIRCodeService:
     """Service to fetch and cache SmartIR codes from GitHub"""
 
-    # Using stable fork for reliable device code database
-    # Original: https://github.com/smartHomeHub/SmartIR
-    GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-device-database"
-    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-device-database/master"
-    DEVICE_INDEX_URL = "https://raw.githubusercontent.com/tonyperkins/smartir-device-database/master/smartir_device_index.json"
+    # Using aggregated code database from multiple sources
+    # Aggregator: https://github.com/tonyperkins/smartir-code-aggregator
+    # Original SmartIR: https://github.com/smartHomeHub/SmartIR
+    GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-code-aggregator"
+    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main"
+    DEVICE_INDEX_URL = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/smartir_device_index.json"
     CACHE_TTL_HOURS = 24
     
     def __init__(self, cache_path: str = "/config/broadlink_manager/cache"):

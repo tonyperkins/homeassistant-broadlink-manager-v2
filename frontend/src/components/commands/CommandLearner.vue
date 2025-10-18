@@ -14,7 +14,11 @@
           <i class="mdi mdi-information"></i>
           <div>
             <h3>SmartIR Device</h3>
-            <p>This device uses SmartIR code file <strong>{{ device.device_code }}</strong>. Commands are pre-configured and cannot be learned. View the commands below.</p>
+            <p>This device uses SmartIR code file <strong>{{ device.device_code }}</strong>. Commands are pre-configured and cannot be learned.</p>
+            <p v-if="device.entity_type === 'climate'" class="climate-note">
+              <i class="mdi mdi-alert-circle-outline"></i>
+              <strong>Note:</strong> Climate device commands are temperature-based. Testing individual modes may not work as expected. Use the Home Assistant climate card to control your device.
+            </p>
           </div>
         </div>
 
@@ -117,7 +121,7 @@
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
               <div class="command-info">
-                <span class="command-name">{{ cmd.name }}</span>
+                <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
               
               <!-- Learned status with IR/RF badge -->
@@ -354,10 +358,38 @@ const loadLearnedCommands = async () => {
       if (response.data.success && response.data.code) {
         const commands = response.data.code.commands || {}
         const commandType = response.data.code.commandType || 'ir'  // Get type from profile
-        learnedCommands.value = Object.keys(commands).map(name => ({
-          name,
-          type: commandType  // Use the type from the profile (ir or rf)
-        }))
+        
+        // For climate devices, flatten temperature-based commands
+        if (props.device.entity_type === 'climate') {
+          const flatCommands = []
+          
+          for (const [mode, value] of Object.entries(commands)) {
+            if (typeof value === 'string') {
+              // Simple command (e.g., "off")
+              flatCommands.push({ name: mode, type: commandType })
+            } else if (typeof value === 'object' && value !== null) {
+              // Temperature-based command (e.g., "cool": {"16": "code1", "17": "code2"})
+              // Show all available temperatures
+              const temps = Object.keys(value).sort((a, b) => parseInt(a) - parseInt(b))
+              
+              temps.forEach(temp => {
+                flatCommands.push({ 
+                  name: `${mode}_${temp}`, 
+                  type: commandType,
+                  label: `${mode.charAt(0).toUpperCase() + mode.slice(1)} ${temp}°C`
+                })
+              })
+            }
+          }
+          
+          learnedCommands.value = flatCommands
+        } else {
+          // For non-climate devices, use command names directly
+          learnedCommands.value = Object.keys(commands).map(name => ({
+            name,
+            type: commandType
+          }))
+        }
       }
     } else {
       // For Broadlink devices, check if commands are already in the device object (for new/adopted devices)
@@ -701,6 +733,23 @@ const handleImportConfirm = async () => {
 .smartir-info strong {
   color: var(--ha-text-primary-color);
   font-weight: 600;
+}
+
+.climate-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 152, 0, 0.1);
+  border-left: 3px solid #ff9800;
+  border-radius: 4px;
+}
+
+.climate-note i {
+  font-size: 18px !important;
+  color: #ff9800 !important;
+  margin-top: 2px;
 }
 
 .form-group {

@@ -9,29 +9,34 @@
       </div>
 
       <form id="device-form" @submit.prevent="handleSubmit" class="modal-body">
-        <div class="form-group">
+        <div class="form-group" :class="{ 'has-error': validationErrors.name }">
           <label for="device-name">Device Name *</label>
-          <input
-            id="device-name"
-            ref="nameInput"
-            v-model="formData.name"
-            type="text"
-            placeholder="e.g., Living Room TV"
-            required
-            @input="clearValidation('nameInput')"
-          />
+          <div class="input-wrapper">
+            <input
+              id="device-name"
+              ref="nameInput"
+              v-model="formData.name"
+              type="text"
+              placeholder="e.g., Living Room TV"
+              @input="clearValidationError('name')"
+            />
+            <div v-if="validationErrors.name" class="validation-tooltip">
+              <i class="mdi mdi-alert"></i>
+              {{ validationErrors.name }}
+            </div>
+          </div>
           <small>Friendly name for this device</small>
         </div>
 
-        <div class="form-group">
+        <div class="form-group" :class="{ 'has-error': validationErrors.entity_type }">
           <label for="entity-type">Entity Type *</label>
-          <select 
-            id="entity-type" 
-            ref="typeSelect"
-            v-model="formData.entity_type"
-            required
-            @change="clearValidation('typeSelect')"
-          >
+          <div class="input-wrapper">
+            <select 
+              id="entity-type" 
+              ref="typeSelect"
+              v-model="formData.entity_type"
+              @change="clearValidationError('entity_type')"
+            >
             <option value="">-- Select Type --</option>
             <option value="light">💡 Light</option>
             <option value="fan">🌀 Fan</option>
@@ -41,7 +46,12 @@
             <option value="climate" :disabled="!smartirInstalled">
               🌡️ Climate {{ smartirInstalled ? '' : '(Requires SmartIR)' }}
             </option>
-          </select>
+            </select>
+            <div v-if="validationErrors.entity_type" class="validation-tooltip">
+              <i class="mdi mdi-alert"></i>
+              {{ validationErrors.entity_type }}
+            </div>
+          </div>
           
           <!-- SmartIR Info/Warning -->
           <div v-if="formData.entity_type === 'climate'" class="smartir-notice">
@@ -140,34 +150,39 @@
         </div>
 
         <!-- Remote Device Selection (for Broadlink type) -->
-        <div v-if="formData.device_type === 'broadlink'" class="form-group">
+        <div v-if="formData.device_type === 'broadlink'" class="form-group" :class="{ 'has-error': validationErrors.broadlink_entity }">
           <label for="broadlink-entity">Remote Device *</label>
-          <select 
-            v-if="!isEdit || !hasCommands"
-            id="broadlink-entity"
-            ref="broadlinkSelect"
-            v-model="formData.broadlink_entity"
-            required
-            @change="clearValidation('broadlinkSelect')"
-          >
-            <option value="">-- Select Remote Device --</option>
-            <option 
-              v-for="device in broadlinkDevices" 
-              :key="device.entity_id" 
-              :value="device.entity_id"
+          <div class="input-wrapper">
+            <select 
+              v-if="!isEdit || !hasCommands"
+              id="broadlink-entity"
+              ref="broadlinkSelect"
+              v-model="formData.broadlink_entity"
+              @change="clearValidationError('broadlink_entity')"
             >
-              {{ device.name || device.entity_id }}
-              <template v-if="device.area_name"> - {{ device.area_name }}</template>
-            </option>
-          </select>
-          <input
-            v-else
-            id="broadlink-entity"
-            :value="broadlinkFriendlyName"
-            type="text"
-            readonly
-            disabled
-          />
+              <option value="">-- Select Remote Device --</option>
+              <option 
+                v-for="device in broadlinkDevices" 
+                :key="device.entity_id" 
+                :value="device.entity_id"
+              >
+                {{ device.name || device.entity_id }}
+                <template v-if="device.area_name"> - {{ device.area_name }}</template>
+              </option>
+            </select>
+            <input
+              v-else
+              id="broadlink-entity"
+              :value="broadlinkFriendlyName"
+              type="text"
+              readonly
+              disabled
+            />
+            <div v-if="validationErrors.broadlink_entity" class="validation-tooltip">
+              <i class="mdi mdi-alert"></i>
+              {{ validationErrors.broadlink_entity }}
+            </div>
+          </div>
           <small v-if="!isEdit || !hasCommands">Required: Select which remote device to use for sending commands</small>
           <small v-else>Cannot change remote device after commands are learned</small>
         </div>
@@ -269,6 +284,12 @@ const formData = ref({
   commands: {}
 })
 
+const validationErrors = ref({
+  name: '',
+  entity_type: '',
+  broadlink_entity: ''
+})
+
 const smartirData = ref({})
 const smartirSelector = ref(null)
 
@@ -300,26 +321,6 @@ onMounted(async () => {
     }
   }
   await Promise.all([loadAreas(), loadBroadlinkDevices()])
-  
-  // Set custom validation messages
-  if (nameInput.value) {
-    nameInput.value.setCustomValidity('')
-    nameInput.value.oninvalid = () => {
-      nameInput.value.setCustomValidity('Device name is required')
-    }
-  }
-  if (typeSelect.value) {
-    typeSelect.value.setCustomValidity('')
-    typeSelect.value.oninvalid = () => {
-      typeSelect.value.setCustomValidity('Entity type is required')
-    }
-  }
-  if (broadlinkSelect.value) {
-    broadlinkSelect.value.setCustomValidity('')
-    broadlinkSelect.value.oninvalid = () => {
-      broadlinkSelect.value.setCustomValidity('Broadlink device is required')
-    }
-  }
 })
 
 const loadAreas = async () => {
@@ -343,15 +344,6 @@ const loadBroadlinkDevices = async () => {
   } catch (error) {
     console.error('Error loading remote devices:', error)
     broadlinkDevices.value = []
-  }
-}
-
-const clearValidation = (refName) => {
-  const element = refName === 'nameInput' ? nameInput.value : 
-                  refName === 'typeSelect' ? typeSelect.value :
-                  refName === 'broadlinkSelect' ? broadlinkSelect.value : null
-  if (element) {
-    element.setCustomValidity('')
   }
 }
 
@@ -482,6 +474,41 @@ const getEntityUrl = () => {
   return `/config/entities/entity/${entityId}`
 }
 
+const validateForm = () => {
+  // Clear all errors first
+  validationErrors.value = {
+    name: '',
+    entity_type: '',
+    broadlink_entity: ''
+  }
+  
+  let isValid = true
+  
+  // Validate name
+  if (!formData.value.name || formData.value.name.trim() === '') {
+    validationErrors.value.name = 'Device name is required'
+    isValid = false
+  }
+  
+  // Validate entity type
+  if (!formData.value.entity_type) {
+    validationErrors.value.entity_type = 'Entity type is required'
+    isValid = false
+  }
+  
+  // Validate broadlink entity (only for broadlink device type)
+  if (formData.value.device_type === 'broadlink' && !formData.value.broadlink_entity) {
+    validationErrors.value.broadlink_entity = 'Broadlink device is required'
+    isValid = false
+  }
+  
+  return isValid
+}
+
+const clearValidationError = (field) => {
+  validationErrors.value[field] = ''
+}
+
 const handleSubmit = async () => {
   // Validate SmartIR fields if SmartIR device
   if (formData.value.device_type === 'smartir') {
@@ -502,7 +529,10 @@ const handleSubmit = async () => {
     
     emit('save', submitData)
   } else {
-    // Browser will handle validation with custom messages for Broadlink
+    // Validate Broadlink form
+    if (!validateForm()) {
+      return
+    }
     emit('save', { ...formData.value })
   }
 }
@@ -818,6 +848,65 @@ const handleSmartIRChange = (data) => {
   border-top: 1px solid var(--ha-border-color);
   background: var(--ha-card-background);
   flex-shrink: 0;
+}
+
+/* Validation tooltip styling */
+.input-wrapper {
+  position: relative;
+}
+
+.form-group.has-error input,
+.form-group.has-error select {
+  border-color: #ff9800;
+}
+
+.validation-tooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.validation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid white;
+  filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.1));
+}
+
+.validation-tooltip i {
+  font-size: 18px;
+  color: #ff9800;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {

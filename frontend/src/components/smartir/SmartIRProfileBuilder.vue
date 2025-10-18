@@ -586,11 +586,12 @@ watch(() => props.editData, async (newData) => {
     console.log('🎮 Controller data from profile:', controllerData)
     console.log('🎮 Available devices:', broadlinkDevices.value.map(d => d.entity_id))
     
-    // Infer command type from the commands
+    // Get command type - prefer stored value, then infer from commands
     const commands = profileData.commands || {}
-    const inferredCommandType = inferCommandTypeFromCommands(commands)
+    const inferredCommandType = profileData.commandType || inferCommandTypeFromCommands(commands)
     
-    console.log('🔍 Inferred command type:', inferredCommandType)
+    console.log('🔍 Command type (stored):', profileData.commandType)
+    console.log('🔍 Command type (final):', inferredCommandType)
     
     // Build config based on platform type
     let config = {}

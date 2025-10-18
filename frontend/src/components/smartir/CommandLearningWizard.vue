@@ -4,28 +4,35 @@
     
     <!-- Device Selection -->
     <div class="device-selection-section">
-      <div class="form-group">
+      <div class="form-group" :class="{ 'has-error': showDeviceError }">
         <label>Broadlink Device *</label>
-        <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
-          <option value="">Select Broadlink device...</option>
-          <option 
-            v-for="device in broadlinkDevices" 
-            :key="device.entity_id"
-            :value="device.entity_id"
-          >
-            {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
-          </option>
-        </select>
+        <div class="input-wrapper">
+          <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
+            <option value="">Select Broadlink device...</option>
+            <option 
+              v-for="device in broadlinkDevices" 
+              :key="device.entity_id"
+              :value="device.entity_id"
+            >
+              {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
+            </option>
+          </select>
+          <div v-if="showDeviceError" class="validation-tooltip">
+            <i class="mdi mdi-alert"></i>
+            Device is required
+          </div>
+        </div>
         <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
       </div>
 
       <div class="form-group">
         <label>Command Type *</label>
-        <select v-model="localCommandType" @change="updateCommandType">
+        <select v-model="localCommandType" @change="updateCommandType" :disabled="learnedCount > 0">
           <option value="ir">📡 Infrared (IR) - Most common for AC, TV, etc.</option>
           <option value="rf">📻 Radio Frequency (RF) - For RF remotes</option>
         </select>
-        <small>Select the type of commands your device uses</small>
+        <small v-if="learnedCount > 0">Command type cannot be changed after learning commands</small>
+        <small v-else>Select the type of commands your device uses</small>
       </div>
     </div>
     
@@ -234,6 +241,7 @@ const localCommandType = ref(props.commandType)
 const sequentialLearning = ref(false)
 const sequentialQueue = ref([])
 const hasLearnedAny = ref(false) // Track if user has learned any commands in this session
+const showDeviceError = ref(false) // Track validation error for Broadlink device
 const confirmDelete = ref({
   show: false,
   commandKey: null,
@@ -372,6 +380,17 @@ function getModeIcon(mode) {
 
 async function learnCommand(cmd) {
   if (learningCommand.value) return
+
+  // Validate that a Broadlink device is selected
+  if (!localBroadlinkDevice.value) {
+    showDeviceError.value = true
+    // Scroll to top to show the error
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  
+  // Clear error if device is selected
+  showDeviceError.value = false
   
   learningCommand.value = cmd.key
   
@@ -402,10 +421,15 @@ async function learnCommand(cmd) {
     const result = await response.json()
     
     if (result.success && result.code) {
-      // Store the learned command
+      // Store the command code (or placeholder for pending)
       commands.value[cmd.key] = result.code
       emit('update:modelValue', commands.value)
       hasLearnedAny.value = true // Mark that user has learned at least one command
+      
+      if (result.code === 'pending') {
+        // Code is pending - it will be fetched when saving the profile
+        console.log(`⏳ Command '${cmd.key}' learned, code will be fetched from storage when saving`)
+      }
       
       // If sequential learning, move to next
       if (sequentialLearning.value && sequentialQueue.value.length > 0) {
@@ -435,12 +459,14 @@ async function learnCommand(cmd) {
 
 async function testCommand(key) {
   if (!localBroadlinkDevice.value) {
-    toast.error('Please select a Broadlink device first')
+    showDeviceError.value = true
+    // Scroll to top to show the error
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     return
   }
   
   if (!commands.value[key]) {
-    toast.error('Command not learned yet')
+    toast.value?.error('Command not learned yet')
     return
   }
   
@@ -595,6 +621,13 @@ async function loadBroadlinkDevices() {
 // Watch for prop changes and update local refs
 watch(() => props.broadlinkDevice, (newVal) => {
   localBroadlinkDevice.value = newVal
+})
+
+// Clear validation error when device is selected
+watch(localBroadlinkDevice, (newVal) => {
+  if (newVal) {
+    showDeviceError.value = false
+  }
 })
 
 watch(() => props.commandType, (newVal) => {
@@ -1067,7 +1100,76 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* Validation tooltip styling */
+.input-wrapper {
+  position: relative;
+}
+
+.form-group.has-error select {
+  border-color: #ff9800;
+}
+
+.validation-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.validation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.05));
+}
+
+.validation-tooltip i {
+  font-size: 18px;
+  color: #ff9800;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Dark mode adjustments */
+:global(.dark-mode) .validation-tooltip {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+:global(.dark-mode) .validation-tooltip::before {
+  border-bottom-color: #2d2d2d;
+}
+
 :global(.dark-mode) .wizard-info {
   background: rgba(33, 150, 243, 0.15);
 }

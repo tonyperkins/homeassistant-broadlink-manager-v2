@@ -512,6 +512,52 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     "error": f"Profile {code} not found"
                 }), 404
             
+            # Read the profile to get manufacturer/model for Broadlink storage cleanup
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    import json
+                    profile_data = json.load(f)
+                    manufacturer = profile_data.get('manufacturer', '')
+                    model = profile_data.get('supportedModels', [''])[0]
+                    
+                    # Delete from Broadlink storage
+                    if manufacturer and model:
+                        import re
+                        device_name = f"{manufacturer.lower()}_{model.lower()}"
+                        device_name = re.sub(r'[^a-z0-9]+', '_', device_name)
+                        
+                        # Find and update Broadlink storage files
+                        from flask import current_app
+                        config_path = current_app.config.get('config_path', '/config')
+                        storage_path = Path(config_path) / '.storage'
+                        
+                        if storage_path.exists():
+                            deleted = False
+                            for storage_file in storage_path.glob("broadlink_remote_*_codes"):
+                                try:
+                                    with open(storage_file, 'r', encoding='utf-8') as sf:
+                                        storage_data = json.load(sf)
+                                    
+                                    # Check if this device exists in storage
+                                    if device_name in storage_data.get("data", {}):
+                                        # Remove the device
+                                        del storage_data["data"][device_name]
+                                        
+                                        # Write back
+                                        with open(storage_file, 'w', encoding='utf-8') as sf:
+                                            json.dump(storage_data, sf, indent=2)
+                                        
+                                        logger.info(f"✅ Deleted Broadlink storage for device: {device_name} from {storage_file.name}")
+                                        deleted = True
+                                        break
+                                except Exception as e:
+                                    logger.debug(f"Error checking storage file {storage_file}: {e}")
+                            
+                            if not deleted:
+                                logger.debug(f"No Broadlink storage found for device: {device_name}")
+            except Exception as e:
+                logger.warning(f"Could not clean up Broadlink storage: {e}")
+            
             # Delete the file
             file_path.unlink()
             logger.info(f"✅ Deleted SmartIR profile: {file_path}")

@@ -29,7 +29,6 @@
                 <i class="mdi mdi-remote-tv"></i>
             </button>
             <button 
-              v-if="isWizardCompatible" 
               @click="$emit('edit')" 
               class="action-btn" 
               title="Edit Profile"
@@ -61,13 +60,6 @@ const props = defineProps({
 defineEmits(['edit', 'download', 'delete', 'commands']);
 
 const styles = useDeviceStyles(computed(() => props.profile.platform));
-
-// Check if profile is wizard-compatible (can be edited in wizard)
-// For now, we assume profiles created by the wizard have a wizardCreated flag
-// In the future, we could add more sophisticated structure validation
-const isWizardCompatible = computed(() => {
-  return props.profile.wizardCreated === true
-})
 
 const formatPlatformName = (platform) => {
   return platform.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

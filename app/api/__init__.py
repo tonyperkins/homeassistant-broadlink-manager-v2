@@ -6,9 +6,9 @@ Provides RESTful API endpoints for the Vue frontend
 from flask import Blueprint
 
 # Create API blueprint
-api_bp = Blueprint('api', __name__, url_prefix='/api')
+api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 # Import routes (will be created next)
-from . import devices, commands, config, areas
+from . import devices, commands, config, areas  # noqa: E402
 
-__all__ = ['api_bp']
+__all__ = ["api_bp"]

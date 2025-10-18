@@ -10,27 +10,28 @@ import json
 from pathlib import Path
 import sys
 
+
 def fix_entity_ids(metadata_path):
     """Fix entity IDs by removing type prefix and removing duplicates"""
-    
+
     # Read metadata
-    with open(metadata_path, 'r', encoding='utf-8') as f:
+    with open(metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    
-    entities = metadata.get('entities', {})
+
+    entities = metadata.get("entities", {})
     fixed_entities = {}
     removed_count = 0
     fixed_count = 0
-    
+
     print(f"Found {len(entities)} entities in metadata")
     print("\nProcessing entities...")
-    
+
     for entity_id, entity_data in entities.items():
         # Check if entity_id has a type prefix (contains a dot)
-        if '.' in entity_id:
+        if "." in entity_id:
             # Extract the actual device name (part after the dot)
-            entity_type, device_name = entity_id.split('.', 1)
-            
+            entity_type, device_name = entity_id.split(".", 1)
+
             # Check if there's already a correct entry without prefix
             if device_name in entities or device_name in fixed_entities:
                 print(f"  ❌ Removing duplicate: {entity_id} (correct version exists: {device_name})")
@@ -45,43 +46,43 @@ def fix_entity_ids(metadata_path):
             # Entity ID is already correct (no prefix)
             print(f"  ✅ Keeping: {entity_id}")
             fixed_entities[entity_id] = entity_data
-    
+
     # Update metadata
-    metadata['entities'] = fixed_entities
-    
+    metadata["entities"] = fixed_entities
+
     # Backup original file
     backup_path = metadata_path.parent / f"{metadata_path.stem}_backup.json"
     print(f"\n📁 Creating backup: {backup_path}")
-    with open(backup_path, 'w', encoding='utf-8') as f:
+    with open(backup_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
-    
+
     # Write fixed metadata
     print(f"💾 Writing fixed metadata: {metadata_path}")
-    with open(metadata_path, 'w', encoding='utf-8') as f:
+    with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
-    
+
     print(f"\n✅ Done!")
     print(f"   - Fixed: {fixed_count} entities")
     print(f"   - Removed: {removed_count} duplicate entities")
     print(f"   - Total: {len(fixed_entities)} entities")
-    
+
     return fixed_count, removed_count
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Default path
-    metadata_path = Path('h:/broadlink_manager/metadata.json')
-    
+    metadata_path = Path("h:/broadlink_manager/metadata.json")
+
     # Allow custom path as argument
     if len(sys.argv) > 1:
         metadata_path = Path(sys.argv[1])
-    
+
     if not metadata_path.exists():
         print(f"❌ Error: Metadata file not found: {metadata_path}")
         sys.exit(1)
-    
+
     print(f"🔧 Fixing entity IDs in: {metadata_path}\n")
-    
+
     try:
         fixed, removed = fix_entity_ids(metadata_path)
         print(f"\n🎉 Successfully fixed metadata!")
@@ -92,5 +93,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -235,7 +235,7 @@ class AreaManager:
         Returns:
             Dict with assignment results
         """
-        results = {
+        results: Dict[str, Any] = {
             "total": len(entities_metadata),
             "assigned": 0,
             "failed": 0,
@@ -244,7 +244,7 @@ class AreaManager:
         }
 
         # Group entities by area
-        entities_by_area = {}
+        entities_by_area: Dict[str, List[str]] = {}
         for entity_id, entity_data in entities_metadata.items():
             area_name = entity_data.get("area")
             if not area_name:

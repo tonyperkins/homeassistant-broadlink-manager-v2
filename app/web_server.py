@@ -16,7 +16,7 @@ import time
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import aiohttp
-import aiofiles
+import aiofiles  # type: ignore
 import websockets
 
 from storage_manager import StorageManager
@@ -84,13 +84,13 @@ class BroadlinkWebServer:
         # Broadlink manager path
         self.broadlink_manager_path = self.config_loader.get_broadlink_manager_path()
 
-        # Cache for notifications
-        self.cached_notifications = []
+        # WebSocket notifications cache
+        self.ws_notifications: list[str] = []
         self.last_notification_check = 0
 
         # Cache for recently deleted commands to handle storage lag
         # Format: {device_name: {command_name: timestamp}}
-        self.recently_deleted_commands = {}
+        self.recently_deleted_commands: dict[str, dict[str, int]] = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
 
         # Call tracking for logging context
@@ -100,8 +100,8 @@ class BroadlinkWebServer:
         # Initialize entity management components
         self.storage_manager = StorageManager(str(self.config_loader.get_broadlink_manager_path()))
         self.entity_detector = EntityDetector()
-        self.area_manager = AreaManager(self.ha_url, self.ha_token)
-        self.device_manager = DeviceManager(self.config_loader.get_broadlink_manager_path())
+        self.area_manager = AreaManager(self.ha_url or "", self.ha_token or "")
+        self.device_manager = DeviceManager(str(self.config_loader.get_broadlink_manager_path()))
         self.migration_manager = MigrationManager(self.storage_manager, self.entity_detector, self.storage_path)
         self.smartir_detector = SmartIRDetector(str(self.config_loader.get_config_path()))
         self.smartir_code_service = SmartIRCodeService(
@@ -1486,7 +1486,7 @@ class BroadlinkWebServer:
             "is_dark": True,
         }
 
-    async def _get_learned_commands(self, device_id: str = None) -> Dict:
+    async def _get_learned_commands(self, device_id: Optional[str] = None) -> Dict:
         """Get learned commands from storage files with filtering and area information"""
         try:
             # Find the storage files for Broadlink commands
@@ -1839,26 +1839,6 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error getting HTTP notifications: {e}")
             return []
-
-    async def _delete_command(self, data: Dict) -> Dict:
-        """Delete a command"""
-        try:
-            entity_id = data.get("entity_id")
-            device = data.get("device")
-            command = data.get("command")
-
-            service_data = {
-                "entity_id": entity_id,
-                "device": device,
-                "command": command,
-            }
-
-            result = await self._make_ha_request("POST", "services/remote/delete_command", service_data)
-            return {"success": True, "result": result}
-
-        except Exception as e:
-            logger.error(f"Error deleting command: {e}")
-            return {"success": False, "error": str(e)}
 
     async def _get_notifications(self) -> List[Dict]:
         """Get persistent notifications from Home Assistant - using correct API endpoint"""

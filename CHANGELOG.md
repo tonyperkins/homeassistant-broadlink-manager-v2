@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.1] - 2025-10-18
+
+### Changed
+- **Version numbering**: Switched from 2.0.x to 0.x.x to properly reflect alpha/pre-release status
+- **Status**: Changed from Beta to Alpha to set proper expectations
+
 ### Added
+- **SmartIR Profile Browser**: Advanced browsing and management system for SmartIR device profiles
+  - Browse 4000+ device profiles from SmartIR Code Aggregator
+  - Filter by platform, manufacturer, model, and source
+  - Pagination support (50 profiles per page)
+  - Clone index profiles to custom codes for customization
+  - Search across all platforms
+  - Lazy loading for performance
+- **SmartIR Code Tester**: Comprehensive testing interface for SmartIR device codes
+  - Test individual commands with visual feedback
+  - Climate control testing (temperature, modes, fan speeds)
+  - Real-time command execution via Broadlink devices
+  - Test results tracking and validation
+- **Command Learning Wizard**: Enhanced command learning interface
+  - Step-by-step wizard for learning IR/RF commands
+  - Visual progress tracking
+  - Command type detection (IR/RF)
+  - Test learned commands immediately
+- **Git Workflow Documentation**: Added comprehensive Git workflow guide (`docs/GIT_WORKFLOW.md`)
+  - Feature branch strategy
+  - Release branch process
+  - Version tagging guidelines
+  - Common commands reference
 - **Fan direction support**: All fan entities now include direction control by default
 - **Automatic config reload**: Generate Entities button now automatically reloads both Broadlink and YAML configurations
 - **Enhanced command sync**: Fan-specific commands (`fan_off`, `fan_reverse`, etc.) now properly sync to metadata

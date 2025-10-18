@@ -682,7 +682,12 @@ const canProceed = computed(() => {
              profile.value.manufacturer && 
              profile.value.model
     case 1:
-      // Configuration step - always allow proceeding since all fields have defaults
+      // Platform-specific validation
+      if (profile.value.platform === 'climate') {
+        return profile.value.config.minTemp && 
+               profile.value.config.maxTemp &&
+               profile.value.config.modes?.length > 0
+      }
       return true
     case 2:
       // Require device selection and at least some commands learned

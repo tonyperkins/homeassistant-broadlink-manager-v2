@@ -53,6 +53,14 @@
         </button>
         <button 
           v-if="status?.installed && isExpanded" 
+          @click.stop="openCodeTester" 
+          class="btn btn-secondary"
+        >
+          <i class="mdi mdi-test-tube"></i>
+          Test Codes
+        </button>
+        <button 
+          v-if="status?.installed && isExpanded" 
           @click.stop="createProfile" 
           class="btn btn-primary"
         >
@@ -224,6 +232,12 @@
       @confirm="handleDeleteConfirm"
       @cancel="confirmDelete.show = false"
     />
+
+    <!-- Code Tester Modal -->
+    <SmartIRCodeTester
+      :isOpen="showCodeTester"
+      @close="showCodeTester = false"
+    />
   </div>
 </template>
 
@@ -232,6 +246,7 @@ import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import SmartIRProfileCard from './SmartIRProfileCard.vue'
+import SmartIRCodeTester from './SmartIRCodeTester.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
 
 const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'])
@@ -261,6 +276,7 @@ const confirmDelete = ref({
   platform: null,
   profile: null
 })
+const showCodeTester = ref(false)
 
 const defaultBenefits = [
   'Full climate entity support (AC, heaters)',
@@ -382,6 +398,10 @@ async function refreshStatus() {
 
 function createProfile() {
   emit('create-profile')
+}
+
+function openCodeTester() {
+  showCodeTester.value = true
 }
 
 function showInstallGuide() {

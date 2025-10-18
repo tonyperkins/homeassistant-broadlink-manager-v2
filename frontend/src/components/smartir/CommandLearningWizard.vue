@@ -4,18 +4,24 @@
     
     <!-- Device Selection -->
     <div class="device-selection-section">
-      <div class="form-group">
+      <div class="form-group" :class="{ 'has-error': showDeviceError }">
         <label>Broadlink Device *</label>
-        <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
-          <option value="">Select Broadlink device...</option>
-          <option 
-            v-for="device in broadlinkDevices" 
-            :key="device.entity_id"
-            :value="device.entity_id"
-          >
-            {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
-          </option>
-        </select>
+        <div class="input-wrapper">
+          <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
+            <option value="">Select Broadlink device...</option>
+            <option 
+              v-for="device in broadlinkDevices" 
+              :key="device.entity_id"
+              :value="device.entity_id"
+            >
+              {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
+            </option>
+          </select>
+          <div v-if="showDeviceError" class="validation-tooltip">
+            <i class="mdi mdi-alert"></i>
+            Device is required
+          </div>
+        </div>
         <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
       </div>
 
@@ -186,11 +192,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { useToast } from '@/composables/useToast'
+import { ref, computed, watch, onMounted, inject } from 'vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 
-const toast = useToast()
+const toast = inject('toast')
 
 const props = defineProps({
   modelValue: {
@@ -234,6 +239,7 @@ const localCommandType = ref(props.commandType)
 const sequentialLearning = ref(false)
 const sequentialQueue = ref([])
 const hasLearnedAny = ref(false) // Track if user has learned any commands in this session
+const showDeviceError = ref(false) // Track validation error for Broadlink device
 const confirmDelete = ref({
   show: false,
   commandKey: null,
@@ -249,6 +255,21 @@ const commandList = computed(() => {
     const fanModes = props.config.fanModes || []
     const minTemp = props.config.minTemp || 16
     const maxTemp = props.config.maxTemp || 30
+    const learningMode = props.config.learningMode || 'quick'
+    const representativeTemp = props.config.representativeTemp || 24
+    const precision = props.config.precision || 1
+    
+    // Determine which temperatures to learn
+    const tempsToLearn = []
+    if (learningMode === 'quick') {
+      // Quick mode: only learn the representative temperature
+      tempsToLearn.push(representativeTemp)
+    } else {
+      // Complete mode: learn all temperatures in range
+      for (let temp = minTemp; temp <= maxTemp; temp += precision) {
+        tempsToLearn.push(temp)
+      }
+    }
     
     // Generate commands for each mode/temp/fan combination
     modes.forEach(mode => {
@@ -261,8 +282,8 @@ const commandList = computed(() => {
           mode: 'off'
         })
       } else {
-        // For each temperature
-        for (let temp = minTemp; temp <= maxTemp; temp++) {
+        // For each temperature (either one or all, based on mode)
+        tempsToLearn.forEach(temp => {
           fanModes.forEach(fanMode => {
             const key = `${mode}_${temp}_${fanMode}`
             list.push({
@@ -275,7 +296,7 @@ const commandList = computed(() => {
               fanMode
             })
           })
-        }
+        })
       }
     })
   } else if (props.platform === 'media_player') {
@@ -372,6 +393,17 @@ function getModeIcon(mode) {
 
 async function learnCommand(cmd) {
   if (learningCommand.value) return
+  
+  // Validate that a Broadlink device is selected
+  if (!localBroadlinkDevice.value) {
+    showDeviceError.value = true
+    // Scroll to top to show the error
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  
+  // Clear error if device is selected
+  showDeviceError.value = false
   
   learningCommand.value = cmd.key
   
@@ -595,6 +627,13 @@ async function loadBroadlinkDevices() {
 // Watch for prop changes and update local refs
 watch(() => props.broadlinkDevice, (newVal) => {
   localBroadlinkDevice.value = newVal
+})
+
+// Clear validation error when device is selected
+watch(localBroadlinkDevice, (newVal) => {
+  if (newVal) {
+    showDeviceError.value = false
+  }
 })
 
 watch(() => props.commandType, (newVal) => {
@@ -1067,12 +1106,81 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* Validation tooltip styling */
+.input-wrapper {
+  position: relative;
+}
+
+.form-group.has-error select {
+  border-color: #ff9800;
+}
+
+.validation-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.validation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.05));
+}
+
+.validation-tooltip i {
+  font-size: 18px;
+  color: #ff9800;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:global(.dark-mode) .validation-tooltip {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+:global(.dark-mode) .validation-tooltip::before {
+  border-bottom-color: #2d2d2d;
+}
+
 /* Dark mode adjustments */
 :global(.dark-mode) .wizard-info {
   background: rgba(33, 150, 243, 0.15);
 }
 
-:global(.dark-mode) .command-card.learned {
+:global(.dark-mode) .command-card.learning {
   background: rgba(76, 175, 80, 0.1);
 }
 

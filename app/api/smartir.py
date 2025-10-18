@@ -961,5 +961,250 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     "success": False,
                     "error": str(e)
                 }), 500
-
+        
+        @smartir_bp.route("/profiles/browse", methods=["GET"])
+        def browse_profiles():
+            """Browse all profiles with filtering and pagination"""
+            try:
+                # Get query parameters
+                platform = request.args.get("platform", "climate")
+                manufacturer = request.args.get("manufacturer", "")
+                model = request.args.get("model", "")
+                source = request.args.get("source", "all")  # all, index, custom
+                page = int(request.args.get("page", 1))
+                limit = int(request.args.get("limit", 50))
+                sort_by = request.args.get("sort_by", "code")  # code, manufacturer, model
+                
+                if platform not in ["climate", "fan", "media_player", "light"]:
+                    return jsonify({
+                        "success": False,
+                        "error": "Invalid platform"
+                    }), 400
+                
+                all_profiles = []
+                
+                # Get index profiles
+                if source in ["all", "index"]:
+                    index_data = smartir_code_service._device_index.get("platforms", {}).get(platform, {})
+                    manufacturers_data = index_data.get("manufacturers", {})
+                    
+                    for mfr, mfr_data in manufacturers_data.items():
+                        # Filter by manufacturer if specified
+                        if manufacturer and mfr.lower() != manufacturer.lower():
+                            continue
+                        
+                        for model_info in mfr_data.get("models", []):
+                            # Filter by model if specified
+                            if model:
+                                model_names = [m.lower() for m in model_info.get("models", [])]
+                                if not any(model.lower() in m for m in model_names):
+                                    continue
+                            
+                            all_profiles.append({
+                                "code": model_info.get("code"),
+                                "manufacturer": mfr,
+                                "model": model_info.get("models", ["Unknown"])[0] if model_info.get("models") else "Unknown",
+                                "models": model_info.get("models", []),
+                                "platform": platform,
+                                "source": "index",
+                                "url": model_info.get("url"),
+                                "controller_brand": "Broadlink",
+                                "command_count": 0,  # Not loaded yet
+                                "learned_count": 0,
+                                "is_custom": False
+                            })
+                
+                # Get custom profiles
+                if source in ["all", "custom"] and smartir_detector.is_installed():
+                    smartir_path = smartir_detector.smartir_path
+                    codes_dir = smartir_path / "codes" / platform
+                    
+                    if codes_dir.exists():
+                        for file_path in codes_dir.glob("*.json"):
+                            try:
+                                code = file_path.stem
+                                code_num = int(code)
+                                
+                                # Only include custom codes (10000+)
+                                if code_num < 10000:
+                                    continue
+                                
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    data = json.load(f)
+                                
+                                mfr = data.get("manufacturer", "Unknown")
+                                models = data.get("supportedModels", ["Unknown"])
+                                
+                                # Filter by manufacturer if specified
+                                if manufacturer and mfr.lower() != manufacturer.lower():
+                                    continue
+                                
+                                # Filter by model if specified
+                                if model:
+                                    model_names = [m.lower() for m in models]
+                                    if not any(model.lower() in m for m in model_names):
+                                        continue
+                                
+                                command_count = _count_commands(data.get("commands", {}))
+                                
+                                all_profiles.append({
+                                    "code": code,
+                                    "manufacturer": mfr,
+                                    "model": models[0] if models else "Unknown",
+                                    "models": models,
+                                    "platform": platform,
+                                    "source": "custom",
+                                    "controller_brand": "Broadlink",
+                                    "command_count": command_count,
+                                    "learned_count": 0,
+                                    "is_custom": True,
+                                    "created_date": file_path.stat().st_ctime,
+                                    "modified_date": file_path.stat().st_mtime
+                                })
+                            except Exception as e:
+                                logger.debug(f"Error reading custom profile {file_path}: {e}")
+                
+                # Sort profiles
+                if sort_by == "manufacturer":
+                    all_profiles.sort(key=lambda x: (x["manufacturer"].lower(), int(x["code"]) if x["code"].isdigit() else 0))
+                elif sort_by == "model":
+                    all_profiles.sort(key=lambda x: (x["model"].lower(), int(x["code"]) if x["code"].isdigit() else 0))
+                else:  # sort by code
+                    all_profiles.sort(key=lambda x: int(x["code"]) if x["code"].isdigit() else 0)
+                
+                # Paginate
+                total_count = len(all_profiles)
+                start_idx = (page - 1) * limit
+                end_idx = start_idx + limit
+                paginated_profiles = all_profiles[start_idx:end_idx]
+                
+                return jsonify({
+                    "success": True,
+                    "platform": platform,
+                    "profiles": paginated_profiles,
+                    "pagination": {
+                        "page": page,
+                        "limit": limit,
+                        "total": total_count,
+                        "total_pages": (total_count + limit - 1) // limit
+                    },
+                    "filters": {
+                        "manufacturer": manufacturer,
+                        "model": model,
+                        "source": source
+                    }
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error browsing profiles: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+        
+        @smartir_bp.route("/profiles/search", methods=["GET"])
+        def search_profiles():
+            """Search profiles across all platforms"""
+            try:
+                query = request.args.get("query", "").strip()
+                platform = request.args.get("platform", "all")
+                source = request.args.get("source", "all")
+                limit = int(request.args.get("limit", 100))
+                
+                if not query:
+                    return jsonify({
+                        "success": False,
+                        "error": "Query parameter is required"
+                    }), 400
+                
+                platforms_to_search = ["climate", "fan", "media_player", "light"] if platform == "all" else [platform]
+                all_results = []
+                
+                for plt in platforms_to_search:
+                    # Search index profiles
+                    if source in ["all", "index"]:
+                        index_data = smartir_code_service._device_index.get("platforms", {}).get(plt, {})
+                        manufacturers_data = index_data.get("manufacturers", {})
+                        
+                        for mfr, mfr_data in manufacturers_data.items():
+                            if query.lower() in mfr.lower():
+                                for model_info in mfr_data.get("models", []):
+                                    all_results.append({
+                                        "code": model_info.get("code"),
+                                        "manufacturer": mfr,
+                                        "model": model_info.get("models", ["Unknown"])[0] if model_info.get("models") else "Unknown",
+                                        "models": model_info.get("models", []),
+                                        "platform": plt,
+                                        "source": "index",
+                                        "match_type": "manufacturer"
+                                    })
+                            else:
+                                for model_info in mfr_data.get("models", []):
+                                    model_names = model_info.get("models", [])
+                                    if any(query.lower() in m.lower() for m in model_names):
+                                        all_results.append({
+                                            "code": model_info.get("code"),
+                                            "manufacturer": mfr,
+                                            "model": model_names[0] if model_names else "Unknown",
+                                            "models": model_names,
+                                            "platform": plt,
+                                            "source": "index",
+                                            "match_type": "model"
+                                        })
+                    
+                    # Search custom profiles
+                    if source in ["all", "custom"] and smartir_detector.is_installed():
+                        smartir_path = smartir_detector.smartir_path
+                        codes_dir = smartir_path / "codes" / plt
+                        
+                        if codes_dir.exists():
+                            for file_path in codes_dir.glob("*.json"):
+                                try:
+                                    code = file_path.stem
+                                    code_num = int(code)
+                                    if code_num < 10000:
+                                        continue
+                                    
+                                    with open(file_path, 'r', encoding='utf-8') as f:
+                                        data = json.load(f)
+                                    
+                                    mfr = data.get("manufacturer", "Unknown")
+                                    models = data.get("supportedModels", ["Unknown"])
+                                    
+                                    match_type = None
+                                    if query.lower() in mfr.lower():
+                                        match_type = "manufacturer"
+                                    elif any(query.lower() in m.lower() for m in models):
+                                        match_type = "model"
+                                    
+                                    if match_type:
+                                        all_results.append({
+                                            "code": code,
+                                            "manufacturer": mfr,
+                                            "model": models[0] if models else "Unknown",
+                                            "models": models,
+                                            "platform": plt,
+                                            "source": "custom",
+                                            "match_type": match_type
+                                        })
+                                except Exception as e:
+                                    logger.debug(f"Error searching custom profile {file_path}: {e}")
+                
+                # Limit results
+                all_results = all_results[:limit]
+                
+                return jsonify({
+                    "success": True,
+                    "query": query,
+                    "results": all_results,
+                    "count": len(all_results)
+                }), 200
+                
+            except Exception as e:
+                logger.error(f"Error searching profiles: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": str(e)
+                }), 500
+    
     return smartir_bp

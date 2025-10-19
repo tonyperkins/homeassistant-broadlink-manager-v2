@@ -142,6 +142,28 @@
             Clear
           </button>
 
+          <!-- View Toggle Button Group -->
+          <div class="view-toggle-group">
+            <button 
+              @click="viewMode = 'grid'" 
+              class="view-toggle-btn"
+              :class="{ active: viewMode === 'grid' }"
+              title="Grid View"
+            >
+              <i class="mdi mdi-view-grid"></i>
+              Grid
+            </button>
+            <button 
+              @click="viewMode = 'list'" 
+              class="view-toggle-btn"
+              :class="{ active: viewMode === 'list' }"
+              title="List View"
+            >
+              <i class="mdi mdi-view-list"></i>
+              List
+            </button>
+          </div>
+
           <div class="filter-results">
             {{ filteredProfiles.length }} of {{ allProfiles.length }}
           </div>
@@ -162,7 +184,7 @@
       </div>
 
       <!-- Profile Cards Grid -->
-      <div v-else-if="!simulatingNotInstalled" class="profiles-grid">
+      <div v-if="viewMode === 'grid' && !simulatingNotInstalled" class="profiles-grid">
         <SmartIRProfileCard
           v-for="profile in filteredProfiles"
           :key="`${profile.platform}-${profile.code}`"
@@ -173,6 +195,16 @@
           @delete="deleteProfile(profile.platform, profile)"
         />
       </div>
+
+      <!-- Profile List View -->
+      <SmartIRProfileListView
+        v-else-if="viewMode === 'list' && !simulatingNotInstalled && filteredProfiles.length > 0"
+        :profiles="filteredProfiles"
+        @edit="(profile) => editProfile(profile.platform, profile)"
+        @commands="(profile) => editProfile(profile.platform, profile, 2)"
+        @download="(profile) => downloadProfile(profile.platform, profile)"
+        @delete="(profile) => deleteProfile(profile.platform, profile)"
+      />
 
       <!-- No Results -->
       <div v-if="allProfiles.length > 0 && filteredProfiles.length === 0 && !simulatingNotInstalled" class="no-results">
@@ -247,6 +279,7 @@ import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import SmartIRProfileCard from './SmartIRProfileCard.vue'
+import SmartIRProfileListView from './SmartIRProfileListView.vue'
 import SmartIRCodeTester from './SmartIRCodeTester.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
 
@@ -278,6 +311,14 @@ const confirmDelete = ref({
   profile: null
 })
 const showCodeTester = ref(false)
+
+// View mode (grid or list)
+const viewMode = ref(localStorage.getItem('profile_view_mode') || 'grid')
+
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+  localStorage.setItem('profile_view_mode', viewMode.value)
+}
 
 const defaultBenefits = [
   'Full climate entity support (AC, heaters)',
@@ -962,8 +1003,53 @@ defineExpose({
   border-color: var(--ha-error-color);
 }
 
+/* View Toggle Button Group */
+.view-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ha-surface-color);
+}
+
+.view-toggle-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--ha-border-color);
+  color: var(--ha-text-secondary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  color: var(--ha-text-primary-color);
+}
+
+.view-toggle-btn.active {
+  background: var(--ha-primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.view-toggle-btn i {
+  font-size: 16px;
+}
+
 .filter-results {
-  margin-left: auto;
+  margin-left: 12px;
   padding: 8px 12px;
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-radius: 6px;

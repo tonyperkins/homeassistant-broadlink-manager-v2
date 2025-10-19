@@ -26,7 +26,7 @@
         </div>
         <div class="profile-actions">
             <button @click="$emit('commands')" class="action-btn" title="Commands">
-                <i class="mdi mdi-remote-tv"></i>
+                <i class="mdi mdi-remote"></i>
             </button>
             <button 
               @click="$emit('edit')" 

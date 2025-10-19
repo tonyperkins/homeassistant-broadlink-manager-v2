@@ -9,8 +9,8 @@ arch:
 startup: application
 boot: manual
 init: false
-webui: "http://[HOST]:[PORT:8099]"
 ingress: true
+ingress_port: 0
 panel_icon: mdi:remote
 options:
   log_level: info
@@ -21,7 +21,7 @@ schema:
   web_port: port
   auto_discover: bool?
 ports:
-  8099/tcp: 8099
+  8099/tcp: null
 ports_description:
   8099/tcp: Web interface for Broadlink device management
 homeassistant_api: true

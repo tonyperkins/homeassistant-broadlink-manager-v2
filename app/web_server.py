@@ -45,6 +45,9 @@ class IngressMiddleware:
     def __call__(self, environ, start_response):
         # Get the ingress path from the header
         ingress_path = environ.get("HTTP_X_INGRESS_PATH", "")
+        
+        # Debug logging
+        logger.debug(f"Ingress request - Path: {environ.get('PATH_INFO')}, Ingress Path: {ingress_path}")
 
         if ingress_path:
             # Set SCRIPT_NAME to the ingress path
@@ -54,6 +57,7 @@ class IngressMiddleware:
             path_info = environ.get("PATH_INFO", "")
             if path_info.startswith(ingress_path):
                 environ["PATH_INFO"] = path_info[len(ingress_path) :] or "/"
+                logger.debug(f"Adjusted PATH_INFO to: {environ['PATH_INFO']}")
 
         return self.app(environ, start_response)
 

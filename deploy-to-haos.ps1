@@ -1,6 +1,10 @@
 # Deployment script for Broadlink Manager Add-on to Home Assistant OS
 # This script copies the add-on files to the Home Assistant addons directory
 
+param(
+    [switch]$Force  # Skip confirmation prompt
+)
+
 # Configuration
 $HA_ADDONS_PATH = "\\homeassistant.local\addons\local"
 $ADDON_NAME = "broadlink-manager-v2"
@@ -86,11 +90,15 @@ if (Test-Path $frontendDir) {
 }
 
 if (Test-Path $TARGET_DIR) {
-    Write-Warning-Custom "Target directory already exists: $TARGET_DIR"
-    $response = Read-Host "Do you want to overwrite it? (y/N)"
-    if ($response -ne "y" -and $response -ne "Y") {
-        Write-Info "Deployment cancelled"
-        exit 0
+    if (-not $Force) {
+        Write-Warning-Custom "Target directory already exists: $TARGET_DIR"
+        $response = Read-Host "Do you want to overwrite it? (y/N)"
+        if ($response -ne "y" -and $response -ne "Y") {
+            Write-Info "Deployment cancelled"
+            exit 0
+        }
+    } else {
+        Write-Info "Target directory exists, removing (Force mode)..."
     }
     Write-Info "Removing existing directory..."
     Remove-Item -Path $TARGET_DIR -Recurse -Force

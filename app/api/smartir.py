@@ -466,15 +466,19 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 # Get all entities from metadata (includes SmartIR devices)
                 entities = storage_manager.get_all_entities()
                 logger.info(f"Found {len(entities)} entities in storage")
+                logger.info(f"Entity IDs: {list(entities.keys())}")
                 devices_using_profile = []
 
                 for entity_id, entity_data in entities.items():
-                    logger.debug(f"Checking entity {entity_id}: device_code={entity_data.get('device_code')}")
+                    has_device_code = "device_code" in entity_data
+                    device_code_value = entity_data.get('device_code')
+                    logger.info(f"Entity '{entity_id}': has_device_code={has_device_code}, device_code={device_code_value}, type={type(device_code_value)}")
+                    
                     # Check if this entity has a device_code matching the profile
                     if "device_code" in entity_data and str(entity_data.get("device_code")) == str(code):
                         device_name = entity_data.get("friendly_name", entity_data.get("name", entity_id))
                         devices_using_profile.append(device_name)
-                        logger.info(f"Found device using profile {code}: {device_name}")
+                        logger.info(f"✅ Found device using profile {code}: {device_name}")
 
                 if devices_using_profile:
                     logger.warning(f"Cannot delete profile {code}: in use by {devices_using_profile}")

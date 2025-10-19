@@ -826,9 +826,11 @@ def get_diagnostics():
 
         device_manager = get_device_manager()
         storage_manager = get_storage_manager()
+        area_manager = current_app.config.get("area_manager")
+        web_server = current_app.config.get("web_server")
         storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
 
@@ -847,9 +849,11 @@ def get_diagnostics_markdown():
 
         device_manager = get_device_manager()
         storage_manager = get_storage_manager()
+        area_manager = current_app.config.get("area_manager")
+        web_server = current_app.config.get("web_server")
         storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
         markdown = collector.generate_markdown_report(sanitized)
@@ -870,9 +874,11 @@ def download_diagnostics():
 
         device_manager = get_device_manager()
         storage_manager = get_storage_manager()
+        area_manager = current_app.config.get("area_manager")
+        web_server = current_app.config.get("web_server")
         storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager)
+        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
         markdown = collector.generate_markdown_report(sanitized)
@@ -905,6 +911,20 @@ def download_diagnostics():
             # Add command structure (names only, no codes)
             if sanitized.get("command_structure"):
                 zf.writestr("command_structure.json", json.dumps(sanitized["command_structure"], indent=2))
+            
+            # Add log entries if available
+            if sanitized.get("errors") and (sanitized["errors"].get("errors") or sanitized["errors"].get("warnings")):
+                log_content = "# Recent Log Entries\n\n"
+                if sanitized["errors"].get("errors"):
+                    log_content += "## Errors\n\n"
+                    for error in sanitized["errors"]["errors"]:
+                        log_content += f"{error}\n"
+                    log_content += "\n"
+                if sanitized["errors"].get("warnings"):
+                    log_content += "## Warnings\n\n"
+                    for warning in sanitized["errors"]["warnings"]:
+                        log_content += f"{warning}\n"
+                zf.writestr("recent_logs.txt", log_content)
 
         memory_file.seek(0)
 

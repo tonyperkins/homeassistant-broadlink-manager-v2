@@ -25,7 +25,7 @@
           {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
         </button>
         <button 
-          @click.stop="generateEntities" 
+          @click.stop="generateAllEntities" 
           class="btn btn-secondary"
           v-if="isExpanded"
           :disabled="generatingEntities"
@@ -265,7 +265,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
 import DeviceCard from './DeviceCard.vue'
@@ -456,6 +456,11 @@ const loadBroadlinkDevices = async () => {
     console.error('Error loading remote devices:', error)
   }
 }
+
+// Watch for viewMode changes and persist to localStorage
+watch(viewMode, (newMode) => {
+  localStorage.setItem('device_view_mode', newMode)
+})
 
 onMounted(async () => {
   await Promise.all([

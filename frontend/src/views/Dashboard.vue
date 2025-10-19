@@ -35,7 +35,6 @@
       ref="smartirStatusCard"
       @create-profile="handleCreateProfile"
       @edit-profile="handleEditProfile"
-      @show-install-guide="handleShowInstallGuide"
     />
 
     <!-- SmartIR Profile Builder Modal -->
@@ -125,12 +124,6 @@ function handleCloseProfileBuilder() {
   editData.value = null
 }
 
-function handleShowInstallGuide() {
-  // TODO: Open install guide modal
-  console.log('Show install guide clicked')
-  // For now, open GitHub in new tab
-  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
-}
 
 async function handleProfileSave(result) {
   console.log('Profile saved:', result)

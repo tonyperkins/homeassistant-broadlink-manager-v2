@@ -188,12 +188,37 @@ const copyDiagnostics = async () => {
     const response = await api.get('/api/diagnostics/markdown')
     const markdown = response.data.markdown
     
-    await navigator.clipboard.writeText(markdown)
-    toastRef.value?.success('Diagnostic summary copied to clipboard!')
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(markdown)
+      toastRef.value?.success('Diagnostic summary copied to clipboard!')
+    } else {
+      // Fallback for browsers/contexts without clipboard API
+      const textArea = document.createElement('textarea')
+      textArea.value = markdown
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        if (successful) {
+          toastRef.value?.success('Diagnostic summary copied to clipboard!')
+        } else {
+          throw new Error('execCommand failed')
+        }
+      } finally {
+        document.body.removeChild(textArea)
+      }
+    }
+    
     showSettingsMenu.value = false
   } catch (error) {
     console.error('Error copying diagnostics:', error)
-    toastRef.value?.error('Failed to copy diagnostics')
+    toastRef.value?.error('Failed to copy diagnostics: ' + error.message)
   } finally {
     loadingDiagnostics.value = false
   }

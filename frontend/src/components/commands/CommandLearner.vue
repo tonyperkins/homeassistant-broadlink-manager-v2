@@ -100,8 +100,25 @@
         <!-- Learning Status -->
         <div v-if="learning" class="learning-status">
           <i class="mdi mdi-loading mdi-spin"></i>
-          <p>Point your remote at the Broadlink device and press the button...</p>
-          <small>This may take up to 30 seconds</small>
+          
+          <!-- IR Learning Instructions -->
+          <div v-if="commandType === 'ir'">
+            <p>Point your remote at the Broadlink device and press the button...</p>
+            <small>This may take up to 30 seconds</small>
+          </div>
+          
+          <!-- RF Learning Instructions -->
+          <div v-else-if="commandType === 'rf'" class="rf-instructions">
+            <p><strong>Learning request sent to device.</strong></p>
+            <p>RF learning is a two-step process:</p>
+            <ol>
+              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
+              <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
+            </ol>
+            <p class="ha-note">
+              Follow the Home Assistant notifications (<i class="mdi mdi-bell"></i>) for real-time instructions.
+            </p>
+          </div>
         </div>
 
         <!-- Result Message (success only for learning/deleting, errors use native validation) -->
@@ -306,7 +323,7 @@ const suggestedCommands = computed(() => {
 onMounted(async () => {
   await loadBroadlinkDevices()
   await loadLearnedCommands()
-  await loadUntrackedCommands()
+  // Note: Untracked commands are now synced via the sync button, not auto-imported
   
   // Set custom validation messages
   if (commandSelect.value) {
@@ -403,15 +420,29 @@ const loadLearnedCommands = async () => {
           name,
           type: data.command_type || data.type || 'ir'
         }))
+      } else if (props.device.commands !== undefined) {
+        // Device has commands property but it's empty - no need to fetch
+        console.log('ℹ️ Device has empty commands object - skipping API call')
+        learnedCommands.value = []
       } else if (props.device.id) {
-        // Only fetch from API if device has an ID (saved device)
+        // Commands property doesn't exist - try fetching from API
         console.log('🌐 Fetching commands from API for device ID:', props.device.id)
-        const response = await api.get(`/api/commands/${props.device.id}`)
-        const commands = response.data.commands || {}
-        learnedCommands.value = Object.entries(commands).map(([name, data]) => ({
-          name,
-          type: data.command_type || data.type || 'ir'
-        }))
+        try {
+          const response = await api.get(`/api/commands/${props.device.id}`)
+          const commands = response.data.commands || {}
+          learnedCommands.value = Object.entries(commands).map(([name, data]) => ({
+            name,
+            type: data.command_type || data.type || 'ir'
+          }))
+        } catch (cmdError) {
+          // 404 is expected for new devices with no commands yet
+          if (cmdError.response?.status === 404) {
+            console.log('ℹ️ No commands found for device (this is normal for new devices)')
+            learnedCommands.value = []
+          } else {
+            throw cmdError // Re-throw unexpected errors
+          }
+        }
       } else {
         console.log('⚠️ No commands found and no device ID')
       }
@@ -455,8 +486,12 @@ const startLearning = async () => {
       resultType.value = 'success'
       
       // Immediately add to learned commands list (optimistic update)
-      if (!learnedCommands.value.includes(actualCommand)) {
-        learnedCommands.value.push(actualCommand)
+      const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+      if (!existingCommand) {
+        learnedCommands.value.push({
+          name: actualCommand,
+          type: commandType.value
+        })
       }
       
       // Remove from untracked if it was there
@@ -468,7 +503,13 @@ const startLearning = async () => {
       // Optimistically update the device's command count in the store
       // This prevents the UI from showing stale data while waiting for storage file updates
       const updatedCommands = { ...props.device.commands }
-      updatedCommands[actualCommand] = true // Mark command as learned
+      updatedCommands[actualCommand] = {
+        command_type: commandType.value,
+        type: commandType.value
+      }
+      
+      // Reload untracked commands to remove the newly learned one
+      await loadUntrackedCommands()
       
       // Clear form for next command
       commandName.value = ''
@@ -520,12 +561,16 @@ const testCommand = async (command) => {
       return
     }
     
-    const response = await api.post('/api/commands/test', {
+    const requestData = {
       entity_id: entityId,
       device: deviceName,
       command: command,
       device_id: props.device.id
-    })
+    }
+    
+    console.log('🧪 Testing command:', requestData)
+    
+    const response = await api.post('/api/commands/test', requestData)
     
     if (response.data.success) {
       // Show success on the command row
@@ -539,7 +584,9 @@ const testCommand = async (command) => {
       }, 2000)
     }
   } catch (error) {
-    resultMessage.value = `Failed to send command: ${error.message}`
+    console.error('❌ Test command error:', error)
+    const errorMsg = error.response?.data?.error || error.message || 'Unknown error'
+    resultMessage.value = `Failed to send command: ${errorMsg}`
     resultType.value = 'error'
   } finally {
     testingCommand.value = ''
@@ -561,13 +608,21 @@ const handleDeleteConfirm = async () => {
   showDeleteConfirm.value = false
   
   try {
+    console.log(`🗑️ Deleting command: ${command}`)
     await api.delete(`/api/commands/${props.device.id}/${command}`)
+    
+    // Remove from local list immediately (optimistic update)
+    learnedCommands.value = learnedCommands.value.filter(cmd => cmd.name !== command)
+    
+    // Reload from server to sync
     await loadLearnedCommands()
     await loadUntrackedCommands()
+    
     resultMessage.value = `Command "${command}" deleted`
     resultType.value = 'success'
     emit('learned')
   } catch (error) {
+    console.error('❌ Delete error:', error)
     resultMessage.value = `Failed to delete command: ${error.message}`
     resultType.value = 'error'
   } finally {
@@ -578,11 +633,22 @@ const handleDeleteConfirm = async () => {
 const loadUntrackedCommands = async () => {
   try {
     // Get device name from device object
-    const deviceName = props.device.device || props.device.id.split('.')[1]
+    let deviceName = props.device.device
+    if (!deviceName) {
+      // If device field is not set, try to extract from ID
+      deviceName = props.device.id.includes('.') 
+        ? props.device.id.split('.')[1] 
+        : props.device.id
+    }
+    
+    console.log('🔍 Looking for untracked commands for device:', deviceName)
     
     // Get all untracked commands
     const response = await api.get('/api/commands/untracked')
     const untracked = response.data.untracked || {}
+    
+    console.log('📦 All untracked commands:', Object.keys(untracked))
+    console.log('📦 Untracked for this device:', untracked[deviceName])
     
     // Get untracked commands for this device
     if (untracked[deviceName]) {
@@ -803,7 +869,7 @@ const handleImportConfirm = async () => {
 }
 
 .learning-status i {
-  font-size: 48px;
+  font-size: 12px;
   color: var(--ha-primary-color);
   margin-bottom: 12px;
 }
@@ -1078,6 +1144,48 @@ const handleImportConfirm = async () => {
   height: 1px;
   background: var(--ha-border-color);
   margin: 24px 0;
+}
+
+.rf-instructions {
+  text-align: left;
+  background: rgba(3, 169, 244, 0.1);
+  padding: 12px;
+  border-radius: 4px;
+  border-left: 3px solid var(--ha-primary-color);
+  font-size: 14px;
+}
+
+.rf-instructions p {
+  margin: 6px 0;
+}
+
+.rf-instructions p:first-child {
+  margin-top: 0;
+}
+
+.rf-instructions ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.rf-instructions li {
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.rf-instructions .ha-note {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 8px;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--ha-text-primary-color);
+  border-left: 3px solid #ffc107;
+}
+
+.rf-instructions .ha-note i {
+  color: #ffc107;
 }
 
 .modal-footer {

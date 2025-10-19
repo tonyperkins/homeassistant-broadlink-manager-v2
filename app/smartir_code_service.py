@@ -171,13 +171,12 @@ class SmartIRCodeService:
         # Track errors for this refresh
         errors = {"network_errors": 0, "parse_errors": 0, "skipped_codes": []}
 
-        # Fetch directory listing
+        # Try to fetch from GitHub first
         files = self._fetch_github_directory(f"codes/{entity_type}")
         if not files:
-            error_msg = f"Failed to fetch directory listing for {entity_type}"
-            logger.error(error_msg)
-            self._last_refresh_errors[entity_type] = {"error": error_msg, "timestamp": datetime.now().isoformat()}
-            return False
+            # GitHub fetch failed - fall back to bundled index
+            logger.warning(f"Failed to fetch from GitHub, using bundled index for {entity_type}")
+            return self._refresh_from_bundled_index(entity_type)
 
         # Parse code files to extract manufacturers and models
         manufacturers = defaultdict(list)
@@ -250,6 +249,71 @@ class SmartIRCodeService:
             return True
 
         return False
+
+    def _refresh_from_bundled_index(self, entity_type: str) -> bool:
+        """
+        Refresh cache from bundled device index (fallback when GitHub unavailable)
+
+        Args:
+            entity_type: Entity type (climate, fan, media_player, light)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get platform data from bundled index
+            platform_data = self._device_index.get("platforms", {}).get(entity_type, {})
+            if not platform_data:
+                logger.error(f"No data for {entity_type} in bundled index")
+                return False
+
+            # Extract manufacturers and models from index
+            manufacturers_dict = {}
+            codes_data = {}
+
+            for manufacturer, mfr_data in platform_data.get("manufacturers", {}).items():
+                models_list = []
+                for model_info in mfr_data.get("models", []):
+                    code_id = str(model_info.get("code"))
+                    models = model_info.get("models", [])
+                    controller = model_info.get("controller", "Broadlink")
+
+                    models_list.append({
+                        "code_id": code_id,
+                        "models": models,
+                        "controller": controller
+                    })
+
+                    # Store code data
+                    codes_data[code_id] = {
+                        "manufacturer": manufacturer,
+                        "models": models,
+                        "controller": controller,
+                        "encoding": "Base64"  # Default encoding
+                    }
+
+                manufacturers_dict[manufacturer] = models_list
+
+            # Update cache
+            if "manufacturers" not in self._cache:
+                self._cache["manufacturers"] = {}
+            if "codes" not in self._cache:
+                self._cache["codes"] = {}
+
+            self._cache["manufacturers"][entity_type] = manufacturers_dict
+            self._cache["codes"][entity_type] = codes_data
+            self._cache["last_updated"] = datetime.now().isoformat()
+
+            # Save cache
+            if self._save_cache():
+                logger.info(f"✅ Cached {len(codes_data)} codes for {entity_type} from bundled index")
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error refreshing from bundled index: {e}")
+            return False
 
     def get_manufacturers(self, entity_type: str) -> List[str]:
         """

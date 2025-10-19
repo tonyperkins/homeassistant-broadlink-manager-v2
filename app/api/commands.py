@@ -674,13 +674,22 @@ def import_commands():
             return jsonify({"success": False, "error": "Missing required fields: device_id, source_device, commands"}), 400
 
         storage = get_storage_manager()
+        device_manager = current_app.config.get("device_manager")
+        
         if not storage:
             return jsonify({"error": "Storage manager not available"}), 500
 
-        # Get target device
-        entity_data = storage.get_entity(device_id)
+        # Try to get device from device_manager first (for managed devices)
+        entity_data = None
+        if device_manager:
+            entity_data = device_manager.get_device(device_id)
+        
+        # If not found, try storage (for legacy devices)
         if not entity_data:
-            return jsonify({"error": "Device not found"}), 404
+            entity_data = storage.get_entity(device_id)
+        
+        if not entity_data:
+            return jsonify({"error": f"Device '{device_id}' not found in device manager or metadata"}), 404
 
         # Add commands to device metadata
         device_commands = entity_data.get("commands", {})
@@ -688,7 +697,12 @@ def import_commands():
             device_commands[cmd] = cmd  # Simple mapping
 
         entity_data["commands"] = device_commands
-        storage.save_entity(device_id, entity_data)
+        
+        # Save back to the appropriate store
+        if device_manager and device_manager.get_device(device_id):
+            device_manager.update_device(device_id, entity_data)
+        else:
+            storage.save_entity(device_id, entity_data)
 
         logger.info(f"Imported {len(commands)} commands from '{source_device}' to device '{device_id}'")
 
@@ -699,3 +713,127 @@ def import_commands():
     except Exception as e:
         logger.error(f"Error importing commands: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/sync", methods=["POST"])
+def sync_commands():
+    """Sync all device commands with Broadlink storage"""
+    try:
+        logger.info("🔄 Starting command sync...")
+        storage = get_storage_manager()
+        device_manager = current_app.config.get("device_manager")
+        web_server = get_web_server()
+        
+        if not all([storage, device_manager, web_server]):
+            logger.error("❌ Required services not available")
+            return jsonify({"error": "Required services not available"}), 500
+
+        # Get all commands from Broadlink storage
+        logger.info("📦 Fetching commands from Broadlink storage...")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        loop.close()
+        
+        logger.info(f"📦 Found commands for devices: {list(broadlink_commands.keys())}")
+
+        # Get all managed devices
+        devices = device_manager.get_all_devices()
+        logger.info(f"📋 Found {len(devices)} managed devices: {list(devices.keys())}")
+        
+        synced_devices = []
+        total_added = 0
+        total_removed = 0
+        
+        for device_id, device_data in devices.items():
+            # Get device name - use 'device' field if set, otherwise use device_id
+            device_name = device_data.get("device") or device_id
+            
+            logger.info(f"🔍 Checking device '{device_id}' (storage name: '{device_name}')")
+            
+            # Get commands from Broadlink storage for this device
+            storage_commands = broadlink_commands.get(device_name, {})
+            logger.info(f"  📦 Found {len(storage_commands)} commands in Broadlink storage")
+            
+            # Get current tracked commands
+            tracked_commands = device_data.get("commands", {})
+            logger.info(f"  📋 Currently tracking {len(tracked_commands)} commands")
+            
+            # Find commands to add (in storage but not tracked)
+            commands_to_add = {}
+            for cmd_name, cmd_data in storage_commands.items():
+                if cmd_name not in tracked_commands:
+                    # Detect command type from data
+                    cmd_type = detect_command_type(cmd_data)
+                    commands_to_add[cmd_name] = {
+                        "command_type": cmd_type,
+                        "type": cmd_type
+                    }
+            
+            # Find commands to remove (tracked but not in storage)
+            commands_to_remove = [
+                cmd_name for cmd_name in tracked_commands.keys()
+                if cmd_name not in storage_commands
+            ]
+            
+            # Update device if changes detected
+            if commands_to_add or commands_to_remove:
+                updated_commands = {**tracked_commands}
+                
+                # Add new commands
+                for cmd_name, cmd_data in commands_to_add.items():
+                    updated_commands[cmd_name] = cmd_data
+                    total_added += 1
+                
+                # Remove deleted commands
+                for cmd_name in commands_to_remove:
+                    del updated_commands[cmd_name]
+                    total_removed += 1
+                
+                # Update device
+                device_data["commands"] = updated_commands
+                device_manager.update_device(device_id, device_data)
+                
+                synced_devices.append({
+                    "device_id": device_id,
+                    "device_name": device_name,
+                    "added": len(commands_to_add),
+                    "removed": len(commands_to_remove)
+                })
+        
+        logger.info(f"Command sync complete: {len(synced_devices)} devices updated, {total_added} commands added, {total_removed} removed")
+        
+        return jsonify({
+            "success": True,
+            "synced_devices": synced_devices,
+            "total_devices": len(synced_devices),
+            "total_added": total_added,
+            "total_removed": total_removed
+        })
+
+    except Exception as e:
+        logger.error(f"Error syncing commands: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def detect_command_type(command_data):
+    """
+    Detect command type (IR/RF) from Broadlink command data.
+    
+    RF commands typically start with specific prefixes in base64:
+    - 0x26 (RF 315MHz): starts with 'Jg' or similar
+    - IR commands: start with different patterns
+    
+    For now, we'll use a simple heuristic based on command length and patterns.
+    """
+    if isinstance(command_data, str):
+        # Base64 encoded command
+        # RF commands are typically longer and have specific patterns
+        # This is a simplified detection - may need refinement
+        if len(command_data) > 200:
+            # Very long commands are likely RF
+            return "rf"
+        # Default to IR for most commands
+        return "ir"
+    
+    return "ir"  # Default to IR if we can't determine

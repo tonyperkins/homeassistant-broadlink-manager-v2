@@ -217,6 +217,7 @@
 <script setup>
 import { ref, computed, watch, inject } from 'vue'
 import SearchableDropdown from '../common/SearchableDropdown.vue'
+import api from '@/services/api'
 
 const props = defineProps({
   isOpen: {
@@ -321,11 +322,10 @@ watch(platform, () => {
 async function loadManufacturers() {
   loadingManufacturers.value = true
   try {
-    const response = await fetch(`/api/smartir/codes/manufacturers?entity_type=${platform.value}`)
-    if (!response.ok) throw new Error('Failed to load manufacturers')
-    
-    const data = await response.json()
-    manufacturers.value = data.manufacturers || []
+    const response = await api.get('/api/smartir/codes/manufacturers', {
+      params: { entity_type: platform.value }
+    })
+    manufacturers.value = response.data.manufacturers || []
   } catch (err) {
     console.error('Error loading manufacturers:', err)
     toast.value?.error('Failed to load manufacturers', '❌ Error')
@@ -339,11 +339,13 @@ async function loadModels() {
   
   loadingModels.value = true
   try {
-    const response = await fetch(`/api/smartir/codes/models?entity_type=${platform.value}&manufacturer=${encodeURIComponent(manufacturer.value)}`)
-    if (!response.ok) throw new Error('Failed to load models')
-    
-    const data = await response.json()
-    models.value = data.models || []
+    const response = await api.get('/api/smartir/codes/models', {
+      params: {
+        entity_type: platform.value,
+        manufacturer: manufacturer.value
+      }
+    })
+    models.value = response.data.models || []
   } catch (err) {
     console.error('Error loading models:', err)
     toast.value?.error('Failed to load models', '❌ Error')
@@ -354,11 +356,8 @@ async function loadModels() {
 
 async function loadBroadlinkDevices() {
   try {
-    const response = await fetch('/api/remote/devices')
-    if (!response.ok) throw new Error('Failed to load devices')
-    
-    const data = await response.json()
-    broadlinkDevices.value = data.devices || []
+    const response = await api.get('/api/remote/devices')
+    broadlinkDevices.value = response.data.devices || []
   } catch (err) {
     console.error('Error loading Broadlink devices:', err)
   }
@@ -369,15 +368,17 @@ async function loadCode() {
   
   loading.value = true
   try {
-    const response = await fetch(`/api/smartir/codes/code?entity_type=${platform.value}&code_id=${selectedModel.value.code}`)
-    if (!response.ok) throw new Error('Failed to load code')
-    
-    const data = await response.json()
-    codeData.value = data.code
+    const response = await api.get('/api/smartir/codes/code', {
+      params: {
+        entity_type: platform.value,
+        code_id: selectedModel.value.code
+      }
+    })
+    codeData.value = response.data.code
     selectedCode.value = selectedModel.value.code
     
     // Extract commands
-    extractCommands(data.code)
+    extractCommands(response.data.code)
     
     toast.value?.success(`Loaded ${commandsList.value.length} commands`, '✅ Code Loaded')
   } catch (err) {
@@ -481,20 +482,11 @@ async function testCommand(commandName) {
     }
     
     // Send raw command using the send-raw endpoint
-    const response = await fetch('/api/commands/send-raw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        entity_id: selectedDevice.value,
-        command: command.data,
-        command_type: 'ir'
-      })
+    await api.post('/api/commands/send-raw', {
+      entity_id: selectedDevice.value,
+      command: command.data,
+      command_type: 'ir'
     })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to send command')
-    }
     
     testedCommands.value.add(commandName)
     toast.value?.success(`Command sent: ${command.label || commandName}`, '✅ Tested')

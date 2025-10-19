@@ -321,6 +321,7 @@ import CommandLearningWizard from './CommandLearningWizard.vue'
 import ProfilePreview from './ProfilePreview.vue'
 import SmartIRSetupWizard from './SmartIRSetupWizard.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import api from '@/services/api'
 
 const props = defineProps({
   show: {
@@ -824,9 +825,9 @@ async function saveToSmartIR() {
   try {
     // Check if setup is needed
     if (!setupCompleted.value) {
-      const configCheck = await fetch('api/smartir/config/check')
-      if (configCheck.ok) {
-        const configStatus = await configCheck.json()
+      const configCheck = await api.get('/api/smartir/config/check')
+      const configStatus = configCheck.data
+      if (configStatus) {
         
         // Check if platform file exists
         const platformExists = configStatus.platforms[profile.value.platform]?.file_exists
@@ -857,35 +858,19 @@ async function saveToSmartIR() {
       console.log('📝 Edit mode: Using existing code', codeNumber)
     } else {
       // Get next available code for new profile
-      const codeResponse = await fetch(`api/smartir/platforms/${profile.value.platform}/next-code`)
-      if (!codeResponse.ok) {
-        throw new Error('Failed to get next code number')
-      }
-      
-      const codeData = await codeResponse.json()
-      codeNumber = codeData.next_code
+      const codeResponse = await api.get(`/api/smartir/platforms/${profile.value.platform}/next-code`)
+      codeNumber = codeResponse.data.next_code
       console.log('✨ New profile: Using next code', codeNumber)
     }
     
     // Save profile to SmartIR directory
-    const response = await fetch('api/smartir/profiles', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        platform: profile.value.platform,
-        json: generatedJson.value,
-        code_number: codeNumber
-      })
+    const response = await api.post('/api/smartir/profiles', {
+      platform: profile.value.platform,
+      json: generatedJson.value,
+      code_number: codeNumber
     })
     
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to save profile')
-    }
-    
-    const result = await response.json()
+    const result = response.data
     
     // Add device to configuration file
     const deviceConfig = {
@@ -896,26 +881,24 @@ async function saveToSmartIR() {
       controller_data: profile.value.broadlinkDevice
     }
     
-    const configResponse = await fetch('api/smartir/config/add-device', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    try {
+      await api.post('/api/smartir/config/add-device', {
         platform: profile.value.platform,
-        device_config: deviceConfig
+        entity_type: profile.value.platform,
+        name: deviceConfig.name,
+        unique_id: deviceConfig.unique_id,
+        device_code: deviceConfig.device_code,
+        controller_data: deviceConfig.controller_data
       })
-    })
-    
-    if (!configResponse.ok) {
-      const configError = await configResponse.json()
+    } catch (configError) {
       console.error('Failed to add device to config:', configError)
       
       // Format validation errors if available
-      let errorMessage = configError.error || 'Unknown error'
-      if (configError.validation_errors && configError.validation_errors.length > 0) {
+      const errorData = configError.response?.data || {}
+      let errorMessage = errorData.error || 'Unknown error'
+      if (errorData.validation_errors && errorData.validation_errors.length > 0) {
         errorMessage = 'Device configuration validation failed:\n' + 
-          configError.validation_errors.map(e => `  • ${e}`).join('\n')
+          errorData.validation_errors.map(e => `  • ${e}`).join('\n')
       }
       
       toastRef.value?.warning(
@@ -1000,13 +983,8 @@ async function fetchLearnedCommandsForEdit(manufacturer, model, commands) {
   
   try {
     // Fetch all Broadlink commands
-    const response = await fetch('/api/commands/all')
-    if (!response.ok) {
-      console.error('Failed to fetch commands from Broadlink storage')
-      return commands // Return original commands if fetch fails
-    }
-    
-    const data = await response.json()
+    const response = await api.get('/api/commands/all')
+    const data = response.data
     const deviceCommands = data[deviceName] || {}
     
     console.log(`🔍 Fetching learned commands for device: ${deviceName}`)
@@ -1108,23 +1086,19 @@ function generateYamlConfig(profile) {
 
 async function loadBroadlinkDevices() {
   try {
-    console.log('Fetching remote devices from api/remote/devices...')
-    const response = await fetch('api/remote/devices')
-    console.log('Response status:', response.status, response.ok)
+    console.log('Fetching remote devices from /api/remote/devices...')
+    const response = await api.get('/api/remote/devices')
+    console.log('Loaded remote devices response:', response.data)
     
-    if (response.ok) {
-      const data = await response.json()
-      console.log('Loaded remote devices response:', data)
-      
-      // The API wraps the devices in a 'devices' property
-      const devices = data.devices || []
-      console.log('Extracted devices array:', devices)
-      console.log('Device count:', devices.length)
-      
-      broadlinkDevices.value = devices
-      console.log('broadlinkDevices.value set to:', broadlinkDevices.value)
-      console.log('Final device count:', broadlinkDevices.value.length)
-    } else {
+    // The API wraps the devices in a 'devices' property
+    const devices = response.data.devices || []
+    console.log('Extracted devices array:', devices)
+    console.log('Device count:', devices.length)
+    
+    broadlinkDevices.value = devices
+    console.log('broadlinkDevices.value set to:', broadlinkDevices.value)
+    console.log('Final device count:', broadlinkDevices.value.length)
+    if (false) {
       console.error('Response not OK:', response.status, response.statusText)
       broadlinkDevices.value = []
     }

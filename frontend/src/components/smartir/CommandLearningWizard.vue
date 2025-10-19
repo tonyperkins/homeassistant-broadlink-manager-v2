@@ -14,7 +14,7 @@
               :key="device.entity_id"
               :value="device.entity_id"
             >
-              {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
+              {{ device.name || device.entity_id }}
             </option>
           </select>
           <div v-if="showDeviceError" class="validation-tooltip">
@@ -196,6 +196,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import api from '@/services/api'
 
 const toast = useToast()
 
@@ -401,24 +402,14 @@ async function learnCommand(cmd) {
     const deviceName = `${manufacturer}_${model}`
     
     // Call the learn command API
-    const response = await fetch('/api/commands/learn', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_id: localBroadlinkDevice.value,
-        device: deviceName,
-        command: cmd.key,
-        command_type: localCommandType.value // Use the selected command type (ir or rf)
-      })
+    const response = await api.post('/api/commands/learn', {
+      entity_id: localBroadlinkDevice.value,
+      device: deviceName,
+      command: cmd.key,
+      command_type: localCommandType.value // Use the selected command type (ir or rf)
     })
     
-    if (!response.ok) {
-      throw new Error(`Failed to learn command: ${response.statusText}`)
-    }
-    
-    const result = await response.json()
+    const result = response.data
     
     if (result.success && result.code) {
       // Store the command code (or placeholder for pending)
@@ -477,20 +468,11 @@ async function testCommand(key) {
     const rawCode = commands.value[key]
     
     // Send raw code using dedicated endpoint
-    const response = await fetch('/api/commands/send-raw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        entity_id: localBroadlinkDevice.value,
-        command: rawCode,  // Send the base64 IR/RF code directly
-        command_type: localCommandType.value  // 'ir' or 'rf'
-      })
+    await api.post('/api/commands/send-raw', {
+      entity_id: localBroadlinkDevice.value,
+      command: rawCode,  // Send the base64 IR/RF code directly
+      command_type: localCommandType.value  // 'ir' or 'rf'
     })
-    
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to send command')
-    }
     
     toast.success('Command sent successfully')
   } catch (error) {
@@ -580,14 +562,14 @@ function updateCommandType() {
 
 async function loadBroadlinkDevices() {
   try {
-    const response = await fetch('/api/remote/devices')
-    if (response.ok) {
-      const data = await response.json()
-      const devices = data.devices || []
-      broadlinkDevices.value = devices
-    }
+    console.log('🔍 Loading Broadlink devices from /api/remote/devices')
+    const response = await api.get('/api/remote/devices')
+    console.log('📦 Response data:', response.data)
+    const devices = response.data.devices || []
+    console.log(`✅ Found ${devices.length} devices:`, devices)
+    broadlinkDevices.value = devices
   } catch (error) {
-    console.error('Error loading remote devices:', error)
+    console.error('❌ Error loading remote devices:', error)
     broadlinkDevices.value = []
   }
 }

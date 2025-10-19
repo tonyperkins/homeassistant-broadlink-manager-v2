@@ -35,7 +35,7 @@
       </div>
       <div class="header-right">
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="showHelp = !showHelp" 
           class="icon-button"
           :class="{ active: showHelp }"
@@ -44,7 +44,7 @@
           <i class="mdi mdi-help-circle"></i>
         </button>
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="refreshStatus" 
           class="icon-button"
           title="Refresh status"
@@ -52,7 +52,7 @@
           <i class="mdi mdi-refresh"></i>
         </button>
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="openCodeTester" 
           class="btn btn-secondary"
         >
@@ -60,7 +60,7 @@
           Test Codes
         </button>
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="createProfile" 
           class="btn btn-primary"
         >
@@ -237,17 +237,9 @@
       </div>
 
       <div class="card-actions">
-        <button @click="showInstallGuide" class="btn-primary">
-          <i class="mdi mdi-download"></i>
-          Install SmartIR
-        </button>
-        <button @click="openSmartIRGitHub" class="btn-secondary">
+        <button @click="openSmartIRGitHub" class="btn-primary">
           <i class="mdi mdi-github"></i>
-          View on GitHub
-        </button>
-        <button @click="viewDocumentation" class="btn-secondary">
-          <i class="mdi mdi-help-circle"></i>
-          Learn More
+          Install SmartIR
         </button>
       </div>
     </div>
@@ -282,8 +274,9 @@ import SmartIRProfileCard from './SmartIRProfileCard.vue'
 import SmartIRProfileListView from './SmartIRProfileListView.vue'
 import SmartIRCodeTester from './SmartIRCodeTester.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
+import api from '@/services/api'
 
-const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'])
+const emit = defineEmits(['create-profile', 'edit-profile'])
 
 // Inject SmartIR status from App.vue
 const smartirStatus = inject('smartirStatus')
@@ -446,15 +439,8 @@ function openCodeTester() {
   showCodeTester.value = true
 }
 
-function showInstallGuide() {
-  emit('show-install-guide')
-}
-
-function viewDocumentation() {
-  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
-}
-
 function openSmartIRGitHub() {
+  // Open SmartIR GitHub repository for installation instructions
   window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
 }
 
@@ -466,21 +452,22 @@ async function loadAllProfiles() {
     // Load profiles from all platforms
     for (const platform of allPlatforms) {
       try {
-        const response = await fetch(`api/smartir/platforms/${platform}/profiles`)
-        if (response.ok) {
-          const data = await response.json()
-          const platformProfiles = (data.profiles || []).map(p => ({
-            ...p,
-            platform
-          }))
-          allProfilesData.push(...platformProfiles)
-        }
+        const response = await api.get(`/api/smartir/platforms/${platform}/profiles`)
+        const platformProfiles = (response.data.profiles || []).map(p => ({
+          ...p,
+          platform
+        }))
+        allProfilesData.push(...platformProfiles)
       } catch (err) {
-        console.error(`Error loading ${platform} profiles:`, err)
+        // Silently handle network errors - profiles will load from bundled index on backend
+        console.warn(`Network error loading ${platform} profiles (using bundled index):`, err.message)
       }
     }
     
     allProfiles.value = allProfilesData
+  } catch (err) {
+    // Only log unexpected errors, don't show to user
+    console.error('Unexpected error loading profiles:', err)
   } finally {
     loadingAllProfiles.value = false
   }
@@ -493,12 +480,8 @@ function editProfile(platform, profile, startStep) {
 async function downloadProfile(platform, profile) {
   try {
     // Fetch the full profile JSON
-    const response = await fetch(`api/smartir/platforms/${platform}/profiles/${profile.code}`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch profile')
-    }
-    
-    const data = await response.json()
+    const response = await api.get(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
+    const data = response.data
     
     // Create blob and download
     const jsonString = JSON.stringify(data.profile, null, 2)
@@ -526,14 +509,12 @@ async function deleteProfile(platform, profile) {
   
   // First check if profile is in use
   try {
-    const checkResponse = await fetch(`api/smartir/profiles/${profile.code}/check-usage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform })
+    const checkResponse = await api.post(`/api/smartir/profiles/${profile.code}/check-usage`, {
+      platform
     })
     
-    if (checkResponse.ok) {
-      const result = await checkResponse.json()
+    const result = checkResponse.data
+    if (result) {
       
       if (result.in_use) {
         // Profile is in use - show warning dialog with disabled delete button
@@ -573,31 +554,24 @@ async function handleDeleteConfirm() {
   confirmDelete.value.show = false
   
   try {
-    const response = await fetch(`api/smartir/profiles/${profile.code}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform })
+    await api.delete(`/api/smartir/profiles/${profile.code}`, {
+      data: { platform }
     })
     
-    if (response.ok) {
-      // Reload all profiles
-      await loadAllProfiles()
-      
-      // Wait for DOM update
-      await nextTick()
-      
-      // Then refresh status
-      await refreshStatus()
-      
-      // Show success toast after everything is updated
-      toastRef.value?.success(
-        `${profile.manufacturer} ${profile.model} has been removed`,
-        '✅ Profile Deleted'
-      )
-    } else {
-      const error = await response.json()
-      toastRef.value?.error(error.error || 'Unknown error', '❌ Delete Failed')
-    }
+    // Reload all profiles
+    await loadAllProfiles()
+    
+    // Wait for DOM update
+    await nextTick()
+    
+    // Then refresh status
+    await refreshStatus()
+    
+    // Show success toast after everything is updated
+    toastRef.value?.success(
+      `${profile.manufacturer} ${profile.model} has been removed`,
+      '✅ Profile Deleted'
+    )
   } catch (err) {
     console.error('Error deleting profile:', err)
     toastRef.value?.error('Failed to delete profile', '❌ Delete Error')
@@ -610,6 +584,11 @@ watch(smartirStatus, (newStatus) => {
     status.value = newStatus
   }
 }, { immediate: true })
+
+// Watch for viewMode changes and persist to localStorage
+watch(viewMode, (newMode) => {
+  localStorage.setItem('profile_view_mode', newMode)
+})
 
 onMounted(async () => {
   // Try to use injected status first

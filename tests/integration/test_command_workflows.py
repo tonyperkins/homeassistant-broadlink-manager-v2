@@ -22,14 +22,14 @@ class TestBroadlinkCommandWorkflow:
     def broadlink_device(self, client, mock_ha_api):
         """Create a test Broadlink device"""
         device_data = {
-            "friendly_name": "Test Remote",
-            "device_type": "broadlink",
-            "entity_id": "remote.test_remote",
+            "name": "Test Remote",
+            "entity_type": "remote",
+            "broadlink_entity": "remote.test_remote",
             "area": "Living Room",
         }
         response = client.post("/api/devices", json=device_data)
         assert response.status_code in [200, 201]  # Accept both OK and Created
-        return response.json["device_id"]
+        return response.json["device"]["id"]
 
     def test_learn_command_returns_actual_code(self, client, broadlink_device, mock_ha_api):
         """Test that learning a command returns the actual IR code, not 'pending'"""
@@ -149,21 +149,18 @@ class TestSmartIRCommandWorkflow:
     """Test command workflow for SmartIR devices"""
 
     @pytest.fixture
-    def smartir_device(self, client, mock_smartir_installed):
+    def smartir_device(self, client):
         """Create a test SmartIR device"""
         device_data = {
-            "friendly_name": "Test AC",
-            "device_type": "smartir",
-            "entity_id": "climate.test_ac",
+            "name": "Test AC",
+            "entity_type": "climate",
             "area": "Bedroom",
-            "device_code": 10000,
-            "controller_entity": "remote.test_remote",
         }
         response = client.post("/api/devices", json=device_data)
         assert response.status_code in [200, 201]  # Accept both OK and Created
-        return response.json["device_id"]
+        return response.json["device"]["id"]
 
-    def test_smartir_learn_returns_actual_code(self, client, smartir_device, mock_ha_api, mock_smartir_installed):
+    def test_smartir_learn_returns_actual_code(self, client, smartir_device, mock_ha_api):
         """Test that SmartIR learning returns actual code"""
         mock_ha_api.post.return_value = []
 
@@ -234,7 +231,7 @@ class TestSmartIRCommandWorkflow:
         assert response.status_code == 400
         assert "not been learned yet" in response.json["error"]
 
-    def test_smartir_profile_deletion_blocked_when_in_use(self, client, smartir_device, mock_smartir_installed):
+    def test_smartir_profile_deletion_blocked_when_in_use(self, client, smartir_device):
         """Test that SmartIR profiles cannot be deleted when in use"""
         response = client.delete(
             "/api/smartir/profiles/10000",
@@ -245,7 +242,7 @@ class TestSmartIRCommandWorkflow:
         assert "currently in use" in response.json["error"]
         assert "Test AC" in response.json["devices"]
 
-    def test_smartir_profile_deletion_allowed_when_not_in_use(self, client, mock_smartir_installed, tmp_path):
+    def test_smartir_profile_deletion_allowed_when_not_in_use(self, client, tmp_path):
         """Test that SmartIR profiles can be deleted when not in use"""
         # Create a profile file
         codes_dir = tmp_path / "custom_components" / "smartir" / "codes" / "climate"
@@ -274,7 +271,7 @@ class TestSmartIRCommandWorkflow:
 class TestStorageSeparation:
     """Test that Broadlink and SmartIR storage are kept separate"""
 
-    def test_smartir_does_not_read_broadlink_storage(self, client, mock_smartir_installed, tmp_path):
+    def test_smartir_does_not_read_broadlink_storage(self, client, tmp_path):
         """Test that SmartIR devices don't read from Broadlink storage files"""
         # Create Broadlink storage with commands
         storage_dir = tmp_path / ".storage"
@@ -361,7 +358,7 @@ class TestStorageSeparation:
 class TestCodeNumbering:
     """Test that SmartIR profile code numbering works correctly"""
 
-    def test_next_code_increments_correctly(self, client, mock_smartir_installed, tmp_path):
+    def test_next_code_increments_correctly(self, client, tmp_path):
         """Test that next code number increments even after deletion"""
         codes_dir = tmp_path / "custom_components" / "smartir" / "codes" / "climate"
         codes_dir.mkdir(parents=True)

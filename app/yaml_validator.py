@@ -129,9 +129,9 @@ class YAMLValidator:
             True if valid format
         """
         # HA entity ID format: domain.entity_name
-        # domain: lowercase letters only
+        # domain: lowercase letters and underscores (e.g., binary_sensor, media_player)
         # entity_name: lowercase letters, numbers, underscores
-        pattern = r"^[a-z]+\.[a-z0-9_]+$"
+        pattern = r"^[a-z_]+\.[a-z0-9_]+$"
         return bool(re.match(pattern, entity_id))
 
     @staticmethod

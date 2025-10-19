@@ -460,17 +460,24 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             from flask import current_app
 
             storage_manager = current_app.config.get("storage_manager")
+            logger.info(f"Checking if profile {code} is in use (storage_manager: {storage_manager is not None})")
+            
             if storage_manager:
                 # Get all entities from metadata (includes SmartIR devices)
                 entities = storage_manager.get_all_entities()
+                logger.info(f"Found {len(entities)} entities in storage")
                 devices_using_profile = []
 
                 for entity_id, entity_data in entities.items():
+                    logger.debug(f"Checking entity {entity_id}: device_code={entity_data.get('device_code')}")
                     # Check if this entity has a device_code matching the profile
                     if "device_code" in entity_data and str(entity_data.get("device_code")) == str(code):
-                        devices_using_profile.append(entity_data.get("friendly_name", entity_data.get("name", entity_id)))
+                        device_name = entity_data.get("friendly_name", entity_data.get("name", entity_id))
+                        devices_using_profile.append(device_name)
+                        logger.info(f"Found device using profile {code}: {device_name}")
 
                 if devices_using_profile:
+                    logger.warning(f"Cannot delete profile {code}: in use by {devices_using_profile}")
                     return (
                         jsonify(
                             {
@@ -481,6 +488,8 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         ),
                         400,
                     )
+                else:
+                    logger.info(f"Profile {code} is not in use by any devices")
 
             # Read the profile to get manufacturer/model for Broadlink storage cleanup
             try:

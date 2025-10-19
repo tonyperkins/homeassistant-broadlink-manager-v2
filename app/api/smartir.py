@@ -435,6 +435,36 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             logger.error(f"Error getting profile: {e}")
             return jsonify({"success": False, "error": str(e)}), 500
 
+    @smartir_bp.route("/profiles/<code>/check-usage", methods=["POST"])
+    def check_profile_usage(code):
+        """Check if a SmartIR profile is in use by any devices"""
+        try:
+            from flask import current_app
+
+            device_manager = current_app.config.get("device_manager")
+            if not device_manager:
+                return jsonify({"in_use": False, "device_count": 0, "devices": []}), 200
+
+            # Get all devices
+            devices = device_manager.get_all_devices()
+            devices_using_profile = []
+
+            for device_id, device_data in devices.items():
+                # Check if this is a SmartIR device with matching device_code
+                if device_data.get("device_type") == "smartir" and str(device_data.get("device_code")) == str(code):
+                    device_name = device_data.get("name", device_id)
+                    devices_using_profile.append(device_name)
+
+            return jsonify({
+                "in_use": len(devices_using_profile) > 0,
+                "device_count": len(devices_using_profile),
+                "devices": devices_using_profile
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Error checking profile usage: {e}")
+            return jsonify({"error": str(e)}), 500
+
     @smartir_bp.route("/profiles/<code>", methods=["DELETE"])
     def delete_profile(code):
         """Delete a SmartIR profile"""

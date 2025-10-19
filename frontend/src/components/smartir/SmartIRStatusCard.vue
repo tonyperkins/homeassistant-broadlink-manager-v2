@@ -226,9 +226,10 @@
       :isOpen="confirmDelete.show"
       :title="confirmDelete.title"
       :message="confirmDelete.message"
-      confirmText="Delete"
-      cancelText="Cancel"
+      :confirmText="confirmDelete.canDelete === false ? null : 'Delete'"
+      cancelText="Close"
       :dangerMode="true"
+      :confirmDisabled="confirmDelete.canDelete === false"
       @confirm="handleDeleteConfirm"
       @cancel="confirmDelete.show = false"
     />
@@ -479,14 +480,47 @@ async function downloadProfile(platform, profile) {
   }
 }
 
-function deleteProfile(platform, profile) {
-  // Show confirmation dialog
+async function deleteProfile(platform, profile) {
+  const toastRef = inject('toast')
+  
+  // First check if profile is in use
+  try {
+    const checkResponse = await fetch(`api/smartir/profiles/${profile.code}/check-usage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform })
+    })
+    
+    if (checkResponse.ok) {
+      const result = await checkResponse.json()
+      
+      if (result.in_use) {
+        // Profile is in use - show warning dialog with disabled delete button
+        confirmDelete.value = {
+          show: true,
+          title: `Cannot Delete ${profile.manufacturer} ${profile.model}`,
+          message: `This profile is currently in use by ${result.device_count} device(s):\n\n${result.devices.join('\n')}\n\nPlease remove or reassign these devices before deleting the profile.`,
+          platform,
+          profile,
+          canDelete: false,
+          devices: result.devices
+        }
+        return
+      }
+    }
+  } catch (err) {
+    console.error('Error checking profile usage:', err)
+    // Continue with deletion if check fails (backend will still block)
+  }
+  
+  // Profile is not in use - show normal confirmation dialog
   confirmDelete.value = {
     show: true,
     title: `Delete ${profile.manufacturer} ${profile.model}?`,
     message: `Device Code: ${profile.code}\n\nThis will remove the profile and update your configuration.`,
     platform,
-    profile
+    profile,
+    canDelete: true
   }
 }
 

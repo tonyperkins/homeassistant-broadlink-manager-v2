@@ -473,31 +473,8 @@ async function testCommand(key) {
   testingCommand.value = key
   
   try {
-    // Check if the command is still pending (needs to be fetched from storage)
-    let rawCode = commands.value[key]
-    
-    if (rawCode === 'pending' || rawCode.toLowerCase() === 'pending') {
-      // Fetch the actual code from Broadlink storage
-      const manufacturer = props.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-      const model = props.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-      const deviceName = `${manufacturer}_${model}`
-      
-      const fetchResponse = await fetch(`/api/commands/broadlink/${deviceName}`)
-      if (fetchResponse.ok) {
-        const result = await fetchResponse.json()
-        if (result.commands && result.commands[key]) {
-          rawCode = result.commands[key]
-          // Update the in-memory command with the actual code
-          commands.value[key] = rawCode
-          emit('update:modelValue', commands.value)
-          console.log(`Fetched actual code for '${key}' from Broadlink storage`)
-        } else {
-          throw new Error('Command not found in Broadlink storage yet. Please wait a moment and try again.')
-        }
-      } else {
-        throw new Error('Failed to fetch command from Broadlink storage')
-      }
-    }
+    // Get the raw IR/RF code from memory (should be the actual code, not "pending")
+    const rawCode = commands.value[key]
     
     // Send raw code using dedicated endpoint
     const response = await fetch('/api/commands/send-raw', {

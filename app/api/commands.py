@@ -124,18 +124,44 @@ def learn_command():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(web_server._learn_command(data))
-        loop.close()
 
-        # If HA API returned success, trust it - command will appear in storage eventually
+        # If HA API returned success, fetch the learned code immediately
         if result.get("success"):
             logger.info(f"✅ Learn command API call succeeded for '{command}' on device '{device}'")
-            logger.info(f"ℹ️  Command will appear in storage after HA writes (may take 10-30 seconds)")
-            result["message"] = f"✅ Command '{command}' learned successfully! (May take a moment to appear)"
-            # Add placeholder code field for frontend compatibility
-            # The actual code will be in storage after HA writes
-            result["code"] = "pending"  # Placeholder to satisfy frontend validation
+            
+            # Fetch the learned code from Broadlink storage immediately
+            # The code is available right away, even though the file write may lag
+            try:
+                import time
+                # Give HA a moment to process (usually instant, but be safe)
+                time.sleep(0.5)
+                
+                # Fetch all commands from storage
+                all_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+                
+                # Get the specific command we just learned
+                device_commands = all_commands.get(device, {})
+                learned_code = device_commands.get(command)
+                
+                if learned_code:
+                    logger.info(f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)")
+                    result["code"] = learned_code
+                    result["message"] = f"✅ Command '{command}' learned successfully!"
+                else:
+                    logger.warning(f"⚠️ Command learned but code not yet available in storage, using pending")
+                    result["code"] = "pending"
+                    result["message"] = f"✅ Command '{command}' learned! Code will be available shortly."
+                    
+            except Exception as fetch_error:
+                logger.error(f"Error fetching learned code: {fetch_error}")
+                result["code"] = "pending"
+                result["message"] = f"✅ Command '{command}' learned! Code will be available shortly."
+            finally:
+                loop.close()
+            
             return jsonify(result)
         else:
+            loop.close()
             return jsonify(result), 400
 
     except Exception as e:

@@ -16,7 +16,7 @@ import time
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import aiohttp
-import aiofiles
+import aiofiles  # type: ignore
 import websockets
 
 from storage_manager import StorageManager
@@ -45,6 +45,9 @@ class IngressMiddleware:
     def __call__(self, environ, start_response):
         # Get the ingress path from the header
         ingress_path = environ.get("HTTP_X_INGRESS_PATH", "")
+        
+        # Debug logging
+        logger.debug(f"Ingress request - Path: {environ.get('PATH_INFO')}, Ingress Path: {ingress_path}")
 
         if ingress_path:
             # Set SCRIPT_NAME to the ingress path
@@ -54,6 +57,7 @@ class IngressMiddleware:
             path_info = environ.get("PATH_INFO", "")
             if path_info.startswith(ingress_path):
                 environ["PATH_INFO"] = path_info[len(ingress_path) :] or "/"
+                logger.debug(f"Adjusted PATH_INFO to: {environ['PATH_INFO']}")
 
         return self.app(environ, start_response)
 
@@ -80,56 +84,47 @@ class BroadlinkWebServer:
         self.storage_path = self.config_loader.get_storage_path()
 
         logger.info(f"Web server initialized in {self.config_loader.mode} mode")
-        
+
         # Broadlink manager path
         self.broadlink_manager_path = self.config_loader.get_broadlink_manager_path()
-        
-        # Cache for notifications
-        self.cached_notifications = []
+
+        # WebSocket notifications cache
+        self.ws_notifications: list[str] = []
         self.last_notification_check = 0
-        
+
         # Cache for recently deleted commands to handle storage lag
         # Format: {device_name: {command_name: timestamp}}
-        self.recently_deleted_commands = {}
+        self.recently_deleted_commands: dict[str, dict[str, int]] = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
-        
+
         # Call tracking for logging context
         self._call_counter = 0
         self._call_lock = threading.Lock()
 
         # Initialize entity management components
-        self.storage_manager = StorageManager(
-            str(self.config_loader.get_broadlink_manager_path())
-        )
+        self.storage_manager = StorageManager(str(self.config_loader.get_broadlink_manager_path()))
         self.entity_detector = EntityDetector()
-        self.area_manager = AreaManager(self.ha_url, self.ha_token)
-        self.device_manager = DeviceManager(
-            self.config_loader.get_broadlink_manager_path()
-        )
-        self.migration_manager = MigrationManager(
-            self.storage_manager, self.entity_detector, self.storage_path
-        )
-        self.smartir_detector = SmartIRDetector(
-            str(self.config_loader.get_config_path())
-        )
+        self.area_manager = AreaManager(self.ha_url or "", self.ha_token or "")
+        self.device_manager = DeviceManager(str(self.config_loader.get_broadlink_manager_path()))
+        self.migration_manager = MigrationManager(self.storage_manager, self.entity_detector, self.storage_path)
+        self.smartir_detector = SmartIRDetector(str(self.config_loader.get_config_path()))
         self.smartir_code_service = SmartIRCodeService(
-            str(self.config_loader.get_broadlink_manager_path() / "cache"),
-            smartir_detector=self.smartir_detector
+            str(self.config_loader.get_broadlink_manager_path() / "cache"), smartir_detector=self.smartir_detector
         )
 
         # Make managers available to API endpoints
-        self.app.config['storage_manager'] = self.storage_manager
-        self.app.config['device_manager'] = self.device_manager
-        self.app.config['area_manager'] = self.area_manager
-        self.app.config['web_server'] = self  # For command learning
-        self.app.config['smartir_detector'] = self.smartir_detector
-        self.app.config['smartir_code_service'] = self.smartir_code_service
-        self.app.config['config_path'] = str(self.config_loader.get_config_path())
+        self.app.config["storage_manager"] = self.storage_manager
+        self.app.config["device_manager"] = self.device_manager
+        self.app.config["area_manager"] = self.area_manager
+        self.app.config["web_server"] = self  # For command learning
+        self.app.config["smartir_detector"] = self.smartir_detector
+        self.app.config["smartir_code_service"] = self.smartir_code_service
+        self.app.config["config_path"] = str(self.config_loader.get_config_path())
 
         # Register API blueprint for v2
         self.app.register_blueprint(api_bp)
         logger.info("Registered API blueprint at /api")
-        
+
         # Register SmartIR API blueprint with code service
         smartir_bp = init_smartir_routes(self.smartir_detector, self.smartir_code_service)
         self.app.register_blueprint(smartir_bp)
@@ -161,7 +156,7 @@ class BroadlinkWebServer:
         def serve_static(filename):
             """Explicitly serve static files to work with ingress"""
             return send_from_directory(self.app.static_folder, filename)
-        
+
         @self.app.route("/assets/<path:filename>")
         def serve_assets(filename):
             """Serve Vue app assets (CSS, JS) with correct MIME types"""
@@ -200,9 +195,7 @@ class BroadlinkWebServer:
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                commands = loop.run_until_complete(
-                    self._get_learned_commands(device_id)
-                )
+                commands = loop.run_until_complete(self._get_learned_commands(device_id))
                 loop.close()
                 return jsonify(commands)
             except Exception as e:
@@ -305,17 +298,11 @@ class BroadlinkWebServer:
                             # If it's a list, check the first element
                             command_type = (
                                 "rf"
-                                if (
-                                    command_code
-                                    and isinstance(command_code[0], str)
-                                    and command_code[0].startswith("sc")
-                                )
+                                if (command_code and isinstance(command_code[0], str) and command_code[0].startswith("sc"))
                                 else "ir"
                             )
                         elif isinstance(command_code, str):
-                            command_type = (
-                                "rf" if command_code.startswith("sc") else "ir"
-                            )
+                            command_type = "rf" if command_code.startswith("sc") else "ir"
                         else:
                             command_type = "ir"  # Default to IR if unknown type
 
@@ -392,9 +379,7 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
                 # Try WebSocket method first, fallback to REST API
                 try:
-                    notifications = loop.run_until_complete(
-                        self._get_ws_notifications()
-                    )
+                    notifications = loop.run_until_complete(self._get_ws_notifications())
                     if notifications:
                         loop.close()
                         return jsonify(notifications)
@@ -449,9 +434,7 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
 
                 # Try to call the Broadlink service info first
-                logger.info(
-                    f"Testing service call to remote.learn_command for entity: {entity_id}"
-                )
+                logger.info(f"Testing service call to remote.learn_command for entity: {entity_id}")
 
                 test_data = {
                     "entity_id": entity_id,
@@ -460,11 +443,7 @@ class BroadlinkWebServer:
                     "command_type": "rf",
                 }
 
-                result = loop.run_until_complete(
-                    self._make_ha_request(
-                        "POST", "services/remote/learn_command", test_data
-                    )
-                )
+                result = loop.run_until_complete(self._make_ha_request("POST", "services/remote/learn_command", test_data))
                 loop.close()
 
                 return jsonify(
@@ -552,16 +531,12 @@ class BroadlinkWebServer:
                 device_name = data.get("device_name")
                 commands = data.get("commands")
                 area_name = data.get("area_name")
-                broadlink_entity = data.get(
-                    "broadlink_entity"
-                )  # NEW: which Broadlink device sends these commands
+                broadlink_entity = data.get("broadlink_entity")  # NEW: which Broadlink device sends these commands
 
                 if not device_name or not commands:
                     return jsonify({"error": "Missing device_name or commands"}), 400
 
-                detected = self.entity_detector.group_commands_by_entity(
-                    device_name, commands, area_name, broadlink_entity
-                )
+                detected = self.entity_detector.group_commands_by_entity(device_name, commands, area_name, broadlink_entity)
                 return jsonify(
                     {
                         "success": True,
@@ -578,9 +553,7 @@ class BroadlinkWebServer:
             """Generate YAML entity files for both Broadlink and SmartIR devices"""
             try:
                 data = request.get_json()
-                device_id = data.get(
-                    "device_id"
-                )  # Optional: for backward compatibility
+                device_id = data.get("device_id")  # Optional: for backward compatibility
 
                 logger.info("🔄 Manual entity generation triggered...")
 
@@ -592,46 +565,31 @@ class BroadlinkWebServer:
 
                 # Separate devices by type
                 all_devices = self.device_manager.get_all_devices()
-                broadlink_devices = {
-                    k: v for k, v in all_devices.items() 
-                    if v.get("device_type", "broadlink") == "broadlink"
-                }
-                smartir_devices = {
-                    k: v for k, v in all_devices.items() 
-                    if v.get("device_type") == "smartir"
-                }
+                broadlink_devices = {k: v for k, v in all_devices.items() if v.get("device_type", "broadlink") == "broadlink"}
+                smartir_devices = {k: v for k, v in all_devices.items() if v.get("device_type") == "smartir"}
 
-                results = {
-                    "success": True,
-                    "broadlink_count": 0,
-                    "smartir_count": 0,
-                    "total_count": 0,
-                    "errors": []
-                }
+                results = {"success": True, "broadlink_count": 0, "smartir_count": 0, "total_count": 0, "errors": []}
 
                 # Generate Broadlink native entities
                 if broadlink_devices:
                     logger.info(f"📝 Generating {len(broadlink_devices)} Broadlink native entities...")
-                    broadlink_commands = loop.run_until_complete(
-                        self._get_all_broadlink_commands()
-                    )
-                    
+                    broadlink_commands = loop.run_until_complete(self._get_all_broadlink_commands())
+
                     # Temporarily filter metadata to only include Broadlink devices
                     original_metadata = self.storage_manager.get_all_entities()
                     broadlink_metadata = {
-                        k: v for k, v in original_metadata.items()
-                        if v.get("device_type", "broadlink") == "broadlink"
+                        k: v for k, v in original_metadata.items() if v.get("device_type", "broadlink") == "broadlink"
                     }
-                    
+
                     # Temporarily replace metadata
                     self.storage_manager.metadata["entities"] = broadlink_metadata
-                    
+
                     generator = EntityGenerator(self.storage_manager, device_id)
                     broadlink_result = generator.generate_all(broadlink_commands)
-                    
+
                     # Restore original metadata
                     self.storage_manager.metadata["entities"] = original_metadata
-                    
+
                     if broadlink_result.get("success"):
                         results["broadlink_count"] = broadlink_result.get("entities_count", 0)
                         logger.info(f"✅ Generated {results['broadlink_count']} Broadlink entities")
@@ -642,27 +600,25 @@ class BroadlinkWebServer:
                 if smartir_devices:
                     logger.info(f"📝 Generating {len(smartir_devices)} SmartIR entities...")
                     from smartir_yaml_generator import SmartIRYAMLGenerator
-                    
+
                     smartir_generator = SmartIRYAMLGenerator(str(self.config_loader.get_config_path()))
-                    
+
                     # Get Broadlink device list for IP lookup
-                    broadlink_device_list = loop.run_until_complete(
-                        self._get_broadlink_devices()
-                    )
-                    
+                    broadlink_device_list = loop.run_until_complete(self._get_broadlink_devices())
+
                     smartir_success_count = 0
                     for device_id, device_data in smartir_devices.items():
                         smartir_result = smartir_generator.generate_device_config(
                             device_id, device_data, broadlink_device_list
                         )
-                        
+
                         if smartir_result.get("success"):
                             smartir_success_count += 1
                         else:
                             error_msg = smartir_result.get("error", "Unknown error")
                             results["errors"].append(f"SmartIR {device_id}: {error_msg}")
                             logger.error(f"Failed to generate SmartIR config for {device_id}: {error_msg}")
-                    
+
                     results["smartir_count"] = smartir_success_count
                     logger.info(f"✅ Generated {smartir_success_count} SmartIR entities")
 
@@ -676,7 +632,7 @@ class BroadlinkWebServer:
                     messages.append(f"{results['broadlink_count']} Broadlink native")
                 if results["smartir_count"] > 0:
                     messages.append(f"{results['smartir_count']} SmartIR")
-                
+
                 if results["total_count"] > 0:
                     results["message"] = f"Generated {' and '.join(messages)} entity configuration(s)"
                 else:
@@ -686,14 +642,10 @@ class BroadlinkWebServer:
                 # Reload configurations if we generated anything
                 if results["total_count"] > 0:
                     logger.info("🔄 Reloading Broadlink configuration...")
-                    reload_success = loop.run_until_complete(
-                        self._reload_broadlink_config()
-                    )
+                    reload_success = loop.run_until_complete(self._reload_broadlink_config())
 
                     logger.info("🔄 Reloading Home Assistant YAML configuration...")
-                    yaml_reload_success = loop.run_until_complete(
-                        self.area_manager.reload_config()
-                    )
+                    yaml_reload_success = loop.run_until_complete(self.area_manager.reload_config())
 
                     if reload_success and yaml_reload_success:
                         results["config_reloaded"] = True
@@ -716,9 +668,7 @@ class BroadlinkWebServer:
                 types = self.entity_detector.get_entity_types()
                 roles = {}
                 for entity_type in types:
-                    roles[entity_type] = (
-                        self.entity_detector.get_command_roles_for_type(entity_type)
-                    )
+                    roles[entity_type] = self.entity_detector.get_command_roles_for_type(entity_type)
 
                 return jsonify({"types": types, "roles": roles})
             except Exception as e:
@@ -773,9 +723,7 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
 
                 devices = loop.run_until_complete(self._get_broadlink_devices("POST /api/migration/check"))
-                result = loop.run_until_complete(
-                    self.migration_manager.check_and_migrate(devices)
-                )
+                result = loop.run_until_complete(self.migration_manager.check_and_migrate(devices))
 
                 loop.close()
 
@@ -795,9 +743,7 @@ class BroadlinkWebServer:
                 asyncio.set_event_loop(loop)
 
                 devices = loop.run_until_complete(self._get_broadlink_devices("POST /api/migration/force"))
-                result = loop.run_until_complete(
-                    self.migration_manager.force_migration(devices, overwrite)
-                )
+                result = loop.run_until_complete(self.migration_manager.force_migration(devices, overwrite))
 
                 loop.close()
 
@@ -839,7 +785,7 @@ class BroadlinkWebServer:
             try:
                 data = request.get_json()
                 logger.info(f"📥 Received device creation request: {data}")
-                
+
                 device_name = data.get("device_name")
                 storage_name = data.get("device")  # Storage name for adopted devices
                 area_id = data.get("area_id", "")  # Allow empty area
@@ -848,7 +794,9 @@ class BroadlinkWebServer:
                 icon = data.get("icon")
                 broadlink_entity = data.get("broadlink_entity")
 
-                logger.info(f"📥 Parsed fields - device_name: {device_name}, storage_name: {storage_name}, entity_type: {entity_type}, broadlink_entity: {broadlink_entity}")
+                logger.info(
+                    f"📥 Parsed fields - device_name: {device_name}, storage_name: {storage_name}, entity_type: {entity_type}, broadlink_entity: {broadlink_entity}"
+                )
 
                 # Validate required fields (area is optional)
                 if not device_name:
@@ -869,9 +817,7 @@ class BroadlinkWebServer:
                 # Create device data
                 device_data = {
                     "name": device_name,
-                    "full_name": (
-                        f"{area_name} {device_name}" if area_name else device_name
-                    ),
+                    "full_name": (f"{area_name} {device_name}" if area_name else device_name),
                     "area": area_name,
                     "area_id": area_id,
                     "entity_type": entity_type,
@@ -933,9 +879,7 @@ class BroadlinkWebServer:
                     # Note: Command deletion is now handled by the device manager API
                     # See app/api/devices.py delete_managed_device endpoint
 
-                    return jsonify(
-                        {"success": True, "deleted_commands": delete_commands}
-                    )
+                    return jsonify({"success": True, "deleted_commands": delete_commands})
 
                 return jsonify({"error": "Failed to delete device"}), 500
 
@@ -964,9 +908,7 @@ class BroadlinkWebServer:
                     return jsonify({"error": "Device not found"}), 404
 
                 # Learn the command using the existing learn endpoint logic
-                logger.info(
-                    f"Learning command '{command_name}' for device '{device_id}' using {broadlink_entity}"
-                )
+                logger.info(f"Learning command '{command_name}' for device '{device_id}' using {broadlink_entity}")
 
                 # Prepare data for learning
                 learn_data = {
@@ -988,9 +930,7 @@ class BroadlinkWebServer:
                         "command_type": command_type,
                         "learned_at": result.get("learned_at"),
                     }
-                    self.device_manager.add_command(
-                        device_id, command_name, command_data
-                    )
+                    self.device_manager.add_command(device_id, command_name, command_data)
 
                     return jsonify(
                         {
@@ -1013,9 +953,7 @@ class BroadlinkWebServer:
                 logger.error(f"Error adding command to device {device_id}: {e}")
                 return jsonify({"error": str(e)}), 500
 
-        @self.app.route(
-            "/api/devices/managed/<device_id>/import-commands", methods=["POST"]
-        )
+        @self.app.route("/api/devices/managed/<device_id>/import-commands", methods=["POST"])
         def import_device_commands(device_id):
             """Import existing commands to a device without re-learning"""
             try:
@@ -1038,12 +976,8 @@ class BroadlinkWebServer:
 
                     if command_name:
                         command_data = {"command_type": command_type, "imported": True}
-                        self.device_manager.add_command(
-                            device_id, command_name, command_data
-                        )
-                        logger.info(
-                            f"Imported command: {command_name} ({command_type})"
-                        )
+                        self.device_manager.add_command(device_id, command_name, command_data)
+                        logger.info(f"Imported command: {command_name} ({command_type})")
 
                 return jsonify(
                     {
@@ -1075,9 +1009,7 @@ class BroadlinkWebServer:
 
         # Auto-assign areas endpoint removed - areas are now explicitly selected during command learning
 
-    async def _make_ha_request(
-        self, method: str, endpoint: str, data: Optional[Dict] = None
-    ) -> Dict:
+    async def _make_ha_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make a request to Home Assistant API"""
         url = f"{self.ha_url}/api/{endpoint}"
         headers = {
@@ -1100,7 +1032,7 @@ class BroadlinkWebServer:
                         logger.error(f"❌ Response status: {status} (Server Error)")
                     else:
                         logger.info(f"ℹ️  Response status: {status}")
-                    
+
                     if response.status == 200:
                         result = await response.json()
                         logger.info(
@@ -1108,9 +1040,7 @@ class BroadlinkWebServer:
                         )
                         return result
                     else:
-                        logger.error(
-                            f"API request failed with status {response.status}: {await response.text()}"
-                        )
+                        logger.error(f"API request failed with status {response.status}: {await response.text()}")
                         return {}
             elif method.upper() == "POST":
                 async with session.post(url, headers=headers, json=data) as response:
@@ -1124,21 +1054,17 @@ class BroadlinkWebServer:
                         logger.error(f"❌ POST Response status: {status} (Server Error)")
                     else:
                         logger.info(f"ℹ️  POST Response status: {status}")
-                    
+
                     response_text = await response.text()
                     logger.info(f"POST Response body: {response_text}")
                     if response.status == 200:
                         try:
                             return await response.json() if response_text else {}
                         except:
-                            logger.info(
-                                "POST response was successful but not JSON, returning empty dict"
-                            )
+                            logger.info("POST response was successful but not JSON, returning empty dict")
                             return {}
                     else:
-                        logger.error(
-                            f"POST API request failed with status {response.status}: {response_text}"
-                        )
+                        logger.error(f"POST API request failed with status {response.status}: {response_text}")
                         return None
 
     def _get_call_id(self) -> str:
@@ -1149,7 +1075,7 @@ class BroadlinkWebServer:
 
     async def _get_ha_areas(self, call_context: str = "unknown") -> List[Dict]:
         """Get Home Assistant areas from storage file
-        
+
         Args:
             call_context: Context identifier for logging (e.g., 'GET /api/areas', 'device_discovery')
         """
@@ -1174,7 +1100,7 @@ class BroadlinkWebServer:
 
     async def _get_broadlink_devices(self, call_context: str = "unknown") -> List[Dict]:
         """Get Broadlink remote devices from storage files with area information
-        
+
         Args:
             call_context: Context identifier for logging (e.g., 'GET /api/broadlink/devices', 'migration')
         """
@@ -1216,10 +1142,7 @@ class BroadlinkWebServer:
                         if (
                             manufacturer == "broadlink"
                             or "broadlink" in name
-                            or any(
-                                "broadlink" in str(identifier).lower()
-                                for identifier in identifiers
-                            )
+                            or any("broadlink" in str(identifier).lower() for identifier in identifiers)
                         ):
 
                             device_id = device.get("id")
@@ -1232,15 +1155,13 @@ class BroadlinkWebServer:
 
                             # Find corresponding entities
                             for entity in entities:
-                                if entity.get("device_id") == device_id and entity.get(
-                                    "entity_id", ""
-                                ).startswith("remote."):
+                                if entity.get("device_id") == device_id and entity.get("entity_id", "").startswith("remote."):
 
                                     entity_id = entity.get("entity_id")
 
                                     # Get device status and attributes (including IP)
                                     status = await self._get_device_status(entity_id)
-                                    
+
                                     # Get entity state to extract IP address
                                     entity_state = await self._make_ha_request("GET", f"states/{entity_id}")
                                     host = None
@@ -1262,14 +1183,10 @@ class BroadlinkWebServer:
                                         }
                                     )
                     except Exception as e:
-                        logger.warning(
-                            f"Error processing device entry: {e}, device: {device}"
-                        )
+                        logger.warning(f"Error processing device entry: {e}, device: {device}")
                         continue
 
-                logger.info(
-                    f"[{call_context}] Found {len(broadlink_devices)} Broadlink devices from storage"
-                )
+                logger.info(f"[{call_context}] Found {len(broadlink_devices)} Broadlink devices from storage")
                 return broadlink_devices
             else:
                 logger.warning("Device or entity registry storage files not found")
@@ -1359,40 +1276,21 @@ class BroadlinkWebServer:
 
                             # Try /api/frontend/themes first
                             try:
-                                frontend_themes_url = (
-                                    f"{self.ha_url}/api/frontend/themes"
-                                )
-                                logger.info(
-                                    f"Trying frontend themes API: {frontend_themes_url}"
-                                )
-                                async with session.get(
-                                    frontend_themes_url, headers=headers
-                                ) as themes_response:
-                                    logger.info(
-                                        f"Frontend themes API response status: {themes_response.status}"
-                                    )
+                                frontend_themes_url = f"{self.ha_url}/api/frontend/themes"
+                                logger.info(f"Trying frontend themes API: {frontend_themes_url}")
+                                async with session.get(frontend_themes_url, headers=headers) as themes_response:
+                                    logger.info(f"Frontend themes API response status: {themes_response.status}")
                                     if themes_response.status == 200:
                                         themes_data = await themes_response.json()
-                                        logger.info(
-                                            f"Frontend themes data keys: {list(themes_data.keys())}"
-                                        )
+                                        logger.info(f"Frontend themes data keys: {list(themes_data.keys())}")
 
                                         # Check different possible structures
-                                        if (
-                                            "themes" in themes_data
-                                            and theme_name in themes_data["themes"]
-                                        ):
-                                            theme_colors = themes_data["themes"][
-                                                theme_name
-                                            ]
-                                            logger.info(
-                                                f"Found theme '{theme_name}' in frontend API"
-                                            )
+                                        if "themes" in themes_data and theme_name in themes_data["themes"]:
+                                            theme_colors = themes_data["themes"][theme_name]
+                                            logger.info(f"Found theme '{theme_name}' in frontend API")
                                         elif theme_name in themes_data:
                                             theme_colors = themes_data[theme_name]
-                                            logger.info(
-                                                f"Found theme '{theme_name}' directly in frontend API"
-                                            )
+                                            logger.info(f"Found theme '{theme_name}' directly in frontend API")
                             except Exception as e:
                                 logger.warning(f"Frontend themes API failed: {e}")
 
@@ -1401,39 +1299,22 @@ class BroadlinkWebServer:
                                 try:
                                     themes_url = f"{self.ha_url}/api/themes"
                                     logger.info(f"Trying themes API: {themes_url}")
-                                    async with session.get(
-                                        themes_url, headers=headers
-                                    ) as themes_response:
-                                        logger.info(
-                                            f"Themes API response status: {themes_response.status}"
-                                        )
+                                    async with session.get(themes_url, headers=headers) as themes_response:
+                                        logger.info(f"Themes API response status: {themes_response.status}")
                                         if themes_response.status == 200:
                                             themes_data = await themes_response.json()
-                                            logger.info(
-                                                f"Themes data keys: {list(themes_data.keys())}"
-                                            )
-                                            logger.info(
-                                                f"Available themes: {list(themes_data.get('themes', {}).keys())}"
-                                            )
+                                            logger.info(f"Themes data keys: {list(themes_data.keys())}")
+                                            logger.info(f"Available themes: {list(themes_data.get('themes', {}).keys())}")
 
-                                            if (
-                                                "themes" in themes_data
-                                                and theme_name in themes_data["themes"]
-                                            ):
-                                                theme_colors = themes_data["themes"][
-                                                    theme_name
-                                                ]
-                                                logger.info(
-                                                    f"Found theme '{theme_name}' in themes API"
-                                                )
+                                            if "themes" in themes_data and theme_name in themes_data["themes"]:
+                                                theme_colors = themes_data["themes"][theme_name]
+                                                logger.info(f"Found theme '{theme_name}' in themes API")
                                 except Exception as e:
                                     logger.warning(f"Themes API failed: {e}")
 
                             # If we found theme colors, return them
                             if theme_colors:
-                                logger.info(
-                                    f"Theme colors keys: {list(theme_colors.keys())}"
-                                )
+                                logger.info(f"Theme colors keys: {list(theme_colors.keys())}")
                                 logger.info(
                                     f"Sample colors: primary={theme_colors.get('primary-color')}, background={theme_colors.get('primary-background-color')}"
                                 )
@@ -1441,15 +1322,10 @@ class BroadlinkWebServer:
                                 # Determine if dark theme
                                 is_dark = (
                                     "dark" in theme_name.lower()
-                                    or theme_colors.get("dark-primary-color")
-                                    is not None
+                                    or theme_colors.get("dark-primary-color") is not None
                                     or (
-                                        theme_colors.get(
-                                            "primary-background-color", "#ffffff"
-                                        ).startswith("#")
-                                        and theme_colors.get(
-                                            "primary-background-color", "#ffffff"
-                                        )[1:3]
+                                        theme_colors.get("primary-background-color", "#ffffff").startswith("#")
+                                        and theme_colors.get("primary-background-color", "#ffffff")[1:3]
                                         in [
                                             "00",
                                             "01",
@@ -1477,49 +1353,25 @@ class BroadlinkWebServer:
                                 return {
                                     "theme_name": theme_name,
                                     "colors": {
-                                        "primary": theme_colors.get(
-                                            "primary-color", "#03a9f4"
-                                        ),
-                                        "accent": theme_colors.get(
-                                            "accent-color", "#ff9800"
-                                        ),
-                                        "background": theme_colors.get(
-                                            "primary-background-color", "#111111"
-                                        ),
+                                        "primary": theme_colors.get("primary-color", "#03a9f4"),
+                                        "accent": theme_colors.get("accent-color", "#ff9800"),
+                                        "background": theme_colors.get("primary-background-color", "#111111"),
                                         "surface": theme_colors.get(
                                             "card-background-color",
-                                            theme_colors.get(
-                                                "primary-background-color", "#1c1c1c"
-                                            ),
+                                            theme_colors.get("primary-background-color", "#1c1c1c"),
                                         ),
-                                        "text_primary": theme_colors.get(
-                                            "primary-text-color", "#ffffff"
-                                        ),
-                                        "text_secondary": theme_colors.get(
-                                            "secondary-text-color", "#9ca3af"
-                                        ),
-                                        "border": theme_colors.get(
-                                            "divider-color", "#2c2c2c"
-                                        ),
-                                        "success": theme_colors.get(
-                                            "success-color", "#4caf50"
-                                        ),
-                                        "warning": theme_colors.get(
-                                            "warning-color", "#ff9800"
-                                        ),
-                                        "error": theme_colors.get(
-                                            "error-color", "#f44336"
-                                        ),
-                                        "info": theme_colors.get(
-                                            "info-color", "#2196f3"
-                                        ),
+                                        "text_primary": theme_colors.get("primary-text-color", "#ffffff"),
+                                        "text_secondary": theme_colors.get("secondary-text-color", "#9ca3af"),
+                                        "border": theme_colors.get("divider-color", "#2c2c2c"),
+                                        "success": theme_colors.get("success-color", "#4caf50"),
+                                        "warning": theme_colors.get("warning-color", "#ff9800"),
+                                        "error": theme_colors.get("error-color", "#f44336"),
+                                        "info": theme_colors.get("info-color", "#2196f3"),
                                     },
                                     "is_dark": is_dark,
                                 }
                             else:
-                                logger.warning(
-                                    f"Could not find theme colors for '{theme_name}' in any API endpoint"
-                                )
+                                logger.warning(f"Could not find theme colors for '{theme_name}' in any API endpoint")
             except Exception as e:
                 logger.warning(f"Could not get theme from HA API: {e}")
 
@@ -1545,9 +1397,7 @@ class BroadlinkWebServer:
 
                         for user_id, user_data in data.items():
                             if isinstance(user_data, dict):
-                                logger.info(
-                                    f"User {user_id} data keys: {list(user_data.keys())}"
-                                )
+                                logger.info(f"User {user_id} data keys: {list(user_data.keys())}")
                                 # Get theme from user preferences
                                 if "selectedTheme" in user_data:
                                     theme_name = user_data["selectedTheme"]
@@ -1560,9 +1410,7 @@ class BroadlinkWebServer:
                                     logger.info(f"Found selectedLightTheme")
                                 break
 
-                        logger.info(
-                            f"Found theme from frontend storage: {theme_name} ({theme_mode})"
-                        )
+                        logger.info(f"Found theme from frontend storage: {theme_name} ({theme_mode})")
                 except Exception as e:
                     logger.warning(f"Could not read frontend storage: {e}")
             else:
@@ -1583,18 +1431,14 @@ class BroadlinkWebServer:
 
                         # Get theme data
                         themes = themes_storage.get("data", {}).get("themes", {})
-                        logger.info(
-                            f"Available themes in storage: {list(themes.keys())}"
-                        )
+                        logger.info(f"Available themes in storage: {list(themes.keys())}")
 
                         if theme_name in themes:
                             theme_data = themes[theme_name]
                             logger.info(f"Loaded theme data for: {theme_name}")
                             logger.info(f"Theme data keys: {list(theme_data.keys())}")
                         elif theme_name != "default":
-                            logger.warning(
-                                f"Theme {theme_name} not found in storage, using default"
-                            )
+                            logger.warning(f"Theme {theme_name} not found in storage, using default")
                 except Exception as e:
                     logger.warning(f"Could not read themes storage: {e}")
             else:
@@ -1619,9 +1463,7 @@ class BroadlinkWebServer:
                 "is_dark": theme_mode == "dark" or "dark" in theme_name.lower(),
             }
 
-            logger.info(
-                f"Returning theme: {result['theme_name']} with colors: {result['colors']}"
-            )
+            logger.info(f"Returning theme: {result['theme_name']} with colors: {result['colors']}")
             return result
 
         except Exception as e:
@@ -1648,7 +1490,7 @@ class BroadlinkWebServer:
             "is_dark": True,
         }
 
-    async def _get_learned_commands(self, device_id: str = None) -> Dict:
+    async def _get_learned_commands(self, device_id: Optional[str] = None) -> Dict:
         """Get learned commands from storage files with filtering and area information"""
         try:
             # Find the storage files for Broadlink commands
@@ -1741,60 +1583,60 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error getting Broadlink commands: {e}")
             return {}
-    
+
     def _add_to_deletion_cache(self, device_name: str, command_name: str):
         """Add a command to the recently deleted cache"""
         if device_name not in self.recently_deleted_commands:
             self.recently_deleted_commands[device_name] = {}
         self.recently_deleted_commands[device_name][command_name] = time.time()
         logger.info(f"Added to deletion cache: {device_name}/{command_name}")
-    
+
     def _is_recently_deleted(self, device_name: str, command_name: str) -> bool:
         """Check if a command was recently deleted (within TTL)"""
         if device_name not in self.recently_deleted_commands:
             return False
-        
+
         if command_name not in self.recently_deleted_commands[device_name]:
             return False
-        
+
         deletion_time = self.recently_deleted_commands[device_name][command_name]
         age = time.time() - deletion_time
-        
+
         if age > self.DELETION_CACHE_TTL:
             # Expired, remove from cache
             del self.recently_deleted_commands[device_name][command_name]
             if not self.recently_deleted_commands[device_name]:
                 del self.recently_deleted_commands[device_name]
             return False
-        
+
         return True
-    
+
     def _cleanup_deletion_cache(self):
         """Remove expired entries from deletion cache"""
         current_time = time.time()
         devices_to_remove = []
-        
+
         for device_name, commands in self.recently_deleted_commands.items():
             commands_to_remove = []
             for command_name, deletion_time in commands.items():
                 if current_time - deletion_time > self.DELETION_CACHE_TTL:
                     commands_to_remove.append(command_name)
-            
+
             for command_name in commands_to_remove:
                 del commands[command_name]
-            
+
             if not commands:
                 devices_to_remove.append(device_name)
-        
+
         for device_name in devices_to_remove:
             del self.recently_deleted_commands[device_name]
-    
+
     async def _find_broadlink_entity_for_device(self, device_name: str) -> str:
         """Find which Broadlink entity owns the commands for a given device name"""
         try:
             storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
             broadlink_devices = await self._get_broadlink_devices("_find_broadlink_entity_for_device")
-            
+
             # Create mapping from storage file to entity_id
             storage_to_entity = {}
             for device in broadlink_devices:
@@ -1802,29 +1644,31 @@ class BroadlinkWebServer:
                 if unique_id:
                     storage_filename = f"broadlink_remote_{unique_id}_codes"
                     storage_to_entity[storage_filename] = device.get("entity_id")
-            
+
             # Search storage files for the device
             for storage_file in storage_files:
                 try:
                     async with aiofiles.open(storage_file, "r") as f:
                         content = await f.read()
                         data = json.loads(content)
-                        
+
                         # Check if this device exists in this storage file
                         if device_name in data.get("data", {}):
                             # Found it! Return the corresponding entity_id
                             entity_id = storage_to_entity.get(storage_file.name)
                             if entity_id:
-                                logger.info(f"Found device '{device_name}' in storage file '{storage_file.name}' -> entity '{entity_id}'")
+                                logger.info(
+                                    f"Found device '{device_name}' in storage file '{storage_file.name}' -> entity '{entity_id}'"
+                                )
                                 return entity_id
-                
+
                 except Exception as e:
                     logger.warning(f"Error reading storage file {storage_file}: {e}")
                     continue
-            
+
             logger.warning(f"Could not find Broadlink entity for device '{device_name}'")
             return None
-        
+
         except Exception as e:
             logger.error(f"Error finding Broadlink entity: {e}")
             return None
@@ -1859,27 +1703,20 @@ class BroadlinkWebServer:
                     # Find remote services in the list
                     remote_services = {}
                     for service_domain in services_result:
-                        if (
-                            isinstance(service_domain, dict)
-                            and service_domain.get("domain") == "remote"
-                        ):
+                        if isinstance(service_domain, dict) and service_domain.get("domain") == "remote":
                             remote_services = service_domain.get("services", {})
                             break
                 else:
                     remote_services = {}
 
-                logger.info(
-                    f"Available remote services: {list(remote_services.keys()) if remote_services else 'None'}"
-                )
+                logger.info(f"Available remote services: {list(remote_services.keys()) if remote_services else 'None'}")
 
                 # Check if learn_command exists
                 if "learn_command" in remote_services:
                     learn_service = remote_services["learn_command"]
                     logger.info(f"learn_command service details: {learn_service}")
                 else:
-                    logger.warning(
-                        "learn_command service not found in remote services!"
-                    )
+                    logger.warning("learn_command service not found in remote services!")
 
             # Also check the entity state and attributes
             entity_state = await self._make_ha_request("GET", f"states/{entity_id}")
@@ -1890,9 +1727,7 @@ class BroadlinkWebServer:
 
                 # Check if device is available
                 if state == "unavailable":
-                    logger.warning(
-                        f"Device {entity_id} is unavailable - learning may not work"
-                    )
+                    logger.warning(f"Device {entity_id} is unavailable - learning may not work")
                     return {
                         "success": False,
                         "error": f"Broadlink device is unavailable. Please check that the device is powered on and connected to your network.",
@@ -1914,24 +1749,16 @@ class BroadlinkWebServer:
             # Add a timeout to prevent getting stuck
             service_payload["data"]["timeout"] = 30
 
-            logger.info(
-                f"Calling learn_command service with payload: {service_payload}"
-            )
+            logger.info(f"Calling learn_command service with payload: {service_payload}")
 
             # Use the correct HA service call format
-            logger.info(
-                "Attempting service call to services/remote/learn_command with target/data format"
-            )
-            result = await self._make_ha_request(
-                "POST", "services/remote/learn_command", service_payload
-            )
+            logger.info("Attempting service call to services/remote/learn_command with target/data format")
+            result = await self._make_ha_request("POST", "services/remote/learn_command", service_payload)
             logger.info(f"Learn command service result: {result}")
 
             # Check if we got a 400 error, which might mean the format is wrong
             if result is None:
-                logger.info(
-                    "Got None result (likely 400 error), trying legacy format..."
-                )
+                logger.info("Got None result (likely 400 error), trying legacy format...")
 
                 # Try the old format as fallback
                 legacy_payload = {
@@ -1944,9 +1771,7 @@ class BroadlinkWebServer:
                     legacy_payload["command_type"] = "rf"
 
                 logger.info(f"Trying legacy format: {legacy_payload}")
-                result = await self._make_ha_request(
-                    "POST", "services/remote/learn_command", legacy_payload
-                )
+                result = await self._make_ha_request("POST", "services/remote/learn_command", legacy_payload)
                 logger.info(f"Legacy format result: {result}")
 
             # Check if the service call succeeded
@@ -1958,9 +1783,7 @@ class BroadlinkWebServer:
                     "result": result,
                 }
             else:
-                logger.error(
-                    "Learn command service failed - all attempts returned None"
-                )
+                logger.error("Learn command service failed - all attempts returned None")
                 return {
                     "success": False,
                     "error": "Failed to start learning process - check that the Broadlink device is online and accessible",
@@ -1988,15 +1811,10 @@ class BroadlinkWebServer:
                     message = attributes.get("message", "")
 
                     # Log ALL persistent notifications for debugging
-                    logger.info(
-                        f"HTTP: Found notification - Title: '{title}', Message: '{message[:50]}...'"
-                    )
+                    logger.info(f"HTTP: Found notification - Title: '{title}', Message: '{message[:50]}...'")
 
                     # Look for Broadlink learning notifications
-                    if any(
-                        keyword in title.lower()
-                        for keyword in ["sweep frequency", "learn command"]
-                    ) or any(
+                    if any(keyword in title.lower() for keyword in ["sweep frequency", "learn command"]) or any(
                         keyword in message.lower()
                         for keyword in [
                             "broadlink",
@@ -2015,9 +1833,7 @@ class BroadlinkWebServer:
                                 "created_at": entity.get("last_changed", ""),
                             }
                         )
-                        logger.info(
-                            f"★ HTTP MATCHED Broadlink notification: '{title}' - '{message[:100]}'"
-                        )
+                        logger.info(f"★ HTTP MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
 
             logger.info(
                 f"HTTP notifications: Found {len([e for e in states if e.get('entity_id', '').startswith('persistent_notification.')])} total, {len(notifications)} Broadlink"
@@ -2028,28 +1844,6 @@ class BroadlinkWebServer:
             logger.error(f"Error getting HTTP notifications: {e}")
             return []
 
-    async def _delete_command(self, data: Dict) -> Dict:
-        """Delete a command"""
-        try:
-            entity_id = data.get("entity_id")
-            device = data.get("device")
-            command = data.get("command")
-
-            service_data = {
-                "entity_id": entity_id,
-                "device": device,
-                "command": command,
-            }
-
-            result = await self._make_ha_request(
-                "POST", "services/remote/delete_command", service_data
-            )
-            return {"success": True, "result": result}
-
-        except Exception as e:
-            logger.error(f"Error deleting command: {e}")
-            return {"success": False, "error": str(e)}
-
     async def _get_notifications(self) -> List[Dict]:
         """Get persistent notifications from Home Assistant - using correct API endpoint"""
         try:
@@ -2057,14 +1851,10 @@ class BroadlinkWebServer:
 
             # Try the direct persistent notification API endpoint first
             logger.info("Trying direct persistent notification API endpoint...")
-            pn_notifications = await self._make_ha_request(
-                "GET", "persistent_notification"
-            )
+            pn_notifications = await self._make_ha_request("GET", "persistent_notification")
 
             if isinstance(pn_notifications, list) and len(pn_notifications) > 0:
-                logger.info(
-                    f"Found {len(pn_notifications)} notifications via persistent_notification API"
-                )
+                logger.info(f"Found {len(pn_notifications)} notifications via persistent_notification API")
 
                 notifications = []
                 for notification in pn_notifications:
@@ -2104,26 +1894,18 @@ class BroadlinkWebServer:
                                 "notification": notification,
                             }
                         )
-                        logger.info(
-                            f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'"
-                        )
+                        logger.info(f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
 
                 # Cache the results
                 self.cached_notifications = notifications
                 self.last_notification_check = current_time
 
-                logger.info(
-                    f"Total persistent notifications found: {len(pn_notifications)}"
-                )
-                logger.info(
-                    f"Matched Broadlink learning notifications: {len(notifications)}"
-                )
+                logger.info(f"Total persistent notifications found: {len(pn_notifications)}")
+                logger.info(f"Matched Broadlink learning notifications: {len(notifications)}")
                 return notifications
 
             # Fallback to states API if persistent_notification endpoint doesn't work
-            logger.info(
-                "Persistent notification API returned empty, trying states API..."
-            )
+            logger.info("Persistent notification API returned empty, trying states API...")
             states = await self._make_ha_request("GET", "states")
             if not isinstance(states, list):
                 logger.warning("States API returned non-list response")
@@ -2172,27 +1954,15 @@ class BroadlinkWebServer:
                                 "attributes": entity_attrs,
                             }
                         )
-                        logger.info(
-                            f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'"
-                        )
+                        logger.info(f"★ MATCHED Broadlink notification: '{title}' - '{message[:100]}'")
 
             # Cache the results
             self.cached_notifications = notifications
             self.last_notification_check = current_time
 
-            persistent_count = len(
-                [
-                    e
-                    for e in states
-                    if e.get("entity_id", "").startswith("persistent_notification.")
-                ]
-            )
-            logger.info(
-                f"Total persistent notifications found via states: {persistent_count}"
-            )
-            logger.info(
-                f"Matched Broadlink learning notifications: {len(notifications)}"
-            )
+            persistent_count = len([e for e in states if e.get("entity_id", "").startswith("persistent_notification.")])
+            logger.info(f"Total persistent notifications found via states: {persistent_count}")
+            logger.info(f"Matched Broadlink learning notifications: {len(notifications)}")
             return notifications
 
         except Exception as e:
@@ -2280,12 +2050,7 @@ class BroadlinkWebServer:
             for notification in self.ws_notifications:
                 title = notification.get("title", "").lower()
                 message = notification.get("message", "").lower()
-                if (
-                    "sweep" in title
-                    or "learn" in title
-                    or "command" in title
-                    or "broadlink" in message
-                ):
+                if "sweep" in title or "learn" in title or "command" in title or "broadlink" in message:
                     learning_notifications.append(notification)
                     logger.info(
                         f"Found WebSocket notification: {notification.get('title')} - {notification.get('message', '')[:100]}"
@@ -2307,12 +2072,8 @@ class BroadlinkWebServer:
             logger.info(f"SEND REQUEST DEBUG:")
             logger.info(f"  Raw data received: {data}")
             logger.info(f"  entity_id: '{entity_id}'")
-            logger.info(
-                f"  device: '{device}' (length: {len(device) if device else 'None'})"
-            )
-            logger.info(
-                f"  command: '{command}' (length: {len(command) if command else 'None'})"
-            )
+            logger.info(f"  device: '{device}' (length: {len(device) if device else 'None'})")
+            logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Sending command: {device}_{command} to entity {entity_id}")
 
             # Broadlink integration expects command as an array
@@ -2327,9 +2088,7 @@ class BroadlinkWebServer:
             }
 
             logger.info(f"Sending command with payload: {payload}")
-            result = await self._make_ha_request(
-                "POST", "services/remote/send_command", payload
-            )
+            result = await self._make_ha_request("POST", "services/remote/send_command", payload)
 
             if result is not None:
                 logger.info(f"✅ Command sent successfully: {device}_{command}")
@@ -2344,14 +2103,10 @@ class BroadlinkWebServer:
                 "target": {"entity_id": entity_id},
                 "data": {"device": device, "command": command_list},
             }
-            result = await self._make_ha_request(
-                "POST", "services/remote/send_command", modern_payload
-            )
+            result = await self._make_ha_request("POST", "services/remote/send_command", modern_payload)
 
             if result is not None:
-                logger.info(
-                    f"✅ Command sent successfully with modern format: {device}_{command}"
-                )
+                logger.info(f"✅ Command sent successfully with modern format: {device}_{command}")
                 return {
                     "success": True,
                     "message": f"Command {command} sent successfully",
@@ -2364,22 +2119,16 @@ class BroadlinkWebServer:
                 "device": device,
                 "command": command,
             }
-            result = await self._make_ha_request(
-                "POST", "services/remote/send_command", string_payload
-            )
+            result = await self._make_ha_request("POST", "services/remote/send_command", string_payload)
 
             if result is not None:
-                logger.info(
-                    f"✅ Command sent successfully with string format: {device}_{command}"
-                )
+                logger.info(f"✅ Command sent successfully with string format: {device}_{command}")
                 return {
                     "success": True,
                     "message": f"Command {command} sent successfully",
                 }
             else:
-                logger.error(
-                    f"❌ FAILED: All formats failed for command: {device}_{command}"
-                )
+                logger.error(f"❌ FAILED: All formats failed for command: {device}_{command}")
                 return {
                     "success": False,
                     "error": "Failed to send command - all formats rejected by Home Assistant",
@@ -2401,18 +2150,14 @@ class BroadlinkWebServer:
                 )
 
                 if not entity_commands:
-                    logger.warning(
-                        f"Device {device_id} has no mappable commands, skipping"
-                    )
+                    logger.warning(f"Device {device_id} has no mappable commands, skipping")
                     continue
 
                 # Create entity metadata
                 entity_metadata = {
                     "device": device_id,
                     "name": device_data.get("full_name", device_data.get("name")),
-                    "friendly_name": device_data.get(
-                        "full_name", device_data.get("name")
-                    ),
+                    "friendly_name": device_data.get("full_name", device_data.get("name")),
                     "entity_type": device_data.get("entity_type"),
                     "commands": entity_commands,
                     "broadlink_entity": device_data.get("broadlink_entity"),
@@ -2428,9 +2173,7 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error syncing devices to metadata: {e}")
 
-    def _map_device_commands_to_entity_commands(
-        self, device_commands: dict, entity_type: str
-    ) -> dict:
+    def _map_device_commands_to_entity_commands(self, device_commands: dict, entity_type: str) -> dict:
         """Map device command names to standardized entity command names"""
         entity_commands = {}
 
@@ -2493,21 +2236,15 @@ class BroadlinkWebServer:
 
             if result:
                 # Find Broadlink entries
-                broadlink_entries = [
-                    entry for entry in result if entry.get("domain") == "broadlink"
-                ]
+                broadlink_entries = [entry for entry in result if entry.get("domain") == "broadlink"]
 
                 for entry in broadlink_entries:
                     entry_id = entry.get("entry_id")
                     if entry_id:
                         logger.info(f"Reloading Broadlink config entry: {entry_id}")
-                        reload_result = await self._make_ha_request(
-                            "POST", f"config/config_entries/entry/{entry_id}/reload"
-                        )
+                        reload_result = await self._make_ha_request("POST", f"config/config_entries/entry/{entry_id}/reload")
                         if reload_result is not None:
-                            logger.info(
-                                f"✅ Broadlink configuration reloaded successfully"
-                            )
+                            logger.info(f"✅ Broadlink configuration reloaded successfully")
                             return True
 
             logger.warning("Could not reload Broadlink config - no entries found")
@@ -2527,12 +2264,8 @@ class BroadlinkWebServer:
             logger.info(f"DELETE REQUEST DEBUG:")
             logger.info(f"  Raw data received: {data}")
             logger.info(f"  entity_id: '{entity_id}'")
-            logger.info(
-                f"  device: '{device}' (length: {len(device) if device else 'None'})"
-            )
-            logger.info(
-                f"  command: '{command}' (length: {len(command) if command else 'None'})"
-            )
+            logger.info(f"  device: '{device}' (length: {len(device) if device else 'None'})")
+            logger.info(f"  command: '{command}' (length: {len(command) if command else 'None'})")
             logger.info(f"Deleting command: {device}_{command} from entity {entity_id}")
 
             # Use the same format as V1 - flat structure with entity_id
@@ -2541,11 +2274,9 @@ class BroadlinkWebServer:
                 "device": device,
                 "command": command,
             }
-            
+
             logger.info(f"Deleting command with payload: {service_data}")
-            result = await self._make_ha_request(
-                "POST", "services/remote/delete_command", service_data
-            )
+            result = await self._make_ha_request("POST", "services/remote/delete_command", service_data)
 
             if result is not None:
                 logger.info(f"✅ Command deleted successfully: {device}_{command}")
@@ -2581,9 +2312,7 @@ class BroadlinkWebServer:
                 logger.info(f"Found {len(devices)} Broadlink device(s)")
 
                 # Check and perform migration if needed
-                result = loop.run_until_complete(
-                    self.migration_manager.check_and_migrate(devices)
-                )
+                result = loop.run_until_complete(self.migration_manager.check_and_migrate(devices))
 
                 loop.close()
 
@@ -2594,14 +2323,10 @@ class BroadlinkWebServer:
                     logger.info("=" * 60)
                     logger.info("✅ AUTOMATIC MIGRATION COMPLETED")
                     logger.info("=" * 60)
-                    logger.info(
-                        f"📊 Migrated: {result.get('migrated_entities', 0)} entities"
-                    )
+                    logger.info(f"📊 Migrated: {result.get('migrated_entities', 0)} entities")
                     logger.info(f"📁 From: {len(result.get('entities', []))} devices")
                     if result.get("skipped_devices"):
-                        logger.info(
-                            f"⚠️  Skipped: {len(result.get('skipped_devices', []))} devices (no valid entities)"
-                        )
+                        logger.info(f"⚠️  Skipped: {len(result.get('skipped_devices', []))} devices (no valid entities)")
                     logger.info("🎯 Next steps:")
                     logger.info("   1. Review entities in the web interface")
                     logger.info("   2. Adjust areas if needed")
@@ -2613,9 +2338,7 @@ class BroadlinkWebServer:
                     logger.info("=" * 60)
                     logger.info("📋 EXISTING INSTALLATION DETECTED")
                     logger.info("=" * 60)
-                    logger.info(
-                        f"Found {result.get('existing_entities', 0)} existing entities"
-                    )
+                    logger.info(f"Found {result.get('existing_entities', 0)} existing entities")
                     logger.info("No migration needed - your configuration is preserved")
                     logger.info("=" * 60)
 
@@ -2636,18 +2359,14 @@ class BroadlinkWebServer:
                     logger.error("❌ MIGRATION CHECK ERROR")
                     logger.error("=" * 60)
                     logger.error(f"Error: {result.get('error')}")
-                    logger.error(
-                        "The add-on will continue to run, but automatic migration failed"
-                    )
+                    logger.error("The add-on will continue to run, but automatic migration failed")
                     logger.error("=" * 60)
 
             except Exception as e:
                 logger.error("=" * 60)
                 logger.error("❌ MIGRATION CHECK FAILED")
                 logger.error("=" * 60)
-                logger.error(
-                    f"Error during automatic migration check: {e}", exc_info=True
-                )
+                logger.error(f"Error during automatic migration check: {e}", exc_info=True)
                 logger.error("The add-on will continue to run")
                 logger.error("=" * 60)
 

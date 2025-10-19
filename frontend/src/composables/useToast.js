@@ -1,16 +1,23 @@
 import { getCurrentInstance } from 'vue'
 
+// Track if we've already warned about toast not being available
+let hasWarnedAboutToast = false
+
 export function useToast() {
   const instance = getCurrentInstance()
   const toast = instance?.appContext.config.globalProperties.$toast
   
   if (!toast) {
-    console.warn('Toast not available')
+    // Only warn once to avoid console spam
+    if (!hasWarnedAboutToast) {
+      console.warn('Toast notification system not yet initialized - using console fallback')
+      hasWarnedAboutToast = true
+    }
     return {
-      success: (msg) => console.log('Success:', msg),
-      error: (msg) => console.error('Error:', msg),
-      warning: (msg) => console.warn('Warning:', msg),
-      info: (msg) => console.info('Info:', msg)
+      success: (msg) => console.log('✓', msg),
+      error: (msg) => console.error('✗', msg),
+      warning: (msg) => console.warn('⚠', msg),
+      info: (msg) => console.info('ℹ', msg)
     }
   }
   

@@ -26,9 +26,13 @@
         </div>
         <div class="profile-actions">
             <button @click="$emit('commands')" class="action-btn" title="Commands">
-                <i class="mdi mdi-remote-tv"></i>
+                <i class="mdi mdi-remote"></i>
             </button>
-            <button @click="$emit('edit')" class="action-btn" title="Edit Profile">
+            <button 
+              @click="$emit('edit')" 
+              class="action-btn" 
+              title="Edit Profile"
+            >
                 <i class="mdi mdi-pencil"></i>
             </button>
             <button @click="$emit('download')" class="action-btn" title="Download JSON">

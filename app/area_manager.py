@@ -26,15 +26,10 @@ class AreaManager:
         """
         self.ha_url = ha_url
         self.ha_token = ha_token
-        self.ws_url = (
-            ha_url.replace("http://", "ws://").replace("https://", "wss://")
-            + "/api/websocket"
-        )
+        self.ws_url = ha_url.replace("http://", "ws://").replace("https://", "wss://") + "/api/websocket"
         self.message_id = 1
 
-    async def _send_ws_command(
-        self, command_type: str, **kwargs
-    ) -> Optional[Dict[str, Any]]:
+    async def _send_ws_command(self, command_type: str, **kwargs) -> Optional[Dict[str, Any]]:
         """
         Send a command via WebSocket and wait for response
 
@@ -56,9 +51,7 @@ class AreaManager:
                     return None
 
                 # Send auth
-                await websocket.send(
-                    json.dumps({"type": "auth", "access_token": self.ha_token})
-                )
+                await websocket.send(json.dumps({"type": "auth", "access_token": self.ha_token}))
 
                 # Receive auth result
                 auth_result = await websocket.recv()
@@ -115,9 +108,7 @@ class AreaManager:
 
             # Area doesn't exist, create it via WebSocket
             logger.info(f"Creating new area: {area_name}")
-            new_area = await self._send_ws_command(
-                "config/area_registry/create", name=area_name
-            )
+            new_area = await self._send_ws_command("config/area_registry/create", name=area_name)
 
             if new_area:
                 area_id = new_area.get("area_id")
@@ -143,17 +134,13 @@ class AreaManager:
         """
         try:
             # Update entity via WebSocket
-            result = await self._send_ws_command(
-                "config/entity_registry/update", entity_id=entity_id, area_id=area_id
-            )
+            result = await self._send_ws_command("config/entity_registry/update", entity_id=entity_id, area_id=area_id)
 
             if result:
                 logger.info(f"Assigned {entity_id} to area {area_id}")
                 return True
             else:
-                logger.warning(
-                    f"Failed to assign {entity_id} (entity may not exist yet)"
-                )
+                logger.warning(f"Failed to assign {entity_id} (entity may not exist yet)")
                 return False
 
         except Exception as e:
@@ -172,9 +159,7 @@ class AreaManager:
         """
         try:
             # Try to get the specific entity directly
-            result = await self._send_ws_command(
-                "config/entity_registry/get", entity_id=entity_id
-            )
+            result = await self._send_ws_command("config/entity_registry/get", entity_id=entity_id)
 
             if result:
                 logger.info(f"Found entity {entity_id} in registry")
@@ -199,9 +184,7 @@ class AreaManager:
         """
         try:
             # Get entity details from registry
-            result = await self._send_ws_command(
-                "config/entity_registry/get", entity_id=entity_id
-            )
+            result = await self._send_ws_command("config/entity_registry/get", entity_id=entity_id)
 
             if result:
                 area_id = result.get("area_id")
@@ -229,9 +212,7 @@ class AreaManager:
             Entity details dict with area_id, name, etc., or None if not found
         """
         try:
-            result = await self._send_ws_command(
-                "config/entity_registry/get", entity_id=entity_id
-            )
+            result = await self._send_ws_command("config/entity_registry/get", entity_id=entity_id)
 
             if result:
                 logger.info(f"Retrieved details for entity {entity_id}")
@@ -244,9 +225,7 @@ class AreaManager:
             logger.error(f"Error getting entity details for {entity_id}: {e}")
             return None
 
-    async def assign_entities_to_areas(
-        self, entities_metadata: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    async def assign_entities_to_areas(self, entities_metadata: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Assign multiple entities to their areas based on metadata
 
@@ -256,7 +235,7 @@ class AreaManager:
         Returns:
             Dict with assignment results
         """
-        results = {
+        results: Dict[str, Any] = {
             "total": len(entities_metadata),
             "assigned": 0,
             "failed": 0,
@@ -265,7 +244,7 @@ class AreaManager:
         }
 
         # Group entities by area
-        entities_by_area = {}
+        entities_by_area: Dict[str, List[str]] = {}
         for entity_id, entity_data in entities_metadata.items():
             area_name = entity_data.get("area")
             if not area_name:
@@ -312,9 +291,7 @@ class AreaManager:
                 exists = await self.check_entity_exists(full_entity_id)
 
                 if not exists:
-                    logger.warning(
-                        f"Entity {full_entity_id} not in registry yet, skipping"
-                    )
+                    logger.warning(f"Entity {full_entity_id} not in registry yet, skipping")
                     results["skipped"] += 1
                     results["details"].append(
                         {

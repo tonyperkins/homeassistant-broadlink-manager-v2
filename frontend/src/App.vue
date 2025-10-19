@@ -95,7 +95,7 @@
     </main>
 
     <footer class="app-footer">
-      <p>Broadlink Manager v2.0.0-beta.1 | Built with Vue 3</p>
+      <p>Broadlink Manager v{{ appVersion }} | Built with Vue {{ vueVersion }}</p>
     </footer>
 
     <!-- Toast Notifications -->
@@ -104,13 +104,17 @@
 </template>
 
 <script setup>
-import { ref, computed, provide, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import { ref, computed, provide, onMounted, onUnmounted, getCurrentInstance, version as vueVersion } from 'vue'
 import Dashboard from './views/Dashboard.vue'
 import Toast from './components/Toast.vue'
 import { smartirService } from './services/smartir'
 import api from './services/api'
+import packageJson from '../package.json'
 
 const toastRef = ref(null)
+
+// Version info
+const appVersion = packageJson.version
 
 const theme = ref('light') // 'light', 'medium', 'dark'
 const smartirStatus = ref(null)
@@ -184,12 +188,37 @@ const copyDiagnostics = async () => {
     const response = await api.get('/api/diagnostics/markdown')
     const markdown = response.data.markdown
     
-    await navigator.clipboard.writeText(markdown)
-    toastRef.value?.success('Diagnostic summary copied to clipboard!')
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(markdown)
+      toastRef.value?.success('Diagnostic summary copied to clipboard!')
+    } else {
+      // Fallback for browsers/contexts without clipboard API
+      const textArea = document.createElement('textarea')
+      textArea.value = markdown
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
+      try {
+        const successful = document.execCommand('copy')
+        if (successful) {
+          toastRef.value?.success('Diagnostic summary copied to clipboard!')
+        } else {
+          throw new Error('execCommand failed')
+        }
+      } finally {
+        document.body.removeChild(textArea)
+      }
+    }
+    
     showSettingsMenu.value = false
   } catch (error) {
     console.error('Error copying diagnostics:', error)
-    toastRef.value?.error('Failed to copy diagnostics')
+    toastRef.value?.error('Failed to copy diagnostics: ' + error.message)
   } finally {
     loadingDiagnostics.value = false
   }

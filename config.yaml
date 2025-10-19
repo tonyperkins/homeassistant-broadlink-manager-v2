@@ -1,7 +1,7 @@
-name: Broadlink Manager v2 (Beta)
-version: "2.0.20-beta.1"
+name: Broadlink Manager v2 (Alpha)
+version: "0.3.0-alpha.1"
 slug: broadlink-manager-v2
-description: Next-generation Broadlink device manager with Vue 3 interface (Beta)
+description: Next-generation Broadlink device manager with Vue 3 interface (Alpha)
 arch:
   - amd64
   - aarch64
@@ -9,8 +9,9 @@ arch:
 startup: application
 boot: manual
 init: false
+auth_api: true
+webui: "http://[HOST]:[PORT:8099]"
 ingress: true
-ingress_port: 0
 panel_icon: mdi:remote
 options:
   log_level: info
@@ -21,12 +22,11 @@ schema:
   web_port: port
   auto_discover: bool?
 ports:
-  8099/tcp: null
+  8099/tcp: 8099
 ports_description:
   8099/tcp: Web interface for Broadlink device management
 homeassistant_api: true
 hassio_api: true
 hassio_role: default
-auth_api: true
 map:
   - config:rw

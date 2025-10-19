@@ -203,9 +203,7 @@ class ConfigLoader:
                 logger.error("SUPERVISOR_TOKEN not found")
             else:
                 logger.error("HA_TOKEN environment variable not set")
-                logger.error(
-                    "Please create a long-lived access token in Home Assistant"
-                )
+                logger.error("Please create a long-lived access token in Home Assistant")
             valid = False
 
         # Check config path exists (in standalone mode, user must mount it)

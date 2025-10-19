@@ -35,7 +35,7 @@
       </div>
       <div class="header-right">
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="showHelp = !showHelp" 
           class="icon-button"
           :class="{ active: showHelp }"
@@ -44,7 +44,7 @@
           <i class="mdi mdi-help-circle"></i>
         </button>
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="refreshStatus" 
           class="icon-button"
           title="Refresh status"
@@ -52,7 +52,15 @@
           <i class="mdi mdi-refresh"></i>
         </button>
         <button 
-          v-if="status?.installed && isExpanded" 
+          v-if="displayStatus?.installed && isExpanded" 
+          @click.stop="openCodeTester" 
+          class="btn btn-secondary"
+        >
+          <i class="mdi mdi-test-tube"></i>
+          Test Codes
+        </button>
+        <button 
+          v-if="displayStatus?.installed && isExpanded" 
           @click.stop="createProfile" 
           class="btn btn-primary"
         >
@@ -134,6 +142,28 @@
             Clear
           </button>
 
+          <!-- View Toggle Button Group -->
+          <div class="view-toggle-group">
+            <button 
+              @click="viewMode = 'grid'" 
+              class="view-toggle-btn"
+              :class="{ active: viewMode === 'grid' }"
+              title="Grid View"
+            >
+              <i class="mdi mdi-view-grid"></i>
+              Grid
+            </button>
+            <button 
+              @click="viewMode = 'list'" 
+              class="view-toggle-btn"
+              :class="{ active: viewMode === 'list' }"
+              title="List View"
+            >
+              <i class="mdi mdi-view-list"></i>
+              List
+            </button>
+          </div>
+
           <div class="filter-results">
             {{ filteredProfiles.length }} of {{ allProfiles.length }}
           </div>
@@ -154,7 +184,7 @@
       </div>
 
       <!-- Profile Cards Grid -->
-      <div v-else-if="!simulatingNotInstalled" class="profiles-grid">
+      <div v-if="viewMode === 'grid' && !simulatingNotInstalled" class="profiles-grid">
         <SmartIRProfileCard
           v-for="profile in filteredProfiles"
           :key="`${profile.platform}-${profile.code}`"
@@ -165,6 +195,16 @@
           @delete="deleteProfile(profile.platform, profile)"
         />
       </div>
+
+      <!-- Profile List View -->
+      <SmartIRProfileListView
+        v-else-if="viewMode === 'list' && !simulatingNotInstalled && filteredProfiles.length > 0"
+        :profiles="filteredProfiles"
+        @edit="(profile) => editProfile(profile.platform, profile)"
+        @commands="(profile) => editProfile(profile.platform, profile, 2)"
+        @download="(profile) => downloadProfile(profile.platform, profile)"
+        @delete="(profile) => deleteProfile(profile.platform, profile)"
+      />
 
       <!-- No Results -->
       <div v-if="allProfiles.length > 0 && filteredProfiles.length === 0 && !simulatingNotInstalled" class="no-results">
@@ -197,17 +237,9 @@
       </div>
 
       <div class="card-actions">
-        <button @click="showInstallGuide" class="btn-primary">
-          <i class="mdi mdi-download"></i>
-          Install SmartIR
-        </button>
-        <button @click="openSmartIRGitHub" class="btn-secondary">
+        <button @click="openSmartIRGitHub" class="btn-primary">
           <i class="mdi mdi-github"></i>
-          View on GitHub
-        </button>
-        <button @click="viewDocumentation" class="btn-secondary">
-          <i class="mdi mdi-help-circle"></i>
-          Learn More
+          Install SmartIR
         </button>
       </div>
     </div>
@@ -218,11 +250,18 @@
       :isOpen="confirmDelete.show"
       :title="confirmDelete.title"
       :message="confirmDelete.message"
-      confirmText="Delete"
-      cancelText="Cancel"
+      :confirmText="confirmDelete.canDelete === false ? null : 'Delete'"
+      cancelText="Close"
       :dangerMode="true"
+      :confirmDisabled="confirmDelete.canDelete === false"
       @confirm="handleDeleteConfirm"
       @cancel="confirmDelete.show = false"
+    />
+
+    <!-- Code Tester Modal -->
+    <SmartIRCodeTester
+      :isOpen="showCodeTester"
+      @close="showCodeTester = false"
     />
   </div>
 </template>
@@ -232,9 +271,12 @@ import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import SmartIRProfileCard from './SmartIRProfileCard.vue'
+import SmartIRProfileListView from './SmartIRProfileListView.vue'
+import SmartIRCodeTester from './SmartIRCodeTester.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
+import api from '@/services/api'
 
-const emit = defineEmits(['create-profile', 'show-install-guide', 'edit-profile'])
+const emit = defineEmits(['create-profile', 'edit-profile'])
 
 // Inject SmartIR status from App.vue
 const smartirStatus = inject('smartirStatus')
@@ -261,6 +303,15 @@ const confirmDelete = ref({
   platform: null,
   profile: null
 })
+const showCodeTester = ref(false)
+
+// View mode (grid or list)
+const viewMode = ref(localStorage.getItem('profile_view_mode') || 'grid')
+
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+  localStorage.setItem('profile_view_mode', viewMode.value)
+}
 
 const defaultBenefits = [
   'Full climate entity support (AC, heaters)',
@@ -384,15 +435,12 @@ function createProfile() {
   emit('create-profile')
 }
 
-function showInstallGuide() {
-  emit('show-install-guide')
-}
-
-function viewDocumentation() {
-  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
+function openCodeTester() {
+  showCodeTester.value = true
 }
 
 function openSmartIRGitHub() {
+  // Open SmartIR GitHub repository for installation instructions
   window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
 }
 
@@ -404,21 +452,22 @@ async function loadAllProfiles() {
     // Load profiles from all platforms
     for (const platform of allPlatforms) {
       try {
-        const response = await fetch(`api/smartir/platforms/${platform}/profiles`)
-        if (response.ok) {
-          const data = await response.json()
-          const platformProfiles = (data.profiles || []).map(p => ({
-            ...p,
-            platform
-          }))
-          allProfilesData.push(...platformProfiles)
-        }
+        const response = await api.get(`/api/smartir/platforms/${platform}/profiles`)
+        const platformProfiles = (response.data.profiles || []).map(p => ({
+          ...p,
+          platform
+        }))
+        allProfilesData.push(...platformProfiles)
       } catch (err) {
-        console.error(`Error loading ${platform} profiles:`, err)
+        // Silently handle network errors - profiles will load from bundled index on backend
+        console.warn(`Network error loading ${platform} profiles (using bundled index):`, err.message)
       }
     }
     
     allProfiles.value = allProfilesData
+  } catch (err) {
+    // Only log unexpected errors, don't show to user
+    console.error('Unexpected error loading profiles:', err)
   } finally {
     loadingAllProfiles.value = false
   }
@@ -431,12 +480,8 @@ function editProfile(platform, profile, startStep) {
 async function downloadProfile(platform, profile) {
   try {
     // Fetch the full profile JSON
-    const response = await fetch(`api/smartir/platforms/${platform}/profiles/${profile.code}`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch profile')
-    }
-    
-    const data = await response.json()
+    const response = await api.get(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
+    const data = response.data
     
     // Create blob and download
     const jsonString = JSON.stringify(data.profile, null, 2)
@@ -459,14 +504,45 @@ async function downloadProfile(platform, profile) {
   }
 }
 
-function deleteProfile(platform, profile) {
-  // Show confirmation dialog
+async function deleteProfile(platform, profile) {
+  const toastRef = inject('toast')
+  
+  // First check if profile is in use
+  try {
+    const checkResponse = await api.post(`/api/smartir/profiles/${profile.code}/check-usage`, {
+      platform
+    })
+    
+    const result = checkResponse.data
+    if (result) {
+      
+      if (result.in_use) {
+        // Profile is in use - show warning dialog with disabled delete button
+        confirmDelete.value = {
+          show: true,
+          title: `Cannot Delete ${profile.manufacturer} ${profile.model}`,
+          message: `This profile is currently in use by ${result.device_count} device(s):\n\n${result.devices.join('\n')}\n\nPlease remove or reassign these devices before deleting the profile.`,
+          platform,
+          profile,
+          canDelete: false,
+          devices: result.devices
+        }
+        return
+      }
+    }
+  } catch (err) {
+    console.error('Error checking profile usage:', err)
+    // Continue with deletion if check fails (backend will still block)
+  }
+  
+  // Profile is not in use - show normal confirmation dialog
   confirmDelete.value = {
     show: true,
     title: `Delete ${profile.manufacturer} ${profile.model}?`,
     message: `Device Code: ${profile.code}\n\nThis will remove the profile and update your configuration.`,
     platform,
-    profile
+    profile,
+    canDelete: true
   }
 }
 
@@ -478,31 +554,24 @@ async function handleDeleteConfirm() {
   confirmDelete.value.show = false
   
   try {
-    const response = await fetch(`api/smartir/profiles/${profile.code}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ platform })
+    await api.delete(`/api/smartir/profiles/${profile.code}`, {
+      data: { platform }
     })
     
-    if (response.ok) {
-      // Reload all profiles
-      await loadAllProfiles()
-      
-      // Wait for DOM update
-      await nextTick()
-      
-      // Then refresh status
-      await refreshStatus()
-      
-      // Show success toast after everything is updated
-      toastRef.value?.success(
-        `${profile.manufacturer} ${profile.model} has been removed`,
-        '✅ Profile Deleted'
-      )
-    } else {
-      const error = await response.json()
-      toastRef.value?.error(error.error || 'Unknown error', '❌ Delete Failed')
-    }
+    // Reload all profiles
+    await loadAllProfiles()
+    
+    // Wait for DOM update
+    await nextTick()
+    
+    // Then refresh status
+    await refreshStatus()
+    
+    // Show success toast after everything is updated
+    toastRef.value?.success(
+      `${profile.manufacturer} ${profile.model} has been removed`,
+      '✅ Profile Deleted'
+    )
   } catch (err) {
     console.error('Error deleting profile:', err)
     toastRef.value?.error('Failed to delete profile', '❌ Delete Error')
@@ -515,6 +584,11 @@ watch(smartirStatus, (newStatus) => {
     status.value = newStatus
   }
 }, { immediate: true })
+
+// Watch for viewMode changes and persist to localStorage
+watch(viewMode, (newMode) => {
+  localStorage.setItem('profile_view_mode', newMode)
+})
 
 onMounted(async () => {
   // Try to use injected status first
@@ -908,8 +982,53 @@ defineExpose({
   border-color: var(--ha-error-color);
 }
 
+/* View Toggle Button Group */
+.view-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ha-surface-color);
+}
+
+.view-toggle-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--ha-border-color);
+  color: var(--ha-text-secondary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  color: var(--ha-text-primary-color);
+}
+
+.view-toggle-btn.active {
+  background: var(--ha-primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.view-toggle-btn i {
+  font-size: 16px;
+}
+
 .filter-results {
-  margin-left: auto;
+  margin-left: 12px;
   padding: 8px 12px;
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-radius: 6px;

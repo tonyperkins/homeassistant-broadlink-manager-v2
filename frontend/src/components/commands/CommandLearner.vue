@@ -14,7 +14,11 @@
           <i class="mdi mdi-information"></i>
           <div>
             <h3>SmartIR Device</h3>
-            <p>This device uses SmartIR code file <strong>{{ device.device_code }}</strong>. Commands are pre-configured and cannot be learned. View the commands below.</p>
+            <p>This device uses SmartIR code file <strong>{{ device.device_code }}</strong>. Commands are pre-configured and cannot be learned.</p>
+            <p v-if="device.entity_type === 'climate'" class="climate-note">
+              <i class="mdi mdi-alert-circle-outline"></i>
+              <strong>Note:</strong> Climate device commands are temperature-based. Testing individual modes may not work as expected. Use the Home Assistant climate card to control your device.
+            </p>
           </div>
         </div>
 
@@ -96,8 +100,25 @@
         <!-- Learning Status -->
         <div v-if="learning" class="learning-status">
           <i class="mdi mdi-loading mdi-spin"></i>
-          <p>Point your remote at the Broadlink device and press the button...</p>
-          <small>This may take up to 30 seconds</small>
+          
+          <!-- IR Learning Instructions -->
+          <div v-if="commandType === 'ir'">
+            <p>Point your remote at the Broadlink device and press the button...</p>
+            <small>This may take up to 30 seconds</small>
+          </div>
+          
+          <!-- RF Learning Instructions -->
+          <div v-else-if="commandType === 'rf'" class="rf-instructions">
+            <p><strong>Learning request sent to device.</strong></p>
+            <p>RF learning is a two-step process:</p>
+            <ol>
+              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
+              <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
+            </ol>
+            <p class="ha-note">
+              Follow the Home Assistant notifications (<i class="mdi mdi-bell"></i>) for real-time instructions.
+            </p>
+          </div>
         </div>
 
         <!-- Result Message (success only for learning/deleting, errors use native validation) -->
@@ -117,7 +138,7 @@
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
               <div class="command-info">
-                <span class="command-name">{{ cmd.name }}</span>
+                <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
               
               <!-- Learned status with IR/RF badge -->
@@ -301,8 +322,25 @@ const suggestedCommands = computed(() => {
 
 onMounted(async () => {
   await loadBroadlinkDevices()
-  await loadLearnedCommands()
-  await loadUntrackedCommands()
+  
+  // Sync command types on mount (fixes RF/IR detection for adopted devices)
+  // Do this BEFORE loading commands so we get the updated types
+  try {
+    console.log('🔄 Syncing command types...')
+    const syncResponse = await api.post('/api/commands/sync')
+    console.log('✅ Command types synced:', syncResponse.data)
+  } catch (error) {
+    console.error('⚠️ Failed to sync command types:', error)
+  }
+  
+  // Always force reload from API for non-SmartIR devices to get fresh command types
+  // This ensures we get the updated RF/IR types after sync
+  const shouldForceReload = !isSmartIR.value
+  console.log(`📋 Will ${shouldForceReload ? 'FORCE RELOAD' : 'use cached'} commands`)
+  
+  // Load commands AFTER sync completes
+  await loadLearnedCommands(shouldForceReload)
+  // Note: Untracked commands are now synced via the sync button, not auto-imported
   
   // Set custom validation messages
   if (commandSelect.value) {
@@ -340,7 +378,7 @@ const loadBroadlinkDevices = async () => {
   }
 }
 
-const loadLearnedCommands = async () => {
+const loadLearnedCommands = async (forceReload = false) => {
   try {
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
@@ -354,32 +392,103 @@ const loadLearnedCommands = async () => {
       if (response.data.success && response.data.code) {
         const commands = response.data.code.commands || {}
         const commandType = response.data.code.commandType || 'ir'  // Get type from profile
-        learnedCommands.value = Object.keys(commands).map(name => ({
-          name,
-          type: commandType  // Use the type from the profile (ir or rf)
-        }))
+        
+        // For climate devices, flatten temperature-based commands
+        if (props.device.entity_type === 'climate') {
+          const flatCommands = []
+          
+          for (const [mode, value] of Object.entries(commands)) {
+            if (typeof value === 'string') {
+              // Simple command (e.g., "off")
+              flatCommands.push({ name: mode, type: commandType })
+            } else if (typeof value === 'object' && value !== null) {
+              // Temperature-based command (e.g., "cool": {"16": "code1", "17": "code2"})
+              // Show all available temperatures
+              const temps = Object.keys(value).sort((a, b) => parseInt(a) - parseInt(b))
+              
+              temps.forEach(temp => {
+                flatCommands.push({ 
+                  name: `${mode}_${temp}`, 
+                  type: commandType,
+                  label: `${mode.charAt(0).toUpperCase() + mode.slice(1)} ${temp}°C`
+                })
+              })
+            }
+          }
+          
+          learnedCommands.value = flatCommands
+        } else {
+          // For non-climate devices, use command names directly
+          learnedCommands.value = Object.keys(commands).map(name => ({
+            name,
+            type: commandType
+          }))
+        }
       }
     } else {
-      // For Broadlink devices, check if commands are already in the device object (for new/adopted devices)
+      // For Broadlink devices, always fetch from API if forceReload is true (after sync)
       console.log('📋 Loading commands for device:', props.device)
-      console.log('📋 Device commands:', props.device.commands)
       console.log('📋 Device ID:', props.device.id)
+      console.log('📋 Force reload:', forceReload)
       
-      if (props.device.commands && Object.keys(props.device.commands).length > 0) {
+      if (forceReload && props.device.id) {
+        // Force reload from API to get updated command types
+        console.log('🔄 Force reloading commands from API after sync')
+        try {
+          const response = await api.get(`/api/commands/${props.device.id}`)
+          const commands = response.data.commands || {}
+          console.log('📦 Raw commands from API:', commands)
+          
+          learnedCommands.value = Object.entries(commands).map(([name, data]) => {
+            console.log(`  Command '${name}':`, data, `(type: ${typeof data})`)
+            // Handle both string and object formats
+            const cmdType = typeof data === 'object' && data !== null 
+              ? (data.command_type || data.type || 'ir')
+              : 'ir'
+            return {
+              name,
+              type: cmdType
+            }
+          })
+          console.log('📋 Reloaded commands:', learnedCommands.value)
+        } catch (cmdError) {
+          console.error('❌ Error loading commands:', cmdError)
+          if (cmdError.response?.status === 404) {
+            console.log('ℹ️ No commands found for device')
+            learnedCommands.value = []
+          } else {
+            throw cmdError
+          }
+        }
+      } else if (props.device.commands && Object.keys(props.device.commands).length > 0) {
         console.log('✅ Using commands from device object')
         learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => ({
           name,
           type: data.command_type || data.type || 'ir'
         }))
+      } else if (props.device.commands !== undefined) {
+        // Device has commands property but it's empty - no need to fetch
+        console.log('ℹ️ Device has empty commands object - skipping API call')
+        learnedCommands.value = []
       } else if (props.device.id) {
-        // Only fetch from API if device has an ID (saved device)
+        // Commands property doesn't exist - try fetching from API
         console.log('🌐 Fetching commands from API for device ID:', props.device.id)
-        const response = await api.get(`/api/commands/${props.device.id}`)
-        const commands = response.data.commands || {}
-        learnedCommands.value = Object.entries(commands).map(([name, data]) => ({
-          name,
-          type: data.command_type || data.type || 'ir'
-        }))
+        try {
+          const response = await api.get(`/api/commands/${props.device.id}`)
+          const commands = response.data.commands || {}
+          learnedCommands.value = Object.entries(commands).map(([name, data]) => ({
+            name,
+            type: data.command_type || data.type || 'ir'
+          }))
+        } catch (cmdError) {
+          // 404 is expected for new devices with no commands yet
+          if (cmdError.response?.status === 404) {
+            console.log('ℹ️ No commands found for device (this is normal for new devices)')
+            learnedCommands.value = []
+          } else {
+            throw cmdError // Re-throw unexpected errors
+          }
+        }
       } else {
         console.log('⚠️ No commands found and no device ID')
       }
@@ -423,8 +532,12 @@ const startLearning = async () => {
       resultType.value = 'success'
       
       // Immediately add to learned commands list (optimistic update)
-      if (!learnedCommands.value.includes(actualCommand)) {
-        learnedCommands.value.push(actualCommand)
+      const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+      if (!existingCommand) {
+        learnedCommands.value.push({
+          name: actualCommand,
+          type: commandType.value
+        })
       }
       
       // Remove from untracked if it was there
@@ -436,7 +549,13 @@ const startLearning = async () => {
       // Optimistically update the device's command count in the store
       // This prevents the UI from showing stale data while waiting for storage file updates
       const updatedCommands = { ...props.device.commands }
-      updatedCommands[actualCommand] = true // Mark command as learned
+      updatedCommands[actualCommand] = {
+        command_type: commandType.value,
+        type: commandType.value
+      }
+      
+      // Reload untracked commands to remove the newly learned one
+      await loadUntrackedCommands()
       
       // Clear form for next command
       commandName.value = ''
@@ -488,12 +607,16 @@ const testCommand = async (command) => {
       return
     }
     
-    const response = await api.post('/api/commands/test', {
+    const requestData = {
       entity_id: entityId,
       device: deviceName,
       command: command,
       device_id: props.device.id
-    })
+    }
+    
+    console.log('🧪 Testing command:', requestData)
+    
+    const response = await api.post('/api/commands/test', requestData)
     
     if (response.data.success) {
       // Show success on the command row
@@ -507,7 +630,9 @@ const testCommand = async (command) => {
       }, 2000)
     }
   } catch (error) {
-    resultMessage.value = `Failed to send command: ${error.message}`
+    console.error('❌ Test command error:', error)
+    const errorMsg = error.response?.data?.error || error.message || 'Unknown error'
+    resultMessage.value = `Failed to send command: ${errorMsg}`
     resultType.value = 'error'
   } finally {
     testingCommand.value = ''
@@ -529,13 +654,21 @@ const handleDeleteConfirm = async () => {
   showDeleteConfirm.value = false
   
   try {
+    console.log(`🗑️ Deleting command: ${command}`)
     await api.delete(`/api/commands/${props.device.id}/${command}`)
+    
+    // Remove from local list immediately (optimistic update)
+    learnedCommands.value = learnedCommands.value.filter(cmd => cmd.name !== command)
+    
+    // Reload from server to sync
     await loadLearnedCommands()
     await loadUntrackedCommands()
+    
     resultMessage.value = `Command "${command}" deleted`
     resultType.value = 'success'
     emit('learned')
   } catch (error) {
+    console.error('❌ Delete error:', error)
     resultMessage.value = `Failed to delete command: ${error.message}`
     resultType.value = 'error'
   } finally {
@@ -546,11 +679,22 @@ const handleDeleteConfirm = async () => {
 const loadUntrackedCommands = async () => {
   try {
     // Get device name from device object
-    const deviceName = props.device.device || props.device.id.split('.')[1]
+    let deviceName = props.device.device
+    if (!deviceName) {
+      // If device field is not set, try to extract from ID
+      deviceName = props.device.id.includes('.') 
+        ? props.device.id.split('.')[1] 
+        : props.device.id
+    }
+    
+    console.log('🔍 Looking for untracked commands for device:', deviceName)
     
     // Get all untracked commands
     const response = await api.get('/api/commands/untracked')
     const untracked = response.data.untracked || {}
+    
+    console.log('📦 All untracked commands:', Object.keys(untracked))
+    console.log('📦 Untracked for this device:', untracked[deviceName])
     
     // Get untracked commands for this device
     if (untracked[deviceName]) {
@@ -703,6 +847,23 @@ const handleImportConfirm = async () => {
   font-weight: 600;
 }
 
+.climate-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 152, 0, 0.1);
+  border-left: 3px solid #ff9800;
+  border-radius: 4px;
+}
+
+.climate-note i {
+  font-size: 18px !important;
+  color: #ff9800 !important;
+  margin-top: 2px;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
@@ -754,7 +915,7 @@ const handleImportConfirm = async () => {
 }
 
 .learning-status i {
-  font-size: 48px;
+  font-size: 12px;
   color: var(--ha-primary-color);
   margin-bottom: 12px;
 }
@@ -1029,6 +1190,48 @@ const handleImportConfirm = async () => {
   height: 1px;
   background: var(--ha-border-color);
   margin: 24px 0;
+}
+
+.rf-instructions {
+  text-align: left;
+  background: rgba(3, 169, 244, 0.1);
+  padding: 12px;
+  border-radius: 4px;
+  border-left: 3px solid var(--ha-primary-color);
+  font-size: 14px;
+}
+
+.rf-instructions p {
+  margin: 6px 0;
+}
+
+.rf-instructions p:first-child {
+  margin-top: 0;
+}
+
+.rf-instructions ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.rf-instructions li {
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.rf-instructions .ha-note {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding: 8px;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--ha-text-primary-color);
+  border-left: 3px solid #ffc107;
+}
+
+.rf-instructions .ha-note i {
+  color: #ffc107;
 }
 
 .modal-footer {

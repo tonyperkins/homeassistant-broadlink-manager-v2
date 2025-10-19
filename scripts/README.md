@@ -152,3 +152,70 @@ See `docs/REDDIT_UPDATES.md` for detailed setup and automation examples.
 ### Documentation
 
 Full documentation: `docs/REDDIT_UPDATES.md`
+
+## validate_yaml.py
+
+Validates SmartIR YAML configuration files to prevent Home Assistant boot failures.
+
+### Purpose
+
+The YAML validator ensures that SmartIR configuration files are valid before they're written to disk. This prevents Home Assistant from booting in safe mode due to configuration errors.
+
+### Usage
+
+**Validate a single file**:
+```bash
+python scripts/validate_yaml.py /config/smartir/climate.yaml
+```
+
+**Validate entire directory**:
+```bash
+python scripts/validate_yaml.py /config/smartir/
+```
+
+**Specify platform explicitly**:
+```bash
+python scripts/validate_yaml.py /config/smartir/climate.yaml climate
+```
+
+### What It Validates
+
+- **Required fields**: platform, name, unique_id, device_code, controller_data
+- **Data types**: Ensures fields have correct types (int, str, etc.)
+- **Entity IDs**: Validates Home Assistant entity ID format
+- **unique_id format**: Checks for lowercase, no spaces
+- **device_code**: Must be positive integer
+- **YAML syntax**: Ensures file is valid YAML
+- **Duplicate detection**: Prevents duplicate unique_ids
+
+### Output
+
+**Valid file**:
+```
+🔍 Validating /config/smartir/climate.yaml as climate platform...
+
+✅ YAML file is valid!
+```
+
+**Invalid file**:
+```
+🔍 Validating /config/smartir/climate.yaml as climate platform...
+
+❌ YAML file validation failed:
+
+   • Device 0 (Living Room AC): Missing required field: device_code
+   • Device 1 (Bedroom AC): Invalid entity ID format for 'controller_data'
+```
+
+### Automatic Validation
+
+Validation happens automatically when:
+- Creating new SmartIR devices
+- Updating existing devices
+- Generating entity helpers
+
+The validator creates `.backup` files before modifying YAML, allowing recovery if issues occur.
+
+### Documentation
+
+Full documentation: `docs/YAML_VALIDATION.md`

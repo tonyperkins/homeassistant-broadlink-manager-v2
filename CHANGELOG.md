@@ -7,11 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.1] - 2025-10-19
+
+### Changed
+- **Version numbering**: Switched from 2.0.x to 0.x.x to properly reflect alpha/pre-release status
+- **Status**: Changed from Beta to Alpha to set proper expectations
+
 ### Added
+- **SmartIR Profile Browser**: Advanced browsing and management system for SmartIR device profiles
+  - Browse 4000+ device profiles from SmartIR Code Aggregator
+  - Filter by platform, manufacturer, model, and source
+  - Pagination support (50 profiles per page)
+  - Clone index profiles to custom codes for customization
+  - Search across all platforms
+  - Lazy loading for performance
+- **SmartIR Code Tester**: Comprehensive testing interface for SmartIR device codes
+  - Test individual commands with visual feedback
+  - Climate control testing (temperature, modes, fan speeds)
+  - Real-time command execution via Broadlink devices
+  - Test results tracking and validation
+- **Command Learning Wizard**: Enhanced command learning interface
+  - Step-by-step wizard for learning IR/RF commands
+  - Visual progress tracking
+  - Command type detection (IR/RF)
+  - Test learned commands immediately
+- **Git Workflow Documentation**: Added comprehensive Git workflow guide (`docs/GIT_WORKFLOW.md`)
+  - Feature branch strategy
+  - Release branch process
+  - Version tagging guidelines
+  - Common commands reference
 - **Fan direction support**: All fan entities now include direction control by default
 - **Automatic config reload**: Generate Entities button now automatically reloads both Broadlink and YAML configurations
 - **Enhanced command sync**: Fan-specific commands (`fan_off`, `fan_reverse`, etc.) now properly sync to metadata
 - **Unit tests**: Added comprehensive tests for entity generator to prevent regressions
+- **Enhanced Diagnostics System**: Added 8 new diagnostic sections for better troubleshooting
+  - Python dependencies tracking with version numbers
+  - Recent log entries (last 20 errors and warnings)
+  - Home Assistant connection testing with version detection
+  - Broadlink device discovery information
+  - Environment variables (sanitized, no secrets)
+  - File system permissions checking
+  - Backup file status with age tracking
+  - SmartIR profile statistics
+  - Enhanced ZIP bundle now includes recent_logs.txt
+  - Improved markdown report with all new sections
 
 ### Fixed
 - **CRITICAL**: Fixed media_player generation to use universal platform instead of unsupported template platform
@@ -29,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed entity generation to include `fan_off` in set_percentage when percentage is 0
 - Fixed command mapping to include all `fan_*` prefixed commands during metadata sync
 - Fixed direction control not appearing in Mushroom Fan Card due to missing remote command in set_direction action
+- **Fixed SmartIR device config API payload structure** - "Missing platform or device_config" error when saving profiles
+  - Frontend now correctly wraps device fields in device_config object
+  - Profiles now save AND add to YAML config file without "Partial Success" warnings
+- **Fixed missing yaml import** in SmartIR API causing "name 'yaml' is not defined" error
 
 ### Changed
 - Fan entities always include direction support (even if no reverse command learned yet)

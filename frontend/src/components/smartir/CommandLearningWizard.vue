@@ -4,28 +4,35 @@
     
     <!-- Device Selection -->
     <div class="device-selection-section">
-      <div class="form-group">
+      <div class="form-group" :class="{ 'has-error': showDeviceError }">
         <label>Broadlink Device *</label>
-        <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
-          <option value="">Select Broadlink device...</option>
-          <option 
-            v-for="device in broadlinkDevices" 
-            :key="device.entity_id"
-            :value="device.entity_id"
-          >
-            {{ device.name }}{{ device.area_name ? ' (' + device.area_name + ')' : '' }}
-          </option>
-        </select>
+        <div class="input-wrapper">
+          <select v-model="localBroadlinkDevice" @change="updateBroadlinkDevice">
+            <option value="">Select Broadlink device...</option>
+            <option 
+              v-for="device in broadlinkDevices" 
+              :key="device.entity_id"
+              :value="device.entity_id"
+            >
+              {{ device.name || device.entity_id }}
+            </option>
+          </select>
+          <div v-if="showDeviceError" class="validation-tooltip">
+            <i class="mdi mdi-alert"></i>
+            Device is required
+          </div>
+        </div>
         <small>This device will be used to learn commands ({{ broadlinkDevices.length }} devices found)</small>
       </div>
 
       <div class="form-group">
         <label>Command Type *</label>
-        <select v-model="localCommandType" @change="updateCommandType">
+        <select v-model="localCommandType" @change="updateCommandType" :disabled="learnedCount > 0">
           <option value="ir">📡 Infrared (IR) - Most common for AC, TV, etc.</option>
           <option value="rf">📻 Radio Frequency (RF) - For RF remotes</option>
         </select>
-        <small>Select the type of commands your device uses</small>
+        <small v-if="learnedCount > 0">Command type cannot be changed after learning commands</small>
+        <small v-else>Select the type of commands your device uses</small>
       </div>
     </div>
     
@@ -189,6 +196,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import api from '@/services/api'
 
 const toast = useToast()
 
@@ -234,6 +242,7 @@ const localCommandType = ref(props.commandType)
 const sequentialLearning = ref(false)
 const sequentialQueue = ref([])
 const hasLearnedAny = ref(false) // Track if user has learned any commands in this session
+const showDeviceError = ref(false) // Track validation error for Broadlink device
 const confirmDelete = ref({
   show: false,
   commandKey: null,
@@ -372,6 +381,17 @@ function getModeIcon(mode) {
 
 async function learnCommand(cmd) {
   if (learningCommand.value) return
+
+  // Validate that a Broadlink device is selected
+  if (!localBroadlinkDevice.value) {
+    showDeviceError.value = true
+    // Scroll to top to show the error
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  
+  // Clear error if device is selected
+  showDeviceError.value = false
   
   learningCommand.value = cmd.key
   
@@ -382,30 +402,25 @@ async function learnCommand(cmd) {
     const deviceName = `${manufacturer}_${model}`
     
     // Call the learn command API
-    const response = await fetch('/api/commands/learn', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        entity_id: localBroadlinkDevice.value,
-        device: deviceName,
-        command: cmd.key,
-        command_type: localCommandType.value // Use the selected command type (ir or rf)
-      })
+    const response = await api.post('/api/commands/learn', {
+      entity_id: localBroadlinkDevice.value,
+      device: deviceName,
+      command: cmd.key,
+      command_type: localCommandType.value // Use the selected command type (ir or rf)
     })
     
-    if (!response.ok) {
-      throw new Error(`Failed to learn command: ${response.statusText}`)
-    }
-    
-    const result = await response.json()
+    const result = response.data
     
     if (result.success && result.code) {
-      // Store the learned command
+      // Store the command code (or placeholder for pending)
       commands.value[cmd.key] = result.code
       emit('update:modelValue', commands.value)
       hasLearnedAny.value = true // Mark that user has learned at least one command
+      
+      if (result.code === 'pending') {
+        // Code is pending - it will be fetched when saving the profile
+        console.log(`⏳ Command '${cmd.key}' learned, code will be fetched from storage when saving`)
+      }
       
       // If sequential learning, move to next
       if (sequentialLearning.value && sequentialQueue.value.length > 0) {
@@ -435,36 +450,29 @@ async function learnCommand(cmd) {
 
 async function testCommand(key) {
   if (!localBroadlinkDevice.value) {
-    toast.error('Please select a Broadlink device first')
+    showDeviceError.value = true
+    // Scroll to top to show the error
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     return
   }
   
   if (!commands.value[key]) {
-    toast.error('Command not learned yet')
+    toast.value?.error('Command not learned yet')
     return
   }
   
   testingCommand.value = key
   
   try {
-    // Get the raw IR/RF code from memory (already learned)
+    // Get the raw IR/RF code from memory (should be the actual code, not "pending")
     const rawCode = commands.value[key]
     
     // Send raw code using dedicated endpoint
-    const response = await fetch('/api/commands/send-raw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        entity_id: localBroadlinkDevice.value,
-        command: rawCode,  // Send the base64 IR/RF code directly
-        command_type: localCommandType.value  // 'ir' or 'rf'
-      })
+    await api.post('/api/commands/send-raw', {
+      entity_id: localBroadlinkDevice.value,
+      command: rawCode,  // Send the base64 IR/RF code directly
+      command_type: localCommandType.value  // 'ir' or 'rf'
     })
-    
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to send command')
-    }
     
     toast.success('Command sent successfully')
   } catch (error) {
@@ -530,43 +538,17 @@ onMounted(async () => {
 
 async function loadExistingCommands() {
   try {
-    // Create device name from manufacturer and model
-    const manufacturer = props.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-    const model = props.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-    const deviceName = `${manufacturer}_${model}`
+    // For SmartIR devices, we load commands from the SmartIR JSON file, NOT Broadlink storage
+    // SmartIR devices store their commands in JSON files in custom_components/smartir/codes/
+    // We should only load commands that have actual IR codes (not "pending")
     
-    // Fetch all Broadlink commands
-    const response = await fetch(`/api/commands/broadlink/${deviceName}`)
+    // Note: This function is intentionally left empty for SmartIR devices
+    // SmartIR commands are managed through the SmartIR JSON files, not Broadlink storage
+    // The wizard will start with empty commands and users learn them one by one
     
-    if (!response.ok) {
-      // Device might not exist yet, that's okay
-      return
-    }
-    
-    const result = await response.json()
-    
-    if (result.commands) {
-      // Merge existing commands with current commands
-      // Only add commands that are in our command list
-      const validCommandKeys = commandList.value.map(cmd => cmd.key)
-      const existingCommands = {}
-      
-      for (const [key, code] of Object.entries(result.commands)) {
-        if (validCommandKeys.includes(key)) {
-          existingCommands[key] = code
-        }
-      }
-      
-      // Update commands if we found any
-      if (Object.keys(existingCommands).length > 0) {
-        commands.value = { ...commands.value, ...existingCommands }
-        emit('update:modelValue', commands.value)
-        console.log(`Loaded ${Object.keys(existingCommands).length} existing commands for ${deviceName}`)
-      }
-    }
+    console.log('SmartIR device - commands will be loaded from SmartIR JSON file, not Broadlink storage')
   } catch (error) {
-    console.error('Error loading existing commands:', error)
-    // Don't show error to user, just log it
+    console.error('Error in loadExistingCommands:', error)
   }
 }
 
@@ -580,14 +562,14 @@ function updateCommandType() {
 
 async function loadBroadlinkDevices() {
   try {
-    const response = await fetch('/api/remote/devices')
-    if (response.ok) {
-      const data = await response.json()
-      const devices = data.devices || []
-      broadlinkDevices.value = devices
-    }
+    console.log('🔍 Loading Broadlink devices from /api/remote/devices')
+    const response = await api.get('/api/remote/devices')
+    console.log('📦 Response data:', response.data)
+    const devices = response.data.devices || []
+    console.log(`✅ Found ${devices.length} devices:`, devices)
+    broadlinkDevices.value = devices
   } catch (error) {
-    console.error('Error loading remote devices:', error)
+    console.error('❌ Error loading remote devices:', error)
     broadlinkDevices.value = []
   }
 }
@@ -595,6 +577,13 @@ async function loadBroadlinkDevices() {
 // Watch for prop changes and update local refs
 watch(() => props.broadlinkDevice, (newVal) => {
   localBroadlinkDevice.value = newVal
+})
+
+// Clear validation error when device is selected
+watch(localBroadlinkDevice, (newVal) => {
+  if (newVal) {
+    showDeviceError.value = false
+  }
 })
 
 watch(() => props.commandType, (newVal) => {
@@ -1067,7 +1056,76 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* Validation tooltip styling */
+.input-wrapper {
+  position: relative;
+}
+
+.form-group.has-error select {
+  border-color: #ff9800;
+}
+
+.validation-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.validation-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.05));
+}
+
+.validation-tooltip i {
+  font-size: 18px;
+  color: #ff9800;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Dark mode adjustments */
+:global(.dark-mode) .validation-tooltip {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+:global(.dark-mode) .validation-tooltip::before {
+  border-bottom-color: #2d2d2d;
+}
+
 :global(.dark-mode) .wizard-info {
   background: rgba(33, 150, 243, 0.15);
 }

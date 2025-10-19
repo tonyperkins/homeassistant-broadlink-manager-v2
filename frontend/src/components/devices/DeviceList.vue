@@ -25,7 +25,7 @@
           {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
         </button>
         <button 
-          @click.stop="generateEntities" 
+          @click.stop="generateAllEntities" 
           class="btn btn-secondary"
           v-if="isExpanded"
           :disabled="generatingEntities"
@@ -128,6 +128,28 @@
           Clear
         </button>
 
+        <!-- View Toggle Button Group -->
+        <div class="view-toggle-group">
+          <button 
+            @click="viewMode = 'grid'" 
+            class="view-toggle-btn"
+            :class="{ active: viewMode === 'grid' }"
+            title="Grid View"
+          >
+            <i class="mdi mdi-view-grid"></i>
+            Grid
+          </button>
+          <button 
+            @click="viewMode = 'list'" 
+            class="view-toggle-btn"
+            :class="{ active: viewMode === 'list' }"
+            title="List View"
+          >
+            <i class="mdi mdi-view-list"></i>
+            List
+          </button>
+        </div>
+
         <div class="filter-results">
           {{ filteredDevices.length }} of {{ deviceStore.deviceCount }}
         </div>
@@ -161,7 +183,7 @@
     </div>
 
     <!-- Device Grid -->
-    <div v-else class="device-grid">
+    <div v-if="viewMode === 'grid'" class="device-grid">
       <DeviceCard
         v-for="device in filteredDevices"
         :key="device.id"
@@ -172,6 +194,15 @@
         @learn="learnCommands"
       />
     </div>
+
+    <!-- Device List View -->
+    <DeviceListView
+      v-else-if="viewMode === 'list' && filteredDevices.length > 0"
+      :devices="filteredDevices"
+      @send-command="handleSendCommand"
+      @edit-device="editDevice"
+      @delete-device="confirmDelete"
+    />
 
     <!-- No Results -->
     <div v-if="deviceStore.hasDevices && filteredDevices.length === 0" class="no-results">
@@ -234,10 +265,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
 import DeviceCard from './DeviceCard.vue'
+import DeviceListView from './DeviceListView.vue'
 import DeviceForm from './DeviceForm.vue'
 import CommandLearner from '../commands/CommandLearner.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
@@ -256,6 +288,14 @@ const discoveryRef = ref(null)
 const isExpanded = ref(true)
 const generatingEntities = ref(false)
 const syncingAreas = ref(false)
+
+// View mode (grid or list)
+const viewMode = ref(localStorage.getItem('device_view_mode') || 'grid')
+
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
+  localStorage.setItem('device_view_mode', viewMode.value)
+}
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -416,6 +456,11 @@ const loadBroadlinkDevices = async () => {
     console.error('Error loading remote devices:', error)
   }
 }
+
+// Watch for viewMode changes and persist to localStorage
+watch(viewMode, (newMode) => {
+  localStorage.setItem('device_view_mode', newMode)
+})
 
 onMounted(async () => {
   await Promise.all([
@@ -863,6 +908,23 @@ const generateEntities = async () => {
     generatingEntities.value = false
   }
 }
+
+const handleSendCommand = async ({ device, command }) => {
+  try {
+    const payload = {
+      device_id: device.id,
+      command: command,
+      entity_id: device.broadlink_entity,
+      device: device.device
+    }
+    await api.post('/api/commands/test', payload)
+    toast.success(`Sent ${command} to ${device.name}`)
+  } catch (error) {
+    console.error('Error sending command:', error)
+    const errorMsg = error.response?.data?.error || error.message || 'Unknown error'
+    toast.error(`Failed to send ${command}: ${errorMsg}`)
+  }
+}
 </script>
 
 <style scoped>
@@ -1143,8 +1205,53 @@ const generateEntities = async () => {
   border-color: var(--ha-error-color);
 }
 
+/* View Toggle Button Group */
+.view-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ha-surface-color);
+}
+
+.view-toggle-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--ha-border-color);
+  color: var(--ha-text-secondary-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  color: var(--ha-text-primary-color);
+}
+
+.view-toggle-btn.active {
+  background: var(--ha-primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.view-toggle-btn i {
+  font-size: 16px;
+}
+
 .filter-results {
-  margin-left: auto;
+  margin-left: 12px;
   padding: 8px 12px;
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-radius: 6px;

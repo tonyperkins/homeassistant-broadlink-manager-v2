@@ -459,15 +459,16 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             # Check if profile is in use by any managed devices
             from flask import current_app
 
-            device_manager = current_app.config.get("device_manager")
-            if device_manager:
-                # Get all devices
-                devices = device_manager.get_all_devices()
+            storage_manager = current_app.config.get("storage_manager")
+            if storage_manager:
+                # Get all entities from metadata (includes SmartIR devices)
+                entities = storage_manager.get_all_entities()
                 devices_using_profile = []
 
-                for device_id, device_data in devices.items():
-                    if device_data.get("device_type") == "smartir" and str(device_data.get("device_code")) == str(code):
-                        devices_using_profile.append(device_data.get("friendly_name", device_id))
+                for entity_id, entity_data in entities.items():
+                    # Check if this entity has a device_code matching the profile
+                    if "device_code" in entity_data and str(entity_data.get("device_code")) == str(code):
+                        devices_using_profile.append(entity_data.get("friendly_name", entity_data.get("name", entity_id)))
 
                 if devices_using_profile:
                     return (

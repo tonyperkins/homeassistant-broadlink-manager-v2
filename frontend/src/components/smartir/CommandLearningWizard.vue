@@ -556,43 +556,17 @@ onMounted(async () => {
 
 async function loadExistingCommands() {
   try {
-    // Create device name from manufacturer and model
-    const manufacturer = props.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-    const model = props.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')
-    const deviceName = `${manufacturer}_${model}`
+    // For SmartIR devices, we load commands from the SmartIR JSON file, NOT Broadlink storage
+    // SmartIR devices store their commands in JSON files in custom_components/smartir/codes/
+    // We should only load commands that have actual IR codes (not "pending")
     
-    // Fetch all Broadlink commands
-    const response = await fetch(`/api/commands/broadlink/${deviceName}`)
+    // Note: This function is intentionally left empty for SmartIR devices
+    // SmartIR commands are managed through the SmartIR JSON files, not Broadlink storage
+    // The wizard will start with empty commands and users learn them one by one
     
-    if (!response.ok) {
-      // Device might not exist yet, that's okay
-      return
-    }
-    
-    const result = await response.json()
-    
-    if (result.commands) {
-      // Merge existing commands with current commands
-      // Only add commands that are in our command list
-      const validCommandKeys = commandList.value.map(cmd => cmd.key)
-      const existingCommands = {}
-      
-      for (const [key, code] of Object.entries(result.commands)) {
-        if (validCommandKeys.includes(key)) {
-          existingCommands[key] = code
-        }
-      }
-      
-      // Update commands if we found any
-      if (Object.keys(existingCommands).length > 0) {
-        commands.value = { ...commands.value, ...existingCommands }
-        emit('update:modelValue', commands.value)
-        console.log(`Loaded ${Object.keys(existingCommands).length} existing commands for ${deviceName}`)
-      }
-    }
+    console.log('SmartIR device - commands will be loaded from SmartIR JSON file, not Broadlink storage')
   } catch (error) {
-    console.error('Error loading existing commands:', error)
-    // Don't show error to user, just log it
+    console.error('Error in loadExistingCommands:', error)
   }
 }
 

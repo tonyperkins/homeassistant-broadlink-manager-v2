@@ -157,6 +157,13 @@ def send_raw_command():
         if not entity_id or not command:
             return jsonify({"success": False, "error": "Missing required fields: entity_id, command"}), 400
 
+        # Check if the command is a placeholder (e.g., "pending")
+        if command.lower() in ["pending", "null", "none", ""]:
+            return (
+                jsonify({"success": False, "error": f"Command has not been learned yet (status: {command})"}),
+                400,
+            )
+
         # Get web server for HA API calls
         web_server = get_web_server()
         if not web_server:

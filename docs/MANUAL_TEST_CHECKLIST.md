@@ -39,6 +39,8 @@
 
 #### 🔵 P2: Settings Menu
 - [ ] Settings gear icon opens menu
+- [ ] Toggle SmartIR on/off toggles SmartIR section visibility
+- [ ] Update Device List button works
 - [ ] "Copy Diagnostics" works
 - [ ] "Download Diagnostics" creates ZIP file
 - [ ] GitHub link opens

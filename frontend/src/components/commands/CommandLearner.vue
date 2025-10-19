@@ -322,7 +322,24 @@ const suggestedCommands = computed(() => {
 
 onMounted(async () => {
   await loadBroadlinkDevices()
-  await loadLearnedCommands()
+  
+  // Sync command types on mount (fixes RF/IR detection for adopted devices)
+  // Do this BEFORE loading commands so we get the updated types
+  try {
+    console.log('🔄 Syncing command types...')
+    const syncResponse = await api.post('/api/commands/sync')
+    console.log('✅ Command types synced:', syncResponse.data)
+  } catch (error) {
+    console.error('⚠️ Failed to sync command types:', error)
+  }
+  
+  // Always force reload from API for non-SmartIR devices to get fresh command types
+  // This ensures we get the updated RF/IR types after sync
+  const shouldForceReload = !isSmartIR.value
+  console.log(`📋 Will ${shouldForceReload ? 'FORCE RELOAD' : 'use cached'} commands`)
+  
+  // Load commands AFTER sync completes
+  await loadLearnedCommands(shouldForceReload)
   // Note: Untracked commands are now synced via the sync button, not auto-imported
   
   // Set custom validation messages
@@ -361,7 +378,7 @@ const loadBroadlinkDevices = async () => {
   }
 }
 
-const loadLearnedCommands = async () => {
+const loadLearnedCommands = async (forceReload = false) => {
   try {
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
@@ -409,12 +426,41 @@ const loadLearnedCommands = async () => {
         }
       }
     } else {
-      // For Broadlink devices, check if commands are already in the device object (for new/adopted devices)
+      // For Broadlink devices, always fetch from API if forceReload is true (after sync)
       console.log('📋 Loading commands for device:', props.device)
-      console.log('📋 Device commands:', props.device.commands)
       console.log('📋 Device ID:', props.device.id)
+      console.log('📋 Force reload:', forceReload)
       
-      if (props.device.commands && Object.keys(props.device.commands).length > 0) {
+      if (forceReload && props.device.id) {
+        // Force reload from API to get updated command types
+        console.log('🔄 Force reloading commands from API after sync')
+        try {
+          const response = await api.get(`/api/commands/${props.device.id}`)
+          const commands = response.data.commands || {}
+          console.log('📦 Raw commands from API:', commands)
+          
+          learnedCommands.value = Object.entries(commands).map(([name, data]) => {
+            console.log(`  Command '${name}':`, data, `(type: ${typeof data})`)
+            // Handle both string and object formats
+            const cmdType = typeof data === 'object' && data !== null 
+              ? (data.command_type || data.type || 'ir')
+              : 'ir'
+            return {
+              name,
+              type: cmdType
+            }
+          })
+          console.log('📋 Reloaded commands:', learnedCommands.value)
+        } catch (cmdError) {
+          console.error('❌ Error loading commands:', cmdError)
+          if (cmdError.response?.status === 404) {
+            console.log('ℹ️ No commands found for device')
+            learnedCommands.value = []
+          } else {
+            throw cmdError
+          }
+        }
+      } else if (props.device.commands && Object.keys(props.device.commands).length > 0) {
         console.log('✅ Using commands from device object')
         learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => ({
           name,

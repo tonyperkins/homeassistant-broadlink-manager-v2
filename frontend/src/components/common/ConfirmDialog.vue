@@ -21,7 +21,13 @@
         <button v-if="showCancel" @click.stop="cancel" class="btn btn-secondary">
           {{ cancelText }}
         </button>
-        <button @click.stop="confirm" class="btn" :class="dangerMode ? 'btn-danger' : 'btn-primary'">
+        <button 
+          v-if="confirmText" 
+          @click.stop="confirm" 
+          class="btn" 
+          :class="dangerMode ? 'btn-danger' : 'btn-primary'"
+          :disabled="confirmDisabled"
+        >
           {{ confirmText }}
         </button>
       </div>
@@ -58,6 +64,10 @@ const props = defineProps({
     default: true
   },
   dangerMode: {
+    type: Boolean,
+    default: false
+  },
+  confirmDisabled: {
     type: Boolean,
     default: false
   },
@@ -211,5 +221,14 @@ const cancel = () => {
 
 .btn-danger:hover {
   background: var(--ha-error-color-dark, #d32f2f);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  background: var(--ha-error-color, #f44336);
 }
 </style>

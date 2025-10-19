@@ -1,0 +1,18 @@
+#!/bin/bash
+# Pre-commit hook to run command workflow tests
+
+echo "Running command workflow tests..."
+
+# Run the specific test file
+pytest tests/integration/test_command_workflows.py -v --tb=short
+
+# Check exit code
+if [ $? -ne 0 ]; then
+    echo "❌ Command workflow tests failed!"
+    echo "Please fix the tests before committing."
+    echo "To skip this check, use: git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Command workflow tests passed!"
+exit 0

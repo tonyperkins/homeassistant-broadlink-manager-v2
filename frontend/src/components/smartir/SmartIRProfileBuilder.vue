@@ -884,11 +884,13 @@ async function saveToSmartIR() {
     try {
       await api.post('/api/smartir/config/add-device', {
         platform: profile.value.platform,
-        entity_type: profile.value.platform,
-        name: deviceConfig.name,
-        unique_id: deviceConfig.unique_id,
-        device_code: deviceConfig.device_code,
-        controller_data: deviceConfig.controller_data
+        device_config: {
+          platform: 'smartir',
+          name: deviceConfig.name,
+          unique_id: deviceConfig.unique_id,
+          device_code: deviceConfig.device_code,
+          controller_data: deviceConfig.controller_data
+        }
       })
     } catch (configError) {
       console.error('Failed to add device to config:', configError)

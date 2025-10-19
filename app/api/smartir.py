@@ -5,6 +5,7 @@ SmartIR API endpoints for Broadlink Manager Add-on
 
 import logging
 import json
+import yaml
 from pathlib import Path
 from flask import Blueprint, jsonify, request
 

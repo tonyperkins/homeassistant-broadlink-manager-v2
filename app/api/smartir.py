@@ -690,6 +690,21 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             logger.info(f"✅ Added device to {platform_file}")
 
+            # Also save device_code to metadata for tracking
+            storage_manager = current_app.config.get("storage_manager")
+            if storage_manager and "unique_id" in device_config and "device_code" in device_config:
+                entity_id = device_config["unique_id"]
+                # Get existing entity data or create new
+                entity_data = storage_manager.get_entity(entity_id) or {}
+                # Add/update device_code
+                entity_data["device_code"] = device_config["device_code"]
+                entity_data["name"] = device_config.get("name", entity_id)
+                entity_data["friendly_name"] = device_config.get("name", entity_id)
+                entity_data["entity_type"] = platform
+                # Save to metadata
+                storage_manager.save_entity(entity_id, entity_data)
+                logger.info(f"✅ Saved device_code {device_config['device_code']} to metadata for {entity_id}")
+
             return (
                 jsonify({"success": True, "message": f"Device added to {platform}.yaml", "file_path": str(platform_file)}),
                 200,

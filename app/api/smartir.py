@@ -456,6 +456,31 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             if not file_path.exists():
                 return jsonify({"success": False, "error": f"Profile {code} not found"}), 404
 
+            # Check if profile is in use by any managed devices
+            from flask import current_app
+
+            device_manager = current_app.config.get("device_manager")
+            if device_manager:
+                # Get all devices
+                devices = device_manager.get_all_devices()
+                devices_using_profile = []
+
+                for device_id, device_data in devices.items():
+                    if device_data.get("device_type") == "smartir" and str(device_data.get("device_code")) == str(code):
+                        devices_using_profile.append(device_data.get("friendly_name", device_id))
+
+                if devices_using_profile:
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": f"Cannot delete profile {code}: it is currently in use by {len(devices_using_profile)} device(s)",
+                                "devices": devices_using_profile,
+                            }
+                        ),
+                        400,
+                    )
+
             # Read the profile to get manufacturer/model for Broadlink storage cleanup
             try:
                 with open(file_path, "r", encoding="utf-8") as f:

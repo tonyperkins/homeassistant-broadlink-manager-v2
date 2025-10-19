@@ -642,6 +642,64 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             logger.error(f"Error getting device from config: {e}")
             return jsonify({"success": False, "error": str(e)}), 500
 
+    @smartir_bp.route("/config/sync-metadata", methods=["POST"])
+    def sync_device_metadata():
+        """Sync device_code from YAML config to metadata for existing SmartIR devices"""
+        try:
+            from flask import current_app
+            import yaml
+
+            storage_manager = current_app.config.get("storage_manager")
+            if not storage_manager:
+                return jsonify({"success": False, "error": "Storage manager not available"}), 500
+
+            config_path = current_app.config.get("config_path", "/config")
+            config_path = Path(config_path)
+            smartir_dir = config_path / "smartir"
+
+            synced_count = 0
+            platforms = ["climate", "media_player", "fan", "light"]
+
+            for platform in platforms:
+                platform_file = smartir_dir / f"{platform}.yaml"
+                if not platform_file.exists():
+                    continue
+
+                try:
+                    with open(platform_file, "r", encoding="utf-8") as f:
+                        devices = yaml.safe_load(f) or []
+
+                    for device in devices:
+                        if isinstance(device, dict) and device.get("platform") == "smartir":
+                            unique_id = device.get("unique_id")
+                            device_code = device.get("device_code")
+
+                            if unique_id and device_code:
+                                # Get or create entity data
+                                entity_data = storage_manager.get_entity(unique_id) or {}
+                                # Add device_code if missing
+                                if "device_code" not in entity_data:
+                                    entity_data["device_code"] = device_code
+                                    entity_data["name"] = device.get("name", unique_id)
+                                    entity_data["friendly_name"] = device.get("name", unique_id)
+                                    entity_data["entity_type"] = platform
+                                    storage_manager.save_entity(unique_id, entity_data)
+                                    logger.info(f"✅ Synced device_code {device_code} to metadata for {unique_id}")
+                                    synced_count += 1
+
+                except Exception as e:
+                    logger.warning(f"Error syncing {platform_file}: {e}")
+
+            return jsonify({
+                "success": True,
+                "message": f"Synced {synced_count} device(s)",
+                "synced_count": synced_count
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Error syncing metadata: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
     @smartir_bp.route("/config/add-device", methods=["POST"])
     def add_device_to_config():
         """Add a SmartIR device to the platform YAML file"""

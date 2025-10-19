@@ -737,9 +737,11 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
     @smartir_bp.route("/config/add-device", methods=["POST"])
     def add_device_to_config():
-        """Add a SmartIR device to the platform YAML file"""
+        """Add a SmartIR device to the platform YAML file with validation"""
         try:
             from flask import current_app
+            from yaml_validator import YAMLValidator
+            import shutil
 
             data = request.get_json()
 
@@ -748,6 +750,13 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             if not all([platform, device_config]):
                 return jsonify({"success": False, "error": "Missing platform or device_config"}), 400
+
+            # Validate device config before proceeding
+            is_valid, errors = YAMLValidator.validate_device_config(device_config, platform)
+            if not is_valid:
+                error_msg = "Device configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                logger.error(error_msg)
+                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
 
             config_path = current_app.config.get("config_path", "/config")
             config_path = Path(config_path)
@@ -758,30 +767,45 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             platform_file = smartir_dir / f"{platform}.yaml"
 
-            # Read existing content or start fresh
-            existing_content = ""
+            # Read existing devices
+            existing_devices = []
             if platform_file.exists():
                 with open(platform_file, "r", encoding="utf-8") as f:
-                    existing_content = f.read()
-            else:
-                # Add header comment for new file
-                existing_content = f"# SmartIR {platform.title()} Devices\n# Managed by Broadlink Manager\n\n"
+                    content = yaml.safe_load(f)
+                    if content:
+                        existing_devices = content if isinstance(content, list) else []
 
-            # Append new device config
-            new_entry = f"\n- platform: smartir\n"
-            for key, value in device_config.items():
-                if isinstance(value, str):
-                    new_entry += f'  {key}: "{value}"\n'
-                else:
-                    new_entry += f"  {key}: {value}\n"
+            # Add new device
+            existing_devices.append(device_config)
 
-            updated_content = existing_content + new_entry
+            # Validate the entire file content
+            is_valid, errors = YAMLValidator.validate_yaml_file_content(existing_devices, platform)
+            if not is_valid:
+                error_msg = "YAML file validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                logger.error(error_msg)
+                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
 
-            # Write updated file
+            # Generate validated YAML
+            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(existing_devices, platform)
+            if not is_valid:
+                error_msg = "YAML generation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                logger.error(error_msg)
+                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
+
+            # Create backup before writing
+            if platform_file.exists():
+                backup_path = platform_file.with_suffix(platform_file.suffix + ".backup")
+                try:
+                    shutil.copy2(platform_file, backup_path)
+                    logger.info(f"Created backup: {backup_path}")
+                except Exception as e:
+                    logger.warning(f"Could not create backup: {e}")
+
+            # Write validated YAML
             with open(platform_file, "w", encoding="utf-8") as f:
-                f.write(updated_content)
+                f.write(yaml_string)
 
-            logger.info(f"✅ Added device to {platform_file}")
+            logger.info(f"✅ Added validated device to {platform_file}")
 
             # Also save device_code to metadata for tracking
             storage_manager = current_app.config.get("storage_manager")

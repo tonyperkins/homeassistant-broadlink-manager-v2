@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import yaml
+from yaml_validator import YAMLValidator
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +55,13 @@ class SmartIRYAMLGenerator:
 
             # Build device configuration
             config = self._build_device_config(device_id, device_data, controller_entity)
+            
+            # Debug: Log the config being generated
+            logger.info(f"Generated config for {device_id}: platform={config.get('platform')}, name={config.get('name')}, device_code={config.get('device_code')}")
 
             # Write to platform-specific file
             platform_file = self.smartir_dir / f"{entity_type}.yaml"
-            success = self._append_device_to_file(platform_file, config, entity_type)
+            success, validation_errors = self._append_device_to_file(platform_file, config, entity_type)
 
             if success:
                 return {
@@ -67,7 +71,8 @@ class SmartIRYAMLGenerator:
                     "config": config,
                 }
             else:
-                return {"success": False, "error": "Failed to write configuration file"}
+                error_msg = "Device configuration validation failed:\n" + "\n".join(f"  - {e}" for e in (validation_errors or ["Unknown error"]))
+                return {"success": False, "error": error_msg, "validation_errors": validation_errors}
 
         except Exception as e:
             logger.error(f"Error generating SmartIR config for {device_id}: {e}")
@@ -151,9 +156,9 @@ class SmartIRYAMLGenerator:
 
         return config
 
-    def _append_device_to_file(self, file_path: Path, config: Dict[str, Any], entity_type: str) -> bool:
+    def _append_device_to_file(self, file_path: Path, config: Dict[str, Any], entity_type: str) -> tuple[bool, Optional[List[str]]]:
         """
-        Append device configuration to platform file
+        Append device configuration to platform file with validation
 
         Args:
             file_path: Path to platform YAML file
@@ -161,9 +166,17 @@ class SmartIRYAMLGenerator:
             entity_type: Entity type (climate, fan, media_player)
 
         Returns:
-            True if successful, False otherwise
+            Tuple of (success, validation_errors)
         """
         try:
+            # Validate the device config before proceeding
+            is_valid, errors = YAMLValidator.validate_device_config(config, entity_type)
+            if not is_valid:
+                logger.error(f"Device configuration validation failed for {config.get('unique_id', 'unknown')}:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+                return False, errors
+
             # Read existing content
             existing_devices = []
             if file_path.exists():
@@ -192,15 +205,42 @@ class SmartIRYAMLGenerator:
                 existing_devices.append(config)
                 logger.info(f"Added new SmartIR device: {unique_id}")
 
-            # Write back to file
-            with open(file_path, "w", encoding="utf-8") as f:
-                yaml.dump(existing_devices, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            # Validate the entire file content before writing
+            is_valid, errors = YAMLValidator.validate_yaml_file_content(existing_devices, entity_type)
+            if not is_valid:
+                logger.error(f"YAML file validation failed for {file_path}:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+                return False, errors
 
-            return True
+            # Generate and validate YAML string
+            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(existing_devices, entity_type)
+            if not is_valid:
+                logger.error(f"YAML generation failed for {file_path}:")
+                for error in errors:
+                    logger.error(f"  - {error}")
+                return False, errors
+
+            # Create backup before writing
+            if file_path.exists():
+                backup_path = file_path.with_suffix(file_path.suffix + ".backup")
+                try:
+                    import shutil
+                    shutil.copy2(file_path, backup_path)
+                    logger.info(f"Created backup: {backup_path}")
+                except Exception as e:
+                    logger.warning(f"Could not create backup: {e}")
+
+            # Write validated YAML to file
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(yaml_string)
+
+            logger.info(f"✅ Successfully wrote validated YAML to {file_path}")
+            return True, None
 
         except Exception as e:
             logger.error(f"Error writing to {file_path}: {e}")
-            return False
+            return False, [str(e)]
 
     def remove_device_from_file(self, device_id: str, entity_type: str) -> Dict[str, Any]:
         """

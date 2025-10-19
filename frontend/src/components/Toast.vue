@@ -6,7 +6,7 @@
           v-for="toast in toasts"
           :key="toast.id"
           class="toast"
-          :class="[`toast-${toast.type}`]"
+          :class="[`toast-${toast.type}`, { 'toast-persistent': toast.type === 'error' || toast.type === 'warning' }]"
         >
           <i class="mdi" :class="getIcon(toast.type)"></i>
           <div class="toast-content">
@@ -14,7 +14,12 @@
             <div class="toast-message">{{ toast.message }}</div>
             <div v-if="toast.description" class="toast-description">{{ toast.description }}</div>
           </div>
-          <button @click="removeToast(toast.id)" class="toast-close">
+          <button 
+            @click="removeToast(toast.id)" 
+            class="toast-close"
+            :class="{ 'toast-close-prominent': toast.type === 'error' || toast.type === 'warning' }"
+            :title="toast.type === 'error' || toast.type === 'warning' ? 'Click to dismiss' : 'Close'"
+          >
             <i class="mdi mdi-close"></i>
           </button>
         </div>
@@ -67,8 +72,8 @@ defineExpose({
   removeToast,
   show: addToast,  // Alias for consistency
   success: (message, title) => addToast({ message, title, type: 'success' }),
-  error: (message, title) => addToast({ message, title, type: 'error', duration: 8000 }),
-  warning: (message, title) => addToast({ message, title, type: 'warning', duration: 6000 }),
+  error: (message, title) => addToast({ message, title, type: 'error', duration: 0 }),  // Persist until manually closed
+  warning: (message, title) => addToast({ message, title, type: 'warning', duration: 0 }),  // Persist until manually closed
   info: (message, title) => addToast({ message, title, type: 'info' })
 })
 </script>
@@ -180,6 +185,20 @@ defineExpose({
 
 .toast-close:hover {
   background: rgba(0, 0, 0, 0.1);
+}
+
+.toast-close-prominent {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toast-close-prominent:hover {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.toast-persistent {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* Animations */

@@ -889,6 +889,7 @@ async function saveToSmartIR() {
     
     // Add device to configuration file
     const deviceConfig = {
+      platform: 'smartir',
       name: `${profile.value.manufacturer} ${profile.value.model}`,
       unique_id: `${profile.value.manufacturer.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${profile.value.model.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
       device_code: codeNumber,
@@ -909,8 +910,16 @@ async function saveToSmartIR() {
     if (!configResponse.ok) {
       const configError = await configResponse.json()
       console.error('Failed to add device to config:', configError)
+      
+      // Format validation errors if available
+      let errorMessage = configError.error || 'Unknown error'
+      if (configError.validation_errors && configError.validation_errors.length > 0) {
+        errorMessage = 'Device configuration validation failed:\n' + 
+          configError.validation_errors.map(e => `  • ${e}`).join('\n')
+      }
+      
       toastRef.value?.warning(
-        `Profile saved but failed to add to config file: ${configError.error}`,
+        `Profile saved but failed to add to config file:\n${errorMessage}`,
         '⚠️ Partial Success'
       )
     }

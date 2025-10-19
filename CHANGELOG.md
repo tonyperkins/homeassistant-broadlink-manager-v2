@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-alpha.1] - 2025-10-18
+## [0.3.0-alpha.1] - 2025-10-19
 
 ### Changed
 - **Version numbering**: Switched from 2.0.x to 0.x.x to properly reflect alpha/pre-release status
@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automatic config reload**: Generate Entities button now automatically reloads both Broadlink and YAML configurations
 - **Enhanced command sync**: Fan-specific commands (`fan_off`, `fan_reverse`, etc.) now properly sync to metadata
 - **Unit tests**: Added comprehensive tests for entity generator to prevent regressions
+- **Enhanced Diagnostics System**: Added 8 new diagnostic sections for better troubleshooting
+  - Python dependencies tracking with version numbers
+  - Recent log entries (last 20 errors and warnings)
+  - Home Assistant connection testing with version detection
+  - Broadlink device discovery information
+  - Environment variables (sanitized, no secrets)
+  - File system permissions checking
+  - Backup file status with age tracking
+  - SmartIR profile statistics
+  - Enhanced ZIP bundle now includes recent_logs.txt
+  - Improved markdown report with all new sections
 
 ### Fixed
 - **CRITICAL**: Fixed media_player generation to use universal platform instead of unsupported template platform
@@ -57,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed entity generation to include `fan_off` in set_percentage when percentage is 0
 - Fixed command mapping to include all `fan_*` prefixed commands during metadata sync
 - Fixed direction control not appearing in Mushroom Fan Card due to missing remote command in set_direction action
+- **Fixed SmartIR device config API payload structure** - "Missing platform or device_config" error when saving profiles
+  - Frontend now correctly wraps device fields in device_config object
+  - Profiles now save AND add to YAML config file without "Partial Success" warnings
+- **Fixed missing yaml import** in SmartIR API causing "name 'yaml' is not defined" error
 
 ### Changed
 - Fan entities always include direction support (even if no reverse command learned yet)

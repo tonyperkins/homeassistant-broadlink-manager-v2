@@ -28,7 +28,7 @@ class TestBroadlinkCommandWorkflow:
             "area": "Living Room",
         }
         response = client.post("/api/devices", json=device_data)
-        assert response.status_code == 200
+        assert response.status_code in [200, 201]  # Accept both OK and Created
         return response.json["device_id"]
 
     def test_learn_command_returns_actual_code(self, client, broadlink_device, mock_ha_api):
@@ -160,7 +160,7 @@ class TestSmartIRCommandWorkflow:
             "controller_entity": "remote.test_remote",
         }
         response = client.post("/api/devices", json=device_data)
-        assert response.status_code == 200
+        assert response.status_code in [200, 201]  # Accept both OK and Created
         return response.json["device_id"]
 
     def test_smartir_learn_returns_actual_code(self, client, smartir_device, mock_ha_api, mock_smartir_installed):

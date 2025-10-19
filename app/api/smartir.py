@@ -459,24 +459,25 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             # Check if profile is in use by any managed devices
             from flask import current_app
 
-            storage_manager = current_app.config.get("storage_manager")
-            logger.info(f"Checking if profile {code} is in use (storage_manager: {storage_manager is not None})")
+            device_manager = current_app.config.get("device_manager")
+            logger.info(f"Checking if profile {code} is in use (device_manager: {device_manager is not None})")
             
-            if storage_manager:
-                # Get all entities from metadata (includes SmartIR devices)
-                entities = storage_manager.get_all_entities()
-                logger.info(f"Found {len(entities)} entities in storage")
-                logger.info(f"Entity IDs: {list(entities.keys())}")
+            if device_manager:
+                # Get all devices from devices.json (includes SmartIR devices)
+                devices = device_manager.get_all_devices()
+                logger.info(f"Found {len(devices)} devices")
+                logger.info(f"Device IDs: {list(devices.keys())}")
                 devices_using_profile = []
 
-                for entity_id, entity_data in entities.items():
-                    has_device_code = "device_code" in entity_data
-                    device_code_value = entity_data.get('device_code')
-                    logger.info(f"Entity '{entity_id}': has_device_code={has_device_code}, device_code={device_code_value}, type={type(device_code_value)}")
+                for device_id, device_data in devices.items():
+                    has_device_code = "device_code" in device_data
+                    device_code_value = device_data.get('device_code')
+                    device_type = device_data.get('device_type')
+                    logger.info(f"Device '{device_id}': type={device_type}, has_device_code={has_device_code}, device_code={device_code_value}")
                     
-                    # Check if this entity has a device_code matching the profile
-                    if "device_code" in entity_data and str(entity_data.get("device_code")) == str(code):
-                        device_name = entity_data.get("friendly_name", entity_data.get("name", entity_id))
+                    # Check if this is a SmartIR device with matching device_code
+                    if device_type == "smartir" and "device_code" in device_data and str(device_data.get("device_code")) == str(code):
+                        device_name = device_data.get("name", device_id)
                         devices_using_profile.append(device_name)
                         logger.info(f"✅ Found device using profile {code}: {device_name}")
 

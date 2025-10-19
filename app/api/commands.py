@@ -380,6 +380,18 @@ def test_command():
                         404,
                     )
 
+                # Check if the code is a placeholder (e.g., "pending")
+                if raw_code.lower() in ["pending", "null", "none", ""]:
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": f'Command "{command}" has not been learned yet (status: {raw_code})',
+                            }
+                        ),
+                        400,
+                    )
+
                 logger.info(f"Found raw IR code for command '{command}' in SmartIR code file {device_code}")
 
                 # Send the raw code directly with b64: prefix

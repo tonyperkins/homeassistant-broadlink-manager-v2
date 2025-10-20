@@ -1482,50 +1482,48 @@ const handleSendCommand = async ({ device, command }) => {
 
 /* ===== Mobile Responsive Styles ===== */
 @media (max-width: 767px) {
-  /* Card header adjustments */
+  /* Card header adjustments - single row layout */
   .card-header {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     padding: 12px;
-    align-items: flex-start;
+    align-items: center;
   }
 
-  /* Chevron stays on left */
-  .chevron-button {
-    order: 1;
-  }
-
-  /* Header content next to chevron */
+  /* Header left - compact */
   .header-left {
-    order: 2;
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
-    gap: 12px;
+    gap: 8px;
   }
 
-  /* Icon and title stay on same line */
-  .header-icon,
   .header-left h3 {
-    flex-shrink: 0;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Move badges to their own row below */
+  .header-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .header-icon i {
+    font-size: 20px;
+  }
+
+  /* Hide badges on mobile */
   .header-badges {
-    width: 100%;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
+    display: none;
   }
 
-  /* Force buttons to new line */
+  /* Buttons stay on same row */
   .header-right {
-    order: 3;
-    width: 100%;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: row;
-    justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
   }
 
   .header-right .btn {

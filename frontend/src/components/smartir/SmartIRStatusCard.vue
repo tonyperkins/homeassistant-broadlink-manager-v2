@@ -1444,40 +1444,36 @@ defineExpose({
 
 /* ===== Mobile Responsive Styles ===== */
 @media (max-width: 767px) {
-  /* Card header adjustments */
+  /* Card header adjustments - single row layout */
   .card-header {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     padding: 12px;
-    align-items: flex-start;
+    align-items: center;
   }
 
-  /* Keep chevron on left */
-  .chevron-button {
-    order: 1;
-  }
-
-  /* Header content next to chevron */
+  /* Header left - compact */
   .header-left {
-    order: 2;
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
-    gap: 12px;
+    gap: 8px;
   }
 
-  /* Logo and title stay on same line */
-  .smartir-logo,
   .header-left h3 {
-    flex-shrink: 0;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Move badges to their own row below */
+  .smartir-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Hide badges on mobile */
   .header-badges {
-    width: 100%;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
+    display: none;
   }
 
   .simulation-toggle-pill {
@@ -1495,14 +1491,12 @@ defineExpose({
     }
   }
 
-  /* Force buttons to new line */
+  /* Buttons stay on same row */
   .header-right {
-    order: 3;
-    width: 100%;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: row;
-    justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
   }
 
   .header-right .btn {

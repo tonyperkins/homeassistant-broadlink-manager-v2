@@ -138,6 +138,11 @@ foreach ($item in $itemsToCopy) {
     
     if (Test-Path $sourcePath) {
         try {
+            # Remove target if it exists to avoid conflicts
+            if (Test-Path $targetPath) {
+                Remove-Item -Path $targetPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            
             if (Test-Path $sourcePath -PathType Container) {
                 Write-Info "Copying directory: $item"
                 Copy-Item -Path $sourcePath -Destination $targetPath -Recurse -Force -Exclude "__pycache__","*.pyc","*.pyo","*.log",".DS_Store"

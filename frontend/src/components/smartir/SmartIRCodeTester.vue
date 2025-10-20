@@ -106,6 +106,10 @@
                 {{ device.friendly_name || device.entity_id }}
               </option>
             </select>
+            <p v-if="!selectedDevice" class="helper-text">
+              <i class="mdi mdi-information-outline"></i>
+              Select a Broadlink device to enable command testing
+            </p>
           </div>
 
           <!-- Commands List -->
@@ -188,6 +192,7 @@
                   <button 
                     @click="testCommand(cmd.name)"
                     :disabled="!selectedDevice || testingCommand === cmd.name"
+                    :title="!selectedDevice ? 'Select a Broadlink device first' : 'Test this command'"
                     class="btn-test"
                   >
                     <i class="mdi" :class="testingCommand === cmd.name ? 'mdi-loading mdi-spin' : 'mdi-play'"></i>
@@ -842,6 +847,24 @@ function close() {
 
 .device-selector label i {
   font-size: 18px;
+  color: var(--ha-primary-color);
+}
+
+.helper-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ha-text-secondary-color);
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+  border-left: 3px solid var(--ha-primary-color);
+  border-radius: 4px;
+}
+
+.helper-text i {
+  font-size: 16px;
   color: var(--ha-primary-color);
 }
 

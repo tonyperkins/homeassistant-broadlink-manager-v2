@@ -1553,4 +1553,75 @@ onMounted(() => {
 :global(.dark-mode) .checkbox-item:hover {
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767px) {
+  .modal-container {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal-body {
+    padding: 16px;
+    padding-bottom: 80px; /* Extra padding to prevent footer overlap */
+  }
+
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    padding: 12px 16px;
+    background: var(--ha-card-background);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-footer button {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+
+  .save-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .save-buttons button {
+    width: 100%;
+  }
+
+  .progress-steps {
+    padding: 16px 12px;
+    gap: 8px;
+  }
+
+  .step {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .step-label {
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

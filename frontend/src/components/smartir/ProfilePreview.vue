@@ -525,4 +525,110 @@ async function copyYaml() {
 :global(.dark-mode) .step-content code {
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767px) {
+  .profile-preview h3 {
+    font-size: 18px;
+  }
+
+  .preview-summary {
+    padding: 14px;
+  }
+
+  .summary-card h4 {
+    font-size: 16px;
+  }
+
+  .summary-card p {
+    font-size: 13px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .preview-tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .code-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .code-header h4 {
+    font-size: 15px;
+  }
+
+  .btn-copy {
+    width: 100%;
+  }
+
+  .code-block {
+    font-size: 11px;
+    padding: 12px;
+    max-height: 300px;
+  }
+
+  .code-note {
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .step-item {
+    gap: 12px;
+  }
+
+  .step-number {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .step-content h5 {
+    font-size: 14px;
+  }
+
+  .step-content p {
+    font-size: 13px;
+  }
+
+  .code-path {
+    padding: 6px 10px;
+  }
+
+  .code-path code {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .tips-section {
+    padding: 14px;
+  }
+
+  .tips-section h4 {
+    font-size: 14px;
+  }
+
+  .tips-section li {
+    font-size: 13px;
+  }
+}
 </style>

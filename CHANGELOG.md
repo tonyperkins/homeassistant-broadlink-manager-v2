@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.2] - 2025-10-20
+
+### Added
+- **Collapsible Filters**: Filter sections now collapse/expand with icon button
+  - Filter icon button with active filter count badge
+  - Filters collapsed by default for cleaner interface
+  - Badge shows number of active filters
+- **Auto-Expand on Settings**: Clicking settings cog automatically expands section if collapsed
+- **Mobile Improvements**: Enhanced mobile layout for device discovery components
+  - Discovery banner stacks vertically on mobile
+  - Full-width buttons for better touch targets
+  - Modal improvements with proper spacing
+- **Release Process Documentation**: Added comprehensive release process guide and version bump script
+  - `docs/RELEASE_PROCESS.md` - Complete release workflow
+  - `scripts/bump_version.py` - Automated version bumping tool
+
+### Changed
+- **Filter UI Redesign**: Replaced filter header with compact icon button next to search
+  - Filter icon positioned left of search box
+  - Search box takes full width with icon inside
+  - Cleaner, more modern layout matching Home Assistant design patterns
+- **Welcome Banner**: Hidden on mobile devices, dismissable on desktop
+  - Dismiss button in top-right corner
+  - State persists in localStorage
+- **Mobile Headers**: Icon and text now properly aligned side-by-side
+  - Fixed text alignment in search boxes
+  - Improved header layout on small screens
+
+### Fixed
+- Search box text alignment with icon
+- Mobile header layout (icon and text side-by-side)
+- UTF-8 encoding issues in version bump script for Windows compatibility
+
+
+
 ## [0.3.0-alpha.1] - 2025-10-19
 
 ### Changed

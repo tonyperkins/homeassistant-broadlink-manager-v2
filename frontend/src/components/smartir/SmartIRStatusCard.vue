@@ -6,7 +6,7 @@
       </button>
       <div class="header-left" @click="isExpanded = !isExpanded">
         <img :src="smartirLogo" alt="SmartIR" class="smartir-logo" />
-        <h3>SmartIR Integration</h3>
+        <h3>{{ isMobile ? 'SmartIR' : 'SmartIR Integration' }}</h3>
         
         <!-- Compact Status Info -->
         <div class="header-badges">
@@ -1491,19 +1491,25 @@ defineExpose({
     }
   }
 
-  /* Buttons stay on same row */
+  /* Buttons stay on same row - proper mobile sizing */
   .header-right {
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
   }
 
-  .header-right .btn {
-    width: auto;
-    min-width: 44px;
-    padding: 10px 12px;
+  .header-right .btn,
+  .header-right .icon-button {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    border-radius: 10px;
   }
 
   /* Hide button text on mobile, show icons only */
@@ -1511,14 +1517,10 @@ defineExpose({
     font-size: 0;
   }
 
-  .header-right .btn i {
-    font-size: 20px;
+  .header-right .btn i,
+  .header-right .icon-button i {
+    font-size: 22px;
     margin: 0;
-  }
-
-  .header-right .icon-button {
-    width: auto;
-    min-width: 44px;
   }
 
   /* Filter bar mobile layout */

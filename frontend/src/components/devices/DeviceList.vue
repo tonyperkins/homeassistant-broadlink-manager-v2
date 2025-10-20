@@ -8,7 +8,7 @@
         <div class="header-icon">
           <i class="mdi mdi-devices"></i>
         </div>
-        <h3>Managed Devices</h3>
+        <h3>{{ isMobile ? 'Devices' : 'Managed Devices' }}</h3>
         <div class="header-badges">
           <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
         </div>
@@ -1518,19 +1518,24 @@ const handleSendCommand = async ({ device, command }) => {
     display: none;
   }
 
-  /* Buttons stay on same row */
+  /* Buttons stay on same row - proper mobile sizing */
   .header-right {
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
   }
 
   .header-right .btn {
-    width: auto;
-    min-width: 44px;
-    padding: 10px 12px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
     justify-content: center;
+    border-radius: 10px;
   }
 
   /* Hide button text on mobile, show icons only */
@@ -1539,7 +1544,7 @@ const handleSendCommand = async ({ device, command }) => {
   }
 
   .header-right .btn i {
-    font-size: 20px;
+    font-size: 22px;
     margin: 0;
   }
 

@@ -1494,10 +1494,13 @@ const handleSendCommand = async ({ device, command }) => {
     min-width: 0;
   }
 
+  /* Force buttons to new line */
   .header-right {
+    order: 3;
     width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: flex-end;
     gap: 8px;
   }
 
@@ -1516,13 +1519,6 @@ const handleSendCommand = async ({ device, command }) => {
   .header-right .btn i {
     font-size: 20px;
     margin: 0;
-  }
-
-  /* Arrange buttons in a row */
-  .header-right {
-    flex-direction: row;
-    justify-content: flex-end;
-    gap: 8px;
   }
 
   /* Filter bar mobile layout */

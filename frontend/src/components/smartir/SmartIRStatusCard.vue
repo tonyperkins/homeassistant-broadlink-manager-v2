@@ -1476,7 +1476,9 @@ defineExpose({
     }
   }
 
+  /* Force buttons to new line */
   .header-right {
+    order: 3;
     width: 100%;
     display: flex;
     flex-direction: row;

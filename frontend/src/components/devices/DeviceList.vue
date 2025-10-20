@@ -15,32 +15,33 @@
       </div>
       <div class="header-right">
         <button 
-          @click.stop="syncAllAreas" 
-          class="btn btn-secondary"
-          :disabled="syncingAreas"
-          :title="isMobile ? 'Sync areas' : 'Sync all areas from Home Assistant'"
-        >
-          <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
-          <span v-if="!isMobile">{{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}</span>
-          <span v-else class="mobile-label">Areas</span>
-        </button>
-        <button 
-          @click.stop="generateEntities" 
-          class="btn btn-secondary"
-          :disabled="generatingEntities"
-          :title="isMobile ? 'Generate entities' : 'Generate entities for all devices'"
-        >
-          <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
-          <span v-if="!isMobile">{{ generatingEntities ? 'Generating...' : 'Generate Entities' }}</span>
-          <span v-else class="mobile-label">Entities</span>
-        </button>
-        <button 
           @click.stop="showCreateForm = true" 
-          class="btn btn-primary"
+          class="btn btn-primary new-button"
         >
           <i class="mdi mdi-plus"></i>
-          <span v-if="!isMobile">Add Device</span>
+          <span>New</span>
         </button>
+        <!-- Settings Menu -->
+        <div class="settings-menu-container">
+          <button 
+            @click.stop="showSettingsMenu = !showSettingsMenu" 
+            class="icon-button settings-button"
+            :class="{ active: showSettingsMenu }"
+            title="Settings"
+          >
+            <i class="mdi mdi-cog"></i>
+          </button>
+          <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="syncAllAreas(); showSettingsMenu = false" class="menu-item" :disabled="syncingAreas">
+              <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
+              <span>{{ syncingAreas ? 'Syncing Areas...' : 'Sync Areas' }}</span>
+            </button>
+            <button @click="generateEntities(); showSettingsMenu = false" class="menu-item" :disabled="generatingEntities">
+              <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
+              <span>{{ generatingEntities ? 'Generating...' : 'Generate Entities' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -284,6 +285,7 @@ const showCreateForm = ref(false)
 const showCommandLearner = ref(false)
 const selectedDevice = ref(null)
 const showDeleteConfirm = ref(false)
+const showSettingsMenu = ref(false)
 const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
 const isExpanded = ref(true)
@@ -1046,6 +1048,62 @@ const handleSendCommand = async ({ device, command }) => {
   font-size: 20px;
 }
 
+.icon-button.active {
+  background: var(--ha-primary-color);
+  color: white;
+}
+
+/* Settings Menu */
+.settings-menu-container {
+  position: relative;
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  box-shadow: var(--ha-shadow-lg);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.settings-dropdown .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--ha-text-primary-color);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.settings-dropdown .menu-item:hover:not(:disabled) {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.settings-dropdown .menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-dropdown .menu-item i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.settings-dropdown .menu-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .chevron-button {
   pointer-events: none;
 }
@@ -1526,38 +1584,41 @@ const handleSendCommand = async ({ device, command }) => {
     align-items: center;
   }
 
-  .header-right .btn {
+  /* New button - larger with text */
+  .header-right .new-button {
     height: 48px;
     min-height: 48px;
-    padding: 0 12px;
+    padding: 0 20px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    border-radius: 10px;
-    white-space: nowrap;
+    gap: 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
   }
 
-  .header-right .btn i {
+  .header-right .new-button i {
     font-size: 20px;
     margin: 0;
   }
 
-  .header-right .btn .mobile-label {
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  /* Plus button - icon only */
-  .header-right .btn-primary {
+  /* Settings icon button */
+  .header-right .icon-button {
     width: 48px;
+    height: 48px;
     min-width: 48px;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
   }
 
-  .header-right .btn-primary i {
+  .header-right .icon-button i {
     font-size: 22px;
+    margin: 0;
   }
 
   /* Filter bar mobile layout */

@@ -34,11 +34,19 @@
         </div>
       </div>
       <div class="header-right">
+        <button 
+          v-if="displayStatus?.installed" 
+          @click.stop="createProfile" 
+          class="btn btn-primary new-button"
+        >
+          <i class="mdi mdi-plus"></i>
+          <span>New</span>
+        </button>
         <!-- Settings Menu -->
         <div v-if="displayStatus?.installed" class="settings-menu-container">
           <button 
             @click.stop="showSettingsMenu = !showSettingsMenu" 
-            class="icon-button"
+            class="icon-button settings-button"
             :class="{ active: showSettingsMenu }"
             title="Settings"
           >
@@ -59,14 +67,6 @@
             </button>
           </div>
         </div>
-        <button 
-          v-if="displayStatus?.installed" 
-          @click.stop="createProfile" 
-          class="btn btn-primary"
-        >
-          <i class="mdi mdi-plus"></i>
-          <span v-if="!isMobile">Create SmartIR Profile</span>
-        </button>
       </div>
     </div>
 
@@ -1553,6 +1553,27 @@ defineExpose({
     align-items: center;
   }
 
+  /* New button - larger with text */
+  .header-right .new-button {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .header-right .new-button i {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  /* Settings icon button */
   .header-right .icon-button {
     width: 48px;
     height: 48px;
@@ -1567,27 +1588,6 @@ defineExpose({
   .header-right .icon-button i {
     font-size: 22px;
     margin: 0;
-  }
-
-  /* Plus button - icon only on mobile */
-  .header-right .btn-primary {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-  }
-
-  .header-right .btn-primary i {
-    font-size: 22px;
-    margin: 0;
-  }
-
-  .header-right .btn-primary span {
-    display: none;
   }
 
   /* Filter bar mobile layout */

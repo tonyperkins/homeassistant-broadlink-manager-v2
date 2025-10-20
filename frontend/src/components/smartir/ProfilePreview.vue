@@ -558,13 +558,20 @@ async function copyYaml() {
   }
 
   .preview-tabs {
-    flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    overflow-x: auto;
   }
 
   .tab-button {
-    width: 100%;
-    justify-content: center;
+    flex: 1;
+    min-width: fit-content;
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .tab-button i {
+    font-size: 16px;
   }
 
   .code-header {

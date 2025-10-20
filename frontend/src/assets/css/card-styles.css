@@ -314,6 +314,21 @@
   .profile-actions {
     gap: 8px;
   }
+
+  /* Stack command count and buttons on mobile */
+  .profile-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-stats {
+    width: 100%;
+  }
+
+  .profile-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 /* Very small screens (< 360px) */

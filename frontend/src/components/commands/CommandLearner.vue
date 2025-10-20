@@ -1244,7 +1244,7 @@ const handleImportConfirm = async () => {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .modal-overlay {
     padding: 0;
   }
@@ -1253,6 +1253,77 @@ const handleImportConfirm = async () => {
     max-width: 100%;
     max-height: 100vh;
     border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer button {
+    width: 100%;
+  }
+
+  /* Command list items */
+  .command-item {
+    padding: 12px;
+  }
+
+  .command-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .command-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .command-actions button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Tracked commands section */
+  .tracked-commands-header h3 {
+    font-size: 16px;
+  }
+
+  /* Form groups */
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+  }
+
+  /* SmartIR info */
+  .smartir-info {
+    padding: 12px;
+  }
+
+  .smartir-info h3 {
+    font-size: 16px;
+  }
+
+  .smartir-info p {
+    font-size: 13px;
   }
 }
 </style>

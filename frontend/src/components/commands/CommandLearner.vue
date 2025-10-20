@@ -132,8 +132,16 @@
         <!-- Section Divider -->
         <div v-if="learnedCommands.length > 0 || untrackedCommands.length > 0" class="section-divider"></div>
 
+        <!-- Loading Commands -->
+        <div v-if="loadingCommands" class="loading-commands">
+          <div class="loading-spinner">
+            <i class="mdi mdi-loading mdi-spin"></i>
+            <p>Loading commands...</p>
+          </div>
+        </div>
+
         <!-- Learned Commands List -->
-        <div v-if="learnedCommands.length > 0" class="learned-commands">
+        <div v-else-if="learnedCommands.length > 0" class="learned-commands">
           <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
@@ -246,6 +254,7 @@ const resultMessage = ref('')
 const resultType = ref('success')
 const learnedCommands = ref([])
 const untrackedCommands = ref([])
+const loadingCommands = ref(false)
 const showDeleteConfirm = ref(false)
 const commandToDelete = ref('')
 const showImportConfirm = ref(false)
@@ -384,6 +393,7 @@ const loadBroadlinkDevices = async () => {
 }
 
 const loadLearnedCommands = async (forceReload = false) => {
+  loadingCommands.value = true
   try {
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
@@ -502,6 +512,8 @@ const loadLearnedCommands = async (forceReload = false) => {
     }
   } catch (error) {
     console.error('Error loading commands:', error)
+  } finally {
+    loadingCommands.value = false
   }
 }
 
@@ -963,6 +975,30 @@ const handleImportConfirm = async () => {
 .result-message p {
   margin: 0;
   flex: 1;
+}
+
+.loading-commands {
+  margin-top: 24px;
+  padding: 32px;
+  text-align: center;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--ha-text-secondary-color);
+}
+
+.loading-spinner i {
+  font-size: 32px;
+  color: var(--ha-primary-color);
+}
+
+.loading-spinner p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .learned-commands,

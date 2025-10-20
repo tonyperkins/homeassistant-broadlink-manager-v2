@@ -1542,16 +1542,23 @@ const handleSendCommand = async ({ device, command }) => {
   /* Card header adjustments - single row layout */
   .card-header {
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 12px;
     padding: 12px;
     align-items: center;
+    justify-content: space-between;
   }
 
-  /* Header left - compact */
+  /* Chevron button */
+  .chevron-button {
+    flex-shrink: 0;
+  }
+
+  /* Header left - compact, allow to shrink */
   .header-left {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-width: 0;
     gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .header-left h3 {
@@ -1562,12 +1569,13 @@ const handleSendCommand = async ({ device, command }) => {
   }
 
   .header-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
   }
 
   .header-icon i {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   /* Hide badges on mobile */

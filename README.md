@@ -178,7 +178,7 @@ Before installing this add-on, ensure you have:
 3. Click the **⋮** menu (top right) and select **Repositories**
 4. Add this repository URL:
    ```
-   https://github.com/tonyperkins/homeassistant-broadlink-manager
+   https://github.com/tonyperkins/homeassistant-broadlink-manager-v2
    ```
 5. Click **Add** and wait for the repository to load
 
@@ -342,7 +342,16 @@ The add-on can automatically create Home Assistant entities from your learned co
    - The add-on will auto-detect entity types based on command names
    - You can manually adjust entity types and command roles
 3. **Generate entity files** by clicking the "Generate Entities" button
-4. **Add to configuration.yaml**:
+4. **Add to configuration.yaml** (if not already using the package method):
+
+   **Option A: Using Package (Recommended)** - If you added this during setup, you're done!
+   ```yaml
+   homeassistant:
+     packages:
+       broadlink_manager: !include broadlink_manager/package.yaml
+   ```
+
+   **Option B: Individual Includes** - Only if you prefer manual control:
    ```yaml
    light: !include broadlink_manager/entities.yaml
    fan: !include broadlink_manager/entities.yaml
@@ -350,6 +359,7 @@ The add-on can automatically create Home Assistant entities from your learned co
    input_boolean: !include broadlink_manager/helpers.yaml
    input_select: !include broadlink_manager/helpers.yaml
    ```
+
 5. **Restart Home Assistant** and your entities will appear!
 
 #### Supported Entity Types
@@ -390,11 +400,9 @@ For best auto-detection results, use these naming patterns:
 - **[API Reference](docs/API.md)** - Complete REST API documentation
 - **[Development Guide](docs/DEVELOPMENT.md)** - Development workflow and testing
 - **[Testing Guide](docs/TESTING.md)** - Comprehensive testing documentation with automated and manual test plans
-- **[Testing Quick Start](TESTING_QUICKSTART.md)** - Get started with testing in 5 minutes
+- **[Testing Quick Start](docs/development/TESTING_QUICKSTART.md)** - Get started with testing in 5 minutes
 - **[E2E Testing Guide](docs/E2E_TESTING.md)** - Browser automation testing with Playwright
-- **[E2E Quick Start](E2E_QUICKSTART.md)** - Browser testing in 5 minutes
 - **[Contributing Guidelines](docs/CONTRIBUTING.md)** - How to contribute to this project
-- **[Dual Mode Implementation](docs/DUAL_MODE_IMPLEMENTATION.md)** - Technical architecture details
 
 ### 📚 Additional Resources
 - **[Documentation Index](docs/DOCS.md)** - Complete documentation overview

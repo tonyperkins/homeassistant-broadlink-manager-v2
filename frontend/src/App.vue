@@ -464,8 +464,9 @@ provide('toast', toastRef)
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 220px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   z-index: 1000;
-  overflow: hidden;
   animation: slideDown 0.2s ease-out;
 }
 

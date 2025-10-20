@@ -1574,16 +1574,38 @@ onMounted(() => {
     padding: 12px 16px;
     background: var(--ha-card-background);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .modal-footer button {
-    font-size: 14px;
-    padding: 10px 16px;
+    font-size: 13px;
+    padding: 10px 14px;
   }
 
+  /* Back button - full width on its own row */
+  .modal-footer > .btn-secondary:first-child {
+    order: -1;
+    width: 100%;
+  }
+
+  /* Spacer - hide on mobile */
+  .spacer {
+    display: none;
+  }
+
+  /* Cancel and Next/Save buttons - share a row */
+  .btn-text,
+  .btn-primary {
+    flex: 1;
+  }
+
+  /* Save buttons container - full width, stacked */
   .save-buttons {
+    order: 1;
     flex-direction: column;
     width: 100%;
+    gap: 8px;
   }
 
   .save-buttons button {

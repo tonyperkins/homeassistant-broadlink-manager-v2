@@ -49,7 +49,7 @@
               <i class="mdi mdi-help-circle"></i>
               <span>{{ showHelp ? 'Hide Help' : 'Show Help' }}</span>
             </button>
-            <button @click="refreshStatus" class="menu-item">
+            <button @click="showSettingsMenu = false; refreshStatus()" class="menu-item">
               <i class="mdi mdi-refresh"></i>
               <span>Refresh Status</span>
             </button>
@@ -467,13 +467,6 @@ function toggleHelp() {
 function openCodeTester() {
   showCodeTester.value = true
   showSettingsMenu.value = false
-}
-
-function refreshStatus() {
-  showSettingsMenu.value = false
-  if (refreshSmartIR) {
-    refreshSmartIR()
-  }
 }
 
 function openSmartIRGitHub() {

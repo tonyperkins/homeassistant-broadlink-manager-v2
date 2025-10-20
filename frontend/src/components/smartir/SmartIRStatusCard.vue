@@ -1463,6 +1463,7 @@ defineExpose({
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    gap: 12px;
   }
 
   /* Logo and title stay together */

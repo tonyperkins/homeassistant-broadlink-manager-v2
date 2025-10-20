@@ -1495,6 +1495,7 @@ const handleSendCommand = async ({ device, command }) => {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    gap: 12px;
   }
 
   /* Icon and title stay together */

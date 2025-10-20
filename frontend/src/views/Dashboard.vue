@@ -52,6 +52,7 @@
 <script setup>
 import { ref, inject } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useResponsive } from '@/composables/useResponsive'
 import DeviceList from '@/components/devices/DeviceList.vue'
 import SmartIRBanner from '@/components/common/SmartIRBanner.vue'
 import SmartIRStatusCard from '@/components/smartir/SmartIRStatusCard.vue'
@@ -59,6 +60,7 @@ import SmartIRProfileBuilder from '@/components/smartir/SmartIRProfileBuilder.vu
 
 const toast = useToast()
 const smartirEnabled = inject('smartirEnabled')
+const { isMobile } = useResponsive()
 
 const showProfileBuilder = ref(false)
 const editMode = ref(false)
@@ -158,6 +160,25 @@ async function handleProfileSave(result) {
   box-shadow: var(--ha-shadow-md);
 }
 
+/* Mobile responsive layout */
+@media (max-width: 767px) {
+  .welcome-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .banner-content {
+    width: 100%;
+  }
+  
+  .status-badges {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .banner-content {
   display: flex;
   align-items: center;
@@ -168,16 +189,34 @@ async function handleProfileSave(result) {
   font-size: 48px;
 }
 
+@media (max-width: 767px) {
+  .banner-icon i {
+    font-size: 36px;
+  }
+}
+
 .banner-text h2 {
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 500;
 }
 
+@media (max-width: 767px) {
+  .banner-text h2 {
+    font-size: 18px;
+  }
+}
+
 .banner-text p {
   margin: 0;
   opacity: 0.9;
   font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .banner-text p {
+    font-size: 13px;
+  }
 }
 
 .status-badges {

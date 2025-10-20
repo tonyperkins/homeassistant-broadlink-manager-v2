@@ -128,8 +128,8 @@
           Clear
         </button>
 
-        <!-- View Toggle Button Group -->
-        <div class="view-toggle-group">
+        <!-- View Toggle Button Group (hidden on mobile) -->
+        <div v-if="!isMobile" class="view-toggle-group">
           <button 
             @click="viewMode = 'grid'" 
             class="view-toggle-btn"
@@ -268,6 +268,7 @@
 import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
+import { useResponsive } from '@/composables/useResponsive'
 import DeviceCard from './DeviceCard.vue'
 import DeviceListView from './DeviceListView.vue'
 import DeviceForm from './DeviceForm.vue'
@@ -279,6 +280,7 @@ import api from '@/services/api'
 
 const deviceStore = useDeviceStore()
 const toast = useToast()
+const { isMobile } = useResponsive()
 const showCreateForm = ref(false)
 const showCommandLearner = ref(false)
 const selectedDevice = ref(null)
@@ -290,12 +292,33 @@ const generatingEntities = ref(false)
 const syncingAreas = ref(false)
 
 // View mode (grid or list)
-const viewMode = ref(localStorage.getItem('device_view_mode') || 'grid')
+// On mobile, always use grid view; on desktop, use saved preference
+const getInitialViewMode = () => {
+  if (window.innerWidth <= 767) return 'grid'
+  return localStorage.getItem('device_view_mode') || 'grid'
+}
+const viewMode = ref(getInitialViewMode())
+
+// Watch for mobile state changes and force grid view on mobile
+watch(isMobile, (newIsMobile) => {
+  if (newIsMobile && viewMode.value === 'list') {
+    viewMode.value = 'grid'
+  }
+})
 
 const toggleViewMode = () => {
+  // Don't allow list view on mobile
+  if (isMobile.value && viewMode.value === 'grid') {
+    return
+  }
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
   localStorage.setItem('device_view_mode', viewMode.value)
 }
+
+// Watch viewMode changes to save preference
+watch(viewMode, (newMode) => {
+  localStorage.setItem('device_view_mode', newMode)
+})
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
@@ -1455,5 +1478,133 @@ const handleSendCommand = async ({ device, command }) => {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* Card header adjustments */
+  .card-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-right {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .header-right .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Filter bar mobile layout */
+  .filter-bar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .filter-row {
+    gap: 8px;
+  }
+
+  .filter-row-search {
+    margin-bottom: 8px;
+  }
+
+  .filter-search {
+    width: 100%;
+  }
+
+  .filter-search input {
+    width: 100%;
+  }
+
+  .filter-row-dropdowns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .filter-group select {
+    width: 100%;
+  }
+
+  .btn-clear-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-results {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+
+  /* Device grid - single column on mobile */
+  .device-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Increase touch target sizes */
+  .btn,
+  .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .view-toggle-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Card body padding */
+  .card-body {
+    padding: 12px;
+  }
+
+  /* Empty/Error/Loading states */
+  .empty-state,
+  .error-state,
+  .loading-state {
+    padding: 40px 16px;
+  }
+
+  /* Header badges - stack on very small screens */
+  @media (max-width: 400px) {
+    .header-badges {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .device-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .filter-row-dropdowns {
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    min-width: 200px;
+  }
 }
 </style>

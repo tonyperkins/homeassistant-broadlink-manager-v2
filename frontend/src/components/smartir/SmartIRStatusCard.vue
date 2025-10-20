@@ -142,8 +142,8 @@
             Clear
           </button>
 
-          <!-- View Toggle Button Group -->
-          <div class="view-toggle-group">
+          <!-- View Toggle Button Group (hidden on mobile) -->
+          <div v-if="!isMobile" class="view-toggle-group">
             <button 
               @click="viewMode = 'grid'" 
               class="view-toggle-btn"
@@ -269,6 +269,7 @@
 <script setup>
 import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
+import { useResponsive } from '@/composables/useResponsive'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import SmartIRProfileCard from './SmartIRProfileCard.vue'
 import SmartIRProfileListView from './SmartIRProfileListView.vue'
@@ -282,6 +283,7 @@ const emit = defineEmits(['create-profile', 'edit-profile'])
 const smartirStatus = inject('smartirStatus')
 const smartirEnabled = inject('smartirEnabled')
 const refreshSmartIR = inject('refreshSmartIR')
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const error = ref(null)
@@ -306,12 +308,33 @@ const confirmDelete = ref({
 const showCodeTester = ref(false)
 
 // View mode (grid or list)
-const viewMode = ref(localStorage.getItem('profile_view_mode') || 'grid')
+// On mobile, always use grid view; on desktop, use saved preference
+const getInitialViewMode = () => {
+  if (window.innerWidth <= 767) return 'grid'
+  return localStorage.getItem('profile_view_mode') || 'grid'
+}
+const viewMode = ref(getInitialViewMode())
+
+// Watch for mobile state changes and force grid view on mobile
+watch(isMobile, (newIsMobile) => {
+  if (newIsMobile && viewMode.value === 'list') {
+    viewMode.value = 'grid'
+  }
+})
 
 const toggleViewMode = () => {
+  // Don't allow list view on mobile
+  if (isMobile.value && viewMode.value === 'grid') {
+    return
+  }
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
   localStorage.setItem('profile_view_mode', viewMode.value)
 }
+
+// Watch viewMode changes to save preference
+watch(viewMode, (newMode) => {
+  localStorage.setItem('profile_view_mode', newMode)
+})
 
 const defaultBenefits = [
   'Full climate entity support (AC, heaters)',
@@ -1415,5 +1438,166 @@ defineExpose({
 
 :global(.dark-mode) .platform-profiles {
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* Card header adjustments */
+  .card-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .header-badges {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .simulation-toggle-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .simulation-toggle-pill span {
+    display: none; /* Hide text on very small screens */
+  }
+
+  @media (min-width: 400px) {
+    .simulation-toggle-pill span {
+      display: inline; /* Show text on slightly larger screens */
+    }
+  }
+
+  .header-right {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .header-right .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .header-right .icon-button {
+    width: 100%;
+  }
+
+  /* Filter bar mobile layout */
+  .filter-bar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group select,
+  .filter-search input {
+    width: 100%;
+  }
+
+  .btn-clear-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-results {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+
+  /* Profile grid - single column on mobile */
+  .profiles-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Help panel */
+  .help-panel {
+    padding: 12px;
+  }
+
+  .help-actions {
+    flex-direction: column;
+  }
+
+  .help-actions .btn-secondary {
+    width: 100%;
+  }
+
+  /* Not installed state */
+  .not-installed-content {
+    padding: 16px;
+  }
+
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .install-actions {
+    flex-direction: column;
+  }
+
+  .install-actions .btn {
+    width: 100%;
+  }
+
+  /* Increase touch target sizes */
+  .btn,
+  .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Card body padding */
+  .card-body {
+    padding: 12px;
+  }
+
+  /* Platform items */
+  .platform-item {
+    padding: 12px;
+  }
+
+  .platform-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .platform-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .profiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .filter-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    min-width: 200px;
+  }
 }
 </style>

@@ -1479,17 +1479,31 @@ defineExpose({
   .header-right {
     width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: flex-end;
     gap: 8px;
   }
 
   .header-right .btn {
-    width: 100%;
+    width: auto;
+    min-width: 44px;
+    padding: 10px 12px;
     justify-content: center;
   }
 
+  /* Hide button text on mobile, show icons only */
+  .header-right .btn:not(.icon-button) {
+    font-size: 0;
+  }
+
+  .header-right .btn i {
+    font-size: 20px;
+    margin: 0;
+  }
+
   .header-right .icon-button {
-    width: 100%;
+    width: auto;
+    min-width: 44px;
   }
 
   /* Filter bar mobile layout */

@@ -1502,8 +1502,27 @@ const handleSendCommand = async ({ device, command }) => {
   }
 
   .header-right .btn {
-    width: 100%;
+    width: auto;
+    min-width: 44px;
+    padding: 10px 12px;
     justify-content: center;
+  }
+
+  /* Hide button text on mobile, show icons only */
+  .header-right .btn:not(.icon-button) {
+    font-size: 0;
+  }
+
+  .header-right .btn i {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  /* Arrange buttons in a row */
+  .header-right {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 8px;
   }
 
   /* Filter bar mobile layout */

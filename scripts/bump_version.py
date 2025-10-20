@@ -24,7 +24,7 @@ def update_config_yaml(version: str, root_dir: Path) -> bool:
         print(f"❌ Error: {config_file} not found")
         return False
     
-    content = config_file.read_text()
+    content = config_file.read_text(encoding='utf-8')
     
     # Update version line
     new_content = re.sub(
@@ -37,7 +37,7 @@ def update_config_yaml(version: str, root_dir: Path) -> bool:
         print(f"⚠️  Warning: No version found in {config_file}")
         return False
     
-    config_file.write_text(new_content)
+    config_file.write_text(new_content, encoding='utf-8')
     print(f"✅ Updated {config_file}")
     return True
 
@@ -49,7 +49,7 @@ def update_package_json(version: str, root_dir: Path) -> bool:
         print(f"❌ Error: {package_file} not found")
         return False
     
-    content = package_file.read_text()
+    content = package_file.read_text(encoding='utf-8')
     
     # Update version line
     new_content = re.sub(
@@ -62,7 +62,7 @@ def update_package_json(version: str, root_dir: Path) -> bool:
         print(f"⚠️  Warning: No version found in {package_file}")
         return False
     
-    package_file.write_text(new_content)
+    package_file.write_text(new_content, encoding='utf-8')
     print(f"✅ Updated {package_file}")
     return True
 
@@ -74,7 +74,7 @@ def update_changelog(version: str, root_dir: Path) -> bool:
         print(f"❌ Error: {changelog_file} not found")
         return False
     
-    content = changelog_file.read_text()
+    content = changelog_file.read_text(encoding='utf-8')
     
     # Check if version already exists
     if f"## [{version}]" in content:
@@ -94,7 +94,7 @@ def update_changelog(version: str, root_dir: Path) -> bool:
         print(f"⚠️  Warning: Could not find [Unreleased] section in {changelog_file}")
         return False
     
-    changelog_file.write_text(new_content)
+    changelog_file.write_text(new_content, encoding='utf-8')
     print(f"✅ Updated {changelog_file} (added section for {version})")
     print(f"   📝 Remember to fill in the Added/Changed/Fixed sections!")
     return True

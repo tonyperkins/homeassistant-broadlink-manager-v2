@@ -1,9 +1,17 @@
 """
 E2E tests for capturing documentation screenshots
 
-Run with: pytest tests/e2e/test_documentation_screenshots.py -v
+Run with: pytest tests/e2e/test_documentation_screenshots.py -v -m docs
 
 Screenshots will be saved to: docs/images/screenshots/
+
+Generated Screenshots (18 total):
+- Light Mode: dashboard-overview, device-list, create-device-modal, 
+  broadlink-device-form, smartir-device-form, settings-menu, smartir-status-card
+- Dark Mode: dashboard-dark, device-list-dark, smartir-status-card-dark, settings-menu-dark
+- Mobile: mobile-dashboard, mobile-device-list, mobile-dashboard-dark
+- Tablet: tablet-dashboard, tablet-device-list
+- Other: command-learning-wizard (conditional)
 """
 
 import pytest
@@ -54,8 +62,8 @@ class TestDocumentationScreenshots:
         page.goto(f"{base_url}/#/devices")
         page.wait_for_load_state("networkidle")
         
-        # Click "Add Device" button
-        page.click("button:has-text('Add Device')")
+        # Click "New" button to add device
+        page.click("button:has-text('New')")
         page.wait_for_timeout(500)
         
         # Screenshot of modal
@@ -69,7 +77,7 @@ class TestDocumentationScreenshots:
         page.wait_for_load_state("networkidle")
         
         # Open modal and select Broadlink device type
-        page.click("button:has-text('Add Device')")
+        page.click("button:has-text('New')")
         page.wait_for_timeout(500)
         
         # Select Broadlink device type from the specific dropdown in the modal
@@ -86,7 +94,7 @@ class TestDocumentationScreenshots:
         page.wait_for_load_state("networkidle")
         
         # Open modal and select SmartIR device type
-        page.click("button:has-text('Add Device')")
+        page.click("button:has-text('New')")
         page.wait_for_timeout(500)
         
         # Select SmartIR device type from the specific dropdown
@@ -129,8 +137,8 @@ class TestDocumentationScreenshots:
         page.goto(base_url)
         page.wait_for_load_state("networkidle")
         
-        # Click settings icon (adjust selector as needed)
-        settings_btn = page.locator("button[aria-label='Settings'], .settings-icon, i.mdi-cog")
+        # Click settings button in header
+        settings_btn = page.locator(".app-header button[title='Settings']")
         if settings_btn.is_visible():
             settings_btn.click()
             page.wait_for_timeout(500)
@@ -192,55 +200,162 @@ class TestDocumentationScreenshots:
         page.goto(base_url)
         page.wait_for_load_state("networkidle")
         
-        # Click settings to open menu
-        settings_btn = page.locator("button[aria-label='Settings'], .settings-icon, i.mdi-cog")
-        if settings_btn.is_visible():
-            settings_btn.click()
-            page.wait_for_timeout(500)
-            
-            # Click dark theme option
-            dark_theme_btn = page.locator("button:has-text('Dark'), [data-theme='dark']")
-            if dark_theme_btn.is_visible():
-                dark_theme_btn.click()
-                page.wait_for_timeout(1000)
-                
-                # Close settings menu
-                page.keyboard.press("Escape")
+        # Switch to dark mode by cycling theme button
+        # Click theme button until we get to dark mode (max 3 clicks)
+        for _ in range(3):
+            body_class = page.locator('body').get_attribute('class')
+            if body_class and 'dark-mode' in body_class:
+                break
+            theme_btn = page.locator("button[title*='Theme']")
+            if theme_btn.is_visible():
+                theme_btn.click()
                 page.wait_for_timeout(500)
-                
-                # Capture dark mode dashboard
-                page.screenshot(
-                    path=str(docs_screenshot_dir / "dashboard-dark.png"),
-                    full_page=True
-                )
+        
+        # Wait for theme to fully apply
+        page.wait_for_timeout(500)
+        
+        # Capture dark mode dashboard
+        page.screenshot(
+            path=str(docs_screenshot_dir / "dashboard-dark.png"),
+            full_page=True
+        )
     
     def test_13_device_list_dark_mode(self, page: Page, base_url, docs_screenshot_dir):
         """Capture device list in dark mode"""
         page.goto(base_url)
         page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(500)
         
-        # Switch to dark mode
-        settings_btn = page.locator("button[aria-label='Settings'], .settings-icon, i.mdi-cog")
-        if settings_btn.is_visible():
-            settings_btn.click()
-            page.wait_for_timeout(500)
-            
-            dark_theme_btn = page.locator("button:has-text('Dark'), [data-theme='dark']")
-            if dark_theme_btn.is_visible():
-                dark_theme_btn.click()
-                page.wait_for_timeout(1000)
-                
-                # Close settings and navigate to devices
-                page.keyboard.press("Escape")
-                page.wait_for_timeout(500)
+        # Switch to dark mode by cycling theme button
+        # Click theme button until we get to dark mode (max 3 clicks)
+        for _ in range(3):
+            body_class = page.locator('body').get_attribute('class')
+            if body_class and 'dark-mode' in body_class:
+                break
+            theme_btn = page.locator("button[title*='Theme']")
+            if theme_btn.is_visible():
+                theme_btn.click()
+                page.wait_for_timeout(800)
         
-        # Navigate to devices page
+        # Navigate to devices page (theme should persist)
         page.goto(f"{base_url}/#/devices")
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1000)
+        # Wait for dark theme to be applied after navigation
+        page.wait_for_timeout(1500)
         
         # Capture dark mode device list
         page.screenshot(
             path=str(docs_screenshot_dir / "device-list-dark.png"),
             full_page=True
+        )
+    
+    def test_14_smartir_status_dark_mode(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture SmartIR status card in dark mode"""
+        page.goto(base_url)
+        page.wait_for_load_state("networkidle")
+        
+        # Switch to dark mode by cycling theme button
+        for _ in range(3):
+            body_class = page.locator('body').get_attribute('class')
+            if body_class and 'dark-mode' in body_class:
+                break
+            theme_btn = page.locator("button[title*='Theme']")
+            if theme_btn.is_visible():
+                theme_btn.click()
+                page.wait_for_timeout(500)
+        
+        # Wait for theme to fully apply
+        page.wait_for_timeout(1000)
+        
+        # Find SmartIR status card
+        smartir_card = page.locator(".smartir-status-card, [class*='smartir']").first
+        if smartir_card.is_visible():
+            smartir_card.screenshot(
+                path=str(docs_screenshot_dir / "smartir-status-card-dark.png")
+            )
+    
+    def test_15_settings_menu_dark_mode(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture settings menu in dark mode"""
+        page.goto(base_url)
+        page.wait_for_load_state("networkidle")
+        
+        # Switch to dark mode by cycling theme button
+        for _ in range(3):
+            body_class = page.locator('body').get_attribute('class')
+            if body_class and 'dark-mode' in body_class:
+                break
+            theme_btn = page.locator("button[title*='Theme']")
+            if theme_btn.is_visible():
+                theme_btn.click()
+                page.wait_for_timeout(500)
+        
+        # Wait for theme to apply
+        page.wait_for_timeout(500)
+        
+        # Open settings menu (in header)
+        settings_btn = page.locator(".app-header button[title='Settings']")
+        if settings_btn.is_visible():
+            settings_btn.click()
+            page.wait_for_timeout(500)
+            
+            # Capture settings menu in dark mode
+            page.screenshot(
+                path=str(docs_screenshot_dir / "settings-menu-dark.png")
+            )
+    
+    def test_16_mobile_device_list(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture device list on mobile view"""
+        # Set mobile viewport - iPhone 12/13 Pro size
+        page.set_viewport_size({"width": 390, "height": 844})
+        
+        page.goto(f"{base_url}/#/devices")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1000)
+        
+        # Capture just the viewport (not full page)
+        page.screenshot(
+            path=str(docs_screenshot_dir / "mobile-device-list.png"),
+            full_page=False
+        )
+    
+    def test_17_mobile_dashboard_dark(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture mobile dashboard in dark mode"""
+        # Set mobile viewport
+        page.set_viewport_size({"width": 390, "height": 844})
+        
+        page.goto(base_url)
+        page.wait_for_load_state("networkidle")
+        
+        # Switch to dark mode by cycling theme button
+        for _ in range(3):
+            body_class = page.locator('body').get_attribute('class')
+            if body_class and 'dark-mode' in body_class:
+                break
+            theme_btn = page.locator("button[title*='Theme']")
+            if theme_btn.is_visible():
+                theme_btn.click()
+                page.wait_for_timeout(500)
+        
+        # Wait for theme to apply
+        page.wait_for_timeout(500)
+        
+        # Capture mobile dark mode
+        page.screenshot(
+            path=str(docs_screenshot_dir / "mobile-dashboard-dark.png"),
+            full_page=False
+        )
+    
+    def test_18_tablet_device_list(self, page: Page, base_url, docs_screenshot_dir):
+        """Capture device list on tablet view"""
+        # Set tablet viewport - iPad size
+        page.set_viewport_size({"width": 768, "height": 1024})
+        
+        page.goto(f"{base_url}/#/devices")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1000)
+        
+        # Capture just the viewport
+        page.screenshot(
+            path=str(docs_screenshot_dir / "tablet-device-list.png"),
+            full_page=False
         )

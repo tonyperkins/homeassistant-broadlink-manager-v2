@@ -34,6 +34,25 @@
         </div>
       </div>
       <div class="header-right">
+        <!-- View Toggle Button Group (hidden on mobile) -->
+        <div v-if="!isMobile && displayStatus?.installed" class="view-toggle-group header-view-toggle">
+          <button 
+            @click.stop="viewMode = 'grid'" 
+            class="view-toggle-btn"
+            :class="{ active: viewMode === 'grid' }"
+            title="Grid View"
+          >
+            <i class="mdi mdi-view-grid"></i>
+          </button>
+          <button 
+            @click.stop="viewMode = 'list'" 
+            class="view-toggle-btn"
+            :class="{ active: viewMode === 'list' }"
+            title="List View"
+          >
+            <i class="mdi mdi-view-list"></i>
+          </button>
+        </div>
         <button 
           v-if="displayStatus?.installed" 
           @click.stop="createProfile" 
@@ -153,28 +172,6 @@
               <i class="mdi mdi-filter-remove"></i>
               Clear
             </button>
-
-            <!-- View Toggle Button Group (hidden on mobile) -->
-            <div v-if="!isMobile" class="view-toggle-group">
-            <button 
-              @click="viewMode = 'grid'" 
-              class="view-toggle-btn"
-              :class="{ active: viewMode === 'grid' }"
-              title="Grid View"
-            >
-              <i class="mdi mdi-view-grid"></i>
-              Grid
-            </button>
-            <button 
-              @click="viewMode = 'list'" 
-              class="view-toggle-btn"
-              :class="{ active: viewMode === 'list' }"
-              title="List View"
-            >
-              <i class="mdi mdi-view-list"></i>
-              List
-            </button>
-          </div>
 
           <div class="filter-results">
             {{ filteredProfiles.length }} of {{ allProfiles.length }}
@@ -349,6 +346,13 @@ const toggleViewMode = () => {
 // Watch viewMode changes to save preference
 watch(viewMode, (newMode) => {
   localStorage.setItem('profile_view_mode', newMode)
+})
+
+// Watch for section collapse and close settings menu
+watch(isExpanded, (newExpanded) => {
+  if (!newExpanded) {
+    showSettingsMenu.value = false
+  }
 })
 
 const defaultBenefits = [
@@ -1006,6 +1010,7 @@ defineExpose({
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  color: var(--ha-text-primary-color);
 }
 
 .filter-toggle-button:hover {
@@ -1201,6 +1206,20 @@ defineExpose({
 
 .view-toggle-btn i {
   font-size: 16px;
+}
+
+/* Header View Toggle - Icon only, compact */
+.header-view-toggle {
+  margin-right: 8px;
+}
+
+.header-view-toggle .view-toggle-btn {
+  padding: 8px 12px;
+  min-width: 40px;
+}
+
+.header-view-toggle .view-toggle-btn i {
+  font-size: 18px;
 }
 
 .filter-results {

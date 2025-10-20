@@ -111,39 +111,51 @@
 
       <!-- Filter Bar -->
       <div v-if="allProfiles.length > 0 && !simulatingNotInstalled" class="filter-bar">
-        <div class="filter-row">
-          <div class="filter-group filter-search">
-            <label>
-              <i class="mdi mdi-magnify"></i>
-              <input
-                v-model="filters.search"
-                type="text"
-                placeholder="Search profiles..."
-                class="search-input"
-              />
-            </label>
-          </div>
-
-          <div class="filter-group">
-            <label>
-              <i class="mdi mdi-shape"></i>
-              <select v-model="filters.platform">
-                <option value="">All Platforms</option>
-                <option value="climate">Climate</option>
-                <option value="media_player">Media Player</option>
-                <option value="fan">Fan</option>
-                <option value="light">Light</option>
-              </select>
-            </label>
-          </div>
-
-          <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
-            <i class="mdi mdi-filter-remove"></i>
-            Clear
+        <!-- Search Row with Filter Toggle -->
+        <div class="filter-search-row">
+          <button 
+            class="filter-toggle-button" 
+            @click="filtersExpanded = !filtersExpanded"
+            :class="{ active: filtersExpanded || hasActiveFilters }"
+            :title="filtersExpanded ? 'Hide filters' : 'Show filters'"
+          >
+            <i class="mdi mdi-filter-variant"></i>
+            <span v-if="hasActiveFilters" class="filter-badge">{{ activeFilterCount }}</span>
           </button>
+          <div class="search-input-wrapper">
+            <i class="mdi mdi-magnify search-icon"></i>
+            <input
+              v-model="filters.search"
+              type="text"
+              placeholder="Search profiles..."
+              class="search-input"
+            />
+          </div>
+        </div>
 
-          <!-- View Toggle Button Group (hidden on mobile) -->
-          <div v-if="!isMobile" class="view-toggle-group">
+        <!-- Collapsible Filter Content -->
+        <div v-show="filtersExpanded" class="filter-content">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>
+                <i class="mdi mdi-shape"></i>
+                <select v-model="filters.platform">
+                  <option value="">All Platforms</option>
+                  <option value="climate">Climate</option>
+                  <option value="media_player">Media Player</option>
+                  <option value="fan">Fan</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+            </div>
+
+            <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
+              <i class="mdi mdi-filter-remove"></i>
+              Clear
+            </button>
+
+            <!-- View Toggle Button Group (hidden on mobile) -->
+            <div v-if="!isMobile" class="view-toggle-group">
             <button 
               @click="viewMode = 'grid'" 
               class="view-toggle-btn"
@@ -167,6 +179,7 @@
           <div class="filter-results">
             {{ filteredProfiles.length }} of {{ allProfiles.length }}
           </div>
+        </div>
         </div>
       </div>
 
@@ -295,6 +308,7 @@ const showSettingsMenu = ref(false)
 const isExpanded = ref(true)
 const allProfiles = ref([])
 const loadingAllProfiles = ref(false)
+const filtersExpanded = ref(true)
 const filters = ref({
   search: '',
   platform: ''
@@ -412,6 +426,13 @@ const filteredProfiles = computed(() => {
 
 const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.platform
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.platform) count++
+  return count
 })
 
 function clearFilters() {
@@ -949,11 +970,117 @@ defineExpose({
 
 /* Filter Bar */
 .filter-bar {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.filter-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.filter-toggle-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-toggle-button:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  border-color: var(--ha-primary-color);
+}
+
+.filter-toggle-button.active {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.filter-toggle-button i {
+  font-size: 20px;
+  color: inherit;
+}
+
+.filter-toggle-button.active i {
+  color: white;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-toggle-button.active .filter-badge {
+  background: white;
+  color: var(--ha-primary-color);
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
+}
+
+.filter-content {
   background: rgba(var(--ha-primary-rgb), 0.03);
   border-radius: 8px;
   border: 1px solid var(--ha-border-color);
-  margin-bottom: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-row {
@@ -966,11 +1093,6 @@ defineExpose({
 .filter-group {
   flex: 0 0 auto;
   min-width: 200px;
-}
-
-.filter-search {
-  flex: 1;
-  min-width: 300px;
 }
 
 .filter-group label {
@@ -1002,37 +1124,6 @@ defineExpose({
 }
 
 .filter-group select:focus {
-  outline: none;
-  border-color: var(--ha-primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
-}
-
-.filter-search {
-  flex: 1;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--ha-surface-color);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 8px;
-  color: var(--ha-text-primary-color);
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.search-input::placeholder {
-  color: var(--ha-text-secondary-color);
-  opacity: 0.7;
-}
-
-.search-input:hover {
-  border-color: var(--ha-primary-color);
-}
-
-.search-input:focus {
   outline: none;
   border-color: var(--ha-primary-color);
   box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);

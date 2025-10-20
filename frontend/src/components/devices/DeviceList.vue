@@ -52,32 +52,30 @@
 
     <!-- Filter Bar -->
     <div v-if="deviceStore.hasDevices" class="filter-bar">
-      <!-- Filter Header with Collapse Button -->
-      <div class="filter-header">
-        <button class="filter-collapse-button" @click="filtersExpanded = !filtersExpanded">
-          <i class="mdi" :class="filtersExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
-          <span>Filters</span>
-          <span v-if="hasActiveFilters" class="active-filter-count">{{ activeFilterCount }}</span>
+      <!-- Search Row with Filter Toggle -->
+      <div class="filter-search-row">
+        <button 
+          class="filter-toggle-button" 
+          @click="filtersExpanded = !filtersExpanded"
+          :class="{ active: filtersExpanded || hasActiveFilters }"
+          :title="filtersExpanded ? 'Hide filters' : 'Show filters'"
+        >
+          <i class="mdi mdi-filter-variant"></i>
+          <span v-if="hasActiveFilters" class="filter-badge">{{ activeFilterCount }}</span>
         </button>
+        <div class="search-input-wrapper">
+          <i class="mdi mdi-magnify search-icon"></i>
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Search devices, commands..."
+            class="search-input"
+          />
+        </div>
       </div>
 
       <!-- Collapsible Filter Content -->
       <div v-show="filtersExpanded" class="filter-content">
-        <!-- Search Row -->
-        <div class="filter-row filter-row-search">
-          <div class="filter-group filter-search">
-            <label>
-              <i class="mdi mdi-magnify"></i>
-              <input
-                v-model="filters.search"
-                type="text"
-                placeholder="Search devices, commands..."
-                class="search-input"
-              />
-            </label>
-          </div>
-        </div>
-
         <!-- Filters Row -->
         <div class="filter-row filter-row-dropdowns">
         <div class="filter-group">
@@ -1150,52 +1148,110 @@ const handleSendCommand = async ({ device, command }) => {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: rgba(var(--ha-primary-rgb), 0.03);
-  border-radius: 8px;
-  border: 1px solid var(--ha-border-color);
   margin-bottom: 20px;
-  overflow: hidden;
 }
 
-.filter-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--ha-border-color);
-}
-
-.filter-collapse-button {
-  width: 100%;
+.filter-search-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  color: var(--ha-text-primary-color);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.2s;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.filter-collapse-button:hover {
+.filter-toggle-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-toggle-button:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  border-color: var(--ha-primary-color);
+}
+
+.filter-toggle-button.active {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.filter-toggle-button i {
+  font-size: 20px;
+  color: inherit;
+}
+
+.filter-toggle-button.active i {
+  color: white;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-toggle-button.active .filter-badge {
+  background: white;
   color: var(--ha-primary-color);
 }
 
-.filter-collapse-button i {
-  font-size: 20px;
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.active-filter-count {
-  background: var(--ha-primary-color);
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin-left: auto;
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
 }
 
 .filter-content {
+  background: rgba(var(--ha-primary-rgb), 0.03);
+  border-radius: 8px;
+  border: 1px solid var(--ha-border-color);
   padding: 16px;
   display: flex;
   flex-direction: column;

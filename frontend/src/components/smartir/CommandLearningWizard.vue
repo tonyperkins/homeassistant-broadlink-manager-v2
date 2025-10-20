@@ -1137,4 +1137,83 @@ onMounted(async () => {
 :global(.dark-mode) .command-card.learning {
   background: rgba(var(--primary-color-rgb, 3, 169, 244), 0.1);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767px) {
+  .device-selection-section {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .edit-mode-banner {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .edit-mode-banner i {
+    font-size: 20px;
+  }
+
+  .edit-mode-banner strong {
+    font-size: 14px;
+  }
+
+  .edit-mode-banner p {
+    font-size: 13px;
+  }
+
+  .wizard-info {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .wizard-info i {
+    font-size: 20px;
+  }
+
+  .wizard-info p,
+  .wizard-info ol {
+    font-size: 13px;
+  }
+
+  .wizard-info li {
+    margin-bottom: 8px;
+  }
+
+  .commands-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .command-card {
+    padding: 14px;
+  }
+
+  .command-header h4 {
+    font-size: 14px;
+  }
+
+  .command-header p {
+    font-size: 12px;
+  }
+
+  .learning-indicator {
+    font-size: 13px;
+  }
+
+  .rf-learning-steps ol {
+    font-size: 12px;
+    padding-left: 20px;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .quick-actions button {
+    width: 100%;
+  }
+}
 </style>

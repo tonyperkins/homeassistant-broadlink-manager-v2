@@ -141,23 +141,28 @@
                 <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
               
-              <!-- Learned status with IR/RF badge -->
-              <div class="learned-status">
-                <i class="mdi mdi-check-circle"></i>
-                <span>Learned</span>
+              <!-- Right-aligned icons and buttons -->
+              <div class="command-right">
+                <!-- Learned status - just checkmark with tooltip -->
+                <i 
+                  class="mdi mdi-check-circle learned-icon" 
+                  :title="`Learned (${(cmd.type || 'ir').toUpperCase()})`"
+                ></i>
+                
+                <!-- Command type badge -->
                 <span class="command-type-badge" :class="cmd.type || 'ir'">
                   {{ (cmd.type || 'ir').toUpperCase() }}
                 </span>
-              </div>
-              
-              <!-- Action buttons -->
-              <div class="command-actions">
-                <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
-                  <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
-                </button>
-                <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
-                  <i class="mdi mdi-delete"></i>
-                </button>
+                
+                <!-- Action buttons -->
+                <div class="command-actions">
+                  <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
+                    <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
+                  </button>
+                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
+                    <i class="mdi mdi-delete"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1036,28 +1041,23 @@ const handleImportConfirm = async () => {
   border-color: var(--ha-warning-color, #ff9800);
 }
 
-.learned-status {
+.command-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px;
-  background: rgba(76, 175, 80, 0.1);
-  border-radius: 6px;
-  color: #4caf50;
-  font-weight: 600;
-  font-size: 12px;
+  margin-left: auto;
 }
 
-.learned-status i {
-  font-size: 16x;
+.learned-icon {
+  font-size: 18px;
+  color: #4caf50;
+  cursor: help;
 }
 
 .command-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  padding: 0 6px;
 }
 
 .command-type-badge {
@@ -1280,22 +1280,30 @@ const handleImportConfirm = async () => {
   /* Command list items */
   .command-item {
     padding: 12px;
+    flex-wrap: wrap;
   }
 
   .command-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex: 1 1 100%;
+    margin-bottom: 8px;
+  }
+
+  .command-right {
+    flex: 1 1 100%;
+    margin-left: 0;
+    justify-content: flex-end;
   }
 
   .command-actions {
-    width: 100%;
-    justify-content: space-between;
+    gap: 6px;
   }
 
   .command-actions button {
-    flex: 1;
-    min-width: 0;
+    min-width: 40px;
+  }
+
+  .learned-icon {
+    font-size: 20px;
   }
 
   /* Tracked commands section */

@@ -20,7 +20,14 @@ logger = logging.getLogger(__name__)
 class DiagnosticsCollector:
     """Collect diagnostic information for troubleshooting"""
 
-    def __init__(self, storage_path: str, device_manager=None, storage_manager=None, area_manager=None, web_server=None):
+    def __init__(
+        self,
+        storage_path: str,
+        device_manager=None,
+        storage_manager=None,
+        area_manager=None,
+        web_server=None,
+    ):
         """
         Initialize diagnostics collector
 
@@ -86,9 +93,18 @@ class DiagnosticsCollector:
 
             # Key dependencies to track
             key_deps = [
-                "broadlink", "flask", "flask-cors", "aiohttp", "aiofiles",
-                "requests", "pyyaml", "websockets", "zeroconf", "colorlog",
-                "python-dateutil", "python-dotenv"
+                "broadlink",
+                "flask",
+                "flask-cors",
+                "aiohttp",
+                "aiofiles",
+                "requests",
+                "pyyaml",
+                "websockets",
+                "zeroconf",
+                "colorlog",
+                "python-dateutil",
+                "python-dotenv",
             ]
 
             dependencies = {}
@@ -121,7 +137,9 @@ class DiagnosticsCollector:
             if config_file.exists():
                 config["config_file_exists"] = True
                 config["config_file_size"] = config_file.stat().st_size
-                config["config_file_modified"] = datetime.fromtimestamp(config_file.stat().st_mtime).isoformat()
+                config["config_file_modified"] = datetime.fromtimestamp(
+                    config_file.stat().st_mtime
+                ).isoformat()
             else:
                 config["config_file_exists"] = False
 
@@ -135,8 +153,14 @@ class DiagnosticsCollector:
         try:
             # Safe environment variables to include (no secrets)
             safe_vars = [
-                "LOG_LEVEL", "WEB_PORT", "AUTO_DISCOVER", "STORAGE_PATH",
-                "PYTHONPATH", "PATH", "HOME", "USER"
+                "LOG_LEVEL",
+                "WEB_PORT",
+                "AUTO_DISCOVER",
+                "STORAGE_PATH",
+                "PYTHONPATH",
+                "PATH",
+                "HOME",
+                "USER",
             ]
 
             env = {}
@@ -173,11 +197,15 @@ class DiagnosticsCollector:
                 for device_id, device_data in devices.items():
                     # Count by device type
                     device_type = device_data.get("device_type", "broadlink")
-                    info["devices_by_type"][device_type] = info["devices_by_type"].get(device_type, 0) + 1
+                    info["devices_by_type"][device_type] = (
+                        info["devices_by_type"].get(device_type, 0) + 1
+                    )
 
                     # Count by entity type
                     entity_type = device_data.get("entity_type", "unknown")
-                    info["devices_by_entity_type"][entity_type] = info["devices_by_entity_type"].get(entity_type, 0) + 1
+                    info["devices_by_entity_type"][entity_type] = (
+                        info["devices_by_entity_type"].get(entity_type, 0) + 1
+                    )
 
                     # Count SmartIR devices
                     if device_type == "smartir":
@@ -198,13 +226,12 @@ class DiagnosticsCollector:
         try:
             status = {
                 "smartir": {
-                    "enabled": os.environ.get("SMARTIR_ENABLED", "true").lower() == "true",
+                    "enabled": os.environ.get("SMARTIR_ENABLED", "true").lower()
+                    == "true",
                     "installed": False,
-                    "version": None
+                    "version": None,
                 },
-                "broadlink_integration": {
-                    "detected": False
-                }
+                "broadlink_integration": {"detected": False},
             }
 
             # Check if SmartIR custom_components exists
@@ -231,7 +258,9 @@ class DiagnosticsCollector:
             import asyncio
 
             connection = {
-                "configured": bool(os.environ.get("HA_URL") and os.environ.get("HA_TOKEN")),
+                "configured": bool(
+                    os.environ.get("HA_URL") and os.environ.get("HA_TOKEN")
+                ),
                 "ha_url": os.environ.get("HA_URL", "not configured"),
                 "connection_test": "not tested",
                 "ha_version": None,
@@ -245,7 +274,9 @@ class DiagnosticsCollector:
                     asyncio.set_event_loop(loop)
 
                     # Try to get HA config (includes version)
-                    config = loop.run_until_complete(self.area_manager._send_ws_command("get_config"))
+                    config = loop.run_until_complete(
+                        self.area_manager._send_ws_command("get_config")
+                    )
                     if config:
                         connection["connection_test"] = "success"
                         connection["ha_version"] = config.get("version")
@@ -266,17 +297,18 @@ class DiagnosticsCollector:
     def _collect_broadlink_devices(self) -> Dict[str, Any]:
         """Collect Broadlink device information"""
         try:
-            devices_info = {
-                "discovered_count": 0,
-                "devices": []
-            }
+            devices_info = {"discovered_count": 0, "devices": []}
 
             # Get Broadlink devices from storage if available
             if self.storage_manager:
                 entities = self.storage_manager.get_all_entities()
-                broadlink_entities = [e for e in entities.values() if e.get("broadlink_entity")]
+                broadlink_entities = [
+                    e for e in entities.values() if e.get("broadlink_entity")
+                ]
 
-                devices_info["discovered_count"] = len(set(e.get("broadlink_entity") for e in broadlink_entities))
+                devices_info["discovered_count"] = len(
+                    set(e.get("broadlink_entity") for e in broadlink_entities)
+                )
 
                 # Collect unique Broadlink entities
                 seen_entities = set()
@@ -293,14 +325,19 @@ class DiagnosticsCollector:
                         elif "rm" in broadlink_entity.lower():
                             device_type = "RM Device"
 
-                        devices_info["devices"].append({
-                            "entity_id": broadlink_entity,
-                            "type": device_type,
-                            "commands_count": len([
-                                e for e in broadlink_entities
-                                if e.get("broadlink_entity") == broadlink_entity
-                            ])
-                        })
+                        devices_info["devices"].append(
+                            {
+                                "entity_id": broadlink_entity,
+                                "type": device_type,
+                                "commands_count": len(
+                                    [
+                                        e
+                                        for e in broadlink_entities
+                                        if e.get("broadlink_entity") == broadlink_entity
+                                    ]
+                                ),
+                            }
+                        )
 
             return devices_info
         except Exception as e:
@@ -310,7 +347,11 @@ class DiagnosticsCollector:
     def _collect_storage_info(self) -> Dict[str, Any]:
         """Collect storage information"""
         try:
-            info = {"storage_path_exists": self.storage_path.exists(), "files": {}, "command_files": {}}
+            info = {
+                "storage_path_exists": self.storage_path.exists(),
+                "files": {},
+                "command_files": {},
+            }
 
             if self.storage_path.exists():
                 # Check key files
@@ -329,7 +370,9 @@ class DiagnosticsCollector:
                         info["files"][filename] = {
                             "exists": True,
                             "size": file_path.stat().st_size,
-                            "modified": datetime.fromtimestamp(file_path.stat().st_mtime).isoformat(),
+                            "modified": datetime.fromtimestamp(
+                                file_path.stat().st_mtime
+                            ).isoformat(),
                         }
                     else:
                         info["files"][filename] = {"exists": False}
@@ -348,7 +391,9 @@ class DiagnosticsCollector:
                         device_id = cmd_file.stem
                         info["command_files"]["files_by_type"][device_id] = {
                             "size": cmd_file.stat().st_size,
-                            "modified": datetime.fromtimestamp(cmd_file.stat().st_mtime).isoformat(),
+                            "modified": datetime.fromtimestamp(
+                                cmd_file.stat().st_mtime
+                            ).isoformat(),
                         }
                 else:
                     info["command_files"]["directory_exists"] = False
@@ -363,10 +408,7 @@ class DiagnosticsCollector:
         try:
             backups = {}
 
-            backup_files = [
-                "devices.json.backup",
-                "metadata.json.backup"
-            ]
+            backup_files = ["devices.json.backup", "metadata.json.backup"]
 
             for backup_file in backup_files:
                 backup_path = self.storage_path / backup_file
@@ -379,7 +421,7 @@ class DiagnosticsCollector:
                         "exists": True,
                         "size": stat.st_size,
                         "modified": modified.isoformat(),
-                        "age_hours": round(age.total_seconds() / 3600, 2)
+                        "age_hours": round(age.total_seconds() / 3600, 2),
                     }
                 else:
                     backups[backup_file] = {"exists": False}
@@ -396,8 +438,12 @@ class DiagnosticsCollector:
 
             # Check storage path
             if self.storage_path.exists():
-                permissions["storage_path_readable"] = os.access(self.storage_path, os.R_OK)
-                permissions["storage_path_writable"] = os.access(self.storage_path, os.W_OK)
+                permissions["storage_path_readable"] = os.access(
+                    self.storage_path, os.R_OK
+                )
+                permissions["storage_path_writable"] = os.access(
+                    self.storage_path, os.W_OK
+                )
             else:
                 permissions["storage_path_readable"] = False
                 permissions["storage_path_writable"] = False
@@ -429,18 +475,26 @@ class DiagnosticsCollector:
                 for device_id, device_data in devices.items():
                     commands = device_data.get("commands", {})
                     if commands:
-                        structure[device_id] = {"source": "device_manager", "command_count": len(commands), "commands": {}}
+                        structure[device_id] = {
+                            "source": "device_manager",
+                            "command_count": len(commands),
+                            "commands": {},
+                        }
 
                         for cmd_name, cmd_data in commands.items():
                             if isinstance(cmd_data, dict):
                                 structure[device_id]["commands"][cmd_name] = {
                                     "type": cmd_data.get("command_type", "unknown"),
                                     "imported": cmd_data.get("imported", False),
-                                    "learned_at": cmd_data.get("learned_at") is not None,
+                                    "learned_at": cmd_data.get("learned_at")
+                                    is not None,
                                 }
                             else:
                                 # Handle simple string values
-                                structure[device_id]["commands"][cmd_name] = {"type": "unknown", "value": str(cmd_data)}
+                                structure[device_id]["commands"][cmd_name] = {
+                                    "type": "unknown",
+                                    "value": str(cmd_data),
+                                }
 
             # Get commands from storage_manager (metadata.json)
             if self.storage_manager:
@@ -448,18 +502,26 @@ class DiagnosticsCollector:
                 for entity_id, entity_data in entities.items():
                     commands = entity_data.get("commands", {})
                     if commands:
-                        structure[entity_id] = {"source": "storage_manager", "command_count": len(commands), "commands": {}}
+                        structure[entity_id] = {
+                            "source": "storage_manager",
+                            "command_count": len(commands),
+                            "commands": {},
+                        }
 
                         for cmd_name, cmd_data in commands.items():
                             if isinstance(cmd_data, dict):
                                 structure[entity_id]["commands"][cmd_name] = {
                                     "type": cmd_data.get("command_type", "unknown"),
                                     "imported": cmd_data.get("imported", False),
-                                    "learned_at": cmd_data.get("learned_at") is not None,
+                                    "learned_at": cmd_data.get("learned_at")
+                                    is not None,
                                 }
                             else:
                                 # Handle simple string values (command references)
-                                structure[entity_id]["commands"][cmd_name] = {"type": "reference", "value": str(cmd_data)}
+                                structure[entity_id]["commands"][cmd_name] = {
+                                    "type": "reference",
+                                    "value": str(cmd_data),
+                                }
 
             if not structure:
                 return {"note": "No commands found in devices or metadata"}
@@ -476,7 +538,7 @@ class DiagnosticsCollector:
                 "total_custom_profiles": 0,
                 "profiles_by_platform": {},
                 "index_file_exists": False,
-                "index_last_updated": None
+                "index_last_updated": None,
             }
 
             # Check for custom profiles directory
@@ -486,7 +548,9 @@ class DiagnosticsCollector:
                     if platform_dir.is_dir():
                         profile_count = len(list(platform_dir.glob("*.json")))
                         if profile_count > 0:
-                            profiles["profiles_by_platform"][platform_dir.name] = profile_count
+                            profiles["profiles_by_platform"][
+                                platform_dir.name
+                            ] = profile_count
                             profiles["total_custom_profiles"] += profile_count
 
             # Check device index
@@ -494,7 +558,9 @@ class DiagnosticsCollector:
             if index_file.exists():
                 profiles["index_file_exists"] = True
                 stat = index_file.stat()
-                profiles["index_last_updated"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+                profiles["index_last_updated"] = datetime.fromtimestamp(
+                    stat.st_mtime
+                ).isoformat()
                 profiles["index_size"] = stat.st_size
 
             return profiles
@@ -505,11 +571,7 @@ class DiagnosticsCollector:
     def _collect_recent_errors(self) -> Dict[str, Any]:
         """Collect recent errors from logs"""
         try:
-            log_data = {
-                "errors": [],
-                "warnings": [],
-                "log_file_found": False
-            }
+            log_data = {"errors": [], "warnings": [], "log_file_found": False}
 
             # Try to find log file in common locations
             log_locations = [
@@ -529,7 +591,7 @@ class DiagnosticsCollector:
             if log_file:
                 try:
                     # Read last 100 lines
-                    with open(log_file, 'r') as f:
+                    with open(log_file, "r") as f:
                         lines = f.readlines()[-100:]
 
                     # Extract errors and warnings
@@ -613,35 +675,45 @@ class DiagnosticsCollector:
         lines.append("")
 
         # Configuration
-        lines.extend([
-            "## Configuration",
-            f"- **Storage Path:** `{data['configuration'].get('storage_path', 'Unknown')}`",
-            f"- **Storage Exists:** {'✅' if data['configuration'].get('storage_path_exists') else '❌'}",
-            f"- **Log Level:** {data['configuration'].get('log_level', 'Unknown')}",
-            f"- **Web Port:** {data['configuration'].get('web_port', 'Unknown')}",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Configuration",
+                f"- **Storage Path:** `{data['configuration'].get('storage_path', 'Unknown')}`",
+                f"- **Storage Exists:** {'✅' if data['configuration'].get('storage_path_exists') else '❌'}",
+                f"- **Log Level:** {data['configuration'].get('log_level', 'Unknown')}",
+                f"- **Web Port:** {data['configuration'].get('web_port', 'Unknown')}",
+                "",
+            ]
+        )
 
         # Home Assistant Connection
         lines.append("## Home Assistant Connection")
         if data.get("ha_connection"):
             ha_conn = data["ha_connection"]
-            lines.append(f"- **Configured:** {'✅' if ha_conn.get('configured') else '❌'}")
+            lines.append(
+                f"- **Configured:** {'✅' if ha_conn.get('configured') else '❌'}"
+            )
             if ha_conn.get("configured"):
-                lines.append(f"- **Connection Test:** {ha_conn.get('connection_test', 'not tested')}")
+                lines.append(
+                    f"- **Connection Test:** {ha_conn.get('connection_test', 'not tested')}"
+                )
                 if ha_conn.get("ha_version"):
                     lines.append(f"- **HA Version:** {ha_conn['ha_version']}")
-                lines.append(f"- **WebSocket:** {'✅ Connected' if ha_conn.get('websocket_connected') else '❌ Not connected'}")
+                lines.append(
+                    f"- **WebSocket:** {'✅ Connected' if ha_conn.get('websocket_connected') else '❌ Not connected'}"
+                )
         lines.append("")
 
         # Devices
-        lines.extend([
-            "## Devices",
-            f"- **Total Devices:** {data['devices'].get('total_devices', 0)}",
-            f"- **Broadlink Entities:** {data['devices'].get('broadlink_entities', 0)}",
-            f"- **SmartIR Devices:** {data['devices'].get('smartir_devices', 0)}",
-            "",
-        ])
+        lines.extend(
+            [
+                "## Devices",
+                f"- **Total Devices:** {data['devices'].get('total_devices', 0)}",
+                f"- **Broadlink Entities:** {data['devices'].get('broadlink_entities', 0)}",
+                f"- **SmartIR Devices:** {data['devices'].get('smartir_devices', 0)}",
+                "",
+            ]
+        )
 
         # Device breakdown
         if data["devices"].get("devices_by_entity_type"):
@@ -653,26 +725,40 @@ class DiagnosticsCollector:
         # Broadlink Devices
         if data.get("broadlink_devices") and data["broadlink_devices"].get("devices"):
             lines.append("## Broadlink Devices")
-            lines.append(f"- **Discovered:** {data['broadlink_devices'].get('discovered_count', 0)}")
+            lines.append(
+                f"- **Discovered:** {data['broadlink_devices'].get('discovered_count', 0)}"
+            )
             for device in data["broadlink_devices"]["devices"]:
-                lines.append(f"- **{device['entity_id']}:** {device['type']} ({device['commands_count']} commands)")
+                lines.append(
+                    f"- **{device['entity_id']}:** {device['type']} ({device['commands_count']} commands)"
+                )
             lines.append("")
 
         # SmartIR Profiles
         if data.get("smartir_profiles"):
             profiles = data["smartir_profiles"]
-            if profiles.get("total_custom_profiles", 0) > 0 or profiles.get("index_file_exists"):
+            if profiles.get("total_custom_profiles", 0) > 0 or profiles.get(
+                "index_file_exists"
+            ):
                 lines.append("## SmartIR Profiles")
-                lines.append(f"- **Custom Profiles:** {profiles.get('total_custom_profiles', 0)}")
+                lines.append(
+                    f"- **Custom Profiles:** {profiles.get('total_custom_profiles', 0)}"
+                )
                 if profiles.get("profiles_by_platform"):
                     for plat, count in profiles["profiles_by_platform"].items():
                         lines.append(f"  - **{plat}:** {count}")
-                lines.append(f"- **Device Index:** {'✅ Present' if profiles.get('index_file_exists') else '❌ Missing'}")
+                lines.append(
+                    f"- **Device Index:** {'✅ Present' if profiles.get('index_file_exists') else '❌ Missing'}"
+                )
                 lines.append("")
 
         # Storage info
         lines.extend(
-            ["## Storage", f"- **Storage Path Exists:** {'✅' if data['storage'].get('storage_path_exists') else '❌'}", ""]
+            [
+                "## Storage",
+                f"- **Storage Path Exists:** {'✅' if data['storage'].get('storage_path_exists') else '❌'}",
+                "",
+            ]
         )
 
         if data["storage"].get("files"):
@@ -699,10 +785,16 @@ class DiagnosticsCollector:
         if data.get("permissions"):
             perms = data["permissions"]
             lines.append("### Permissions")
-            lines.append(f"- **Storage Readable:** {'✅' if perms.get('storage_path_readable') else '❌'}")
-            lines.append(f"- **Storage Writable:** {'✅' if perms.get('storage_path_writable') else '❌'}")
+            lines.append(
+                f"- **Storage Readable:** {'✅' if perms.get('storage_path_readable') else '❌'}"
+            )
+            lines.append(
+                f"- **Storage Writable:** {'✅' if perms.get('storage_path_writable') else '❌'}"
+            )
             if "config_path_writable" in perms:
-                lines.append(f"- **Config Writable:** {'✅' if perms.get('config_path_writable') else '❌'}")
+                lines.append(
+                    f"- **Config Writable:** {'✅' if perms.get('config_path_writable') else '❌'}"
+                )
             lines.append("")
 
         # Command structure

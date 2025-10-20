@@ -78,7 +78,10 @@ class ControllerDetector:
         entity_lower = controller_entity.lower()
 
         # Check for Broadlink patterns
-        if any(pattern in entity_lower for pattern in ["broadlink", "rm4", "rm_", "rm3", "rm2"]):
+        if any(
+            pattern in entity_lower
+            for pattern in ["broadlink", "rm4", "rm_", "rm3", "rm2"]
+        ):
             return self._get_controller_info("broadlink", "high")
 
         # Check for Xiaomi/Aqara patterns
@@ -108,7 +111,9 @@ class ControllerDetector:
         Returns:
             Dict with type, confidence, and capabilities
         """
-        type_info = self.CONTROLLER_TYPES.get(controller_type, self.CONTROLLER_TYPES["unknown"])
+        type_info = self.CONTROLLER_TYPES.get(
+            controller_type, self.CONTROLLER_TYPES["unknown"]
+        )
 
         return {"type": controller_type, "confidence": confidence, **type_info}
 
@@ -122,7 +127,9 @@ class ControllerDetector:
         Returns:
             Dict with capabilities
         """
-        return self.CONTROLLER_TYPES.get(controller_type, self.CONTROLLER_TYPES["unknown"])
+        return self.CONTROLLER_TYPES.get(
+            controller_type, self.CONTROLLER_TYPES["unknown"]
+        )
 
     def supports_learning(self, controller_entity: str) -> bool:
         """

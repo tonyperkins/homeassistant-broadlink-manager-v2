@@ -36,7 +36,9 @@ class DeviceManager:
         if not self.devices_file.exists():
             # Check if backup exists
             if self.backup_file.exists():
-                logger.warning("devices.json missing but backup found - restoring from backup")
+                logger.warning(
+                    "devices.json missing but backup found - restoring from backup"
+                )
                 try:
                     import shutil
 
@@ -103,7 +105,9 @@ class DeviceManager:
                         break
                     except PermissionError:
                         if attempt < max_retries - 1:
-                            logger.warning(f"File locked, retrying... (attempt {attempt + 1}/{max_retries})")
+                            logger.warning(
+                                f"File locked, retrying... (attempt {attempt + 1}/{max_retries})"
+                            )
                             time.sleep(0.1 * (attempt + 1))  # Exponential backoff
                         else:
                             raise
@@ -124,7 +128,9 @@ class DeviceManager:
                     logger.warning("Save failed - restoring from backup")
                     try:
                         shutil.copy2(self.backup_file, self.devices_file)
-                        logger.info("Restored devices.json from backup after failed save")
+                        logger.info(
+                            "Restored devices.json from backup after failed save"
+                        )
                     except Exception as restore_error:
                         logger.error(f"Failed to restore from backup: {restore_error}")
 
@@ -291,7 +297,9 @@ class DeviceManager:
             logger.error(f"Error deleting device {device_id}: {e}")
             return False
 
-    def add_command(self, device_id: str, command_name: str, command_data: Dict[str, Any]) -> bool:
+    def add_command(
+        self, device_id: str, command_name: str, command_data: Dict[str, Any]
+    ) -> bool:
         """
         Add a command to a device
 
@@ -349,7 +357,9 @@ class DeviceManager:
                 devices[device_id]["updated_at"] = datetime.now().isoformat()
 
                 if self._save_devices(devices):
-                    logger.info(f"Deleted command {command_name} from device {device_id}")
+                    logger.info(
+                        f"Deleted command {command_name} from device {device_id}"
+                    )
                     return True
 
             return False
@@ -390,7 +400,9 @@ class DeviceManager:
         # Convert to lowercase and replace spaces/special chars with underscores
         clean_name = device_name.lower().replace(" ", "_")
         clean_name = "".join(c if c.isalnum() or c == "_" else "_" for c in clean_name)
-        clean_name = "_".join(filter(None, clean_name.split("_")))  # Remove multiple underscores
+        clean_name = "_".join(
+            filter(None, clean_name.split("_"))
+        )  # Remove multiple underscores
 
         # If area is provided and not empty, use area_device format
         # Otherwise just use device name (for adopted devices or no-area devices)
@@ -438,7 +450,9 @@ class DeviceManager:
             return False
         return device.get("device_type", "broadlink") == "smartir"
 
-    def validate_smartir_device(self, device_data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_smartir_device(
+        self, device_data: Dict[str, Any]
+    ) -> tuple[bool, Optional[str]]:
         """
         Validate SmartIR device data
 

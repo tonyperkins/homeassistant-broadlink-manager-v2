@@ -29,7 +29,9 @@ class StorageManager:
 
         # Auto-restore from backup if metadata.json is missing
         if not self.metadata_file.exists() and self.backup_file.exists():
-            logger.warning("metadata.json missing but backup found - restoring from backup")
+            logger.warning(
+                "metadata.json missing but backup found - restoring from backup"
+            )
             try:
                 import shutil
 
@@ -150,7 +152,9 @@ For issues or questions, visit the Broadlink Manager add-on page.
         try:
             with open(self.metadata_file, "r") as f:
                 data = json.load(f)
-                logger.info(f"Loaded metadata with {len(data.get('entities', {}))} entities")
+                logger.info(
+                    f"Loaded metadata with {len(data.get('entities', {}))} entities"
+                )
                 return data
         except Exception as e:
             logger.error(f"Failed to load metadata: {e}")

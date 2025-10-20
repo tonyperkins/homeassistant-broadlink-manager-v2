@@ -77,7 +77,9 @@ class ConfigLoader:
             Path to /config directory (same for both modes, just mounted differently)
         """
         # Check HA_CONFIG_PATH first (for standalone mode), then CONFIG_PATH (for Docker/add-on)
-        config_path = os.environ.get("HA_CONFIG_PATH") or os.environ.get("CONFIG_PATH", "/config")
+        config_path = os.environ.get("HA_CONFIG_PATH") or os.environ.get(
+            "CONFIG_PATH", "/config"
+        )
         return Path(config_path)
 
     def get_storage_path(self) -> Path:
@@ -203,7 +205,9 @@ class ConfigLoader:
                 logger.error("SUPERVISOR_TOKEN not found")
             else:
                 logger.error("HA_TOKEN environment variable not set")
-                logger.error("Please create a long-lived access token in Home Assistant")
+                logger.error(
+                    "Please create a long-lived access token in Home Assistant"
+                )
             valid = False
 
         # Check config path exists (in standalone mode, user must mount it)

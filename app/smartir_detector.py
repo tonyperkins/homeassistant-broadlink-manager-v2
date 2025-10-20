@@ -22,7 +22,10 @@ class SmartIRDetector:
 
     def is_installed(self) -> bool:
         """Check if SmartIR is installed"""
-        return self.smartir_path.exists() and (self.smartir_path / "manifest.json").exists()
+        return (
+            self.smartir_path.exists()
+            and (self.smartir_path / "manifest.json").exists()
+        )
 
     def get_version(self) -> Optional[str]:
         """Get SmartIR version if installed"""
@@ -162,7 +165,12 @@ class SmartIRDetector:
                 data = json.load(f)
 
             # Basic validation
-            required_fields = ["manufacturer", "supportedController", "commandsEncoding", "commands"]
+            required_fields = [
+                "manufacturer",
+                "supportedController",
+                "commandsEncoding",
+                "commands",
+            ]
             missing = [field for field in required_fields if field not in data]
 
             if missing:
@@ -184,7 +192,9 @@ class SmartIRDetector:
 
         return result
 
-    def write_code_file(self, platform: str, code_number: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    def write_code_file(
+        self, platform: str, code_number: int, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Write a SmartIR code file"""
         platform_path = self.codes_path / platform
 

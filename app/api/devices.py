@@ -58,11 +58,14 @@ def get_devices():
                 device_name = entity_data.get("device")
                 if not device_name:
                     # Fallback: extract from entity_id
-                    device_name = entity_id.split(".")[1] if "." in entity_id else entity_id
+                    device_name = (
+                        entity_id.split(".")[1] if "." in entity_id else entity_id
+                    )
 
                 device = {
                     "id": entity_id,
-                    "name": entity_data.get("name") or entity_data.get("friendly_name", entity_id),
+                    "name": entity_data.get("name")
+                    or entity_data.get("friendly_name", entity_id),
                     "entity_type": entity_data.get("entity_type", "switch"),
                     "area": entity_data.get("area", ""),
                     "icon": entity_data.get("icon", ""),
@@ -97,7 +100,8 @@ def get_device(device_id):
 
         device = {
             "id": device_id,
-            "name": entity_data.get("name") or entity_data.get("friendly_name", device_id),
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", device_id),
             "entity_type": entity_data.get("entity_type", "switch"),
             "area": entity_data.get("area", ""),
             "icon": entity_data.get("icon", ""),
@@ -156,7 +160,10 @@ def create_device():
         # Save to storage
         storage.save_entity(entity_id, entity_data)
 
-        return jsonify({"success": True, "device": {"id": entity_id, **entity_data}}), 201
+        return (
+            jsonify({"success": True, "device": {"id": entity_id, **entity_data}}),
+            201,
+        )
 
     except Exception as e:
         logger.error(f"Error creating device: {e}")
@@ -186,7 +193,9 @@ def update_device(device_id):
             has_commands = current_commands and len(current_commands) > 0
 
             if has_commands:
-                logger.info(f"Device '{device_id}' has {len(current_commands)} commands in metadata - rename blocked")
+                logger.info(
+                    f"Device '{device_id}' has {len(current_commands)} commands in metadata - rename blocked"
+                )
 
             if not has_commands:
                 # No commands in metadata yet - safe to rename entity_id
@@ -196,7 +205,9 @@ def update_device(device_id):
 
                 # If entity_id is changing, we need to delete old and create new
                 if new_entity_id != device_id:
-                    logger.info(f"Renaming entity from '{device_id}' to '{new_entity_id}' (no commands learned yet)")
+                    logger.info(
+                        f"Renaming entity from '{device_id}' to '{new_entity_id}' (no commands learned yet)"
+                    )
                     # Delete old entity
                     storage.delete_entity(device_id)
                     # Update device field
@@ -226,13 +237,21 @@ def update_device(device_id):
             smartir_config = data.get("smartir_config", {})
 
             if "manufacturer" in data or "manufacturer" in smartir_config:
-                entity_data["manufacturer"] = data.get("manufacturer") or smartir_config.get("manufacturer", "")
+                entity_data["manufacturer"] = data.get(
+                    "manufacturer"
+                ) or smartir_config.get("manufacturer", "")
             if "model" in data or "model" in smartir_config:
-                entity_data["model"] = data.get("model") or smartir_config.get("model", "")
+                entity_data["model"] = data.get("model") or smartir_config.get(
+                    "model", ""
+                )
             if "device_code" in data or "code_id" in smartir_config:
-                entity_data["device_code"] = data.get("device_code") or smartir_config.get("code_id", "")
+                entity_data["device_code"] = data.get(
+                    "device_code"
+                ) or smartir_config.get("code_id", "")
             if "controller_device" in data or "controller_device" in smartir_config:
-                entity_data["controller_device"] = data.get("controller_device") or smartir_config.get("controller_device", "")
+                entity_data["controller_device"] = data.get(
+                    "controller_device"
+                ) or smartir_config.get("controller_device", "")
 
             # Optional climate-specific fields
             if "temperature_sensor" in data:
@@ -245,7 +264,9 @@ def update_device(device_id):
         # Save entity (with new ID if renamed, or same ID if not)
         storage.save_entity(new_entity_id, entity_data)
 
-        return jsonify({"success": True, "device": {"id": new_entity_id, **entity_data}})
+        return jsonify(
+            {"success": True, "device": {"id": new_entity_id, **entity_data}}
+        )
 
     except Exception as e:
         logger.error(f"Error updating device {device_id}: {e}")
@@ -293,10 +314,14 @@ def find_broadlink_owner():
         # Use the existing method to find the Broadlink entity
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_entity = loop.run_until_complete(web_server._find_broadlink_entity_for_device(device_name))
+        broadlink_entity = loop.run_until_complete(
+            web_server._find_broadlink_entity_for_device(device_name)
+        )
         loop.close()
 
-        return jsonify({"broadlink_entity": broadlink_entity, "device_name": device_name})
+        return jsonify(
+            {"broadlink_entity": broadlink_entity, "device_name": device_name}
+        )
 
     except Exception as e:
         logger.error(f"Error finding Broadlink owner: {e}")
@@ -318,7 +343,9 @@ def discover_untracked_devices():
         # Get all commands from Broadlink storage
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
         loop.close()
 
         # Get all tracked devices from device manager AND old metadata
@@ -349,15 +376,25 @@ def discover_untracked_devices():
         for device_name, commands in broadlink_commands.items():
             if device_name not in tracked_device_names:
                 # Filter out recently deleted commands
-                remaining_commands = [cmd for cmd in commands.keys() if not web_server._is_recently_deleted(device_name, cmd)]
+                remaining_commands = [
+                    cmd
+                    for cmd in commands.keys()
+                    if not web_server._is_recently_deleted(device_name, cmd)
+                ]
 
                 # Only include device if it has commands that aren't recently deleted
                 if remaining_commands:
                     untracked_devices.append(
-                        {"device_name": device_name, "command_count": len(remaining_commands), "commands": remaining_commands}
+                        {
+                            "device_name": device_name,
+                            "command_count": len(remaining_commands),
+                            "commands": remaining_commands,
+                        }
                     )
 
-        return jsonify({"untracked_devices": untracked_devices, "count": len(untracked_devices)})
+        return jsonify(
+            {"untracked_devices": untracked_devices, "count": len(untracked_devices)}
+        )
 
     except Exception as e:
         logger.error(f"Error discovering untracked devices: {e}")
@@ -378,7 +415,9 @@ def delete_untracked_device(device_name):
         # Get the device's commands from Broadlink storage
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
 
         # Check if device exists
         if device_name not in broadlink_commands:
@@ -388,18 +427,31 @@ def delete_untracked_device(device_name):
         commands = broadlink_commands[device_name]
 
         # Find which Broadlink entity owns these commands
-        broadlink_entity = loop.run_until_complete(web_server._find_broadlink_entity_for_device(device_name))
+        broadlink_entity = loop.run_until_complete(
+            web_server._find_broadlink_entity_for_device(device_name)
+        )
 
         if not broadlink_entity:
             loop.close()
-            return jsonify({"error": f"Could not determine Broadlink entity for device {device_name}"}), 400
+            return (
+                jsonify(
+                    {
+                        "error": f"Could not determine Broadlink entity for device {device_name}"
+                    }
+                ),
+                400,
+            )
 
         # Delete all commands
         deleted_count = 0
         failed_commands = []
 
         for command_name in commands.keys():
-            delete_data = {"entity_id": broadlink_entity, "device": device_name, "command": command_name}
+            delete_data = {
+                "entity_id": broadlink_entity,
+                "device": device_name,
+                "command": command_name,
+            }
 
             result = loop.run_until_complete(web_server._delete_command(delete_data))
 
@@ -465,7 +517,9 @@ def create_managed_device():
             device_id = storage_name
         else:
             # Generate device_id (includes area to allow same device name in different areas)
-            area_id_for_gen = area_id or (area.lower().replace(" ", "_") if area else "")
+            area_id_for_gen = area_id or (
+                area.lower().replace(" ", "_") if area else ""
+            )
             device_id = device_manager.generate_device_id(area_id_for_gen, name)
 
         # Check if device already exists
@@ -488,7 +542,13 @@ def create_managed_device():
             )  # 409 Conflict is more appropriate than 400
 
         # Build device data based on type
-        device_data = {"name": name, "entity_type": entity_type, "device_type": device_type, "area": area, "icon": icon}
+        device_data = {
+            "name": name,
+            "entity_type": entity_type,
+            "device_type": device_type,
+            "area": area,
+            "icon": icon,
+        }
 
         if device_type == "smartir":
             # SmartIR device - validate and add SmartIR-specific fields
@@ -496,10 +556,13 @@ def create_managed_device():
             smartir_config = data.get("smartir_config", {})
             device_data.update(
                 {
-                    "manufacturer": data.get("manufacturer") or smartir_config.get("manufacturer", ""),
+                    "manufacturer": data.get("manufacturer")
+                    or smartir_config.get("manufacturer", ""),
                     "model": data.get("model") or smartir_config.get("model", ""),
-                    "device_code": data.get("device_code") or smartir_config.get("code_id", ""),
-                    "controller_device": data.get("controller_device") or smartir_config.get("controller_device", ""),
+                    "device_code": data.get("device_code")
+                    or smartir_config.get("code_id", ""),
+                    "controller_device": data.get("controller_device")
+                    or smartir_config.get("controller_device", ""),
                 }
             )
 
@@ -519,7 +582,12 @@ def create_managed_device():
             # Broadlink device - add Broadlink-specific fields
             broadlink_entity = data.get("broadlink_entity", "")
             if not broadlink_entity:
-                return jsonify({"error": "broadlink_entity is required for Broadlink devices"}), 400
+                return (
+                    jsonify(
+                        {"error": "broadlink_entity is required for Broadlink devices"}
+                    ),
+                    400,
+                )
 
             device_data["broadlink_entity"] = broadlink_entity
 
@@ -530,7 +598,10 @@ def create_managed_device():
 
         # Create the device
         if device_manager.create_device(device_id, device_data):
-            return jsonify({"success": True, "device": {"id": device_id, **device_data}}), 201
+            return (
+                jsonify({"success": True, "device": {"id": device_id, **device_data}}),
+                201,
+            )
         else:
             return jsonify({"error": "Failed to create device"}), 500
 
@@ -556,7 +627,9 @@ def get_managed_devices():
         for device_id, device_data in devices.items():
             device_list.append({"id": device_id, **device_data})
 
-        return jsonify({"success": True, "devices": device_list, "count": len(device_list)})
+        return jsonify(
+            {"success": True, "devices": device_list, "count": len(device_list)}
+        )
 
     except Exception as e:
         logger.error(f"Error getting managed devices: {e}")
@@ -606,7 +679,9 @@ def update_managed_device(device_id):
         updated_data = {
             **existing_device,
             **data,
-            "device_type": existing_device.get("device_type", "broadlink"),  # Preserve device_type
+            "device_type": existing_device.get(
+                "device_type", "broadlink"
+            ),  # Preserve device_type
         }
 
         # Handle SmartIR config if present
@@ -627,7 +702,11 @@ def update_managed_device(device_id):
         # Update the device
         if device_manager.update_device(device_id, updated_data):
             return jsonify(
-                {"success": True, "message": f"Device {device_id} updated", "device": device_manager.get_device(device_id)}
+                {
+                    "success": True,
+                    "message": f"Device {device_id} updated",
+                    "device": device_manager.get_device(device_id),
+                }
             )
         else:
             return jsonify({"error": "Failed to update device"}), 500
@@ -676,22 +755,36 @@ def delete_managed_device(device_id):
                     try:
                         loop.run_until_complete(
                             web_server._delete_command(
-                                {"entity_id": broadlink_entity, "device": device_id, "command": command_name}
+                                {
+                                    "entity_id": broadlink_entity,
+                                    "device": device_id,
+                                    "command": command_name,
+                                }
                             )
                         )
-                        logger.info(f"Deleted command '{command_name}' from Broadlink storage")
+                        logger.info(
+                            f"Deleted command '{command_name}' from Broadlink storage"
+                        )
 
                         # Mark command as recently deleted to filter from discovery
                         web_server._add_to_deletion_cache(device_id, command_name)
                     except Exception as cmd_error:
-                        logger.warning(f"Failed to delete command '{command_name}': {cmd_error}")
+                        logger.warning(
+                            f"Failed to delete command '{command_name}': {cmd_error}"
+                        )
 
                 loop.close()
 
                 # Small delay to allow HA storage to sync (reduce race condition)
                 time.sleep(0.5)
 
-        return jsonify({"success": True, "message": f"Device {device_id} deleted", "commands_deleted": delete_commands})
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Device {device_id} deleted",
+                "commands_deleted": delete_commands,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Error deleting managed device: {e}")
@@ -749,7 +842,9 @@ def sync_device_area(device_id):
         asyncio.set_event_loop(loop)
 
         try:
-            entity_details = loop.run_until_complete(area_manager.get_entity_details(full_entity_id))
+            entity_details = loop.run_until_complete(
+                area_manager.get_entity_details(full_entity_id)
+            )
 
             if not entity_details:
                 loop.close()
@@ -771,9 +866,13 @@ def sync_device_area(device_id):
 
             if area_id:
                 # Get area name from area_id
-                areas = loop.run_until_complete(area_manager._send_ws_command("config/area_registry/list"))
+                areas = loop.run_until_complete(
+                    area_manager._send_ws_command("config/area_registry/list")
+                )
 
-                area_name = next((a["name"] for a in areas if a["area_id"] == area_id), None)
+                area_name = next(
+                    (a["name"] for a in areas if a["area_id"] == area_id), None
+                )
 
                 # Update device data using appropriate manager
                 device_data["area"] = area_name
@@ -787,11 +886,20 @@ def sync_device_area(device_id):
                 else:
                     storage_manager.save_entity(device_id, device_data)
 
-                manager_type = 'device_manager' if use_device_manager else 'storage_manager'
-                logger.info(f"Synced area '{area_name}' for device '{device_id}' (using {manager_type})")
+                manager_type = (
+                    "device_manager" if use_device_manager else "storage_manager"
+                )
+                logger.info(
+                    f"Synced area '{area_name}' for device '{device_id}' (using {manager_type})"
+                )
 
                 return jsonify(
-                    {"success": True, "area": area_name, "area_id": area_id, "message": f"Area synced: {area_name}"}
+                    {
+                        "success": True,
+                        "area": area_name,
+                        "area_id": area_id,
+                        "message": f"Area synced: {area_name}",
+                    }
                 )
             else:
                 # No area assigned in HA
@@ -806,10 +914,20 @@ def sync_device_area(device_id):
                 else:
                     storage_manager.save_entity(device_id, device_data)
 
-                manager_type = 'device_manager' if use_device_manager else 'storage_manager'
-                logger.info(f"No area assigned for device '{device_id}' in HA (using {manager_type})")
+                manager_type = (
+                    "device_manager" if use_device_manager else "storage_manager"
+                )
+                logger.info(
+                    f"No area assigned for device '{device_id}' in HA (using {manager_type})"
+                )
 
-                return jsonify({"success": True, "area": None, "message": "No area assigned in Home Assistant"})
+                return jsonify(
+                    {
+                        "success": True,
+                        "area": None,
+                        "message": "No area assigned in Home Assistant",
+                    }
+                )
         finally:
             loop.close()
 
@@ -828,9 +946,13 @@ def get_diagnostics():
         storage_manager = get_storage_manager()
         area_manager = current_app.config.get("area_manager")
         web_server = current_app.config.get("web_server")
-        storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
+        storage_path = current_app.config.get(
+            "storage_path", "/config/broadlink_manager"
+        )
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
+        collector = DiagnosticsCollector(
+            storage_path, device_manager, storage_manager, area_manager, web_server
+        )
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
 
@@ -851,9 +973,13 @@ def get_diagnostics_markdown():
         storage_manager = get_storage_manager()
         area_manager = current_app.config.get("area_manager")
         web_server = current_app.config.get("web_server")
-        storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
+        storage_path = current_app.config.get(
+            "storage_path", "/config/broadlink_manager"
+        )
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
+        collector = DiagnosticsCollector(
+            storage_path, device_manager, storage_manager, area_manager, web_server
+        )
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
         markdown = collector.generate_markdown_report(sanitized)
@@ -876,9 +1002,13 @@ def download_diagnostics():
         storage_manager = get_storage_manager()
         area_manager = current_app.config.get("area_manager")
         web_server = current_app.config.get("web_server")
-        storage_path = current_app.config.get("storage_path", "/config/broadlink_manager")
+        storage_path = current_app.config.get(
+            "storage_path", "/config/broadlink_manager"
+        )
 
-        collector = DiagnosticsCollector(storage_path, device_manager, storage_manager, area_manager, web_server)
+        collector = DiagnosticsCollector(
+            storage_path, device_manager, storage_manager, area_manager, web_server
+        )
         data = collector.collect_all()
         sanitized = collector.sanitize_data(data)
         markdown = collector.generate_markdown_report(sanitized)
@@ -902,18 +1032,27 @@ def download_diagnostics():
                     if "commands" in sanitized_device:
                         sanitized_device["commands"] = {
                             cmd_name: {"type": cmd_data.get("command_type", "unknown")}
-                            for cmd_name, cmd_data in sanitized_device["commands"].items()
+                            for cmd_name, cmd_data in sanitized_device[
+                                "commands"
+                            ].items()
                         }
                     sanitized_devices[device_id] = sanitized_device
 
-                zf.writestr("devices_sanitized.json", json.dumps(sanitized_devices, indent=2))
+                zf.writestr(
+                    "devices_sanitized.json", json.dumps(sanitized_devices, indent=2)
+                )
 
             # Add command structure (names only, no codes)
             if sanitized.get("command_structure"):
-                zf.writestr("command_structure.json", json.dumps(sanitized["command_structure"], indent=2))
+                zf.writestr(
+                    "command_structure.json",
+                    json.dumps(sanitized["command_structure"], indent=2),
+                )
 
             # Add log entries if available
-            if sanitized.get("errors") and (sanitized["errors"].get("errors") or sanitized["errors"].get("warnings")):
+            if sanitized.get("errors") and (
+                sanitized["errors"].get("errors") or sanitized["errors"].get("warnings")
+            ):
                 log_content = "# Recent Log Entries\n\n"
                 if sanitized["errors"].get("errors"):
                     log_content += "## Errors\n\n"
@@ -932,7 +1071,12 @@ def download_diagnostics():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"broadlink_manager_diagnostics_{timestamp}.zip"
 
-        return send_file(memory_file, mimetype="application/zip", as_attachment=True, download_name=filename)
+        return send_file(
+            memory_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
+        )
 
     except Exception as e:
         logger.error(f"Error creating diagnostic bundle: {e}")

@@ -30,7 +30,9 @@ def get_broadlink_devices():
         # Call the existing async method synchronously
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        devices = loop.run_until_complete(web_server._get_broadlink_devices("GET /api/broadlink/devices"))
+        devices = loop.run_until_complete(
+            web_server._get_broadlink_devices("GET /api/broadlink/devices")
+        )
         loop.close()
 
         return jsonify({"devices": devices})
@@ -81,7 +83,9 @@ def get_all_remote_devices():
             supported_features = attributes.get("supported_features", 0)
 
             # Media device remotes typically have activity_list attribute
-            has_activity_list = "activity_list" in attributes or "current_activity" in attributes
+            has_activity_list = (
+                "activity_list" in attributes or "current_activity" in attributes
+            )
 
             # Check entity ID for media device patterns (be specific to avoid false positives)
             skip_patterns = [
@@ -101,12 +105,16 @@ def get_all_remote_devices():
             # Check if this is a media device remote (skip it)
             is_media_remote = (
                 has_activity_list  # Has media player activity tracking
-                or (supported_features == 4 and "tv" in entity_lower)  # Android TV pattern
+                or (
+                    supported_features == 4 and "tv" in entity_lower
+                )  # Android TV pattern
                 or any(pattern in entity_lower for pattern in skip_patterns)
             )
 
             if is_media_remote:
-                logger.info(f"Skipping media device remote: {entity_id} (supported_features={supported_features})")
+                logger.info(
+                    f"Skipping media device remote: {entity_id} (supported_features={supported_features})"
+                )
                 continue
 
             # Detect controller type
@@ -129,7 +137,9 @@ def get_all_remote_devices():
             }
 
             remote_devices.append(device_info)
-            logger.debug(f"Added remote device: {entity_id} ({controller_info['type']})")
+            logger.debug(
+                f"Added remote device: {entity_id} ({controller_info['type']})"
+            )
 
         logger.info(f"Found {len(remote_devices)} remote devices from HA API")
         return jsonify({"devices": remote_devices})

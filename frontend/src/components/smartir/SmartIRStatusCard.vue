@@ -1451,14 +1451,33 @@ defineExpose({
     padding: 12px;
   }
 
-  .header-left {
-    flex: 1;
-    min-width: 0;
+  /* Keep chevron with header */
+  .chevron-button {
+    order: 1;
   }
 
+  .header-left {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* Logo and title stay together */
+  .smartir-logo,
+  .header-left h3 {
+    flex-shrink: 0;
+  }
+
+  /* Move badges to their own row within header-left */
   .header-badges {
+    width: 100%;
+    flex-basis: 100%;
     flex-wrap: wrap;
     gap: 6px;
+    margin-top: 8px;
   }
 
   .simulation-toggle-pill {

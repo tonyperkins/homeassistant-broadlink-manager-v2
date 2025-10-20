@@ -911,7 +911,7 @@ def download_diagnostics():
             # Add command structure (names only, no codes)
             if sanitized.get("command_structure"):
                 zf.writestr("command_structure.json", json.dumps(sanitized["command_structure"], indent=2))
-            
+
             # Add log entries if available
             if sanitized.get("errors") and (sanitized["errors"].get("errors") or sanitized["errors"].get("warnings")):
                 log_content = "# Recent Log Entries\n\n"

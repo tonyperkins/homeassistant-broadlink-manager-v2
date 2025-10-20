@@ -245,11 +245,11 @@ class DeviceManager:
             # Update fields (preserve commands unless explicitly updated)
             old_commands = devices[device_id].get("commands", {})
             devices[device_id].update(updates)
-            
+
             # Only restore old commands if not explicitly updated
             if "commands" not in updates:
                 devices[device_id]["commands"] = old_commands
-            
+
             devices[device_id]["updated_at"] = datetime.now().isoformat()
 
             if self._save_devices(devices):

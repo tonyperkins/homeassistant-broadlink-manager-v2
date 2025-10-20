@@ -55,9 +55,12 @@ class SmartIRYAMLGenerator:
 
             # Build device configuration
             config = self._build_device_config(device_id, device_data, controller_entity)
-            
+
             # Debug: Log the config being generated
-            logger.info(f"Generated config for {device_id}: platform={config.get('platform')}, name={config.get('name')}, device_code={config.get('device_code')}")
+            logger.info(
+                f"Generated config for {device_id}: platform={config.get('platform')}, "
+                f"name={config.get('name')}, device_code={config.get('device_code')}"
+            )
 
             # Write to platform-specific file
             platform_file = self.smartir_dir / f"{entity_type}.yaml"
@@ -71,7 +74,9 @@ class SmartIRYAMLGenerator:
                     "config": config,
                 }
             else:
-                error_msg = "Device configuration validation failed:\n" + "\n".join(f"  - {e}" for e in (validation_errors or ["Unknown error"]))
+                error_msg = ("Device configuration validation failed:\n" +
+                             "\n".join(f"  - {e}" for e in
+                                       (validation_errors or ["Unknown error"])))
                 return {"success": False, "error": error_msg, "validation_errors": validation_errors}
 
         except Exception as e:
@@ -156,7 +161,9 @@ class SmartIRYAMLGenerator:
 
         return config
 
-    def _append_device_to_file(self, file_path: Path, config: Dict[str, Any], entity_type: str) -> tuple[bool, Optional[List[str]]]:
+    def _append_device_to_file(
+        self, file_path: Path, config: Dict[str, Any], entity_type: str
+    ) -> tuple[bool, Optional[List[str]]]:
         """
         Append device configuration to platform file with validation
 

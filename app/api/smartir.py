@@ -492,7 +492,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             device_manager = current_app.config.get("device_manager")
             logger.info(f"Checking if profile {code} is in use (device_manager: {device_manager is not None})")
-            
+
             if device_manager:
                 # Get all devices from devices.json (includes SmartIR devices)
                 devices = device_manager.get_all_devices()
@@ -504,10 +504,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     has_device_code = "device_code" in device_data
                     device_code_value = device_data.get('device_code')
                     device_type = device_data.get('device_type')
-                    logger.info(f"Device '{device_id}': type={device_type}, has_device_code={has_device_code}, device_code={device_code_value}")
-                    
+                    logger.info(
+                        f"Device '{device_id}': type={device_type}, "
+                        f"has_device_code={has_device_code}, device_code={device_code_value}"
+                    )
+
                     # Check if this is a SmartIR device with matching device_code
-                    if device_type == "smartir" and "device_code" in device_data and str(device_data.get("device_code")) == str(code):
+                    if (device_type == "smartir" and "device_code" in device_data and
+                            str(device_data.get("device_code")) == str(code)):
                         device_name = device_data.get("name", device_id)
                         devices_using_profile.append(device_name)
                         logger.info(f"✅ Found device using profile {code}: {device_name}")
@@ -518,7 +522,8 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         jsonify(
                             {
                                 "success": False,
-                                "error": f"Cannot delete profile {code}: it is currently in use by {len(devices_using_profile)} device(s)",
+                                "error": (f"Cannot delete profile {code}: it is currently in use by "
+                                          f"{len(devices_using_profile)} device(s)"),
                                 "devices": devices_using_profile,
                             }
                         ),

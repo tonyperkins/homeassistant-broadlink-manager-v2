@@ -83,21 +83,21 @@ class DiagnosticsCollector:
         """Collect Python package versions"""
         try:
             installed = {pkg.key: pkg.version for pkg in pkg_resources.working_set}
-            
+
             # Key dependencies to track
             key_deps = [
                 "broadlink", "flask", "flask-cors", "aiohttp", "aiofiles",
                 "requests", "pyyaml", "websockets", "zeroconf", "colorlog",
                 "python-dateutil", "python-dotenv"
             ]
-            
+
             dependencies = {}
             for dep in key_deps:
                 dependencies[dep] = installed.get(dep, "not installed")
-            
+
             # Add count of all installed packages
             dependencies["total_packages"] = len(installed)
-            
+
             return dependencies
         except Exception as e:
             logger.error(f"Error collecting dependencies: {e}")
@@ -138,7 +138,7 @@ class DiagnosticsCollector:
                 "LOG_LEVEL", "WEB_PORT", "AUTO_DISCOVER", "STORAGE_PATH",
                 "PYTHONPATH", "PATH", "HOME", "USER"
             ]
-            
+
             env = {}
             for var in safe_vars:
                 value = os.environ.get(var)
@@ -148,7 +148,7 @@ class DiagnosticsCollector:
                         env[var] = value[:200] + "..."
                     else:
                         env[var] = value
-            
+
             return env
         except Exception as e:
             logger.error(f"Error collecting environment: {e}")
@@ -229,7 +229,7 @@ class DiagnosticsCollector:
         """Collect Home Assistant connection details"""
         try:
             import asyncio
-            
+
             connection = {
                 "configured": bool(os.environ.get("HA_URL") and os.environ.get("HA_TOKEN")),
                 "ha_url": os.environ.get("HA_URL", "not configured"),
@@ -243,7 +243,7 @@ class DiagnosticsCollector:
                 try:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    
+
                     # Try to get HA config (includes version)
                     config = loop.run_until_complete(self.area_manager._send_ws_command("get_config"))
                     if config:
@@ -252,7 +252,7 @@ class DiagnosticsCollector:
                         connection["websocket_connected"] = True
                     else:
                         connection["connection_test"] = "failed"
-                    
+
                     loop.close()
                 except Exception as e:
                     connection["connection_test"] = f"failed: {str(e)}"
@@ -275,9 +275,9 @@ class DiagnosticsCollector:
             if self.storage_manager:
                 entities = self.storage_manager.get_all_entities()
                 broadlink_entities = [e for e in entities.values() if e.get("broadlink_entity")]
-                
+
                 devices_info["discovered_count"] = len(set(e.get("broadlink_entity") for e in broadlink_entities))
-                
+
                 # Collect unique Broadlink entities
                 seen_entities = set()
                 for entity in broadlink_entities:
@@ -292,11 +292,14 @@ class DiagnosticsCollector:
                             device_type = "RM3 Mini"
                         elif "rm" in broadlink_entity.lower():
                             device_type = "RM Device"
-                        
+
                         devices_info["devices"].append({
                             "entity_id": broadlink_entity,
                             "type": device_type,
-                            "commands_count": len([e for e in broadlink_entities if e.get("broadlink_entity") == broadlink_entity])
+                            "commands_count": len([
+                                e for e in broadlink_entities
+                                if e.get("broadlink_entity") == broadlink_entity
+                            ])
                         })
 
             return devices_info
@@ -359,19 +362,19 @@ class DiagnosticsCollector:
         """Collect backup file status"""
         try:
             backups = {}
-            
+
             backup_files = [
                 "devices.json.backup",
                 "metadata.json.backup"
             ]
-            
+
             for backup_file in backup_files:
                 backup_path = self.storage_path / backup_file
                 if backup_path.exists():
                     stat = backup_path.stat()
                     modified = datetime.fromtimestamp(stat.st_mtime)
                     age = datetime.now() - modified
-                    
+
                     backups[backup_file] = {
                         "exists": True,
                         "size": stat.st_size,
@@ -380,7 +383,7 @@ class DiagnosticsCollector:
                     }
                 else:
                     backups[backup_file] = {"exists": False}
-            
+
             return backups
         except Exception as e:
             logger.error(f"Error collecting backup status: {e}")
@@ -390,7 +393,7 @@ class DiagnosticsCollector:
         """Check file system permissions"""
         try:
             permissions = {}
-            
+
             # Check storage path
             if self.storage_path.exists():
                 permissions["storage_path_readable"] = os.access(self.storage_path, os.R_OK)
@@ -398,18 +401,18 @@ class DiagnosticsCollector:
             else:
                 permissions["storage_path_readable"] = False
                 permissions["storage_path_writable"] = False
-            
+
             # Check config path
             config_path = Path("/config")
             if config_path.exists():
                 permissions["config_path_readable"] = os.access(config_path, os.R_OK)
                 permissions["config_path_writable"] = os.access(config_path, os.W_OK)
-            
+
             # Check HA storage path
             ha_storage_path = Path("/config/.storage")
             if ha_storage_path.exists():
                 permissions["ha_storage_readable"] = os.access(ha_storage_path, os.R_OK)
-            
+
             return permissions
         except Exception as e:
             logger.error(f"Error collecting permissions: {e}")
@@ -475,7 +478,7 @@ class DiagnosticsCollector:
                 "index_file_exists": False,
                 "index_last_updated": None
             }
-            
+
             # Check for custom profiles directory
             custom_profiles_path = self.storage_path / "smartir_profiles"
             if custom_profiles_path.exists():
@@ -485,7 +488,7 @@ class DiagnosticsCollector:
                         if profile_count > 0:
                             profiles["profiles_by_platform"][platform_dir.name] = profile_count
                             profiles["total_custom_profiles"] += profile_count
-            
+
             # Check device index
             index_file = Path("smartir_device_index.json")
             if index_file.exists():
@@ -493,7 +496,7 @@ class DiagnosticsCollector:
                 stat = index_file.stat()
                 profiles["index_last_updated"] = datetime.fromtimestamp(stat.st_mtime).isoformat()
                 profiles["index_size"] = stat.st_size
-            
+
             return profiles
         except Exception as e:
             logger.error(f"Error collecting SmartIR profiles: {e}")
@@ -507,14 +510,14 @@ class DiagnosticsCollector:
                 "warnings": [],
                 "log_file_found": False
             }
-            
+
             # Try to find log file in common locations
             log_locations = [
                 Path("/config/broadlink_manager.log"),
                 Path("/var/log/broadlink_manager.log"),
                 Path("broadlink_manager.log"),
             ]
-            
+
             log_file = None
             for location in log_locations:
                 if location.exists():
@@ -522,29 +525,29 @@ class DiagnosticsCollector:
                     log_data["log_file_found"] = True
                     log_data["log_file_path"] = str(location)
                     break
-            
+
             if log_file:
                 try:
                     # Read last 100 lines
                     with open(log_file, 'r') as f:
                         lines = f.readlines()[-100:]
-                    
+
                     # Extract errors and warnings
                     for line in lines:
                         if "ERROR" in line:
                             log_data["errors"].append(line.strip())
                         elif "WARNING" in line:
                             log_data["warnings"].append(line.strip())
-                    
+
                     # Limit to last 20 of each
                     log_data["errors"] = log_data["errors"][-20:]
                     log_data["warnings"] = log_data["warnings"][-20:]
-                    
+
                 except Exception as read_error:
                     log_data["read_error"] = str(read_error)
             else:
                 log_data["note"] = "Log file not found in common locations"
-            
+
             return log_data
         except Exception as e:
             logger.error(f"Error collecting recent errors: {e}")
@@ -599,7 +602,7 @@ class DiagnosticsCollector:
             "",
             "## Key Dependencies",
         ]
-        
+
         # Dependencies
         if data.get("dependencies") and not data["dependencies"].get("error"):
             deps = data["dependencies"]
@@ -608,7 +611,7 @@ class DiagnosticsCollector:
                 lines.append(f"- **{dep}:** {version}")
             lines.append(f"- **Total Packages:** {deps.get('total_packages', 0)}")
         lines.append("")
-        
+
         # Configuration
         lines.extend([
             "## Configuration",
@@ -618,7 +621,7 @@ class DiagnosticsCollector:
             f"- **Web Port:** {data['configuration'].get('web_port', 'Unknown')}",
             "",
         ])
-        
+
         # Home Assistant Connection
         lines.append("## Home Assistant Connection")
         if data.get("ha_connection"):
@@ -630,7 +633,7 @@ class DiagnosticsCollector:
                     lines.append(f"- **HA Version:** {ha_conn['ha_version']}")
                 lines.append(f"- **WebSocket:** {'✅ Connected' if ha_conn.get('websocket_connected') else '❌ Not connected'}")
         lines.append("")
-        
+
         # Devices
         lines.extend([
             "## Devices",
@@ -646,7 +649,7 @@ class DiagnosticsCollector:
             for entity_type, count in data["devices"]["devices_by_entity_type"].items():
                 lines.append(f"- **{entity_type}:** {count}")
             lines.append("")
-        
+
         # Broadlink Devices
         if data.get("broadlink_devices") and data["broadlink_devices"].get("devices"):
             lines.append("## Broadlink Devices")
@@ -654,7 +657,7 @@ class DiagnosticsCollector:
             for device in data["broadlink_devices"]["devices"]:
                 lines.append(f"- **{device['entity_id']}:** {device['type']} ({device['commands_count']} commands)")
             lines.append("")
-        
+
         # SmartIR Profiles
         if data.get("smartir_profiles"):
             profiles = data["smartir_profiles"]
@@ -662,8 +665,8 @@ class DiagnosticsCollector:
                 lines.append("## SmartIR Profiles")
                 lines.append(f"- **Custom Profiles:** {profiles.get('total_custom_profiles', 0)}")
                 if profiles.get("profiles_by_platform"):
-                    for platform, count in profiles["profiles_by_platform"].items():
-                        lines.append(f"  - **{platform}:** {count}")
+                    for plat, count in profiles["profiles_by_platform"].items():
+                        lines.append(f"  - **{plat}:** {count}")
                 lines.append(f"- **Device Index:** {'✅ Present' if profiles.get('index_file_exists') else '❌ Missing'}")
                 lines.append("")
 
@@ -680,7 +683,7 @@ class DiagnosticsCollector:
                 else:
                     lines.append(f"- **{filename}:** ❌ Missing")
             lines.append("")
-        
+
         # Backups
         if data.get("backups"):
             lines.append("### Backups")
@@ -691,7 +694,7 @@ class DiagnosticsCollector:
                 else:
                     lines.append(f"- **{backup_name}:** ❌ Missing")
             lines.append("")
-        
+
         # Permissions
         if data.get("permissions"):
             perms = data["permissions"]
@@ -713,7 +716,7 @@ class DiagnosticsCollector:
                     lines.append(f"- **{device_id}:** {count} commands")
             lines.append(f"\n**Total Commands:** {total_commands}")
             lines.append("")
-        
+
         # Errors and Warnings
         if data.get("errors"):
             errors = data["errors"]

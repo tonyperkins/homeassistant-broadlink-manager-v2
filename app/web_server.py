@@ -45,7 +45,7 @@ class IngressMiddleware:
     def __call__(self, environ, start_response):
         # Get the ingress path from the header
         ingress_path = environ.get("HTTP_X_INGRESS_PATH", "")
-        
+
         # Debug logging
         logger.debug(f"Ingress request - Path: {environ.get('PATH_INFO')}, Ingress Path: {ingress_path}")
 

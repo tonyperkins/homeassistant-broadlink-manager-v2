@@ -52,23 +52,34 @@
 
     <!-- Filter Bar -->
     <div v-if="deviceStore.hasDevices" class="filter-bar">
-      <!-- Search Row -->
-      <div class="filter-row filter-row-search">
-        <div class="filter-group filter-search">
-          <label>
-            <i class="mdi mdi-magnify"></i>
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Search devices, commands..."
-              class="search-input"
-            />
-          </label>
-        </div>
+      <!-- Filter Header with Collapse Button -->
+      <div class="filter-header">
+        <button class="filter-collapse-button" @click="filtersExpanded = !filtersExpanded">
+          <i class="mdi" :class="filtersExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"></i>
+          <span>Filters</span>
+          <span v-if="hasActiveFilters" class="active-filter-count">{{ activeFilterCount }}</span>
+        </button>
       </div>
 
-      <!-- Filters Row -->
-      <div class="filter-row filter-row-dropdowns">
+      <!-- Collapsible Filter Content -->
+      <div v-show="filtersExpanded" class="filter-content">
+        <!-- Search Row -->
+        <div class="filter-row filter-row-search">
+          <div class="filter-group filter-search">
+            <label>
+              <i class="mdi mdi-magnify"></i>
+              <input
+                v-model="filters.search"
+                type="text"
+                placeholder="Search devices, commands..."
+                class="search-input"
+              />
+            </label>
+          </div>
+        </div>
+
+        <!-- Filters Row -->
+        <div class="filter-row filter-row-dropdowns">
         <div class="filter-group">
           <label>
             <i class="mdi mdi-access-point"></i>
@@ -153,6 +164,7 @@
         <div class="filter-results">
           {{ filteredDevices.length }} of {{ deviceStore.deviceCount }}
         </div>
+      </div>
       </div>
     </div>
 
@@ -345,6 +357,7 @@ const generationResult = ref({
 })
 
 // Filters
+const filtersExpanded = ref(true)
 const filters = ref({
   search: '',
   broadlinkDevice: '',
@@ -461,6 +474,16 @@ const filteredDevices = computed(() => {
 
 const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.broadlinkDevice || filters.value.area || filters.value.entityType || filters.value.showSmartIROnly
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.broadlinkDevice) count++
+  if (filters.value.area) count++
+  if (filters.value.entityType) count++
+  if (filters.value.showSmartIROnly) count++
+  return count
 })
 
 const clearFilters = () => {
@@ -1126,12 +1149,57 @@ const handleSendCommand = async ({ device, command }) => {
 .filter-bar {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 0;
   background: rgba(var(--ha-primary-rgb), 0.03);
   border-radius: 8px;
   border: 1px solid var(--ha-border-color);
   margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.filter-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ha-border-color);
+}
+
+.filter-collapse-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.filter-collapse-button:hover {
+  color: var(--ha-primary-color);
+}
+
+.filter-collapse-button i {
+  font-size: 20px;
+}
+
+.active-filter-count {
+  background: var(--ha-primary-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+.filter-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-row {

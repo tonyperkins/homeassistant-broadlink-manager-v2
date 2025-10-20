@@ -479,4 +479,93 @@ defineExpose({
   color: var(--ha-error-color, #f44336);
   font-weight: 500;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767px) {
+  .discovery-banner {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .banner-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .banner-icon i {
+    font-size: 24px;
+  }
+
+  .banner-text h3 {
+    font-size: 16px;
+  }
+
+  .banner-text p {
+    font-size: 13px;
+  }
+
+  .banner-content .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-dialog {
+    width: 95%;
+    max-height: 90vh;
+    margin: 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 18px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .info-text {
+    font-size: 13px;
+  }
+
+  .discovered-device {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .device-info {
+    width: 100%;
+  }
+
+  .device-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .device-actions .btn {
+    flex: 1;
+  }
+
+  .device-actions .btn-danger {
+    flex: 0 0 auto;
+    min-width: 48px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+}
 </style>

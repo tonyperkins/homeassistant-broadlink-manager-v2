@@ -1485,32 +1485,37 @@ const handleSendCommand = async ({ device, command }) => {
   /* Card header adjustments */
   .card-header {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
     padding: 12px;
+    align-items: flex-start;
   }
 
+  /* Chevron stays on left */
+  .chevron-button {
+    order: 1;
+  }
+
+  /* Header content next to chevron */
   .header-left {
+    order: 2;
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
     gap: 12px;
   }
 
-  /* Icon and title stay together */
+  /* Icon and title stay on same line */
   .header-icon,
   .header-left h3 {
     flex-shrink: 0;
   }
 
-  /* Move badges to their own row within header-left */
+  /* Move badges to their own row below */
   .header-badges {
     width: 100%;
     flex-basis: 100%;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   /* Force buttons to new line */

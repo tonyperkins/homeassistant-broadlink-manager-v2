@@ -308,7 +308,7 @@ const showSettingsMenu = ref(false)
 const isExpanded = ref(true)
 const allProfiles = ref([])
 const loadingAllProfiles = ref(false)
-const filtersExpanded = ref(true)
+const filtersExpanded = ref(false)
 const filters = ref({
   search: '',
   platform: ''

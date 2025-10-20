@@ -355,7 +355,7 @@ const generationResult = ref({
 })
 
 // Filters
-const filtersExpanded = ref(true)
+const filtersExpanded = ref(false)
 const filters = ref({
   search: '',
   broadlinkDevice: '',
@@ -1312,36 +1312,6 @@ const handleSendCommand = async ({ device, command }) => {
   box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
 }
 
-.filter-search {
-  flex: 1;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--ha-surface-color);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 8px;
-  color: var(--ha-text-primary-color);
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.search-input::placeholder {
-  color: var(--ha-text-secondary-color);
-  opacity: 0.7;
-}
-
-.search-input:hover {
-  border-color: var(--ha-primary-color);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--ha-primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
-}
 
 .filter-toggle label {
   flex-direction: column;

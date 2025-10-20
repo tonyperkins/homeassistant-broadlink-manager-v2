@@ -17,30 +17,29 @@
         <button 
           @click.stop="syncAllAreas" 
           class="btn btn-secondary"
-          v-if="isExpanded"
           :disabled="syncingAreas"
-          title="Sync all areas from Home Assistant"
+          :title="isMobile ? 'Sync areas' : 'Sync all areas from Home Assistant'"
         >
           <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
-          {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
+          <span v-if="!isMobile">{{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}</span>
+          <span v-else class="mobile-label">Areas</span>
         </button>
         <button 
           @click.stop="generateEntities" 
           class="btn btn-secondary"
-          v-if="isExpanded"
           :disabled="generatingEntities"
-          title="Generate entities for all devices"
+          :title="isMobile ? 'Generate entities' : 'Generate entities for all devices'"
         >
           <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
-          {{ generatingEntities ? 'Generating...' : 'Generate Entities' }}
+          <span v-if="!isMobile">{{ generatingEntities ? 'Generating...' : 'Generate Entities' }}</span>
+          <span v-else class="mobile-label">Entities</span>
         </button>
         <button 
           @click.stop="showCreateForm = true" 
           class="btn btn-primary"
-          v-if="isExpanded"
         >
           <i class="mdi mdi-plus"></i>
-          Add Device
+          <span v-if="!isMobile">Add Device</span>
         </button>
       </div>
     </div>
@@ -1528,24 +1527,37 @@ const handleSendCommand = async ({ device, command }) => {
   }
 
   .header-right .btn {
-    width: 48px;
     height: 48px;
-    min-width: 48px;
-    padding: 0;
+    min-height: 48px;
+    padding: 0 12px;
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     border-radius: 10px;
-  }
-
-  /* Hide button text on mobile, show icons only */
-  .header-right .btn:not(.icon-button) {
-    font-size: 0;
+    white-space: nowrap;
   }
 
   .header-right .btn i {
-    font-size: 22px;
+    font-size: 20px;
     margin: 0;
+  }
+
+  .header-right .btn .mobile-label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Plus button - icon only */
+  .header-right .btn-primary {
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
+  }
+
+  .header-right .btn-primary i {
+    font-size: 22px;
   }
 
   /* Filter bar mobile layout */

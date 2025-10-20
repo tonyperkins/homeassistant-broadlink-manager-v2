@@ -34,38 +34,38 @@
         </div>
       </div>
       <div class="header-right">
+        <!-- Settings Menu -->
+        <div v-if="displayStatus?.installed" class="settings-menu-container">
+          <button 
+            @click.stop="showSettingsMenu = !showSettingsMenu" 
+            class="icon-button"
+            :class="{ active: showSettingsMenu }"
+            title="Settings"
+          >
+            <i class="mdi mdi-cog"></i>
+          </button>
+          <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="toggleHelp" class="menu-item">
+              <i class="mdi mdi-help-circle"></i>
+              <span>{{ showHelp ? 'Hide Help' : 'Show Help' }}</span>
+            </button>
+            <button @click="refreshStatus" class="menu-item">
+              <i class="mdi mdi-refresh"></i>
+              <span>Refresh Status</span>
+            </button>
+            <button @click="openCodeTester" class="menu-item">
+              <i class="mdi mdi-test-tube"></i>
+              <span>Test Codes</span>
+            </button>
+          </div>
+        </div>
         <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="showHelp = !showHelp" 
-          class="icon-button"
-          :class="{ active: showHelp }"
-          title="Show help"
-        >
-          <i class="mdi mdi-help-circle"></i>
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="refreshStatus" 
-          class="icon-button"
-          title="Refresh status"
-        >
-          <i class="mdi mdi-refresh"></i>
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="openCodeTester" 
-          class="btn btn-secondary"
-        >
-          <i class="mdi mdi-test-tube"></i>
-          Test Codes
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
+          v-if="displayStatus?.installed" 
           @click.stop="createProfile" 
           class="btn btn-primary"
         >
           <i class="mdi mdi-plus"></i>
-          Create SmartIR Profile
+          <span v-if="!isMobile">Create SmartIR Profile</span>
         </button>
       </div>
     </div>
@@ -291,6 +291,7 @@ const status = ref(smartirStatus?.value || null)
 // Load simulation state from localStorage
 const simulatingNotInstalled = ref(localStorage.getItem('smartir_simulate_not_installed') === 'true')
 const showHelp = ref(false)
+const showSettingsMenu = ref(false)
 const isExpanded = ref(true)
 const allProfiles = ref([])
 const loadingAllProfiles = ref(false)
@@ -458,8 +459,21 @@ function createProfile() {
   emit('create-profile')
 }
 
+function toggleHelp() {
+  showHelp.value = !showHelp.value
+  showSettingsMenu.value = false
+}
+
 function openCodeTester() {
   showCodeTester.value = true
+  showSettingsMenu.value = false
+}
+
+function refreshStatus() {
+  showSettingsMenu.value = false
+  if (refreshSmartIR) {
+    refreshSmartIR()
+  }
 }
 
 function openSmartIRGitHub() {
@@ -797,6 +811,52 @@ defineExpose({
 
 .icon-button i {
   font-size: 20px;
+}
+
+/* Settings Menu */
+.settings-menu-container {
+  position: relative;
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  box-shadow: var(--ha-shadow-lg);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.settings-dropdown .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--ha-text-primary-color);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.settings-dropdown .menu-item:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.settings-dropdown .menu-item i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.settings-dropdown .menu-item span {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .card-body {
@@ -1500,7 +1560,6 @@ defineExpose({
     align-items: center;
   }
 
-  .header-right .btn,
   .header-right .icon-button {
     width: 48px;
     height: 48px;
@@ -1512,15 +1571,30 @@ defineExpose({
     border-radius: 10px;
   }
 
-  /* Hide button text on mobile, show icons only */
-  .header-right .btn:not(.icon-button) {
-    font-size: 0;
-  }
-
-  .header-right .btn i,
   .header-right .icon-button i {
     font-size: 22px;
     margin: 0;
+  }
+
+  /* Plus button - icon only on mobile */
+  .header-right .btn-primary {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .header-right .btn-primary i {
+    font-size: 22px;
+    margin: 0;
+  }
+
+  .header-right .btn-primary span {
+    display: none;
   }
 
   /* Filter bar mobile layout */

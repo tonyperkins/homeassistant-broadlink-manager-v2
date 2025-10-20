@@ -45,7 +45,7 @@
         <!-- Settings Menu -->
         <div v-if="displayStatus?.installed" class="settings-menu-container">
           <button 
-            @click.stop="showSettingsMenu = !showSettingsMenu" 
+            @click.stop="toggleSettings" 
             class="icon-button settings-button"
             :class="{ active: showSettingsMenu }"
             title="Settings"
@@ -483,6 +483,15 @@ function createProfile() {
 function toggleHelp() {
   showHelp.value = !showHelp.value
   showSettingsMenu.value = false
+}
+
+function toggleSettings() {
+  // If section is collapsed, expand it first
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  }
+  // Toggle settings menu
+  showSettingsMenu.value = !showSettingsMenu.value
 }
 
 function openCodeTester() {

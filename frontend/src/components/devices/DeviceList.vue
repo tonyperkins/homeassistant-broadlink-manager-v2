@@ -24,7 +24,7 @@
         <!-- Settings Menu -->
         <div class="settings-menu-container">
           <button 
-            @click.stop="showSettingsMenu = !showSettingsMenu" 
+            @click.stop="toggleSettings" 
             class="icon-button settings-button"
             :class="{ active: showSettingsMenu }"
             title="Settings"
@@ -333,6 +333,15 @@ watch(viewMode, (newMode) => {
 
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
+}
+
+const toggleSettings = () => {
+  // If section is collapsed, expand it first
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  }
+  // Toggle settings menu
+  showSettingsMenu.value = !showSettingsMenu.value
 }
 
 // Error dialog state

@@ -25,7 +25,7 @@
           {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
         </button>
         <button 
-          @click.stop="generateAllEntities" 
+          @click.stop="generateEntities" 
           class="btn btn-secondary"
           v-if="isExpanded"
           :disabled="generatingEntities"

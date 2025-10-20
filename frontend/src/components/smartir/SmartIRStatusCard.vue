@@ -1517,6 +1517,9 @@ defineExpose({
     min-width: 0;
     gap: 8px;
     flex-wrap: nowrap;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
   }
 
   .header-left h3 {

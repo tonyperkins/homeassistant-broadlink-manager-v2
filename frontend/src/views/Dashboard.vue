@@ -3,8 +3,11 @@
     <!-- SmartIR Banner -->
     <SmartIRBanner v-if="smartirEnabled" />
 
-    <!-- Welcome Banner -->
-    <div class="welcome-banner">
+    <!-- Welcome Banner (hidden on mobile, dismissable on desktop) -->
+    <div v-if="!isMobile && !bannerDismissed" class="welcome-banner">
+      <button class="dismiss-button" @click="dismissBanner" title="Dismiss">
+        <i class="mdi mdi-close"></i>
+      </button>
       <div class="banner-content">
         <div class="banner-icon">
           <i class="mdi mdi-rocket-launch"></i>
@@ -67,6 +70,14 @@ const editMode = ref(false)
 const editData = ref(null)
 const profileStartStep = ref(0)
 const smartirStatusCard = ref(null)
+
+// Welcome banner dismiss state (persisted in localStorage)
+const bannerDismissed = ref(localStorage.getItem('welcome_banner_dismissed') === 'true')
+
+function dismissBanner() {
+  bannerDismissed.value = true
+  localStorage.setItem('welcome_banner_dismissed', 'true')
+}
 
 // Event handlers for SmartIR Status Card
 function handleCreateProfile() {
@@ -158,6 +169,33 @@ async function handleProfileSave(result) {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--ha-shadow-md);
+  position: relative;
+}
+
+.dismiss-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  z-index: 1;
+}
+
+.dismiss-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dismiss-button i {
+  font-size: 20px;
 }
 
 /* Mobile responsive layout */

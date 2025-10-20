@@ -119,6 +119,7 @@ $itemsToCopy = @(
     "icon.png",
     "README.md",
     "CHANGELOG.md",
+    "smartir_device_index.json",
     "app",
     "docs"
 )

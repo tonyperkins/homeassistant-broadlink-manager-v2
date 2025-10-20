@@ -800,7 +800,7 @@ defineExpose({
 }
 
 .card-body {
-  padding: 20px;
+  padding: 16px;
 }
 
 /* Loading State */
@@ -846,11 +846,11 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 20px;
   font-weight: 600;
   font-size: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .status-badge.success {
@@ -1251,12 +1251,12 @@ defineExpose({
 
 /* Benefits Section */
 .benefits-section {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .benefits-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 15px;
   font-weight: 600;
   color: var(--primary-text-color);
 }
@@ -1267,19 +1267,20 @@ defineExpose({
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .benefits-list li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   color: var(--primary-text-color);
+  font-size: 14px;
 }
 
 .benefits-list i {
   color: #4caf50;
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -1288,14 +1289,15 @@ defineExpose({
 .recommendation {
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-left: 4px solid var(--primary-color);
-  padding: 16px;
+  padding: 12px;
   border-radius: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .recommendation p {
-  margin: 0 0 12px 0;
+  margin: 0;
   color: var(--primary-text-color);
+  font-size: 14px;
 }
 
 .recommendation p:last-child {

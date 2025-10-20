@@ -132,8 +132,16 @@
         <!-- Section Divider -->
         <div v-if="learnedCommands.length > 0 || untrackedCommands.length > 0" class="section-divider"></div>
 
+        <!-- Loading Commands -->
+        <div v-if="loadingCommands" class="loading-commands">
+          <div class="loading-spinner">
+            <i class="mdi mdi-loading mdi-spin"></i>
+            <p>Loading commands...</p>
+          </div>
+        </div>
+
         <!-- Learned Commands List -->
-        <div v-if="learnedCommands.length > 0" class="learned-commands">
+        <div v-else-if="learnedCommands.length > 0" class="learned-commands">
           <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
@@ -141,23 +149,28 @@
                 <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
               
-              <!-- Learned status with IR/RF badge -->
-              <div class="learned-status">
-                <i class="mdi mdi-check-circle"></i>
-                <span>Learned</span>
+              <!-- Right-aligned icons and buttons -->
+              <div class="command-right">
+                <!-- Learned status - just checkmark with tooltip -->
+                <i 
+                  class="mdi mdi-check-circle learned-icon" 
+                  :title="`Learned (${(cmd.type || 'ir').toUpperCase()})`"
+                ></i>
+                
+                <!-- Command type badge -->
                 <span class="command-type-badge" :class="cmd.type || 'ir'">
                   {{ (cmd.type || 'ir').toUpperCase() }}
                 </span>
-              </div>
-              
-              <!-- Action buttons -->
-              <div class="command-actions">
-                <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
-                  <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
-                </button>
-                <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
-                  <i class="mdi mdi-delete"></i>
-                </button>
+                
+                <!-- Action buttons -->
+                <div class="command-actions">
+                  <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
+                    <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
+                  </button>
+                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
+                    <i class="mdi mdi-delete"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -241,6 +254,7 @@ const resultMessage = ref('')
 const resultType = ref('success')
 const learnedCommands = ref([])
 const untrackedCommands = ref([])
+const loadingCommands = ref(false)
 const showDeleteConfirm = ref(false)
 const commandToDelete = ref('')
 const showImportConfirm = ref(false)
@@ -379,6 +393,7 @@ const loadBroadlinkDevices = async () => {
 }
 
 const loadLearnedCommands = async (forceReload = false) => {
+  loadingCommands.value = true
   try {
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
@@ -497,6 +512,8 @@ const loadLearnedCommands = async (forceReload = false) => {
     }
   } catch (error) {
     console.error('Error loading commands:', error)
+  } finally {
+    loadingCommands.value = false
   }
 }
 
@@ -960,6 +977,30 @@ const handleImportConfirm = async () => {
   flex: 1;
 }
 
+.loading-commands {
+  margin-top: 24px;
+  padding: 32px;
+  text-align: center;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--ha-text-secondary-color);
+}
+
+.loading-spinner i {
+  font-size: 32px;
+  color: var(--ha-primary-color);
+}
+
+.loading-spinner p {
+  margin: 0;
+  font-size: 14px;
+}
+
 .learned-commands,
 .untracked-commands {
   margin-top: 24px;
@@ -1036,28 +1077,23 @@ const handleImportConfirm = async () => {
   border-color: var(--ha-warning-color, #ff9800);
 }
 
-.learned-status {
+.command-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px;
-  background: rgba(76, 175, 80, 0.1);
-  border-radius: 6px;
-  color: #4caf50;
-  font-weight: 600;
-  font-size: 12px;
+  margin-left: auto;
 }
 
-.learned-status i {
-  font-size: 16x;
+.learned-icon {
+  font-size: 18px;
+  color: #4caf50;
+  cursor: help;
 }
 
 .command-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  padding: 0 6px;
 }
 
 .command-type-badge {
@@ -1244,7 +1280,7 @@ const handleImportConfirm = async () => {
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .modal-overlay {
     padding: 0;
   }
@@ -1253,6 +1289,85 @@ const handleImportConfirm = async () => {
     max-width: 100%;
     max-height: 100vh;
     border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer button {
+    width: 100%;
+  }
+
+  /* Command list items */
+  .command-item {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+
+  .command-info {
+    flex: 1 1 100%;
+    margin-bottom: 8px;
+  }
+
+  .command-right {
+    flex: 1 1 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .command-actions {
+    gap: 6px;
+  }
+
+  .command-actions button {
+    min-width: 40px;
+  }
+
+  .learned-icon {
+    font-size: 20px;
+  }
+
+  /* Tracked commands section */
+  .tracked-commands-header h3 {
+    font-size: 16px;
+  }
+
+  /* Form groups */
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+  }
+
+  /* SmartIR info */
+  .smartir-info {
+    padding: 12px;
+  }
+
+  .smartir-info h3 {
+    font-size: 16px;
+  }
+
+  .smartir-info p {
+    font-size: 13px;
   }
 }
 </style>

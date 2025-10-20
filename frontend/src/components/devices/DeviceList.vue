@@ -8,40 +8,40 @@
         <div class="header-icon">
           <i class="mdi mdi-devices"></i>
         </div>
-        <h3>Managed Devices</h3>
+        <h3>{{ isMobile ? 'Devices' : 'Managed Devices' }}</h3>
         <div class="header-badges">
           <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
         </div>
       </div>
       <div class="header-right">
         <button 
-          @click.stop="syncAllAreas" 
-          class="btn btn-secondary"
-          v-if="isExpanded"
-          :disabled="syncingAreas"
-          title="Sync all areas from Home Assistant"
-        >
-          <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
-          {{ syncingAreas ? 'Syncing...' : 'Sync Areas' }}
-        </button>
-        <button 
-          @click.stop="generateAllEntities" 
-          class="btn btn-secondary"
-          v-if="isExpanded"
-          :disabled="generatingEntities"
-          title="Generate entities for all devices"
-        >
-          <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
-          {{ generatingEntities ? 'Generating...' : 'Generate Entities' }}
-        </button>
-        <button 
           @click.stop="showCreateForm = true" 
-          class="btn btn-primary"
-          v-if="isExpanded"
+          class="btn btn-primary new-button"
         >
           <i class="mdi mdi-plus"></i>
-          Add Device
+          <span>New</span>
         </button>
+        <!-- Settings Menu -->
+        <div class="settings-menu-container">
+          <button 
+            @click.stop="toggleSettings" 
+            class="icon-button settings-button"
+            :class="{ active: showSettingsMenu }"
+            title="Settings"
+          >
+            <i class="mdi mdi-cog"></i>
+          </button>
+          <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="syncAllAreas(); showSettingsMenu = false" class="menu-item" :disabled="syncingAreas">
+              <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
+              <span>{{ syncingAreas ? 'Syncing Areas...' : 'Sync Areas' }}</span>
+            </button>
+            <button @click="generateEntities(); showSettingsMenu = false" class="menu-item" :disabled="generatingEntities">
+              <i class="mdi" :class="generatingEntities ? 'mdi-loading mdi-spin' : 'mdi-file-code'"></i>
+              <span>{{ generatingEntities ? 'Generating...' : 'Generate Entities' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -52,23 +52,32 @@
 
     <!-- Filter Bar -->
     <div v-if="deviceStore.hasDevices" class="filter-bar">
-      <!-- Search Row -->
-      <div class="filter-row filter-row-search">
-        <div class="filter-group filter-search">
-          <label>
-            <i class="mdi mdi-magnify"></i>
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Search devices, commands..."
-              class="search-input"
-            />
-          </label>
+      <!-- Search Row with Filter Toggle -->
+      <div class="filter-search-row">
+        <button 
+          class="filter-toggle-button" 
+          @click="filtersExpanded = !filtersExpanded"
+          :class="{ active: filtersExpanded || hasActiveFilters }"
+          :title="filtersExpanded ? 'Hide filters' : 'Show filters'"
+        >
+          <i class="mdi mdi-filter-variant"></i>
+          <span v-if="hasActiveFilters" class="filter-badge">{{ activeFilterCount }}</span>
+        </button>
+        <div class="search-input-wrapper">
+          <i class="mdi mdi-magnify search-icon"></i>
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Search devices, commands..."
+            class="search-input"
+          />
         </div>
       </div>
 
-      <!-- Filters Row -->
-      <div class="filter-row filter-row-dropdowns">
+      <!-- Collapsible Filter Content -->
+      <div v-show="filtersExpanded" class="filter-content">
+        <!-- Filters Row -->
+        <div class="filter-row filter-row-dropdowns">
         <div class="filter-group">
           <label>
             <i class="mdi mdi-access-point"></i>
@@ -128,8 +137,8 @@
           Clear
         </button>
 
-        <!-- View Toggle Button Group -->
-        <div class="view-toggle-group">
+        <!-- View Toggle Button Group (hidden on mobile) -->
+        <div v-if="!isMobile" class="view-toggle-group">
           <button 
             @click="viewMode = 'grid'" 
             class="view-toggle-btn"
@@ -153,6 +162,7 @@
         <div class="filter-results">
           {{ filteredDevices.length }} of {{ deviceStore.deviceCount }}
         </div>
+      </div>
       </div>
     </div>
 
@@ -268,6 +278,7 @@
 import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
+import { useResponsive } from '@/composables/useResponsive'
 import DeviceCard from './DeviceCard.vue'
 import DeviceListView from './DeviceListView.vue'
 import DeviceForm from './DeviceForm.vue'
@@ -279,10 +290,12 @@ import api from '@/services/api'
 
 const deviceStore = useDeviceStore()
 const toast = useToast()
+const { isMobile } = useResponsive()
 const showCreateForm = ref(false)
 const showCommandLearner = ref(false)
 const selectedDevice = ref(null)
 const showDeleteConfirm = ref(false)
+const showSettingsMenu = ref(false)
 const deviceToDelete = ref(null)
 const discoveryRef = ref(null)
 const isExpanded = ref(true)
@@ -290,15 +303,45 @@ const generatingEntities = ref(false)
 const syncingAreas = ref(false)
 
 // View mode (grid or list)
-const viewMode = ref(localStorage.getItem('device_view_mode') || 'grid')
+// On mobile, always use grid view; on desktop, use saved preference
+const getInitialViewMode = () => {
+  if (window.innerWidth <= 767) return 'grid'
+  return localStorage.getItem('device_view_mode') || 'grid'
+}
+const viewMode = ref(getInitialViewMode())
+
+// Watch for mobile state changes and force grid view on mobile
+watch(isMobile, (newIsMobile) => {
+  if (newIsMobile && viewMode.value === 'list') {
+    viewMode.value = 'grid'
+  }
+})
 
 const toggleViewMode = () => {
+  // Don't allow list view on mobile
+  if (isMobile.value && viewMode.value === 'grid') {
+    return
+  }
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
   localStorage.setItem('device_view_mode', viewMode.value)
 }
 
+// Watch viewMode changes to save preference
+watch(viewMode, (newMode) => {
+  localStorage.setItem('device_view_mode', newMode)
+})
+
 const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
+}
+
+const toggleSettings = () => {
+  // If section is collapsed, expand it first
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  }
+  // Toggle settings menu
+  showSettingsMenu.value = !showSettingsMenu.value
 }
 
 // Error dialog state
@@ -321,6 +364,7 @@ const generationResult = ref({
 })
 
 // Filters
+const filtersExpanded = ref(false)
 const filters = ref({
   search: '',
   broadlinkDevice: '',
@@ -437,6 +481,16 @@ const filteredDevices = computed(() => {
 
 const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.broadlinkDevice || filters.value.area || filters.value.entityType || filters.value.showSmartIROnly
+})
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.broadlinkDevice) count++
+  if (filters.value.area) count++
+  if (filters.value.entityType) count++
+  if (filters.value.showSmartIROnly) count++
+  return count
 })
 
 const clearFilters = () => {
@@ -1024,6 +1078,62 @@ const handleSendCommand = async ({ device, command }) => {
   font-size: 20px;
 }
 
+.icon-button.active {
+  background: var(--ha-primary-color);
+  color: white;
+}
+
+/* Settings Menu */
+.settings-menu-container {
+  position: relative;
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  box-shadow: var(--ha-shadow-lg);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.settings-dropdown .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--ha-text-primary-color);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.settings-dropdown .menu-item:hover:not(:disabled) {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.settings-dropdown .menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-dropdown .menu-item i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.settings-dropdown .menu-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .chevron-button {
   pointer-events: none;
 }
@@ -1046,12 +1156,115 @@ const handleSendCommand = async ({ device, command }) => {
 .filter-bar {
   display: flex;
   flex-direction: column;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.filter-search-row {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.filter-toggle-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-toggle-button:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  border-color: var(--ha-primary-color);
+}
+
+.filter-toggle-button.active {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.filter-toggle-button i {
+  font-size: 20px;
+  color: inherit;
+}
+
+.filter-toggle-button.active i {
+  color: white;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-toggle-button.active .filter-badge {
+  background: white;
+  color: var(--ha-primary-color);
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
+}
+
+.filter-content {
   background: rgba(var(--ha-primary-rgb), 0.03);
   border-radius: 8px;
   border: 1px solid var(--ha-border-color);
-  margin-bottom: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-row {
@@ -1108,36 +1321,6 @@ const handleSendCommand = async ({ device, command }) => {
   box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
 }
 
-.filter-search {
-  flex: 1;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--ha-surface-color);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 8px;
-  color: var(--ha-text-primary-color);
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.search-input::placeholder {
-  color: var(--ha-text-secondary-color);
-  opacity: 0.7;
-}
-
-.search-input:hover {
-  border-color: var(--ha-primary-color);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--ha-primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
-}
 
 .filter-toggle label {
   flex-direction: column;
@@ -1455,5 +1638,202 @@ const handleSendCommand = async ({ device, command }) => {
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* Card header adjustments - single row layout */
+  .card-header {
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Chevron button */
+  .chevron-button {
+    flex-shrink: 0;
+  }
+
+  /* Header left - compact, allow to shrink */
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+    flex-wrap: nowrap;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .header-left h3 {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-icon {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .header-icon i {
+    font-size: 18px;
+  }
+
+  /* Hide badges on mobile */
+  .header-badges {
+    display: none;
+  }
+
+  /* Buttons stay on same row - proper mobile sizing */
+  .header-right {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* New button - larger with text */
+  .header-right .new-button {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .header-right .new-button i {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  /* Settings icon button */
+  .header-right .icon-button {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .header-right .icon-button i {
+    font-size: 22px;
+    margin: 0;
+  }
+
+  /* Filter bar mobile layout */
+  .filter-bar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .filter-row {
+    gap: 8px;
+  }
+
+  .filter-row-search {
+    margin-bottom: 8px;
+  }
+
+  .filter-search {
+    width: 100%;
+  }
+
+  .filter-search input {
+    width: 100%;
+  }
+
+  .filter-row-dropdowns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .filter-group select {
+    width: 100%;
+  }
+
+  .btn-clear-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-results {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+
+  /* Device grid - single column on mobile */
+  .device-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Increase touch target sizes */
+  .btn,
+  .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .view-toggle-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Card body padding */
+  .card-body {
+    padding: 12px;
+  }
+
+  /* Empty/Error/Loading states */
+  .empty-state,
+  .error-state,
+  .loading-state {
+    padding: 40px 16px;
+  }
+
+  /* Header badges - stack on very small screens */
+  @media (max-width: 400px) {
+    .header-badges {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .device-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .filter-row-dropdowns {
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    min-width: 200px;
+  }
 }
 </style>

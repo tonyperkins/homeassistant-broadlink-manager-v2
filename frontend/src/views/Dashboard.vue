@@ -3,8 +3,11 @@
     <!-- SmartIR Banner -->
     <SmartIRBanner v-if="smartirEnabled" />
 
-    <!-- Welcome Banner -->
-    <div class="welcome-banner">
+    <!-- Welcome Banner (hidden on mobile, dismissable on desktop) -->
+    <div v-if="!isMobile && !bannerDismissed" class="welcome-banner">
+      <button class="dismiss-button" @click="dismissBanner" title="Dismiss">
+        <i class="mdi mdi-close"></i>
+      </button>
       <div class="banner-content">
         <div class="banner-icon">
           <i class="mdi mdi-rocket-launch"></i>
@@ -52,6 +55,7 @@
 <script setup>
 import { ref, inject } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useResponsive } from '@/composables/useResponsive'
 import DeviceList from '@/components/devices/DeviceList.vue'
 import SmartIRBanner from '@/components/common/SmartIRBanner.vue'
 import SmartIRStatusCard from '@/components/smartir/SmartIRStatusCard.vue'
@@ -59,12 +63,21 @@ import SmartIRProfileBuilder from '@/components/smartir/SmartIRProfileBuilder.vu
 
 const toast = useToast()
 const smartirEnabled = inject('smartirEnabled')
+const { isMobile } = useResponsive()
 
 const showProfileBuilder = ref(false)
 const editMode = ref(false)
 const editData = ref(null)
 const profileStartStep = ref(0)
 const smartirStatusCard = ref(null)
+
+// Welcome banner dismiss state (persisted in localStorage)
+const bannerDismissed = ref(localStorage.getItem('welcome_banner_dismissed') === 'true')
+
+function dismissBanner() {
+  bannerDismissed.value = true
+  localStorage.setItem('welcome_banner_dismissed', 'true')
+}
 
 // Event handlers for SmartIR Status Card
 function handleCreateProfile() {
@@ -156,6 +169,52 @@ async function handleProfileSave(result) {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--ha-shadow-md);
+  position: relative;
+}
+
+.dismiss-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  z-index: 1;
+}
+
+.dismiss-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dismiss-button i {
+  font-size: 20px;
+}
+
+/* Mobile responsive layout */
+@media (max-width: 767px) {
+  .welcome-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .banner-content {
+    width: 100%;
+  }
+  
+  .status-badges {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .banner-content {
@@ -168,16 +227,34 @@ async function handleProfileSave(result) {
   font-size: 48px;
 }
 
+@media (max-width: 767px) {
+  .banner-icon i {
+    font-size: 36px;
+  }
+}
+
 .banner-text h2 {
   margin: 0 0 4px 0;
   font-size: 24px;
   font-weight: 500;
 }
 
+@media (max-width: 767px) {
+  .banner-text h2 {
+    font-size: 18px;
+  }
+}
+
 .banner-text p {
   margin: 0;
   opacity: 0.9;
   font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .banner-text p {
+    font-size: 13px;
+  }
 }
 
 .status-badges {

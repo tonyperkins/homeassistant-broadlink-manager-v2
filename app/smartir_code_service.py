@@ -39,7 +39,10 @@ class SmartIRCodeService:
         self.cache_file = self.cache_path / "smartir_codes_cache.json"
 
         # Index is bundled with the app, not cached
-        self.bundled_index_file = Path(__file__).parent.parent / "smartir_device_index.json"
+        # Look in the app directory first, then parent directory (for dev mode)
+        app_index = Path(__file__).parent / "smartir_device_index.json"
+        root_index = Path(__file__).parent.parent / "smartir_device_index.json"
+        self.bundled_index_file = app_index if app_index.exists() else root_index
 
         # SmartIR detector for scanning custom profiles
         self.smartir_detector = smartir_detector

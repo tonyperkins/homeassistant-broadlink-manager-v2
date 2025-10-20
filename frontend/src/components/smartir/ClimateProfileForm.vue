@@ -700,4 +700,62 @@ watch(config, (newValue) => {
 :global(.dark-mode) .validation-summary {
   background: rgba(244, 67, 54, 0.15);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767px) {
+  .mode-toggle {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mode-option {
+    padding: 14px;
+  }
+
+  .mode-header {
+    font-size: 15px;
+  }
+
+  .mode-header strong {
+    font-size: 14px;
+  }
+
+  .mode-content p {
+    font-size: 12px;
+  }
+
+  .stat-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .command-breakdown {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .command-breakdown strong {
+    font-size: 13px;
+  }
+
+  .command-breakdown p {
+    font-size: 12px;
+  }
+
+  .form-row {
+    flex-direction: column;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .help-text {
+    font-size: 12px;
+  }
+}
 </style>

@@ -6,7 +6,7 @@
       </button>
       <div class="header-left" @click="isExpanded = !isExpanded">
         <img :src="smartirLogo" alt="SmartIR" class="smartir-logo" />
-        <h3>SmartIR Integration</h3>
+        <h3>{{ isMobile ? 'SmartIR' : 'SmartIR Integration' }}</h3>
         
         <!-- Compact Status Info -->
         <div class="header-badges">
@@ -35,38 +35,38 @@
       </div>
       <div class="header-right">
         <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="showHelp = !showHelp" 
-          class="icon-button"
-          :class="{ active: showHelp }"
-          title="Show help"
-        >
-          <i class="mdi mdi-help-circle"></i>
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="refreshStatus" 
-          class="icon-button"
-          title="Refresh status"
-        >
-          <i class="mdi mdi-refresh"></i>
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
-          @click.stop="openCodeTester" 
-          class="btn btn-secondary"
-        >
-          <i class="mdi mdi-test-tube"></i>
-          Test Codes
-        </button>
-        <button 
-          v-if="displayStatus?.installed && isExpanded" 
+          v-if="displayStatus?.installed" 
           @click.stop="createProfile" 
-          class="btn btn-primary"
+          class="btn btn-primary new-button"
         >
           <i class="mdi mdi-plus"></i>
-          Create SmartIR Profile
+          <span>New</span>
         </button>
+        <!-- Settings Menu -->
+        <div v-if="displayStatus?.installed" class="settings-menu-container">
+          <button 
+            @click.stop="toggleSettings" 
+            class="icon-button settings-button"
+            :class="{ active: showSettingsMenu }"
+            title="Settings"
+          >
+            <i class="mdi mdi-cog"></i>
+          </button>
+          <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="toggleHelp" class="menu-item">
+              <i class="mdi mdi-help-circle"></i>
+              <span>{{ showHelp ? 'Hide Help' : 'Show Help' }}</span>
+            </button>
+            <button @click="showSettingsMenu = false; refreshStatus()" class="menu-item">
+              <i class="mdi mdi-refresh"></i>
+              <span>Refresh Status</span>
+            </button>
+            <button @click="openCodeTester" class="menu-item">
+              <i class="mdi mdi-test-tube"></i>
+              <span>Test Codes</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -111,39 +111,51 @@
 
       <!-- Filter Bar -->
       <div v-if="allProfiles.length > 0 && !simulatingNotInstalled" class="filter-bar">
-        <div class="filter-row">
-          <div class="filter-group filter-search">
-            <label>
-              <i class="mdi mdi-magnify"></i>
-              <input
-                v-model="filters.search"
-                type="text"
-                placeholder="Search profiles..."
-                class="search-input"
-              />
-            </label>
-          </div>
-
-          <div class="filter-group">
-            <label>
-              <i class="mdi mdi-shape"></i>
-              <select v-model="filters.platform">
-                <option value="">All Platforms</option>
-                <option value="climate">Climate</option>
-                <option value="media_player">Media Player</option>
-                <option value="fan">Fan</option>
-                <option value="light">Light</option>
-              </select>
-            </label>
-          </div>
-
-          <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
-            <i class="mdi mdi-filter-remove"></i>
-            Clear
+        <!-- Search Row with Filter Toggle -->
+        <div class="filter-search-row">
+          <button 
+            class="filter-toggle-button" 
+            @click="filtersExpanded = !filtersExpanded"
+            :class="{ active: filtersExpanded || hasActiveFilters }"
+            :title="filtersExpanded ? 'Hide filters' : 'Show filters'"
+          >
+            <i class="mdi mdi-filter-variant"></i>
+            <span v-if="hasActiveFilters" class="filter-badge">{{ activeFilterCount }}</span>
           </button>
+          <div class="search-input-wrapper">
+            <i class="mdi mdi-magnify search-icon"></i>
+            <input
+              v-model="filters.search"
+              type="text"
+              placeholder="Search profiles..."
+              class="search-input"
+            />
+          </div>
+        </div>
 
-          <!-- View Toggle Button Group -->
-          <div class="view-toggle-group">
+        <!-- Collapsible Filter Content -->
+        <div v-show="filtersExpanded" class="filter-content">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>
+                <i class="mdi mdi-shape"></i>
+                <select v-model="filters.platform">
+                  <option value="">All Platforms</option>
+                  <option value="climate">Climate</option>
+                  <option value="media_player">Media Player</option>
+                  <option value="fan">Fan</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+            </div>
+
+            <button v-if="hasActiveFilters" @click="clearFilters" class="btn-clear-filters">
+              <i class="mdi mdi-filter-remove"></i>
+              Clear
+            </button>
+
+            <!-- View Toggle Button Group (hidden on mobile) -->
+            <div v-if="!isMobile" class="view-toggle-group">
             <button 
               @click="viewMode = 'grid'" 
               class="view-toggle-btn"
@@ -167,6 +179,7 @@
           <div class="filter-results">
             {{ filteredProfiles.length }} of {{ allProfiles.length }}
           </div>
+        </div>
         </div>
       </div>
 
@@ -269,6 +282,7 @@
 <script setup>
 import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
+import { useResponsive } from '@/composables/useResponsive'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import SmartIRProfileCard from './SmartIRProfileCard.vue'
 import SmartIRProfileListView from './SmartIRProfileListView.vue'
@@ -282,6 +296,7 @@ const emit = defineEmits(['create-profile', 'edit-profile'])
 const smartirStatus = inject('smartirStatus')
 const smartirEnabled = inject('smartirEnabled')
 const refreshSmartIR = inject('refreshSmartIR')
+const { isMobile } = useResponsive()
 
 const loading = ref(false)
 const error = ref(null)
@@ -289,9 +304,11 @@ const status = ref(smartirStatus?.value || null)
 // Load simulation state from localStorage
 const simulatingNotInstalled = ref(localStorage.getItem('smartir_simulate_not_installed') === 'true')
 const showHelp = ref(false)
+const showSettingsMenu = ref(false)
 const isExpanded = ref(true)
 const allProfiles = ref([])
 const loadingAllProfiles = ref(false)
+const filtersExpanded = ref(false)
 const filters = ref({
   search: '',
   platform: ''
@@ -306,12 +323,33 @@ const confirmDelete = ref({
 const showCodeTester = ref(false)
 
 // View mode (grid or list)
-const viewMode = ref(localStorage.getItem('profile_view_mode') || 'grid')
+// On mobile, always use grid view; on desktop, use saved preference
+const getInitialViewMode = () => {
+  if (window.innerWidth <= 767) return 'grid'
+  return localStorage.getItem('profile_view_mode') || 'grid'
+}
+const viewMode = ref(getInitialViewMode())
+
+// Watch for mobile state changes and force grid view on mobile
+watch(isMobile, (newIsMobile) => {
+  if (newIsMobile && viewMode.value === 'list') {
+    viewMode.value = 'grid'
+  }
+})
 
 const toggleViewMode = () => {
+  // Don't allow list view on mobile
+  if (isMobile.value && viewMode.value === 'grid') {
+    return
+  }
   viewMode.value = viewMode.value === 'grid' ? 'list' : 'grid'
   localStorage.setItem('profile_view_mode', viewMode.value)
 }
+
+// Watch viewMode changes to save preference
+watch(viewMode, (newMode) => {
+  localStorage.setItem('profile_view_mode', newMode)
+})
 
 const defaultBenefits = [
   'Full climate entity support (AC, heaters)',
@@ -390,6 +428,13 @@ const hasActiveFilters = computed(() => {
   return filters.value.search || filters.value.platform
 })
 
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.value.search) count++
+  if (filters.value.platform) count++
+  return count
+})
+
 function clearFilters() {
   filters.value.search = ''
   filters.value.platform = ''
@@ -435,8 +480,23 @@ function createProfile() {
   emit('create-profile')
 }
 
+function toggleHelp() {
+  showHelp.value = !showHelp.value
+  showSettingsMenu.value = false
+}
+
+function toggleSettings() {
+  // If section is collapsed, expand it first
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  }
+  // Toggle settings menu
+  showSettingsMenu.value = !showSettingsMenu.value
+}
+
 function openCodeTester() {
   showCodeTester.value = true
+  showSettingsMenu.value = false
 }
 
 function openSmartIRGitHub() {
@@ -776,8 +836,54 @@ defineExpose({
   font-size: 20px;
 }
 
+/* Settings Menu */
+.settings-menu-container {
+  position: relative;
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  box-shadow: var(--ha-shadow-lg);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.settings-dropdown .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--ha-text-primary-color);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.settings-dropdown .menu-item:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.settings-dropdown .menu-item i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.settings-dropdown .menu-item span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .card-body {
-  padding: 20px;
+  padding: 16px;
 }
 
 /* Loading State */
@@ -823,11 +929,11 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 20px;
   font-weight: 600;
   font-size: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .status-badge.success {
@@ -873,11 +979,117 @@ defineExpose({
 
 /* Filter Bar */
 .filter-bar {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 20px;
+}
+
+.filter-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.filter-toggle-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.filter-toggle-button:hover {
+  background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+  border-color: var(--ha-primary-color);
+}
+
+.filter-toggle-button.active {
+  background: var(--ha-primary-color);
+  border-color: var(--ha-primary-color);
+  color: white;
+}
+
+.filter-toggle-button i {
+  font-size: 20px;
+  color: inherit;
+}
+
+.filter-toggle-button.active i {
+  color: white;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--ha-error-color, #f44336);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.filter-toggle-button.active .filter-badge {
+  background: white;
+  color: var(--ha-primary-color);
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.search-input::placeholder {
+  color: var(--ha-text-secondary-color);
+}
+
+.filter-content {
   background: rgba(var(--ha-primary-rgb), 0.03);
   border-radius: 8px;
   border: 1px solid var(--ha-border-color);
-  margin-bottom: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .filter-row {
@@ -890,11 +1102,6 @@ defineExpose({
 .filter-group {
   flex: 0 0 auto;
   min-width: 200px;
-}
-
-.filter-search {
-  flex: 1;
-  min-width: 300px;
 }
 
 .filter-group label {
@@ -926,37 +1133,6 @@ defineExpose({
 }
 
 .filter-group select:focus {
-  outline: none;
-  border-color: var(--ha-primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
-}
-
-.filter-search {
-  flex: 1;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px 12px;
-  background: var(--ha-surface-color);
-  border: 1px solid var(--ha-border-color);
-  border-radius: 8px;
-  color: var(--ha-text-primary-color);
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.search-input::placeholder {
-  color: var(--ha-text-secondary-color);
-  opacity: 0.7;
-}
-
-.search-input:hover {
-  border-color: var(--ha-primary-color);
-}
-
-.search-input:focus {
   outline: none;
   border-color: var(--ha-primary-color);
   box-shadow: 0 0 0 3px rgba(var(--ha-primary-rgb), 0.1);
@@ -1228,12 +1404,12 @@ defineExpose({
 
 /* Benefits Section */
 .benefits-section {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .benefits-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 15px;
   font-weight: 600;
   color: var(--primary-text-color);
 }
@@ -1244,19 +1420,20 @@ defineExpose({
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .benefits-list li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   color: var(--primary-text-color);
+  font-size: 14px;
 }
 
 .benefits-list i {
   color: #4caf50;
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -1265,14 +1442,15 @@ defineExpose({
 .recommendation {
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-left: 4px solid var(--primary-color);
-  padding: 16px;
+  padding: 12px;
   border-radius: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .recommendation p {
-  margin: 0 0 12px 0;
+  margin: 0;
   color: var(--primary-text-color);
+  font-size: 14px;
 }
 
 .recommendation p:last-child {
@@ -1415,5 +1593,222 @@ defineExpose({
 
 :global(.dark-mode) .platform-profiles {
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* Card header adjustments - single row layout */
+  .card-header {
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Chevron button */
+  .chevron-button {
+    flex-shrink: 0;
+  }
+
+  /* Header left - compact, allow to shrink */
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+    flex-wrap: nowrap;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .header-left h3 {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .smartir-logo {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  /* Hide badges on mobile */
+  .header-badges {
+    display: none;
+  }
+
+  .simulation-toggle-pill {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .simulation-toggle-pill span {
+    display: none; /* Hide text on very small screens */
+  }
+
+  @media (min-width: 400px) {
+    .simulation-toggle-pill span {
+      display: inline; /* Show text on slightly larger screens */
+    }
+  }
+
+  /* Buttons stay on same row - proper mobile sizing */
+  .header-right {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* New button - larger with text */
+  .header-right .new-button {
+    height: 48px;
+    min-height: 48px;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .header-right .new-button i {
+    font-size: 20px;
+    margin: 0;
+  }
+
+  /* Settings icon button */
+  .header-right .icon-button {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .header-right .icon-button i {
+    font-size: 22px;
+    margin: 0;
+  }
+
+  /* Filter bar mobile layout */
+  .filter-bar {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group select,
+  .filter-search input {
+    width: 100%;
+  }
+
+  .btn-clear-filters {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-results {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
+
+  /* Profile grid - single column on mobile */
+  .profiles-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Help panel */
+  .help-panel {
+    padding: 12px;
+  }
+
+  .help-actions {
+    flex-direction: column;
+  }
+
+  .help-actions .btn-secondary {
+    width: 100%;
+  }
+
+  /* Not installed state */
+  .not-installed-content {
+    padding: 16px;
+  }
+
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .install-actions {
+    flex-direction: column;
+  }
+
+  .install-actions .btn {
+    width: 100%;
+  }
+
+  /* Increase touch target sizes */
+  .btn,
+  .icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Card body padding */
+  .card-body {
+    padding: 12px;
+  }
+
+  /* Platform items */
+  .platform-item {
+    padding: 12px;
+  }
+
+  .platform-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .platform-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .profiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .filter-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    min-width: 200px;
+  }
 }
 </style>

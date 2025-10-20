@@ -87,7 +87,7 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 1. Read [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
 2. Check [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
 3. Check [API.md](API.md) - API structure
-4. Review [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture
+4. Review [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
 
 #### Fix a Problem
 1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues
@@ -116,8 +116,9 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 **Essential Reading:**
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development setup and standards
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow and testing
-- [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture and components
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and components
 - [API.md](API.md) - API reference
+- [TESTING.md](TESTING.md) - Testing framework and guidelines
 
 **Optional Reading:**
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Build and deployment process
@@ -175,7 +176,11 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 ### Development
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
-- [DUAL_MODE_IMPLEMENTATION.md](DUAL_MODE_IMPLEMENTATION.md) - Architecture
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
+- [TESTING.md](TESTING.md) - Testing documentation
+- [TEST_PLAN.md](TEST_PLAN.md) - Comprehensive test plan
+- [E2E_TESTING.md](E2E_TESTING.md) - Browser automation testing
+- [development/TESTING_QUICKSTART.md](development/TESTING_QUICKSTART.md) - Quick start guide
 - [../CHANGELOG.md](../CHANGELOG.md) - Version history
 
 ---
@@ -209,16 +214,29 @@ broadlink_manager_addon/
 │   └── templates/               # HTML templates
 │       └── index.html           # Web interface
 └── docs/                        # Documentation
-    ├── DOCS.md                  # Documentation index
+    ├── DOCS.md                  # Documentation index (this file)
+    ├── API.md                   # REST API reference
+    ├── ARCHITECTURE.md          # System architecture
+    ├── AUTO_MIGRATION.md        # Migration guide
+    ├── CONTRIBUTING.md          # Contribution guidelines
+    ├── CUSTOMIZATION.md         # Entity customization
     ├── DEPLOYMENT.md            # Installation and deployment
     ├── DEPLOYMENT_WINDOWS.md    # Windows deployment guide
     ├── DEVELOPMENT.md           # Development workflow
     ├── DOCKER.md                # Standalone Docker guide
-    ├── DUAL_MODE_IMPLEMENTATION.md  # Architecture details
+    ├── E2E_TESTING.md           # Browser automation testing
     ├── ENTITY_GENERATION.md     # Entity generation guide
-    ├── API.md                   # REST API reference
+    ├── INSTALLATION_SCENARIOS.md # Installation scenarios
+    ├── REDDIT_UPDATES.md        # Reddit automation
+    ├── TESTING.md               # Testing documentation
+    ├── TEST_PLAN.md             # Comprehensive test plan
     ├── TROUBLESHOOTING.md       # Problem solving guide
-    └── CONTRIBUTING.md          # Contribution guidelines
+    ├── YAML_VALIDATION.md       # YAML validation system
+    └── development/             # Development docs
+        ├── README.md            # Development index
+        ├── REFACTORING_ROADMAP.md # Future planning
+        ├── TESTING_QUICKSTART.md  # Testing quick start
+        └── archive/             # Historical documentation
 ```
 
 ---
@@ -273,10 +291,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation Files**: 9
-- **Lines of Documentation**: ~3,500+
-- **Topics Covered**: Installation, Usage, API, Troubleshooting, Development
-- **Last Updated**: 2025-10-08
+- **Total Documentation Files**: 18 (main) + 3 (development) + 42 (archived)
+- **Lines of Documentation**: ~5,000+
+- **Topics Covered**: Installation, Usage, API, Testing, Troubleshooting, Development, SmartIR
+- **Last Updated**: 2025-10-20
 
 ---
 

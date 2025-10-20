@@ -110,18 +110,26 @@ New-Item -ItemType Directory -Path $TARGET_DIR -Force | Out-Null
 Write-Success "Created target directory"
 
 # Define files and directories to copy (for add-on mode)
-$itemsToCopy = @(
+# Critical items - deployment fails if these fail
+$criticalItems = @(
     "config.yaml",
     "Dockerfile",
     "run.sh",
     "requirements.txt",
     "apparmor.txt",
     "icon.png",
+    "smartir_device_index.json",
+    "app"
+)
+
+# Optional items - deployment continues if these fail
+$optionalItems = @(
     "README.md",
     "CHANGELOG.md",
-    "app",
     "docs"
 )
+
+$itemsToCopy = $criticalItems + $optionalItems
 
 # Copy files and directories
 Write-Host ""
@@ -130,13 +138,20 @@ Write-Host ""
 
 $copiedCount = 0
 $failedCount = 0
+$criticalFailedCount = 0
 
 foreach ($item in $itemsToCopy) {
     $sourcePath = Join-Path $SOURCE_DIR $item
     $targetPath = Join-Path $TARGET_DIR $item
+    $isCritical = $criticalItems -contains $item
     
     if (Test-Path $sourcePath) {
         try {
+            # Remove target if it exists to avoid conflicts
+            if (Test-Path $targetPath) {
+                Remove-Item -Path $targetPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            
             if (Test-Path $sourcePath -PathType Container) {
                 Write-Info "Copying directory: $item"
                 Copy-Item -Path $sourcePath -Destination $targetPath -Recurse -Force -Exclude "__pycache__","*.pyc","*.pyo","*.log",".DS_Store"
@@ -149,7 +164,12 @@ foreach ($item in $itemsToCopy) {
             $copiedCount++
         }
         catch {
-            Write-Error-Custom "  Failed to copy $item : $_"
+            if ($isCritical) {
+                Write-Error-Custom "  Failed to copy $item : $_"
+                $criticalFailedCount++
+            } else {
+                Write-Warning-Custom "  Failed to copy optional item $item : $_"
+            }
             $failedCount++
         }
     }
@@ -171,8 +191,12 @@ if ($failedCount -gt 0) {
 Write-Host "  Target location: $TARGET_DIR" -ForegroundColor White
 Write-Host ""
 
-if ($failedCount -eq 0) {
-    Write-Success "Deployment completed successfully!"
+if ($criticalFailedCount -eq 0) {
+    if ($failedCount -eq 0) {
+        Write-Success "Deployment completed successfully!"
+    } else {
+        Write-Success "Deployment completed successfully (with optional items skipped)!"
+    }
     Write-Host ""
     Write-Info "Next Steps:"
     Write-Host "  1. Open Home Assistant web interface" -ForegroundColor White
@@ -187,7 +211,7 @@ if ($failedCount -eq 0) {
     Write-Warning-Custom "      Both add-ons will share the same /config/broadlink_manager data"
     Write-Host ""
 } else {
-    Write-Error-Custom "Deployment completed with errors!"
+    Write-Error-Custom "Deployment failed! Critical files could not be copied."
     Write-Warning-Custom "Please check the errors above and try again"
     exit 1
 }

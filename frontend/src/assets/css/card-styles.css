@@ -214,3 +214,131 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* Card container */
+  .device-card,
+  .profile-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* Card header */
+  .device-header,
+  .profile-card-header {
+    gap: 12px;
+  }
+
+  /* Card icon - slightly smaller on mobile */
+  .device-icon,
+  .profile-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .device-icon i,
+  .profile-icon i {
+    font-size: 20px;
+  }
+
+  /* Card title - smaller font */
+  .device-info h3,
+  .profile-details h4 {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  /* Tags/Labels - smaller */
+  .device-type,
+  .tag {
+    font-size: 12px;
+    padding: 2px 6px;
+  }
+
+  /* Stats - wrap on small screens */
+  .device-stats,
+  .profile-stats {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .stat,
+  .profile-stats {
+    font-size: 13px;
+  }
+
+  .stat i,
+  .profile-stats i {
+    font-size: 16px;
+  }
+
+  /* Meta info - smaller font */
+  .device-id,
+  .device-code,
+  .storage-name,
+  .broadlink-entity,
+  .controller-device {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .device-id i,
+  .device-code i,
+  .storage-name i,
+  .broadlink-entity i,
+  .controller-device i {
+    font-size: 14px;
+  }
+
+  /* Action buttons - larger touch targets */
+  .icon-btn,
+  .action-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .icon-btn i,
+  .action-btn i {
+    font-size: 20px;
+  }
+
+  /* Device actions - more spacing */
+  .device-actions,
+  .profile-card-footer {
+    gap: 8px;
+  }
+
+  .profile-actions {
+    gap: 8px;
+  }
+
+  /* Stack command count and buttons on mobile */
+  .profile-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-stats {
+    width: 100%;
+  }
+
+  .profile-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Very small screens (< 360px) */
+@media (max-width: 359px) {
+  .device-info h3,
+  .profile-details h4 {
+    font-size: 14px;
+  }
+
+  .device-meta {
+    font-size: 10px;
+  }
+}

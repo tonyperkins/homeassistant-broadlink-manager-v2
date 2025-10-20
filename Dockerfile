@@ -28,6 +28,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt
 # Copy data for add-on
 COPY run.sh /
 COPY app/ /app/
+COPY smartir_device_index.json /app/
 
 # Fix line endings and make run.sh executable
 RUN sed -i 's/\r$//' /run.sh && chmod a+x /run.sh

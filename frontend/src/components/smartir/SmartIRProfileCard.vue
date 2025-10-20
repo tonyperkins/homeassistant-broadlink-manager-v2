@@ -98,13 +98,17 @@ const getControllerClass = (brand) => {
   right: 0;
   background: var(--ha-secondary-background-color);
   color: var(--ha-secondary-text-color);
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   font-family: monospace;
   cursor: help;
   transition: all 0.2s;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .code-badge:hover {

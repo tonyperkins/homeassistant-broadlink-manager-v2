@@ -464,8 +464,9 @@ provide('toast', toastRef)
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 220px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   z-index: 1000;
-  overflow: hidden;
   animation: slideDown 0.2s ease-out;
 }
 
@@ -616,5 +617,92 @@ provide('toast', toastRef)
   padding-left: 44px;
   font-size: 13px;
   opacity: 0.9;
+}
+
+/* ===== Mobile Responsive Styles ===== */
+@media (max-width: 767px) {
+  /* App header */
+  .app-header {
+    padding: 12px 16px;
+  }
+
+  .header-content {
+    gap: 12px;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .header-left h1 {
+    font-size: 16px;
+  }
+
+  .header-left i {
+    font-size: 24px;
+  }
+
+  .beta-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  /* Hide "BETA" text on very small screens, show only on 400px+ */
+  @media (max-width: 399px) {
+    .beta-badge {
+      display: none;
+    }
+  }
+
+  /* Icon buttons - increase touch targets */
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Settings menu - full width on mobile */
+  .settings-menu {
+    right: 0;
+    left: auto;
+    width: calc(100vw - 32px);
+    max-width: 320px;
+  }
+
+  /* App main content */
+  .app-main {
+    padding: 16px;
+  }
+
+  /* Footer */
+  .app-footer {
+    padding: 12px 16px;
+    font-size: 11px;
+  }
+
+  .app-footer p {
+    text-align: center;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-main {
+    padding: 20px;
+  }
+
+  .settings-menu {
+    max-width: 300px;
+  }
+}
+
+/* Very small screens (< 360px) */
+@media (max-width: 359px) {
+  .header-left h1 {
+    font-size: 14px;
+  }
+
+  .app-main {
+    padding: 12px;
+  }
 }
 </style>

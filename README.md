@@ -1,7 +1,7 @@
 # Broadlink Manager v2 (Beta)
 
 <p align="center">
-  <img src="images/broadlink-logo.png" alt="Broadlink Manager" width="120">
+  <img src="https://raw.githubusercontent.com/tonyperkins/homeassistant-broadlink-manager-v2/develop/images/broadlink-logo.png" alt="Broadlink Manager" width="120">
 </p>
 
 <h3 align="center">Transform Your Smart Home with Effortless IR/RF Control</h3>
@@ -69,35 +69,78 @@ Tired of juggling multiple remotes? Want to control your TV, AC, fans, and legac
 
 ## Screenshots
 
-### Dashboard Overview
+### 🌞 Light Mode
+
+#### Dashboard Overview
 <img src="docs/images/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="700">
 
 *Modern dashboard with SmartIR integration and device management*
 
-### Device Management
+#### Device Management
 <img src="docs/images/screenshots/device-list.png" alt="Device List" width="700">
 
 *Manage all your Broadlink and SmartIR devices in one place*
 
-### Add New Device
+### 🌙 Dark Mode
+
+#### Dashboard (Dark)
+<img src="docs/images/screenshots/dashboard-dark.png" alt="Dashboard Dark Mode" width="700">
+
+*Beautiful dark theme for comfortable nighttime use*
+
+#### Device List (Dark)
+<img src="docs/images/screenshots/device-list-dark.png" alt="Device List Dark Mode" width="700">
+
+*All features look stunning in dark mode*
+
+#### Settings Menu (Dark)
+<img src="docs/images/screenshots/settings-menu-dark.png" alt="Settings Menu Dark Mode" width="500">
+
+*Easy theme switching and configuration*
+
+### 📱 Mobile & Tablet Views
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/images/screenshots/mobile-dashboard.png" alt="Mobile Dashboard" width="300"><br>
+      <em>Mobile Dashboard (Light)</em>
+    </td>
+    <td align="center">
+      <img src="docs/images/screenshots/mobile-dashboard-dark.png" alt="Mobile Dashboard Dark" width="300"><br>
+      <em>Mobile Dashboard (Dark)</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/images/screenshots/mobile-device-list.png" alt="Mobile Device List" width="300"><br>
+      <em>Mobile Device List</em>
+    </td>
+    <td align="center">
+      <img src="docs/images/screenshots/tablet-device-list.png" alt="Tablet View" width="400"><br>
+      <em>Tablet View</em>
+    </td>
+  </tr>
+</table>
+
+*Fully responsive design works beautifully on all devices*
+
+### 🎛️ Device Setup
+
+#### Add New Device
 <img src="docs/images/screenshots/create-device-modal.png" alt="Create Device Modal" width="500">
 
 *Easy device creation with Broadlink or SmartIR support*
 
-### Broadlink Device Setup
+#### Broadlink Device Setup
 <img src="docs/images/screenshots/broadlink-device-form.png" alt="Broadlink Device Form" width="500">
 
 *Learn IR/RF commands from your remotes*
 
-### SmartIR Device Setup
+#### SmartIR Device Setup
 <img src="docs/images/screenshots/smartir-device-form.png" alt="SmartIR Device Form" width="500">
 
 *Use pre-configured device profiles for instant setup*
-
-### Mobile Responsive
-<img src="docs/images/screenshots/mobile-dashboard.png" alt="Mobile View" width="390">
-
-*Fully responsive design works beautifully on mobile devices*
 
 ## 🎯 Key Features
 

@@ -25,14 +25,14 @@
 
           <!-- Type -->
           <td class="device-type">
-            <span class="type-badge" :class="device.device_type">
+            <span class="type-badge" :class="device.device_type || 'broadlink'">
               {{ device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink' }}
             </span>
           </td>
 
           <!-- Commands -->
           <td class="device-commands">
-            <div v-if="device.device_type === 'broadlink'" class="command-list">
+            <div v-if="(device.device_type || 'broadlink') === 'broadlink'" class="command-list">
               <button 
                 v-for="cmd in getDeviceCommands(device)" 
                 :key="cmd"

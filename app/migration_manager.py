@@ -29,7 +29,9 @@ class MigrationManager:
         self.detector = entity_detector
         self.storage_path = storage_path
 
-    async def check_and_migrate(self, broadlink_devices: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def check_and_migrate(
+        self, broadlink_devices: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Check if migration is needed and perform it
 
@@ -68,7 +70,9 @@ class MigrationManager:
             # Scenario 1: First-time users (no commands learned yet)
             if not learned_commands:
                 logger.info("👋 Welcome! First-time Broadlink Manager user detected")
-                logger.info("ℹ️  No learned commands found - you can start learning commands via the web interface")
+                logger.info(
+                    "ℹ️  No learned commands found - you can start learning commands via the web interface"
+                )
                 return {
                     "needed": False,
                     "reason": "No learned commands found",
@@ -77,7 +81,9 @@ class MigrationManager:
                 }
 
             # Scenario 3: Existing Broadlink users (new to BL Manager)
-            logger.info(f"🎉 Existing Broadlink user detected: Found {len(learned_commands)} devices with learned commands")
+            logger.info(
+                f"🎉 Existing Broadlink user detected: Found {len(learned_commands)} devices with learned commands"
+            )
             logger.info("🔄 Starting automatic migration to Broadlink Manager...")
             result = await self._perform_migration(learned_commands, broadlink_devices)
             result["scenario"] = "existing_broadlink_user"
@@ -88,7 +94,9 @@ class MigrationManager:
             logger.error(f"Error during migration check: {e}", exc_info=True)
             return {"needed": False, "error": str(e), "scenario": "error"}
 
-    async def _discover_learned_commands(self, broadlink_devices: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    async def _discover_learned_commands(
+        self, broadlink_devices: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Discover all learned commands from storage files
 
@@ -206,7 +214,9 @@ class MigrationManager:
                     for entity_id, entity_data in detected_entities.items():
                         self.storage.save_entity(entity_id, entity_data)
                         migrated_entities[entity_id] = entity_data
-                        logger.info(f"Migrated entity: {entity_id} ({entity_data['entity_type']})")
+                        logger.info(
+                            f"Migrated entity: {entity_id} ({entity_data['entity_type']})"
+                        )
                 else:
                     skipped_devices.append(
                         {
@@ -215,7 +225,9 @@ class MigrationManager:
                             "command_count": len(commands),
                         }
                     )
-                    logger.warning(f"Could not detect entities for device: {device_name}")
+                    logger.warning(
+                        f"Could not detect entities for device: {device_name}"
+                    )
 
             except Exception as e:
                 error_msg = f"Error migrating device {device_name}: {str(e)}"
@@ -251,7 +263,9 @@ class MigrationManager:
 
         return result
 
-    async def force_migration(self, broadlink_devices: List[Dict[str, Any]], overwrite: bool = False) -> Dict[str, Any]:
+    async def force_migration(
+        self, broadlink_devices: List[Dict[str, Any]], overwrite: bool = False
+    ) -> Dict[str, Any]:
         """
         Force migration even if metadata exists
 
@@ -274,10 +288,14 @@ class MigrationManager:
             if not overwrite:
                 # Filter out devices that already have entities
                 existing_entities = self.storage.get_all_entities()
-                existing_devices = set(e.get("device") for e in existing_entities.values())
+                existing_devices = set(
+                    e.get("device") for e in existing_entities.values()
+                )
 
                 learned_commands = {
-                    device_name: data for device_name, data in learned_commands.items() if device_name not in existing_devices
+                    device_name: data
+                    for device_name, data in learned_commands.items()
+                    if device_name not in existing_devices
                 }
 
                 if not learned_commands:

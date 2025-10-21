@@ -38,9 +38,15 @@ class EntityGenerator:
         Returns:
             Broadlink entity ID or None if not found
         """
-        return entity_data.get("broadlink_entity") or entity_data.get("device_id") or self.default_device_id
+        return (
+            entity_data.get("broadlink_entity")
+            or entity_data.get("device_id")
+            or self.default_device_id
+        )
 
-    def generate_all(self, broadlink_commands: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
+    def generate_all(
+        self, broadlink_commands: Dict[str, Dict[str, str]]
+    ) -> Dict[str, Any]:
         """
         Generate all entity YAML files
 
@@ -124,13 +130,19 @@ class EntityGenerator:
             entity_type = entity_data["entity_type"]
 
             if entity_type == "light":
-                config = self._generate_light(entity_id, entity_data, broadlink_commands)
+                config = self._generate_light(
+                    entity_id, entity_data, broadlink_commands
+                )
             elif entity_type == "fan":
                 config = self._generate_fan(entity_id, entity_data, broadlink_commands)
             elif entity_type == "switch":
-                config = self._generate_switch(entity_id, entity_data, broadlink_commands)
+                config = self._generate_switch(
+                    entity_id, entity_data, broadlink_commands
+                )
             elif entity_type == "media_player":
-                config = self._generate_media_player(entity_id, entity_data, broadlink_commands)
+                config = self._generate_media_player(
+                    entity_id, entity_data, broadlink_commands
+                )
             elif entity_type == "climate":
                 # Climate entities are not supported - template.climate platform removed from HA
                 # Users should use SmartIR custom integration for AC control
@@ -141,7 +153,9 @@ class EntityGenerator:
                 )
                 continue
             elif entity_type == "cover":
-                config = self._generate_cover(entity_id, entity_data, broadlink_commands)
+                config = self._generate_cover(
+                    entity_id, entity_data, broadlink_commands
+                )
             else:
                 logger.warning(f"Unknown entity type: {entity_type} for {entity_id}")
                 continue
@@ -155,15 +169,21 @@ class EntityGenerator:
                     yaml_structure[entity_type].append(config)
 
                     # Also generate companion switch for power control
-                    switch_config = self._generate_media_player_switch(entity_id, entity_data, broadlink_commands)
+                    switch_config = self._generate_media_player_switch(
+                        entity_id, entity_data, broadlink_commands
+                    )
                     if switch_config:
                         if "switch" not in entities_by_type:
                             entities_by_type["switch"] = {}
                         # Extract switch config from wrapper
                         switch_entity_id = f"{entity_id}_power"
                         switch_platform_key = list(switch_config.keys())[1]
-                        switch_entity_config = switch_config[switch_platform_key][switch_entity_id]
-                        entities_by_type["switch"][switch_entity_id] = switch_entity_config
+                        switch_entity_config = switch_config[switch_platform_key][
+                            switch_entity_id
+                        ]
+                        entities_by_type["switch"][
+                            switch_entity_id
+                        ] = switch_entity_config
                 else:
                     # Template platforms: group entities by type
                     if entity_type not in entities_by_type:
@@ -191,7 +211,9 @@ class EntityGenerator:
                 continue
 
             # Create single platform entry with all entities of this type
-            yaml_structure[entity_type] = [{"platform": "template", platform_key: entities_dict}]
+            yaml_structure[entity_type] = [
+                {"platform": "template", platform_key: entities_dict}
+            ]
 
         return yaml_structure
 
@@ -208,7 +230,9 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Check if we have the required commands
@@ -225,7 +249,9 @@ class EntityGenerator:
                 entity_id: {
                     "unique_id": entity_id,
                     "friendly_name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+                    or entity_data.get(
+                        "friendly_name", entity_id.replace("_", " ").title()
+                    ),
                     "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                 }
             },
@@ -303,7 +329,9 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Count speed commands - support both 'speed_N' and 'fan_speed_N' patterns
@@ -327,7 +355,11 @@ class EntityGenerator:
             return None
 
         # Check if reverse/direction command exists (support fan_reverse too)
-        has_direction = "reverse" in commands or "direction" in commands or "fan_reverse" in commands
+        has_direction = (
+            "reverse" in commands
+            or "direction" in commands
+            or "fan_reverse" in commands
+        )
 
         # For now, always enable direction support for fans (even if no command exists yet)
         # This allows the UI to show direction controls
@@ -339,7 +371,9 @@ class EntityGenerator:
                 entity_id: {
                     "unique_id": entity_id,
                     "friendly_name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+                    or entity_data.get(
+                        "friendly_name", entity_id.replace("_", " ").title()
+                    ),
                     "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                     "speed_count": speed_count,
                 }
@@ -355,7 +389,9 @@ class EntityGenerator:
         percentage_conditions = []
         for i in range(1, speed_count + 1):
             percentage = int((i / speed_count) * 100)
-            percentage_conditions.append(f"{{%- elif is_state('input_select.{entity_id}_speed', '{i}') -%}}")
+            percentage_conditions.append(
+                f"{{%- elif is_state('input_select.{entity_id}_speed', '{i}') -%}}"
+            )
             percentage_conditions.append(f"  {percentage}")
 
         fan_config["percentage_template"] = (
@@ -371,7 +407,9 @@ class EntityGenerator:
                 "target": {"entity_id": broadlink_entity},
                 "data": {
                     "device": device,
-                    "command": speed_commands.get(f"speed_{default_speed}", list(speed_commands.values())[0]),
+                    "command": speed_commands.get(
+                        f"speed_{default_speed}", list(speed_commands.values())[0]
+                    ),
                 },
             },
             {
@@ -415,11 +453,14 @@ class EntityGenerator:
             percentage = int((i / speed_count) * 100)
 
             # Template for input_select option (just the number)
-            set_percentage_option_conditions.append(f"{{%- elif percentage <= {percentage} -%}}\n" f"  {i}")
+            set_percentage_option_conditions.append(
+                f"{{%- elif percentage <= {percentage} -%}}\n" f"  {i}"
+            )
 
             # Template for remote command (the actual command name)
             set_percentage_command_conditions.append(
-                f"{{%- elif percentage <= {percentage} -%}}\n" f"  {speed_commands.get(f'speed_{i}', '')}"
+                f"{{%- elif percentage <= {percentage} -%}}\n"
+                f"  {speed_commands.get(f'speed_{i}', '')}"
             )
 
         fan_config["set_percentage"] = [
@@ -428,7 +469,10 @@ class EntityGenerator:
                 "target": {"entity_id": f"input_select.{entity_id}_speed"},
                 "data": {
                     "option": (
-                        "{% if percentage == 0 %}\n" "  off\n" + "\n".join(set_percentage_option_conditions) + "\n{% endif %}"
+                        "{% if percentage == 0 %}\n"
+                        "  off\n"
+                        + "\n".join(set_percentage_option_conditions)
+                        + "\n{% endif %}"
                     )
                 },
             },
@@ -450,10 +494,16 @@ class EntityGenerator:
         # Add direction support if reverse/direction command exists
         if has_direction:
             # Direction template
-            fan_config["direction_template"] = f"{{{{ states('input_select.{entity_id}_direction') }}}}"
+            fan_config["direction_template"] = (
+                f"{{{{ states('input_select.{entity_id}_direction') }}}}"
+            )
 
             # Set direction action
-            direction_command = commands.get("reverse") or commands.get("direction") or commands.get("fan_reverse")
+            direction_command = (
+                commands.get("reverse")
+                or commands.get("direction")
+                or commands.get("fan_reverse")
+            )
 
             # Build set_direction actions
             set_direction_actions = []
@@ -475,7 +525,11 @@ class EntityGenerator:
                     "target": {"entity_id": f"input_select.{entity_id}_direction"},
                     "data": {
                         "option": (
-                            "{% if direction == 'forward' %}\n" "  reverse\n" "{% else %}\n" "  forward\n" "{% endif %}"
+                            "{% if direction == 'forward' %}\n"
+                            "  reverse\n"
+                            "{% else %}\n"
+                            "  forward\n"
+                            "{% endif %}"
                         )
                     },
                 }
@@ -498,7 +552,9 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Check if we have the required commands
@@ -515,7 +571,9 @@ class EntityGenerator:
                 entity_id: {
                     "unique_id": entity_id,
                     "friendly_name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+                    or entity_data.get(
+                        "friendly_name", entity_id.replace("_", " ").title()
+                    ),
                     "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                 }
             },
@@ -599,18 +657,24 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Check for basic power commands
-        has_power = ("turn_on" in commands or "power_on" in commands) and ("turn_off" in commands or "power_off" in commands)
+        has_power = ("turn_on" in commands or "power_on" in commands) and (
+            "turn_off" in commands or "power_off" in commands
+        )
 
         if not has_power:
             logger.warning(f"Media player {entity_id} missing power on/off commands")
             return None
 
         # Build the universal media player configuration
-        friendly_name = entity_data.get("name") or entity_data.get("friendly_name", entity_id.replace("_", " ").title())
+        friendly_name = entity_data.get("name") or entity_data.get(
+            "friendly_name", entity_id.replace("_", " ").title()
+        )
 
         # The companion switch entity ID
         switch_entity_id = f"switch.{entity_id}_power"
@@ -726,9 +790,13 @@ class EntityGenerator:
 
             # Add source list to attributes via input_select
             config["attributes"]["source"] = f"input_select.{entity_id}_source"
-            config["attributes"]["source_list"] = f"input_select.{entity_id}_source|options"
+            config["attributes"][
+                "source_list"
+            ] = f"input_select.{entity_id}_source|options"
 
-        logger.info(f"Generated universal media player configuration for {entity_id} with {len(commands)} commands")
+        logger.info(
+            f"Generated universal media player configuration for {entity_id} with {len(commands)} commands"
+        )
         return config
 
     def _generate_media_player_switch(
@@ -760,7 +828,9 @@ class EntityGenerator:
         # Create switch entity ID (will be switch.{entity_id}_power)
         switch_entity_id = f"{entity_id}_power"
 
-        friendly_name = entity_data.get("name") or entity_data.get("friendly_name", entity_id.replace("_", " ").title())
+        friendly_name = entity_data.get("name") or entity_data.get(
+            "friendly_name", entity_id.replace("_", " ").title()
+        )
 
         config = {
             "platform": "template",
@@ -811,7 +881,9 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Check for basic on/off commands
@@ -829,7 +901,9 @@ class EntityGenerator:
                 entity_id: {
                     "unique_id": entity_id,
                     "friendly_name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+                    or entity_data.get(
+                        "friendly_name", entity_id.replace("_", " ").title()
+                    ),
                     "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
                     "current_temperature_template": "{{ 22 }}",  # Static temperature since IR/RF has no feedback
                     "target_temperature_template": "{{ states('input_number.{}_target_temp'.format('"
@@ -907,7 +981,9 @@ class EntityGenerator:
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
-            logger.error(f"No broadlink_entity specified for {entity_id} and no default device_id")
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
             return None
 
         # Check for required commands
@@ -926,7 +1002,9 @@ class EntityGenerator:
                 entity_id: {
                     "unique_id": entity_id,
                     "friendly_name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+                    or entity_data.get(
+                        "friendly_name", entity_id.replace("_", " ").title()
+                    ),
                     "value_template": f"{{{{ is_state('input_select.{entity_id}_position', 'open') }}}}",
                 }
             },
@@ -977,16 +1055,23 @@ class EntityGenerator:
             }
 
         # Check for position commands
-        position_commands = {k: v for k, v in commands.items() if k.startswith("position_")}
+        position_commands = {
+            k: v for k, v in commands.items() if k.startswith("position_")
+        }
         if position_commands:
             # Add position template
-            cover_config["position_template"] = f"{{{{ states('input_number.{entity_id}_position') | int }}}}"
+            cover_config["position_template"] = (
+                f"{{{{ states('input_number.{entity_id}_position') | int }}}}"
+            )
 
             # Add set position action
             position_conditions = []
             for pos_key in sorted(position_commands.keys()):
                 pos_value = int(pos_key.split("_")[1])
-                position_conditions.append(f"{{%- elif position == {pos_value} -%}}\n" f"  {position_commands[pos_key]}")
+                position_conditions.append(
+                    f"{{%- elif position == {pos_value} -%}}\n"
+                    f"  {position_commands[pos_key]}"
+                )
 
             cover_config["set_cover_position"] = {
                 "service": "remote.send_command",
@@ -995,7 +1080,9 @@ class EntityGenerator:
                     "device": device,
                     "command": (
                         "{% if position == 0 %}\n"
-                        f"  {commands.get('close', '')}\n" + "\n".join(position_conditions) + "\n{% elif position == 100 %}\n"
+                        f"  {commands.get('close', '')}\n"
+                        + "\n".join(position_conditions)
+                        + "\n{% elif position == 100 %}\n"
                         f"  {commands.get('open', '')}\n"
                         "{% endif %}"
                     ),
@@ -1021,10 +1108,14 @@ class EntityGenerator:
                     "data": {"device": device, "command": commands["close_tilt"]},
                 }
 
-        logger.info(f"Generated cover configuration for {entity_id} with {len(commands)} commands")
+        logger.info(
+            f"Generated cover configuration for {entity_id} with {len(commands)} commands"
+        )
         return config
 
-    def _build_helpers_yaml(self, entities: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_helpers_yaml(
+        self, entities: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Build helper entities (input_boolean, input_select)"""
         helpers = {"input_boolean": {}, "input_select": {}}
 
@@ -1035,7 +1126,9 @@ class EntityGenerator:
             entity_type = entity_data["entity_type"]
 
             # Get display name (prefer 'name' over 'friendly_name')
-            display_name = entity_data.get("name") or entity_data.get("friendly_name", entity_id)
+            display_name = entity_data.get("name") or entity_data.get(
+                "friendly_name", entity_id
+            )
 
             # All entities need a state tracker
             helpers["input_boolean"][f"{entity_id}_state"] = {
@@ -1085,10 +1178,14 @@ class EntityGenerator:
                 commands = entity_data.get("commands", {})
 
                 # Add source selector if source commands exist
-                source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
+                source_commands = {
+                    k: v for k, v in commands.items() if k.startswith("source_")
+                }
                 if source_commands:
                     # Extract source names from command keys (e.g., "source_hdmi1" -> "HDMI1")
-                    sources = [k.replace("source_", "").upper() for k in source_commands.keys()]
+                    sources = [
+                        k.replace("source_", "").upper() for k in source_commands.keys()
+                    ]
 
                     helpers["input_select"][f"{entity_id}_source"] = {
                         "name": f"{display_name} Source",
@@ -1108,7 +1205,9 @@ class EntityGenerator:
                 }
 
                 # Add position slider if position commands exist
-                position_commands = {k: v for k, v in commands.items() if k.startswith("position_")}
+                position_commands = {
+                    k: v for k, v in commands.items() if k.startswith("position_")
+                }
                 if position_commands:
                     helpers["input_number"] = helpers.get("input_number", {})
                     helpers["input_number"][f"{entity_id}_position"] = {
@@ -1127,8 +1226,12 @@ class EntityGenerator:
         try:
             with open(file_path, "w") as f:
                 f.write("# Auto-generated by Broadlink Manager\n")
-                f.write(f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write("# DO NOT EDIT THIS FILE MANUALLY - Changes will be overwritten\n\n")
+                f.write(
+                    f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                )
+                f.write(
+                    "# DO NOT EDIT THIS FILE MANUALLY - Changes will be overwritten\n\n"
+                )
                 yaml.dump(
                     data,
                     f,

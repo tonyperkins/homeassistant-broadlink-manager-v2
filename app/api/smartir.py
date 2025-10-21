@@ -95,7 +95,16 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
         """Get available SmartIR platforms"""
         try:
             if not smartir_detector.is_installed():
-                return jsonify({"installed": False, "platforms": [], "message": "SmartIR not installed"}), 200
+                return (
+                    jsonify(
+                        {
+                            "installed": False,
+                            "platforms": [],
+                            "message": "SmartIR not installed",
+                        }
+                    ),
+                    200,
+                )
 
             platforms = smartir_detector.get_supported_platforms()
             return jsonify({"installed": True, "platforms": platforms}), 200
@@ -111,7 +120,10 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 return jsonify({"error": "SmartIR not installed"}), 404
 
             codes = smartir_detector.get_device_codes(platform)
-            return jsonify({"platform": platform, "codes": codes, "count": len(codes)}), 200
+            return (
+                jsonify({"platform": platform, "codes": codes, "count": len(codes)}),
+                200,
+            )
         except Exception as e:
             logger.error(f"Error getting codes for {platform}: {e}")
             return jsonify({"error": str(e)}), 500
@@ -164,7 +176,15 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 result = smartir_code_service.refresh_device_index()
                 return jsonify(result), 200 if result.get("success") else 500
             else:
-                return jsonify({"success": False, "error": "SmartIR code service not available"}), 503
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "SmartIR code service not available",
+                        }
+                    ),
+                    503,
+                )
         except Exception as e:
             logger.error(f"Error refreshing device index: {e}")
             return jsonify({"success": False, "error": str(e)}), 500
@@ -181,11 +201,22 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             code_number = data.get("code_number")
 
             if not all([platform, profile_json, code_number]):
-                return jsonify({"success": False, "error": "Missing required fields: platform, json, or code_number"}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Missing required fields: platform, json, or code_number",
+                        }
+                    ),
+                    400,
+                )
 
             # Validate SmartIR is installed
             if not smartir_detector.is_installed():
-                return jsonify({"success": False, "error": "SmartIR is not installed"}), 404
+                return (
+                    jsonify({"success": False, "error": "SmartIR is not installed"}),
+                    404,
+                )
 
             # Get SmartIR codes directory
             smartir_path = smartir_detector.smartir_path
@@ -242,7 +273,10 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             # Check each platform file
             for platform in ["climate", "media_player", "fan", "light"]:
                 platform_file = smartir_dir / f"{platform}.yaml"
-                result["platforms"][platform] = {"file_exists": platform_file.exists(), "file_path": str(platform_file)}
+                result["platforms"][platform] = {
+                    "file_exists": platform_file.exists(),
+                    "file_path": str(platform_file),
+                }
 
             # Check if configuration.yaml has platform entries
             if configuration_yaml.exists():
@@ -255,9 +289,15 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
                     for platform in ["climate", "media_player", "fan", "light"]:
                         # Check if platform is defined directly (not as include)
-                        if f"\n{platform}:" in config_content or f"\n{platform} :" in config_content:
+                        if (
+                            f"\n{platform}:" in config_content
+                            or f"\n{platform} :" in config_content
+                        ):
                             # Check if it's NOT an include
-                            if f"!include smartir/{platform}.yaml" not in config_content:
+                            if (
+                                f"!include smartir/{platform}.yaml"
+                                not in config_content
+                            ):
                                 result["configuration_warnings"].append(
                                     {
                                         "platform": platform,
@@ -282,7 +322,10 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
         try:
             # Validate SmartIR is installed
             if not smartir_detector.is_installed():
-                return jsonify({"success": False, "error": "SmartIR is not installed"}), 404
+                return (
+                    jsonify({"success": False, "error": "SmartIR is not installed"}),
+                    404,
+                )
 
             # Get SmartIR codes directory
             smartir_path = smartir_detector.smartir_path
@@ -336,49 +379,84 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     if controller and storage_path.exists():
                         try:
                             # Extract command names from SmartIR profile
-                            profile_commands = set(_extract_command_names(data.get("commands", {})))
+                            profile_commands = set(
+                                _extract_command_names(data.get("commands", {}))
+                            )
 
                             # Generate expected device name from manufacturer and model
                             import re
 
-                            manufacturer = re.sub(r"[^a-z0-9]+", "_", data.get("manufacturer", "").lower())
+                            manufacturer = re.sub(
+                                r"[^a-z0-9]+", "_", data.get("manufacturer", "").lower()
+                            )
                             model = (
-                                re.sub(r"[^a-z0-9]+", "_", data.get("supportedModels", [""])[0].lower())
+                                re.sub(
+                                    r"[^a-z0-9]+",
+                                    "_",
+                                    data.get("supportedModels", [""])[0].lower(),
+                                )
                                 if data.get("supportedModels")
                                 else ""
                             )
-                            expected_device_name = f"{manufacturer}_{model}" if manufacturer and model else None
+                            expected_device_name = (
+                                f"{manufacturer}_{model}"
+                                if manufacturer and model
+                                else None
+                            )
 
-                            logger.debug(f"Looking for learned commands in device: {expected_device_name}")
+                            logger.debug(
+                                f"Looking for learned commands in device: {expected_device_name}"
+                            )
 
                             # Find Broadlink storage files
-                            for storage_file in storage_path.glob("broadlink_remote_*_codes"):
+                            for storage_file in storage_path.glob(
+                                "broadlink_remote_*_codes"
+                            ):
                                 try:
-                                    with open(storage_file, "r", encoding="utf-8") as sf:
+                                    with open(
+                                        storage_file, "r", encoding="utf-8"
+                                    ) as sf:
                                         storage_data = json.load(sf)
 
                                     # Only check the specific device for this profile
                                     if expected_device_name:
-                                        device_data = storage_data.get("data", {}).get(expected_device_name, {})
+                                        device_data = storage_data.get("data", {}).get(
+                                            expected_device_name, {}
+                                        )
                                         if device_data:
                                             learned_commands = set(device_data.keys())
                                             # Count matching commands (case-insensitive)
-                                            profile_lower = {cmd.lower() for cmd in profile_commands}
-                                            learned_lower = {cmd.lower() for cmd in learned_commands}
-                                            matches = profile_lower.intersection(learned_lower)
+                                            profile_lower = {
+                                                cmd.lower() for cmd in profile_commands
+                                            }
+                                            learned_lower = {
+                                                cmd.lower() for cmd in learned_commands
+                                            }
+                                            matches = profile_lower.intersection(
+                                                learned_lower
+                                            )
                                             learned_count = len(matches)
-                                            logger.debug(f"Found {learned_count} learned commands for {expected_device_name}")
+                                            logger.debug(
+                                                f"Found {learned_count} learned commands for {expected_device_name}"
+                                            )
                                             break  # Found the device, stop searching
                                 except Exception as e:
-                                    logger.debug(f"Error reading storage file {storage_file}: {e}")
+                                    logger.debug(
+                                        f"Error reading storage file {storage_file}: {e}"
+                                    )
                         except Exception as e:
-                            logger.debug(f"Error checking learned commands for {code}: {e}")
+                            logger.debug(
+                                f"Error checking learned commands for {code}: {e}"
+                            )
 
                     # Extract controller brand from entity ID (e.g., "remote.master_bedroom_rm4_pro" -> "Broadlink")
                     controller_brand = "Not Set"
                     if controller:
                         # Default to "Broadlink" if the entity contains common Broadlink patterns
-                        if any(x in controller.lower() for x in ["rm4", "rm3", "rm_pro", "broadlink"]):
+                        if any(
+                            x in controller.lower()
+                            for x in ["rm4", "rm3", "rm_pro", "broadlink"]
+                        ):
                             controller_brand = "Broadlink"
                         elif "xiaomi" in controller.lower():
                             controller_brand = "Xiaomi"
@@ -391,7 +469,11 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         {
                             "code": code,
                             "manufacturer": data.get("manufacturer", "Unknown"),
-                            "model": data.get("supportedModels", ["Unknown"])[0] if data.get("supportedModels") else "Unknown",
+                            "model": (
+                                data.get("supportedModels", ["Unknown"])[0]
+                                if data.get("supportedModels")
+                                else "Unknown"
+                            ),
                             "file_name": file_path.name,
                             "controller": controller,
                             "controllerBrand": controller_brand,
@@ -417,14 +499,20 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
         try:
             # Validate SmartIR is installed
             if not smartir_detector.is_installed():
-                return jsonify({"success": False, "error": "SmartIR is not installed"}), 404
+                return (
+                    jsonify({"success": False, "error": "SmartIR is not installed"}),
+                    404,
+                )
 
             # Get file path
             smartir_path = smartir_detector.smartir_path
             file_path = smartir_path / "codes" / platform / f"{code}.json"
 
             if not file_path.exists():
-                return jsonify({"success": False, "error": f"Profile {code} not found"}), 404
+                return (
+                    jsonify({"success": False, "error": f"Profile {code} not found"}),
+                    404,
+                )
 
             # Read the profile
             with open(file_path, "r", encoding="utf-8") as f:
@@ -452,15 +540,22 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             for device_id, device_data in devices.items():
                 # Check if this is a SmartIR device with matching device_code
-                if device_data.get("device_type") == "smartir" and str(device_data.get("device_code")) == str(code):
+                if device_data.get("device_type") == "smartir" and str(
+                    device_data.get("device_code")
+                ) == str(code):
                     device_name = device_data.get("name", device_id)
                     devices_using_profile.append(device_name)
 
-            return jsonify({
-                "in_use": len(devices_using_profile) > 0,
-                "device_count": len(devices_using_profile),
-                "devices": devices_using_profile
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "in_use": len(devices_using_profile) > 0,
+                        "device_count": len(devices_using_profile),
+                        "devices": devices_using_profile,
+                    }
+                ),
+                200,
+            )
 
         except Exception as e:
             logger.error(f"Error checking profile usage: {e}")
@@ -474,25 +569,36 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             platform = data.get("platform")
 
             if not platform:
-                return jsonify({"success": False, "error": "Missing platform parameter"}), 400
+                return (
+                    jsonify({"success": False, "error": "Missing platform parameter"}),
+                    400,
+                )
 
             # Validate SmartIR is installed
             if not smartir_detector.is_installed():
-                return jsonify({"success": False, "error": "SmartIR is not installed"}), 404
+                return (
+                    jsonify({"success": False, "error": "SmartIR is not installed"}),
+                    404,
+                )
 
             # Get file path
             smartir_path = smartir_detector.smartir_path
             file_path = smartir_path / "codes" / platform / f"{code}.json"
 
             if not file_path.exists():
-                return jsonify({"success": False, "error": f"Profile {code} not found"}), 404
+                return (
+                    jsonify({"success": False, "error": f"Profile {code} not found"}),
+                    404,
+                )
 
             # Check if profile is in use by any managed devices
             from flask import current_app
 
             device_manager = current_app.config.get("device_manager")
-            logger.info(f"Checking if profile {code} is in use (device_manager: {device_manager is not None})")
-            
+            logger.info(
+                f"Checking if profile {code} is in use (device_manager: {device_manager is not None})"
+            )
+
             if device_manager:
                 # Get all devices from devices.json (includes SmartIR devices)
                 devices = device_manager.get_all_devices()
@@ -502,23 +608,37 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
                 for device_id, device_data in devices.items():
                     has_device_code = "device_code" in device_data
-                    device_code_value = device_data.get('device_code')
-                    device_type = device_data.get('device_type')
-                    logger.info(f"Device '{device_id}': type={device_type}, has_device_code={has_device_code}, device_code={device_code_value}")
-                    
+                    device_code_value = device_data.get("device_code")
+                    device_type = device_data.get("device_type")
+                    logger.info(
+                        f"Device '{device_id}': type={device_type}, "
+                        f"has_device_code={has_device_code}, device_code={device_code_value}"
+                    )
+
                     # Check if this is a SmartIR device with matching device_code
-                    if device_type == "smartir" and "device_code" in device_data and str(device_data.get("device_code")) == str(code):
+                    if (
+                        device_type == "smartir"
+                        and "device_code" in device_data
+                        and str(device_data.get("device_code")) == str(code)
+                    ):
                         device_name = device_data.get("name", device_id)
                         devices_using_profile.append(device_name)
-                        logger.info(f"✅ Found device using profile {code}: {device_name}")
+                        logger.info(
+                            f"✅ Found device using profile {code}: {device_name}"
+                        )
 
                 if devices_using_profile:
-                    logger.warning(f"Cannot delete profile {code}: in use by {devices_using_profile}")
+                    logger.warning(
+                        f"Cannot delete profile {code}: in use by {devices_using_profile}"
+                    )
                     return (
                         jsonify(
                             {
                                 "success": False,
-                                "error": f"Cannot delete profile {code}: it is currently in use by {len(devices_using_profile)} device(s)",
+                                "error": (
+                                    f"Cannot delete profile {code}: it is currently in use by "
+                                    f"{len(devices_using_profile)} device(s)"
+                                ),
                                 "devices": devices_using_profile,
                             }
                         ),
@@ -551,9 +671,13 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
                         if storage_path.exists():
                             deleted = False
-                            for storage_file in storage_path.glob("broadlink_remote_*_codes"):
+                            for storage_file in storage_path.glob(
+                                "broadlink_remote_*_codes"
+                            ):
                                 try:
-                                    with open(storage_file, "r", encoding="utf-8") as sf:
+                                    with open(
+                                        storage_file, "r", encoding="utf-8"
+                                    ) as sf:
                                         storage_data = json.load(sf)
 
                                     # Check if this device exists in storage
@@ -562,7 +686,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                         del storage_data["data"][device_name]
 
                                         # Write back
-                                        with open(storage_file, "w", encoding="utf-8") as sf:
+                                        with open(
+                                            storage_file, "w", encoding="utf-8"
+                                        ) as sf:
                                             json.dump(storage_data, sf, indent=2)
 
                                         logger.info(
@@ -571,10 +697,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                         deleted = True
                                         break
                                 except Exception as e:
-                                    logger.debug(f"Error checking storage file {storage_file}: {e}")
+                                    logger.debug(
+                                        f"Error checking storage file {storage_file}: {e}"
+                                    )
 
                             if not deleted:
-                                logger.debug(f"No Broadlink storage found for device: {device_name}")
+                                logger.debug(
+                                    f"No Broadlink storage found for device: {device_name}"
+                                )
             except Exception as e:
                 logger.warning(f"Could not clean up Broadlink storage: {e}")
 
@@ -605,21 +735,36 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
                     # Filter out devices with matching device_code
                     original_count = len(config)
-                    config = [device for device in config if device.get("device_code") != int(code)]
+                    config = [
+                        device
+                        for device in config
+                        if device.get("device_code") != int(code)
+                    ]
                     removed_count = original_count - len(config)
 
                     if removed_count > 0:
                         # Write back the updated config
                         with open(platform_file, "w", encoding="utf-8") as f:
-                            yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
-                        logger.info(f"✅ Removed {removed_count} device(s) with code {code} from {platform_file}")
+                            yaml.dump(
+                                config, f, default_flow_style=False, allow_unicode=True
+                            )
+                        logger.info(
+                            f"✅ Removed {removed_count} device(s) with code {code} from {platform_file}"
+                        )
                     else:
-                        logger.warning(f"No devices with code {code} found in {platform_file}")
+                        logger.warning(
+                            f"No devices with code {code} found in {platform_file}"
+                        )
 
                 except Exception as e:
                     logger.warning(f"Could not update {platform_file}: {e}")
 
-            return jsonify({"success": True, "message": f"Profile {code} deleted successfully"}), 200
+            return (
+                jsonify(
+                    {"success": True, "message": f"Profile {code} deleted successfully"}
+                ),
+                200,
+            )
 
         except Exception as e:
             logger.error(f"Error deleting profile: {e}")
@@ -635,7 +780,15 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             code = request.args.get("code")
 
             if not all([platform, code]):
-                return jsonify({"success": False, "error": "Missing platform or code parameter"}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Missing platform or code parameter",
+                        }
+                    ),
+                    400,
+                )
 
             config_path = current_app.config.get("config_path", "/config")
             config_path = Path(config_path)
@@ -643,7 +796,15 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             platform_file = smartir_dir / f"{platform}.yaml"
 
             if not platform_file.exists():
-                return jsonify({"success": False, "error": f"Config file {platform}.yaml not found"}), 404
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"Config file {platform}.yaml not found",
+                        }
+                    ),
+                    404,
+                )
 
             # Read and parse YAML
             with open(platform_file, "r", encoding="utf-8") as f:
@@ -657,10 +818,20 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 config = []
 
             # Find device with matching code
-            device = next((d for d in config if d.get("device_code") == int(code)), None)
+            device = next(
+                (d for d in config if d.get("device_code") == int(code)), None
+            )
 
             if not device:
-                return jsonify({"success": False, "error": f"Device with code {code} not found in config"}), 404
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"Device with code {code} not found in config",
+                        }
+                    ),
+                    404,
+                )
 
             return (
                 jsonify(
@@ -687,7 +858,12 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             storage_manager = current_app.config.get("storage_manager")
             if not storage_manager:
-                return jsonify({"success": False, "error": "Storage manager not available"}), 500
+                return (
+                    jsonify(
+                        {"success": False, "error": "Storage manager not available"}
+                    ),
+                    500,
+                )
 
             config_path = current_app.config.get("config_path", "/config")
             config_path = Path(config_path)
@@ -706,31 +882,45 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         devices = yaml.safe_load(f) or []
 
                     for device in devices:
-                        if isinstance(device, dict) and device.get("platform") == "smartir":
+                        if (
+                            isinstance(device, dict)
+                            and device.get("platform") == "smartir"
+                        ):
                             unique_id = device.get("unique_id")
                             device_code = device.get("device_code")
 
                             if unique_id and device_code:
                                 # Get or create entity data
-                                entity_data = storage_manager.get_entity(unique_id) or {}
+                                entity_data = (
+                                    storage_manager.get_entity(unique_id) or {}
+                                )
                                 # Add device_code if missing
                                 if "device_code" not in entity_data:
                                     entity_data["device_code"] = device_code
                                     entity_data["name"] = device.get("name", unique_id)
-                                    entity_data["friendly_name"] = device.get("name", unique_id)
+                                    entity_data["friendly_name"] = device.get(
+                                        "name", unique_id
+                                    )
                                     entity_data["entity_type"] = platform
                                     storage_manager.save_entity(unique_id, entity_data)
-                                    logger.info(f"✅ Synced device_code {device_code} to metadata for {unique_id}")
+                                    logger.info(
+                                        f"✅ Synced device_code {device_code} to metadata for {unique_id}"
+                                    )
                                     synced_count += 1
 
                 except Exception as e:
                     logger.warning(f"Error syncing {platform_file}: {e}")
 
-            return jsonify({
-                "success": True,
-                "message": f"Synced {synced_count} device(s)",
-                "synced_count": synced_count
-            }), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": f"Synced {synced_count} device(s)",
+                        "synced_count": synced_count,
+                    }
+                ),
+                200,
+            )
 
         except Exception as e:
             logger.error(f"Error syncing metadata: {e}")
@@ -750,14 +940,32 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             device_config = data.get("device_config")
 
             if not all([platform, device_config]):
-                return jsonify({"success": False, "error": "Missing platform or device_config"}), 400
+                return (
+                    jsonify(
+                        {"success": False, "error": "Missing platform or device_config"}
+                    ),
+                    400,
+                )
 
             # Validate device config before proceeding
-            is_valid, errors = YAMLValidator.validate_device_config(device_config, platform)
+            is_valid, errors = YAMLValidator.validate_device_config(
+                device_config, platform
+            )
             if not is_valid:
-                error_msg = "Device configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                error_msg = "Device configuration validation failed:\n" + "\n".join(
+                    f"  - {e}" for e in errors
+                )
                 logger.error(error_msg)
-                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": error_msg,
+                            "validation_errors": errors,
+                        }
+                    ),
+                    400,
+                )
 
             config_path = current_app.config.get("config_path", "/config")
             config_path = Path(config_path)
@@ -780,22 +988,50 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             existing_devices.append(device_config)
 
             # Validate the entire file content
-            is_valid, errors = YAMLValidator.validate_yaml_file_content(existing_devices, platform)
+            is_valid, errors = YAMLValidator.validate_yaml_file_content(
+                existing_devices, platform
+            )
             if not is_valid:
-                error_msg = "YAML file validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                error_msg = "YAML file validation failed:\n" + "\n".join(
+                    f"  - {e}" for e in errors
+                )
                 logger.error(error_msg)
-                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": error_msg,
+                            "validation_errors": errors,
+                        }
+                    ),
+                    400,
+                )
 
             # Generate validated YAML
-            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(existing_devices, platform)
+            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(
+                existing_devices, platform
+            )
             if not is_valid:
-                error_msg = "YAML generation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+                error_msg = "YAML generation failed:\n" + "\n".join(
+                    f"  - {e}" for e in errors
+                )
                 logger.error(error_msg)
-                return jsonify({"success": False, "error": error_msg, "validation_errors": errors}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": error_msg,
+                            "validation_errors": errors,
+                        }
+                    ),
+                    400,
+                )
 
             # Create backup before writing
             if platform_file.exists():
-                backup_path = platform_file.with_suffix(platform_file.suffix + ".backup")
+                backup_path = platform_file.with_suffix(
+                    platform_file.suffix + ".backup"
+                )
                 try:
                     shutil.copy2(platform_file, backup_path)
                     logger.info(f"Created backup: {backup_path}")
@@ -810,7 +1046,11 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             # Also save device_code to metadata for tracking
             storage_manager = current_app.config.get("storage_manager")
-            if storage_manager and "unique_id" in device_config and "device_code" in device_config:
+            if (
+                storage_manager
+                and "unique_id" in device_config
+                and "device_code" in device_config
+            ):
                 entity_id = device_config["unique_id"]
                 # Get existing entity data or create new
                 entity_data = storage_manager.get_entity(entity_id) or {}
@@ -821,10 +1061,18 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 entity_data["entity_type"] = platform
                 # Save to metadata
                 storage_manager.save_entity(entity_id, entity_data)
-                logger.info(f"✅ Saved device_code {device_config['device_code']} to metadata for {entity_id}")
+                logger.info(
+                    f"✅ Saved device_code {device_config['device_code']} to metadata for {entity_id}"
+                )
 
             return (
-                jsonify({"success": True, "message": f"Device added to {platform}.yaml", "file_path": str(platform_file)}),
+                jsonify(
+                    {
+                        "success": True,
+                        "message": f"Device added to {platform}.yaml",
+                        "file_path": str(platform_file),
+                    }
+                ),
                 200,
             )
 
@@ -843,7 +1091,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 entity_type = request.args.get("entity_type", "climate")
 
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
-                    return jsonify({"error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
+                            }
+                        ),
+                        400,
+                    )
 
                 manufacturers = smartir_code_service.get_manufacturers(entity_type)
 
@@ -874,7 +1129,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     return jsonify({"error": "Missing manufacturer parameter"}), 400
 
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
-                    return jsonify({"error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
+                            }
+                        ),
+                        400,
+                    )
 
                 models = smartir_code_service.get_models(entity_type, manufacturer)
 
@@ -903,12 +1165,23 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 code_id = request.args.get("code_id")
 
                 if not entity_type or not code_id:
-                    return jsonify({"success": False, "error": "entity_type and code_id are required"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": "entity_type and code_id are required",
+                            }
+                        ),
+                        400,
+                    )
 
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
                     return (
                         jsonify(
-                            {"success": False, "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}
+                            {
+                                "success": False,
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light",
+                            }
                         ),
                         400,
                     )
@@ -919,14 +1192,23 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     if code_num >= 10000 and smartir_detector.is_installed():
                         # Load from local SmartIR installation
                         smartir_path = smartir_detector.smartir_path
-                        file_path = smartir_path / "codes" / entity_type / f"{code_id}.json"
+                        file_path = (
+                            smartir_path / "codes" / entity_type / f"{code_id}.json"
+                        )
 
                         if file_path.exists():
                             with open(file_path, "r", encoding="utf-8") as f:
                                 full_code = json.load(f)
 
-                            logger.debug(f"Loaded custom profile {code_id} from local file")
-                            return jsonify({"success": True, "code": full_code, "custom": True}), 200
+                            logger.debug(
+                                f"Loaded custom profile {code_id} from local file"
+                            )
+                            return (
+                                jsonify(
+                                    {"success": True, "code": full_code, "custom": True}
+                                ),
+                                200,
+                            )
                 except (ValueError, TypeError):
                     pass  # Not a numeric code, continue to GitHub fetch
 
@@ -935,7 +1217,12 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 if full_code:
                     return jsonify({"success": True, "code": full_code}), 200
                 else:
-                    return jsonify({"success": False, "error": f"Code {code_id} not found"}), 404
+                    return (
+                        jsonify(
+                            {"success": False, "error": f"Code {code_id} not found"}
+                        ),
+                        404,
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting code: {e}")
@@ -946,7 +1233,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             """Get full code details from GitHub"""
             try:
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
-                    return jsonify({"error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
+                            }
+                        ),
+                        400,
+                    )
 
                 # Try to get from cache first
                 code_info = smartir_code_service.get_code_info(entity_type, code_id)
@@ -954,17 +1248,32 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 # Fetch full code if requested
                 fetch_full = request.args.get("full", "false").lower() == "true"
                 if fetch_full:
-                    full_code = smartir_code_service.fetch_full_code(entity_type, code_id)
+                    full_code = smartir_code_service.fetch_full_code(
+                        entity_type, code_id
+                    )
                     if full_code:
                         return jsonify({"success": True, "code": full_code}), 200
                     else:
-                        return jsonify({"success": False, "error": f"Code {code_id} not found"}), 404
+                        return (
+                            jsonify(
+                                {"success": False, "error": f"Code {code_id} not found"}
+                            ),
+                            404,
+                        )
 
                 # Return cached info
                 if code_info:
                     return jsonify({"success": True, "code": code_info}), 200
                 else:
-                    return jsonify({"success": False, "error": f"Code {code_id} not found in cache"}), 404
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": f"Code {code_id} not found in cache",
+                            }
+                        ),
+                        404,
+                    )
 
             except Exception as e:
                 logger.error(f"Error getting code details: {e}")
@@ -981,7 +1290,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     return jsonify({"error": "Missing query parameter"}), 400
 
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
-                    return jsonify({"error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
+                            }
+                        ),
+                        400,
+                    )
 
                 results = smartir_code_service.search_codes(entity_type, query)
 
@@ -1011,14 +1327,32 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 force = data.get("force", False)
 
                 if entity_type not in ["climate", "fan", "media_player", "light"]:
-                    return jsonify({"error": "Invalid entity_type. Must be: climate, fan, media_player, or light"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid entity_type. Must be: climate, fan, media_player, or light"
+                            }
+                        ),
+                        400,
+                    )
 
                 success = smartir_code_service.refresh_codes(entity_type, force=force)
 
                 if success:
-                    return jsonify({"success": True, "message": f"Cache refreshed for {entity_type}"}), 200
+                    return (
+                        jsonify(
+                            {
+                                "success": True,
+                                "message": f"Cache refreshed for {entity_type}",
+                            }
+                        ),
+                        200,
+                    )
                 else:
-                    return jsonify({"success": False, "error": "Failed to refresh cache"}), 500
+                    return (
+                        jsonify({"success": False, "error": "Failed to refresh cache"}),
+                        500,
+                    )
 
             except Exception as e:
                 logger.error(f"Error refreshing codes: {e}")
@@ -1041,9 +1375,17 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 success = smartir_code_service.clear_cache()
 
                 if success:
-                    return jsonify({"success": True, "message": "Cache cleared successfully"}), 200
+                    return (
+                        jsonify(
+                            {"success": True, "message": "Cache cleared successfully"}
+                        ),
+                        200,
+                    )
                 else:
-                    return jsonify({"success": False, "error": "Failed to clear cache"}), 500
+                    return (
+                        jsonify({"success": False, "error": "Failed to clear cache"}),
+                        500,
+                    )
 
             except Exception as e:
                 logger.error(f"Error clearing cache: {e}")
@@ -1060,7 +1402,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 source = request.args.get("source", "all")  # all, index, custom
                 page = int(request.args.get("page", 1))
                 limit = int(request.args.get("limit", 50))
-                sort_by = request.args.get("sort_by", "code")  # code, manufacturer, model
+                sort_by = request.args.get(
+                    "sort_by", "code"
+                )  # code, manufacturer, model
 
                 if platform not in ["climate", "fan", "media_player", "light"]:
                     return jsonify({"success": False, "error": "Invalid platform"}), 400
@@ -1069,7 +1413,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
                 # Get index profiles
                 if source in ["all", "index"]:
-                    index_data = smartir_code_service._device_index.get("platforms", {}).get(platform, {})
+                    index_data = smartir_code_service._device_index.get(
+                        "platforms", {}
+                    ).get(platform, {})
                     manufacturers_data = index_data.get("manufacturers", {})
 
                     for mfr, mfr_data in manufacturers_data.items():
@@ -1080,7 +1426,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         for model_info in mfr_data.get("models", []):
                             # Filter by model if specified
                             if model:
-                                model_names = [m.lower() for m in model_info.get("models", [])]
+                                model_names = [
+                                    m.lower() for m in model_info.get("models", [])
+                                ]
                                 if not any(model.lower() in m for m in model_names):
                                     continue
 
@@ -1089,7 +1437,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                     "code": model_info.get("code"),
                                     "manufacturer": mfr,
                                     "model": (
-                                        model_info.get("models", ["Unknown"])[0] if model_info.get("models") else "Unknown"
+                                        model_info.get("models", ["Unknown"])[0]
+                                        if model_info.get("models")
+                                        else "Unknown"
                                     ),
                                     "models": model_info.get("models", []),
                                     "platform": platform,
@@ -1133,7 +1483,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                     if not any(model.lower() in m for m in model_names):
                                         continue
 
-                                command_count = _count_commands(data.get("commands", {}))
+                                command_count = _count_commands(
+                                    data.get("commands", {})
+                                )
 
                                 all_profiles.append(
                                     {
@@ -1152,15 +1504,29 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                     }
                                 )
                             except Exception as e:
-                                logger.debug(f"Error reading custom profile {file_path}: {e}")
+                                logger.debug(
+                                    f"Error reading custom profile {file_path}: {e}"
+                                )
 
                 # Sort profiles
                 if sort_by == "manufacturer":
-                    all_profiles.sort(key=lambda x: (x["manufacturer"].lower(), int(x["code"]) if x["code"].isdigit() else 0))
+                    all_profiles.sort(
+                        key=lambda x: (
+                            x["manufacturer"].lower(),
+                            int(x["code"]) if x["code"].isdigit() else 0,
+                        )
+                    )
                 elif sort_by == "model":
-                    all_profiles.sort(key=lambda x: (x["model"].lower(), int(x["code"]) if x["code"].isdigit() else 0))
+                    all_profiles.sort(
+                        key=lambda x: (
+                            x["model"].lower(),
+                            int(x["code"]) if x["code"].isdigit() else 0,
+                        )
+                    )
                 else:  # sort by code
-                    all_profiles.sort(key=lambda x: int(x["code"]) if x["code"].isdigit() else 0)
+                    all_profiles.sort(
+                        key=lambda x: int(x["code"]) if x["code"].isdigit() else 0
+                    )
 
                 # Paginate
                 total_count = len(all_profiles)
@@ -1180,7 +1546,11 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                 "total": total_count,
                                 "total_pages": (total_count + limit - 1) // limit,
                             },
-                            "filters": {"manufacturer": manufacturer, "model": model, "source": source},
+                            "filters": {
+                                "manufacturer": manufacturer,
+                                "model": model,
+                                "source": source,
+                            },
                         }
                     ),
                     200,
@@ -1200,15 +1570,26 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 limit = int(request.args.get("limit", 100))
 
                 if not query:
-                    return jsonify({"success": False, "error": "Query parameter is required"}), 400
+                    return (
+                        jsonify(
+                            {"success": False, "error": "Query parameter is required"}
+                        ),
+                        400,
+                    )
 
-                platforms_to_search = ["climate", "fan", "media_player", "light"] if platform == "all" else [platform]
+                platforms_to_search = (
+                    ["climate", "fan", "media_player", "light"]
+                    if platform == "all"
+                    else [platform]
+                )
                 all_results = []
 
                 for plt in platforms_to_search:
                     # Search index profiles
                     if source in ["all", "index"]:
-                        index_data = smartir_code_service._device_index.get("platforms", {}).get(plt, {})
+                        index_data = smartir_code_service._device_index.get(
+                            "platforms", {}
+                        ).get(plt, {})
                         manufacturers_data = index_data.get("manufacturers", {})
 
                         for mfr, mfr_data in manufacturers_data.items():
@@ -1232,12 +1613,18 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                             else:
                                 for model_info in mfr_data.get("models", []):
                                     model_names = model_info.get("models", [])
-                                    if any(query.lower() in m.lower() for m in model_names):
+                                    if any(
+                                        query.lower() in m.lower() for m in model_names
+                                    ):
                                         all_results.append(
                                             {
                                                 "code": model_info.get("code"),
                                                 "manufacturer": mfr,
-                                                "model": model_names[0] if model_names else "Unknown",
+                                                "model": (
+                                                    model_names[0]
+                                                    if model_names
+                                                    else "Unknown"
+                                                ),
                                                 "models": model_names,
                                                 "platform": plt,
                                                 "source": "index",
@@ -1267,7 +1654,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                     match_type = None
                                     if query.lower() in mfr.lower():
                                         match_type = "manufacturer"
-                                    elif any(query.lower() in m.lower() for m in models):
+                                    elif any(
+                                        query.lower() in m.lower() for m in models
+                                    ):
                                         match_type = "model"
 
                                     if match_type:
@@ -1275,7 +1664,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                             {
                                                 "code": code,
                                                 "manufacturer": mfr,
-                                                "model": models[0] if models else "Unknown",
+                                                "model": (
+                                                    models[0] if models else "Unknown"
+                                                ),
                                                 "models": models,
                                                 "platform": plt,
                                                 "source": "custom",
@@ -1283,12 +1674,24 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                             }
                                         )
                                 except Exception as e:
-                                    logger.debug(f"Error searching custom profile {file_path}: {e}")
+                                    logger.debug(
+                                        f"Error searching custom profile {file_path}: {e}"
+                                    )
 
                 # Limit results
                 all_results = all_results[:limit]
 
-                return jsonify({"success": True, "query": query, "results": all_results, "count": len(all_results)}), 200
+                return (
+                    jsonify(
+                        {
+                            "success": True,
+                            "query": query,
+                            "results": all_results,
+                            "count": len(all_results),
+                        }
+                    ),
+                    200,
+                )
 
             except Exception as e:
                 logger.error(f"Error searching profiles: {e}")

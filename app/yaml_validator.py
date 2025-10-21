@@ -18,7 +18,13 @@ class YAMLValidator:
     # Required fields for each platform
     REQUIRED_FIELDS = {
         "climate": ["platform", "name", "unique_id", "device_code", "controller_data"],
-        "media_player": ["platform", "name", "unique_id", "device_code", "controller_data"],
+        "media_player": [
+            "platform",
+            "name",
+            "unique_id",
+            "device_code",
+            "controller_data",
+        ],
         "fan": ["platform", "name", "unique_id", "device_code", "controller_data"],
         "light": ["platform", "name", "unique_id", "device_code", "controller_data"],
     }
@@ -45,7 +51,9 @@ class YAMLValidator:
     }
 
     @staticmethod
-    def validate_device_config(config: Dict[str, Any], platform: str) -> Tuple[bool, List[str]]:
+    def validate_device_config(
+        config: Dict[str, Any], platform: str
+    ) -> Tuple[bool, List[str]]:
         """
         Validate a single device configuration
 
@@ -91,7 +99,9 @@ class YAMLValidator:
                 if code <= 0:
                     errors.append(f"device_code must be positive, got: {code}")
             except (ValueError, TypeError):
-                errors.append(f"device_code must be an integer, got: {config['device_code']}")
+                errors.append(
+                    f"device_code must be an integer, got: {config['device_code']}"
+                )
 
         # Validate unique_id format (no spaces, valid characters)
         if "unique_id" in config:
@@ -99,15 +109,24 @@ class YAMLValidator:
             if " " in unique_id:
                 errors.append(f"unique_id cannot contain spaces: {unique_id}")
             if not re.match(r"^[a-z0-9_]+$", unique_id):
-                errors.append(f"unique_id must contain only lowercase letters, numbers, and underscores: {unique_id}")
+                errors.append(
+                    f"unique_id must contain only lowercase letters, numbers, and underscores: {unique_id}"
+                )
 
         # Validate entity IDs (controller_data, sensors)
-        entity_fields = ["controller_data", "temperature_sensor", "humidity_sensor", "power_sensor"]
+        entity_fields = [
+            "controller_data",
+            "temperature_sensor",
+            "humidity_sensor",
+            "power_sensor",
+        ]
         for field in entity_fields:
             if field in config and config[field]:
                 entity_id = str(config[field])
                 if not YAMLValidator._is_valid_entity_id(entity_id):
-                    errors.append(f"Invalid entity ID format for '{field}': {entity_id}")
+                    errors.append(
+                        f"Invalid entity ID format for '{field}': {entity_id}"
+                    )
 
         # Check for unknown fields (warn but don't fail)
         allowed_fields = set(required + YAMLValidator.OPTIONAL_FIELDS.get(platform, []))
@@ -152,7 +171,9 @@ class YAMLValidator:
             return False, str(e)
 
     @staticmethod
-    def validate_yaml_file_content(devices: List[Dict[str, Any]], platform: str) -> Tuple[bool, List[str]]:
+    def validate_yaml_file_content(
+        devices: List[Dict[str, Any]], platform: str
+    ) -> Tuple[bool, List[str]]:
         """
         Validate entire YAML file content (list of devices)
 
@@ -166,21 +187,27 @@ class YAMLValidator:
         all_errors = []
 
         if not isinstance(devices, list):
-            all_errors.append(f"YAML content must be a list, got {type(devices).__name__}")
+            all_errors.append(
+                f"YAML content must be a list, got {type(devices).__name__}"
+            )
             return False, all_errors
 
         # Validate each device
         unique_ids = set()
         for i, device in enumerate(devices):
             if not isinstance(device, dict):
-                all_errors.append(f"Device {i} must be a dict, got {type(device).__name__}")
+                all_errors.append(
+                    f"Device {i} must be a dict, got {type(device).__name__}"
+                )
                 continue
 
             # Validate device config
             is_valid, errors = YAMLValidator.validate_device_config(device, platform)
             if not is_valid:
                 for error in errors:
-                    all_errors.append(f"Device {i} ({device.get('name', 'unknown')}): {error}")
+                    all_errors.append(
+                        f"Device {i} ({device.get('name', 'unknown')}): {error}"
+                    )
 
             # Check for duplicate unique_ids
             unique_id = device.get("unique_id")
@@ -192,7 +219,9 @@ class YAMLValidator:
         return len(all_errors) == 0, all_errors
 
     @staticmethod
-    def validate_and_format_yaml(devices: List[Dict[str, Any]], platform: str) -> Tuple[bool, Optional[str], List[str]]:
+    def validate_and_format_yaml(
+        devices: List[Dict[str, Any]], platform: str
+    ) -> Tuple[bool, Optional[str], List[str]]:
         """
         Validate devices and generate formatted YAML string
 
@@ -211,7 +240,9 @@ class YAMLValidator:
 
         # Generate YAML string
         try:
-            yaml_string = yaml.dump(devices, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            yaml_string = yaml.dump(
+                devices, default_flow_style=False, allow_unicode=True, sort_keys=False
+            )
 
             # Validate the generated YAML syntax
             syntax_valid, syntax_error = YAMLValidator.validate_yaml_syntax(yaml_string)

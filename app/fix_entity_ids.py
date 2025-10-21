@@ -34,7 +34,9 @@ def fix_entity_ids(metadata_path):
 
             # Check if there's already a correct entry without prefix
             if device_name in entities or device_name in fixed_entities:
-                print(f"  ❌ Removing duplicate: {entity_id} (correct version exists: {device_name})")
+                print(
+                    f"  ❌ Removing duplicate: {entity_id} (correct version exists: {device_name})"
+                )
                 removed_count += 1
                 continue
             else:

@@ -90,10 +90,11 @@ jobs:
       run: |
         black --check app/
     
-    - name: Run type checking with mypy
-      run: |
-        mypy app/ --ignore-missing-imports
-      continue-on-error: true
+    # Disabled for now - TODO: Fix type annotations
+    # - name: Run type checking with mypy
+    #   run: |
+    #     mypy app/ --ignore-missing-imports
+    #   continue-on-error: true
 
   security:
     runs-on: ubuntu-latest

@@ -16,17 +16,21 @@ logger = logging.getLogger(__name__)
 class MigrationManager:
     """Manage automatic migration of existing Broadlink setups"""
 
-    def __init__(self, storage_manager, entity_detector, storage_path: Path):
+    def __init__(
+        self, storage_manager, entity_detector, device_manager, storage_path: Path
+    ):
         """
         Initialize migration manager
 
         Args:
             storage_manager: StorageManager instance
             entity_detector: EntityDetector instance
+            device_manager: DeviceManager instance
             storage_path: Path to HA .storage directory
         """
         self.storage = storage_manager
         self.detector = entity_detector
+        self.device_manager = device_manager
         self.storage_path = storage_path
 
     async def check_and_migrate(
@@ -210,12 +214,30 @@ class MigrationManager:
                 )
 
                 if detected_entities:
-                    # Save each detected entity
+                    # Save each detected entity to both metadata.json (legacy) and devices.json (v2)
                     for entity_id, entity_data in detected_entities.items():
+                        # Save to metadata.json (legacy system)
                         self.storage.save_entity(entity_id, entity_data)
+
+                        # Create device in devices.json (v2 system)
+                        device_id = entity_data.get("device", device_name)
+                        device_data_v2 = {
+                            "name": entity_data.get("friendly_name", device_name),
+                            "entity_type": entity_data.get("entity_type", "switch"),
+                            "device_type": "broadlink",
+                            "broadlink_entity": entity_data.get(
+                                "broadlink_entity", broadlink_entity
+                            ),
+                            "area": entity_data.get("area", area_name),
+                            "commands": entity_data.get("commands", {}),
+                        }
+
+                        # Create device in devices.json
+                        self.device_manager.create_device(device_id, device_data_v2)
+
                         migrated_entities[entity_id] = entity_data
                         logger.info(
-                            f"Migrated entity: {entity_id} ({entity_data['entity_type']})"
+                            f"Migrated entity: {entity_id} ({entity_data['entity_type']}) -> device: {device_id}"
                         )
                 else:
                     skipped_devices.append(

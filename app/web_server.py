@@ -113,7 +113,10 @@ class BroadlinkWebServer:
             str(self.config_loader.get_broadlink_manager_path())
         )
         self.migration_manager = MigrationManager(
-            self.storage_manager, self.entity_detector, self.storage_path
+            self.storage_manager,
+            self.entity_detector,
+            self.device_manager,
+            self.storage_path,
         )
         self.smartir_detector = SmartIRDetector(
             str(self.config_loader.get_config_path())

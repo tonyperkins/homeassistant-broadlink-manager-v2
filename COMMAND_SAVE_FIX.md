@@ -23,49 +23,53 @@ The command existed in Broadlink storage but wasn't tracked in the device manage
 
 ## Solution
 
-Added code to save the learned command to `devices.json` immediately after successfully fetching it from Broadlink storage.
+**Trust Home Assistant's Success Response**: When HA's `learn_command` service returns success, immediately save the command to `devices.json` without waiting for the storage file to update.
 
 ### Changes Made
 
 **File**: `app/api/commands.py`
 
-**Location**: Lines 164-188 (after successfully fetching the learned code)
+**Location**: Lines 141-166 (immediately after HA API success)
+
+**Key Design Decision**: 
+- **Don't rely on `.storage/broadlink_remote_*_codes` file** - there's a lag between when HA learns the command and when it writes to disk
+- **Trust HA's API response** - if the service returns success, the command was learned
+- **Save immediately** - write to `devices.json` right away using the `command_type` from the request
 
 **Added Logic**:
 ```python
-# Save the command to devices.json if device_id is provided
+# Save the command to devices.json immediately if device_id is provided
+# We trust HA's success response - don't wait for storage file lag
 if device_id:
     device_manager = current_app.config.get("device_manager")
     if device_manager:
-        # Detect command type from the learned code
-        detected_type = detect_command_type(learned_code)
         command_data = {
-            "command_type": detected_type,
-            "type": detected_type,
+            "command_type": command_type,  # Use type from request (ir/rf)
+            "type": command_type,
             "learned_at": result.get("learned_at"),
         }
         
-        # Save to device manager
+        # Save to device manager immediately
         if device_manager.add_command(device_id, command, command_data):
             logger.info(
-                f"✅ Saved command '{command}' to device '{device_id}' with type '{detected_type}'"
+                f"✅ Saved command '{command}' to device '{device_id}' with type '{command_type}'"
             )
-        else:
-            logger.warning(
-                f"⚠️ Failed to save command '{command}' to device manager"
-            )
-    else:
-        logger.warning("⚠️ Device manager not available to save command")
-else:
-    logger.info("ℹ️ No device_id provided, command not saved to device manager")
 ```
+
+**Optional Verification** (lines 168-193):
+- After saving, optionally try to fetch from storage for verification
+- This is **non-blocking** - the command is already saved
+- If storage file hasn't updated yet, that's expected and logged
 
 ### Key Features
 
-1. **Automatic Command Type Detection**: Uses `detect_command_type()` to determine if the command is IR or RF based on the learned code
-2. **Proper Metadata**: Saves command with type and timestamp
-3. **Error Handling**: Logs warnings if device manager is unavailable or save fails
-4. **Backward Compatible**: Only saves if `device_id` is provided (managed devices)
+1. **No Storage File Dependency**: Doesn't wait for `.storage/broadlink_remote_*_codes` to update
+2. **Trust HA API**: If HA returns success, the command was learned - save it immediately
+3. **Use Request Type**: Uses the `command_type` from the original request (IR/RF) instead of trying to detect from storage
+4. **Non-Blocking Verification**: Optionally verifies in storage but doesn't block on it
+5. **Proper Metadata**: Saves command with type and timestamp
+6. **Error Handling**: Logs warnings if device manager is unavailable or save fails
+7. **Backward Compatible**: Only saves if `device_id` is provided (managed devices)
 
 ## Testing
 

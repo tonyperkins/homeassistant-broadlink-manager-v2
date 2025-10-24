@@ -131,85 +131,70 @@ def learn_command():
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(web_server._learn_command(data))
 
-        # If HA API returned success, fetch the learned code immediately
+        # If HA API returned success, save the command immediately
+        # Don't wait for storage file - trust that HA learned it successfully
         if result.get("success"):
             logger.info(
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
-            # Fetch the learned code from Broadlink storage immediately
-            # The code is available right away, even though the file write may lag
+            # Save the command to devices.json immediately if device_id is provided
+            # We trust HA's success response - don't wait for storage file lag
+            if device_id:
+                device_manager = current_app.config.get("device_manager")
+                if device_manager:
+                    command_data = {
+                        "command_type": command_type,
+                        "type": command_type,
+                        "learned_at": result.get("learned_at"),
+                    }
+
+                    # Save to device manager immediately
+                    if device_manager.add_command(device_id, command, command_data):
+                        logger.info(
+                            f"✅ Saved command '{command}' to device '{device_id}' with type '{command_type}'"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️ Failed to save command '{command}' to device manager"
+                        )
+                else:
+                    logger.warning("⚠️ Device manager not available to save command")
+            else:
+                logger.info(
+                    "ℹ️ No device_id provided, command not saved to device manager"
+                )
+
+            # Optionally try to fetch the code from storage for verification
+            # But don't block on this - the command is already saved
             try:
                 import time
 
-                # Give HA a moment to process (usually instant, but be safe)
                 time.sleep(0.5)
-
-                # Fetch all commands from storage
                 all_commands = loop.run_until_complete(
                     web_server._get_all_broadlink_commands()
                 )
-
-                # Get the specific command we just learned
                 device_commands = all_commands.get(device, {})
                 learned_code = device_commands.get(command)
 
                 if learned_code:
                     logger.info(
-                        f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
+                        f"✅ Verified command '{command}' in storage (length: {len(learned_code)} chars)"
                     )
                     result["code"] = learned_code
-                    result["message"] = f"✅ Command '{command}' learned successfully!"
-
-                    # Save the command to devices.json if device_id is provided
-                    if device_id:
-                        device_manager = current_app.config.get("device_manager")
-                        if device_manager:
-                            # Detect command type from the learned code
-                            detected_type = detect_command_type(learned_code)
-                            command_data = {
-                                "command_type": detected_type,
-                                "type": detected_type,
-                                "learned_at": result.get("learned_at"),
-                            }
-
-                            # Save to device manager
-                            if device_manager.add_command(
-                                device_id, command, command_data
-                            ):
-                                logger.info(
-                                    f"✅ Saved command '{command}' to device '{device_id}' with type '{detected_type}'"
-                                )
-                            else:
-                                logger.warning(
-                                    f"⚠️ Failed to save command '{command}' to device manager"
-                                )
-                        else:
-                            logger.warning(
-                                "⚠️ Device manager not available to save command"
-                            )
-                    else:
-                        logger.info(
-                            "ℹ️ No device_id provided, command not saved to device manager"
-                        )
                 else:
-                    logger.warning(
-                        f"⚠️ Command learned but code not yet available in storage, using pending"
+                    logger.info(
+                        f"ℹ️ Command '{command}' not yet in storage file (expected lag)"
                     )
                     result["code"] = "pending"
-                    result["message"] = (
-                        f"✅ Command '{command}' learned! Code will be available shortly."
-                    )
 
             except Exception as fetch_error:
-                logger.error(f"Error fetching learned code: {fetch_error}")
+                logger.warning(f"Could not verify command in storage: {fetch_error}")
                 result["code"] = "pending"
-                result["message"] = (
-                    f"✅ Command '{command}' learned! Code will be available shortly."
-                )
             finally:
                 loop.close()
 
+            result["message"] = f"✅ Command '{command}' learned successfully!"
             return jsonify(result)
         else:
             loop.close()

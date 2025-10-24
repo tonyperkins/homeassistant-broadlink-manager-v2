@@ -160,6 +160,38 @@ def learn_command():
                     )
                     result["code"] = learned_code
                     result["message"] = f"✅ Command '{command}' learned successfully!"
+
+                    # Save the command to devices.json if device_id is provided
+                    if device_id:
+                        device_manager = current_app.config.get("device_manager")
+                        if device_manager:
+                            # Detect command type from the learned code
+                            detected_type = detect_command_type(learned_code)
+                            command_data = {
+                                "command_type": detected_type,
+                                "type": detected_type,
+                                "learned_at": result.get("learned_at"),
+                            }
+
+                            # Save to device manager
+                            if device_manager.add_command(
+                                device_id, command, command_data
+                            ):
+                                logger.info(
+                                    f"✅ Saved command '{command}' to device '{device_id}' with type '{detected_type}'"
+                                )
+                            else:
+                                logger.warning(
+                                    f"⚠️ Failed to save command '{command}' to device manager"
+                                )
+                        else:
+                            logger.warning(
+                                "⚠️ Device manager not available to save command"
+                            )
+                    else:
+                        logger.info(
+                            "ℹ️ No device_id provided, command not saved to device manager"
+                        )
                 else:
                     logger.warning(
                         f"⚠️ Command learned but code not yet available in storage, using pending"

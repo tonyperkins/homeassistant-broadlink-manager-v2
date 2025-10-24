@@ -64,6 +64,33 @@ class BroadlinkManager:
             # The process will terminate when the main thread exits
             pass
 
+    def _check_migration(self):
+        """Check if migration from v1 to v2 is needed and run it"""
+        try:
+            from migration import DataMigration
+
+            storage_path = self.config.get("storage_path", "/config/broadlink_manager")
+            migration = DataMigration(storage_path)
+
+            if migration.needs_migration():
+                logger.warning(
+                    "Detected v1 data format - running automatic migration..."
+                )
+                success, message, migrated_ids = migration.migrate()
+
+                if success:
+                    logger.info(f"✅ {message}")
+                    logger.info(f"Migrated devices: {', '.join(migrated_ids)}")
+                else:
+                    logger.error(f"❌ Migration failed: {message}")
+            else:
+                logger.debug("No migration needed")
+
+        except Exception as e:
+            logger.error(f"Error during migration check: {e}")
+            # Don't fail startup on migration errors
+            pass
+
     def _start_web_server(self):
         """Start the web server in a separate thread"""
         try:
@@ -81,6 +108,9 @@ class BroadlinkManager:
         logger.info("Starting Broadlink Manager...")
 
         try:
+            # Check for and run migration if needed
+            self._check_migration()
+
             # Start the web server in a separate thread
             self.web_thread = threading.Thread(
                 target=self._start_web_server, daemon=True

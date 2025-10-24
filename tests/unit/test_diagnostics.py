@@ -195,8 +195,11 @@ class TestIntegrationStatusCollection:
         status = collector._collect_integration_status()
         
         assert "smartir" in status
-        assert "broadlink_devices" in status
+        assert "broadlink_integration" in status
         assert "error" not in status
+        assert isinstance(status["smartir"], dict)
+        assert "enabled" in status["smartir"]
+        assert "installed" in status["smartir"]
 
 
 class TestStorageInfoCollection:

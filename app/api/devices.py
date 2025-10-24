@@ -43,40 +43,42 @@ def normalize_device_name(name):
 def get_devices():
     """Get all managed devices"""
     try:
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = get_device_manager()
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Get all entities from storage (reload from disk to get latest data)
-        entities = storage.get_all_entities(reload=True)
+        # Get all devices from device manager (v2 format)
+        all_devices = device_manager.get_all_devices()
 
-        # Convert entities to device format for frontend
+        # Convert to frontend format
         devices = []
-        for entity_id, entity_data in entities.items():
+        for device_id, device_data in all_devices.items():
             try:
-                # Extract device name safely
-                device_name = entity_data.get("device")
-                if not device_name:
-                    # Fallback: extract from entity_id
-                    device_name = (
-                        entity_id.split(".")[1] if "." in entity_id else entity_id
+                device = {
+                    "id": device_id,
+                    "name": device_data.get("name", device_id),
+                    "entity_type": device_data.get("entity_type", "switch"),
+                    "device_type": device_data.get("device_type", "broadlink"),
+                    "area": device_data.get("area", ""),
+                    "icon": device_data.get("icon", ""),
+                    "broadlink_entity": device_data.get("broadlink_entity", ""),
+                    "device": device_data.get("device", device_id),
+                    "commands": device_data.get("commands", {}),
+                    "enabled": device_data.get("enabled", True),
+                }
+
+                # Add SmartIR-specific fields if present
+                if device_data.get("device_type") == "smartir":
+                    device["manufacturer"] = device_data.get("manufacturer", "")
+                    device["model"] = device_data.get("model", "")
+                    device["device_code"] = device_data.get("device_code", "")
+                    device["controller_device"] = device_data.get(
+                        "controller_device", ""
                     )
 
-                device = {
-                    "id": entity_id,
-                    "name": entity_data.get("name")
-                    or entity_data.get("friendly_name", entity_id),
-                    "entity_type": entity_data.get("entity_type", "switch"),
-                    "area": entity_data.get("area", ""),
-                    "icon": entity_data.get("icon", ""),
-                    "broadlink_entity": entity_data.get("broadlink_entity", ""),
-                    "device": device_name,  # Add device field for command learning
-                    "commands": entity_data.get("commands", {}),
-                    "enabled": entity_data.get("enabled", True),
-                }
                 devices.append(device)
             except Exception as e:
-                logger.error(f"Error processing entity {entity_id}: {e}")
+                logger.error(f"Error processing device {device_id}: {e}")
                 continue
 
         return jsonify({"devices": devices})
@@ -90,25 +92,33 @@ def get_devices():
 def get_device(device_id):
     """Get a specific device"""
     try:
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = get_device_manager()
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        entity_data = storage.get_entity(device_id)
-        if not entity_data:
+        device_data = device_manager.get_device(device_id)
+        if not device_data:
             return jsonify({"error": "Device not found"}), 404
 
         device = {
             "id": device_id,
-            "name": entity_data.get("name")
-            or entity_data.get("friendly_name", device_id),
-            "entity_type": entity_data.get("entity_type", "switch"),
-            "area": entity_data.get("area", ""),
-            "icon": entity_data.get("icon", ""),
-            "broadlink_entity": entity_data.get("broadlink_entity", ""),
-            "commands": entity_data.get("commands", {}),
-            "enabled": entity_data.get("enabled", True),
+            "name": device_data.get("name", device_id),
+            "entity_type": device_data.get("entity_type", "switch"),
+            "device_type": device_data.get("device_type", "broadlink"),
+            "area": device_data.get("area", ""),
+            "icon": device_data.get("icon", ""),
+            "broadlink_entity": device_data.get("broadlink_entity", ""),
+            "device": device_data.get("device", device_id),
+            "commands": device_data.get("commands", {}),
+            "enabled": device_data.get("enabled", True),
         }
+
+        # Add SmartIR-specific fields if present
+        if device_data.get("device_type") == "smartir":
+            device["manufacturer"] = device_data.get("manufacturer", "")
+            device["model"] = device_data.get("model", "")
+            device["device_code"] = device_data.get("device_code", "")
+            device["controller_device"] = device_data.get("controller_device", "")
 
         return jsonify({"device": device})
 
@@ -122,13 +132,15 @@ def create_device():
     """Create a new managed device"""
     try:
         data = request.json
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = get_device_manager()
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Generate entity_id from name
+        # Generate device_id from name and area
         name = data.get("name", "")
+        area_id = data.get("area", "")
         entity_type = data.get("entity_type", "switch")
+        device_type = data.get("device_type", "broadlink")
 
         # If device field is provided (e.g., from adoption), use it as-is
         # Otherwise, normalize the name for the device field
@@ -136,34 +148,41 @@ def create_device():
         if not device_name:
             device_name = normalize_device_name(name)
 
-        # Use device_name as entity_id (without entity type prefix)
-        # The entity generator will use this as the key in the YAML
-        entity_id = device_name
+        # Generate device_id using device_manager's method
+        device_id = device_manager.generate_device_id(area_id, device_name)
 
         # Check if already exists
-        if storage.get_entity(entity_id):
+        if device_manager.get_device(device_id):
             return jsonify({"error": "Device with this name already exists"}), 400
 
-        # Create entity data
-        entity_data = {
+        # Create device data
+        device_data = {
+            "name": name,
             "entity_type": entity_type,
-            "device": device_name,  # Broadlink storage device name (must match .storage file)
+            "device_type": device_type,
+            "device": device_name,  # Broadlink storage device name
             "broadlink_entity": data.get("broadlink_entity", ""),
-            "area": data.get("area", ""),
-            "friendly_name": name,  # Display name
-            "name": name,  # Display name
+            "area": area_id,
             "icon": data.get("icon", ""),
-            "commands": data.get("commands", {}),  # Include commands if provided
+            "commands": data.get("commands", {}),
             "enabled": True,
         }
 
-        # Save to storage
-        storage.save_entity(entity_id, entity_data)
+        # Add SmartIR-specific fields if applicable
+        if device_type == "smartir":
+            device_data["manufacturer"] = data.get("manufacturer", "")
+            device_data["model"] = data.get("model", "")
+            device_data["device_code"] = data.get("device_code", "")
+            device_data["controller_device"] = data.get("controller_device", "")
 
-        return (
-            jsonify({"success": True, "device": {"id": entity_id, **entity_data}}),
-            201,
-        )
+        # Save to device manager
+        if device_manager.create_device(device_id, device_data):
+            return (
+                jsonify({"success": True, "device": {"id": device_id, **device_data}}),
+                201,
+            )
+        else:
+            return jsonify({"error": "Failed to create device"}), 500
 
     except Exception as e:
         logger.error(f"Error creating device: {e}")
@@ -175,97 +194,106 @@ def update_device(device_id):
     """Update an existing device"""
     try:
         data = request.json
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = get_device_manager()
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Get existing entity
-        entity_data = storage.get_entity(device_id)
-        if not entity_data:
+        # Get existing device
+        device_data = device_manager.get_device(device_id)
+        if not device_data:
             return jsonify({"error": "Device not found"}), 404
 
-        # Check if we need to rename the entity_id (only if no commands learned)
-        new_entity_id = device_id
+        # Check if we need to rename the device_id (only if no commands learned)
+        new_device_id = device_id
         if "name" in data:
-            # Check if commands exist in metadata (this includes optimistically added commands)
-            # This is more reliable than checking storage files which update slowly in standalone mode
-            current_commands = entity_data.get("commands", {})
+            # Check if commands exist
+            current_commands = device_data.get("commands", {})
             has_commands = current_commands and len(current_commands) > 0
 
             if has_commands:
                 logger.info(
-                    f"Device '{device_id}' has {len(current_commands)} commands in metadata - rename blocked"
+                    f"Device '{device_id}' has {len(current_commands)} commands - rename blocked"
                 )
 
             if not has_commands:
-                # No commands in metadata yet - safe to rename entity_id
+                # No commands yet - safe to rename device_id
                 new_device_name = normalize_device_name(data["name"])
-                # Use device_name as entity_id (without entity type prefix)
-                new_entity_id = new_device_name
+                area_id = data.get("area", device_data.get("area", ""))
+                new_device_id = device_manager.generate_device_id(
+                    area_id, new_device_name
+                )
 
-                # If entity_id is changing, we need to delete old and create new
-                if new_entity_id != device_id:
+                # If device_id is changing, we need to delete old and create new
+                if new_device_id != device_id:
                     logger.info(
-                        f"Renaming entity from '{device_id}' to '{new_entity_id}' (no commands learned yet)"
+                        f"Renaming device from '{device_id}' to '{new_device_id}' (no commands learned yet)"
                     )
-                    # Delete old entity
-                    storage.delete_entity(device_id)
+                    # Delete old device
+                    device_manager.delete_device(device_id)
                     # Update device field
-                    entity_data["device"] = new_device_name
+                    device_data["device"] = new_device_name
+                    device_data["device_id"] = new_device_id
 
-        # Update fields
+        # Build updates dict
+        updates = {}
         if "name" in data:
-            entity_data["name"] = data["name"]
-            entity_data["friendly_name"] = data["name"]
+            updates["name"] = data["name"]
         if "entity_type" in data:
-            entity_data["entity_type"] = data["entity_type"]
+            updates["entity_type"] = data["entity_type"]
         if "area" in data:
-            entity_data["area"] = data["area"]
+            updates["area"] = data["area"]
         if "icon" in data:
-            entity_data["icon"] = data["icon"]
+            updates["icon"] = data["icon"]
         if "broadlink_entity" in data:
-            entity_data["broadlink_entity"] = data["broadlink_entity"]
+            updates["broadlink_entity"] = data["broadlink_entity"]
         if "enabled" in data:
-            entity_data["enabled"] = data["enabled"]
+            updates["enabled"] = data["enabled"]
         if "commands" in data:
-            entity_data["commands"] = data["commands"]
+            updates["commands"] = data["commands"]
 
         # Update SmartIR-specific fields
-        device_type = entity_data.get("device_type", "broadlink")
+        device_type = device_data.get("device_type", "broadlink")
         if device_type == "smartir":
             # Support both direct fields and smartir_config object
             smartir_config = data.get("smartir_config", {})
 
             if "manufacturer" in data or "manufacturer" in smartir_config:
-                entity_data["manufacturer"] = data.get(
+                updates["manufacturer"] = data.get(
                     "manufacturer"
                 ) or smartir_config.get("manufacturer", "")
             if "model" in data or "model" in smartir_config:
-                entity_data["model"] = data.get("model") or smartir_config.get(
-                    "model", ""
-                )
+                updates["model"] = data.get("model") or smartir_config.get("model", "")
             if "device_code" in data or "code_id" in smartir_config:
-                entity_data["device_code"] = data.get(
-                    "device_code"
-                ) or smartir_config.get("code_id", "")
+                updates["device_code"] = data.get("device_code") or smartir_config.get(
+                    "code_id", ""
+                )
             if "controller_device" in data or "controller_device" in smartir_config:
-                entity_data["controller_device"] = data.get(
+                updates["controller_device"] = data.get(
                     "controller_device"
                 ) or smartir_config.get("controller_device", "")
 
             # Optional climate-specific fields
             if "temperature_sensor" in data:
-                entity_data["temperature_sensor"] = data["temperature_sensor"]
+                updates["temperature_sensor"] = data["temperature_sensor"]
             if "humidity_sensor" in data:
-                entity_data["humidity_sensor"] = data["humidity_sensor"]
+                updates["humidity_sensor"] = data["humidity_sensor"]
             if "power_sensor" in data:
-                entity_data["power_sensor"] = data["power_sensor"]
+                updates["power_sensor"] = data["power_sensor"]
 
-        # Save entity (with new ID if renamed, or same ID if not)
-        storage.save_entity(new_entity_id, entity_data)
+        # Update device (with new ID if renamed, or same ID if not)
+        if new_device_id != device_id:
+            # Renamed - create new device with new ID
+            device_data.update(updates)
+            device_manager.create_device(new_device_id, device_data)
+        else:
+            # Same ID - just update
+            device_manager.update_device(device_id, updates)
+
+        # Get updated device data
+        updated_device = device_manager.get_device(new_device_id)
 
         return jsonify(
-            {"success": True, "device": {"id": new_entity_id, **entity_data}}
+            {"success": True, "device": {"id": new_device_id, **updated_device}}
         )
 
     except Exception as e:
@@ -277,18 +305,19 @@ def update_device(device_id):
 def delete_device(device_id):
     """Delete a device"""
     try:
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = get_device_manager()
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
         # Check if exists
-        if not storage.get_entity(device_id):
+        if not device_manager.get_device(device_id):
             return jsonify({"error": "Device not found"}), 404
 
         # Delete the device
-        storage.delete_entity(device_id)
-
-        return jsonify({"success": True, "message": f"Device {device_id} deleted"})
+        if device_manager.delete_device(device_id):
+            return jsonify({"success": True, "message": f"Device {device_id} deleted"})
+        else:
+            return jsonify({"error": "Failed to delete device"}), 500
 
     except Exception as e:
         logger.error(f"Error deleting device {device_id}: {e}")
@@ -1080,4 +1109,64 @@ def download_diagnostics():
 
     except Exception as e:
         logger.error(f"Error creating diagnostic bundle: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/migrate/status", methods=["GET"])
+def get_migration_status():
+    """Get migration status"""
+    try:
+        from app.migration import DataMigration
+
+        storage_path = current_app.config.get(
+            "STORAGE_PATH", "/config/broadlink_manager"
+        )
+        migration = DataMigration(storage_path)
+        status = migration.get_migration_status()
+
+        return jsonify(status)
+
+    except Exception as e:
+        logger.error(f"Error getting migration status: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/migrate/run", methods=["POST"])
+def run_migration():
+    """Run migration from v1 to v2 format"""
+    try:
+        from app.migration import DataMigration
+
+        storage_path = current_app.config.get(
+            "STORAGE_PATH", "/config/broadlink_manager"
+        )
+        migration = DataMigration(storage_path)
+
+        # Check if migration is needed
+        if not migration.needs_migration():
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "No migration needed",
+                    "migrated_devices": [],
+                }
+            )
+
+        # Run migration
+        success, message, migrated_ids = migration.migrate()
+
+        if success:
+            return jsonify(
+                {
+                    "success": True,
+                    "message": message,
+                    "migrated_devices": migrated_ids,
+                    "count": len(migrated_ids),
+                }
+            )
+        else:
+            return jsonify({"success": False, "error": message}), 500
+
+    except Exception as e:
+        logger.error(f"Error running migration: {e}")
         return jsonify({"error": str(e)}), 500

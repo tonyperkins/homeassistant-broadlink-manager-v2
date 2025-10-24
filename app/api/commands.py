@@ -928,6 +928,8 @@ def import_commands():
 @api_bp.route("/commands/sync", methods=["POST"])
 def sync_commands():
     """Sync all device commands with Broadlink storage"""
+    from datetime import datetime, timedelta
+
     try:
         logger.info("🔄 Starting command sync...")
         storage = get_storage_manager()
@@ -998,11 +1000,35 @@ def sync_commands():
                             "type": cmd_type,
                         }
 
-            commands_to_remove = [
-                cmd_name
-                for cmd_name in tracked_commands.keys()
-                if cmd_name not in storage_commands
-            ]
+            # Don't remove recently learned commands (grace period for storage file lag)
+            grace_period = timedelta(seconds=60)
+            now = datetime.now()
+
+            commands_to_remove = []
+            for cmd_name in tracked_commands.keys():
+                if cmd_name not in storage_commands:
+                    # Check if this command was recently learned
+                    cmd_data = tracked_commands[cmd_name]
+                    if isinstance(cmd_data, dict):
+                        learned_at_str = cmd_data.get("learned_at")
+                        if learned_at_str:
+                            try:
+                                learned_at = datetime.fromisoformat(learned_at_str)
+                                time_since_learned = now - learned_at
+                                if time_since_learned < grace_period:
+                                    logger.info(
+                                        f"⏳ Keeping recently learned command '{cmd_name}' for device '{device_id}' "
+                                        f"(learned {time_since_learned.seconds}s ago, grace period: 60s)"
+                                    )
+                                    continue  # Don't remove - still within grace period
+                            except (ValueError, TypeError):
+                                pass  # Invalid timestamp, treat as old command
+
+                    # Command not in storage and not recently learned - remove it
+                    commands_to_remove.append(cmd_name)
+                    logger.info(
+                        f"🗑️ Removing command '{cmd_name}' from device '{device_id}' (not in storage and past grace period)"
+                    )
 
             if commands_to_add or commands_to_remove or commands_to_update:
                 updated_commands = {**tracked_commands}
@@ -1080,11 +1106,35 @@ def sync_commands():
                             "type": cmd_type,
                         }
 
-            commands_to_remove = [
-                cmd_name
-                for cmd_name in tracked_commands.keys()
-                if cmd_name not in storage_commands
-            ]
+            # Don't remove recently learned commands (grace period for storage file lag)
+            grace_period = timedelta(seconds=60)
+            now = datetime.now()
+
+            commands_to_remove = []
+            for cmd_name in tracked_commands.keys():
+                if cmd_name not in storage_commands:
+                    # Check if this command was recently learned
+                    cmd_data = tracked_commands[cmd_name]
+                    if isinstance(cmd_data, dict):
+                        learned_at_str = cmd_data.get("learned_at")
+                        if learned_at_str:
+                            try:
+                                learned_at = datetime.fromisoformat(learned_at_str)
+                                time_since_learned = now - learned_at
+                                if time_since_learned < grace_period:
+                                    logger.info(
+                                        f"⏳ Keeping recently learned command '{cmd_name}' for device '{entity_id}' "
+                                        f"(learned {time_since_learned.seconds}s ago, grace period: 60s)"
+                                    )
+                                    continue  # Don't remove - still within grace period
+                            except (ValueError, TypeError):
+                                pass  # Invalid timestamp, treat as old command
+
+                    # Command not in storage and not recently learned - remove it
+                    commands_to_remove.append(cmd_name)
+                    logger.info(
+                        f"🗑️ Removing command '{cmd_name}' from device '{entity_id}' (not in storage and past grace period)"
+                    )
 
             if commands_to_add or commands_to_remove or commands_to_update:
                 updated_commands = {**tracked_commands}

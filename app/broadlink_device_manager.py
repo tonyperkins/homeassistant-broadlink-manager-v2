@@ -56,13 +56,33 @@ class BroadlinkDeviceManager:
 
             device_list = []
             for device in devices:
+                # device.type might be int or string depending on python-broadlink version
+                device_type = device.type
+                if isinstance(device_type, str):
+                    # Already a string, try to convert to int for hex
+                    try:
+                        device_type_int = (
+                            int(device_type, 16)
+                            if device_type.startswith("0x")
+                            else int(device_type)
+                        )
+                        type_hex = hex(device_type_int)
+                    except:
+                        type_hex = device_type  # Use as-is if conversion fails
+                else:
+                    # It's an integer
+                    device_type_int = device_type
+                    type_hex = hex(device_type)
+
                 device_info = {
                     "host": device.host[0],
                     "port": device.host[1],
                     "mac": device.mac.hex(":"),
                     "mac_bytes": device.mac,
-                    "type": device.type,
-                    "type_hex": hex(device.type),
+                    "type": (
+                        device_type_int if isinstance(device_type, int) else device_type
+                    ),
+                    "type_hex": type_hex,
                     "model": device.model if hasattr(device, "model") else "Unknown",
                     "manufacturer": (
                         device.manufacturer

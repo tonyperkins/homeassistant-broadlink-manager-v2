@@ -49,6 +49,19 @@
           </div>
         </form>
 
+        <!-- Preparing State -->
+        <div v-if="state === 'preparing'" class="learning-state">
+          <div class="learning-icon">
+            <i class="mdi mdi-cog mdi-spin"></i>
+          </div>
+          <h3>Preparing Device...</h3>
+          <p class="instruction">Connecting and authenticating with Broadlink device</p>
+          <p class="sub-instruction">Please wait, this takes a few seconds</p>
+          <div class="progress-bar">
+            <div class="progress-fill indeterminate"></div>
+          </div>
+        </div>
+
         <!-- IR Learning State -->
         <div v-if="state === 'learning-ir'" class="learning-state">
           <div class="learning-icon">
@@ -239,14 +252,18 @@ const startLearning = async () => {
       return
     }
     
-    // Start learning based on type
-    if (commandType.value === 'ir') {
-      state.value = 'learning-ir'
-    } else {
-      state.value = 'learning-rf-sweep'
-    }
-
-    startTimer()
+    // Show preparing state first
+    state.value = 'preparing'
+    
+    // After 6 seconds, switch to learning state (device should be ready by then)
+    const learningStateTimer = setTimeout(() => {
+      if (commandType.value === 'ir') {
+        state.value = 'learning-ir'
+      } else {
+        state.value = 'learning-rf-sweep'
+      }
+      startTimer()
+    }, 6000)
 
     const response = await api.post('/api/commands/learn/direct', {
       device_id: props.device.id,
@@ -254,6 +271,9 @@ const startLearning = async () => {
       command_name: commandName.value.trim(),
       command_type: commandType.value
     })
+    
+    // Clear the timer if request completes early
+    clearTimeout(learningStateTimer)
 
     stopTimer()
 
@@ -578,6 +598,27 @@ const finish = () => {
   height: 100%;
   background: var(--ha-primary-color);
   transition: width 0.1s linear;
+}
+
+.progress-fill.indeterminate {
+  width: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--ha-primary-color) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .timer {

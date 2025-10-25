@@ -95,8 +95,8 @@ class EntityGeneratorV2:
                         },
                     }
 
-                    # For switches, add turn_off (same as turn_on for toggle devices)
-                    if entity_type == "switch":
+                    # For switches and lights, add turn_off (same as turn_on for toggle devices)
+                    if entity_type in ["switch", "light"]:
                         entity_config[entity_type_plural][entity_id_name][
                             "turn_off"
                         ] = entity_config[entity_type_plural][entity_id_name]["turn_on"]

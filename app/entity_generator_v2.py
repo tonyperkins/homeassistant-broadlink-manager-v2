@@ -1,20 +1,116 @@
 """
 Entity Generator V2 - Works with device_manager and devices.json
 
-This replaces the old entity_generator.py which used storage_manager.
-Commands are now stored in devices.json with the device metadata.
+Uses the v1 EntityGenerator logic but adapts devices.json format to v1 entity metadata format.
+This preserves all the sophisticated v1 features (state tracking, helpers, smart entities).
 """
 
 import logging
 import yaml
 from pathlib import Path
 from typing import Dict, Any
+from datetime import datetime
+from .entity_generator import EntityGenerator
 
 logger = logging.getLogger(__name__)
 
 
+class DeviceManagerAdapter:
+    """Adapter to make device_manager work with v1 EntityGenerator"""
+
+    def __init__(self, device_manager, config_path: Path):
+        self.device_manager = device_manager
+        self.config_path = Path(config_path)
+        self.entities_file = self.config_path / "broadlink_manager_entities.yaml"
+        self.helpers_file = self.config_path / "broadlink_manager" / "helpers.yaml"
+        self.package_file = self.config_path / "broadlink_manager" / "package.yaml"
+
+    def get_all_entities(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Convert devices.json format to v1 entity metadata format
+
+        Returns dict of {entity_id: entity_data} where entity_data has:
+        - entity_type: 'light', 'switch', 'fan', etc.
+        - device: device name for Broadlink commands
+        - commands: dict of {command_name: command_name} (v1 uses names, not base64)
+        - broadlink_entity: HA entity ID of the Broadlink remote
+        - friendly_name: Display name
+        - enabled: True
+        """
+        devices = self.device_manager.get_all_devices()
+        entities = {}
+
+        for device_id, device_data in devices.items():
+            commands = device_data.get("commands", {})
+            if not commands:
+                continue
+
+            # Get broadlink entity from device
+            broadlink_entity = device_data.get("broadlink_entity", "")
+            device_name = device_data.get("name", device_id)
+
+            # Infer entity type from commands
+            entity_type = self._infer_entity_type(commands)
+
+            # Create entity metadata in v1 format
+            entity_id = device_id
+            entities[entity_id] = {
+                "entity_type": entity_type,
+                "device": device_id,  # Device name for Broadlink commands
+                "commands": self._convert_commands_to_v1_format(commands),
+                "broadlink_entity": broadlink_entity,
+                "friendly_name": device_name,
+                "enabled": True,
+            }
+
+        return entities
+
+    def _infer_entity_type(self, commands: Dict[str, Any]) -> str:
+        """Infer entity type from command names"""
+        command_names = set(commands.keys())
+
+        # Check for fan patterns
+        fan_patterns = {
+            "fan_speed_1",
+            "fan_speed_2",
+            "fan_speed_3",
+            "fan_speed_4",
+            "fan_speed_5",
+            "fan_speed_6",
+            "fan_off",
+            "fan_reverse",
+        }
+        if command_names & fan_patterns:
+            return "fan"
+
+        # Check for light patterns
+        light_patterns = {"brightness_up", "brightness_down", "dim", "bright"}
+        if command_names & light_patterns or "light" in str(command_names).lower():
+            return "light"
+
+        # Default to switch
+        return "switch"
+
+    def _convert_commands_to_v1_format(
+        self, commands: Dict[str, Any]
+    ) -> Dict[str, str]:
+        """
+        Convert commands to v1 format
+        V1 uses {command_name: command_name} because it references Broadlink storage
+        V2 has {command_name: {data: base64, type: ir/rf}}
+        """
+        v1_commands = {}
+        for cmd_name in commands.keys():
+            v1_commands[cmd_name] = cmd_name  # V1 just uses command names
+        return v1_commands
+
+    def set_last_generated(self, timestamp: str):
+        """Store last generated timestamp (optional)"""
+        pass
+
+
 class EntityGeneratorV2:
-    """Generate Home Assistant entity YAML configurations from devices.json"""
+    """Generate Home Assistant entity YAML configurations from devices.json using v1 logic"""
 
     def __init__(self, device_manager, config_path: str):
         """
@@ -27,12 +123,14 @@ class EntityGeneratorV2:
         self.device_manager = device_manager
         self.config_path = Path(config_path)
         self.broadlink_manager_dir = self.config_path / "broadlink_manager"
-        self.entities_file = self.config_path / "broadlink_manager_entities.yaml"
-        self.package_file = self.broadlink_manager_dir / "package.yaml"
+
+        # Create adapter and v1 generator
+        self.adapter = DeviceManagerAdapter(device_manager, config_path)
+        self.v1_generator = EntityGenerator(self.adapter)
 
     def generate_all_devices(self, devices: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generate entities for all Broadlink devices
+        Generate entities for all Broadlink devices using v1 logic
 
         Args:
             devices: Dictionary of device_id -> device_data
@@ -41,175 +139,36 @@ class EntityGeneratorV2:
             Dictionary with success status and entity count
         """
         try:
-            all_entities = []
-            entity_count = 0
+            # Build broadlink_commands dict for v1 generator
+            # Format: {device_name: {command_name: command_code}}
+            broadlink_commands = {}
 
             for device_id, device_data in devices.items():
                 commands = device_data.get("commands", {})
-
                 if not commands:
-                    logger.warning(f"No commands found for device {device_id}")
                     continue
 
-                # Get device info
-                device_name = device_data.get("name", device_id)
-                entity_type = device_data.get("entity_type", "switch")
-                broadlink_entity = device_data.get("broadlink_entity")
-
-                if not broadlink_entity:
-                    logger.warning(f"No broadlink_entity for device {device_id}")
-                    continue
-
-                # Generate entities for each command
-                for command_name, command_data in commands.items():
-                    # Extract base64 data
-                    if isinstance(command_data, dict):
-                        base64_code = command_data.get("data")
+                # Build command dict with base64 codes
+                device_commands = {}
+                for cmd_name, cmd_data in commands.items():
+                    if isinstance(cmd_data, dict):
+                        device_commands[cmd_name] = cmd_data.get("data", "")
                     else:
-                        base64_code = command_data
+                        device_commands[cmd_name] = cmd_data
 
-                    if not base64_code:
-                        logger.warning(
-                            f"No data for command {command_name} in device {device_id}"
-                        )
-                        continue
+                broadlink_commands[device_id] = device_commands
 
-                    # Create entity configuration
-                    # Template entities use plural keys: lights, switches, etc.
-                    entity_id_name = f"{device_id}_{command_name}"
-                    entity_type_plural = (
-                        f"{entity_type}s"  # light -> lights, switch -> switches
-                    )
+            # Delegate to v1 generator
+            logger.info(
+                f"Generating entities using v1 logic for {len(broadlink_commands)} devices"
+            )
+            result = self.v1_generator.generate_all(broadlink_commands)
 
-                    entity_config = {
-                        "platform": "template",
-                        entity_type_plural: {
-                            entity_id_name: {
-                                "friendly_name": f"{device_name} {command_name.replace('_', ' ').title()}",
-                                "turn_on": {
-                                    "service": "remote.send_command",
-                                    "target": {"entity_id": broadlink_entity},
-                                    "data": {"command": base64_code},
-                                },
-                            }
-                        },
-                    }
+            # Ensure broadlink_manager directory exists
+            self.broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
 
-                    # For switches, lights, and fans, add turn_off (same as turn_on for toggle devices)
-                    if entity_type in ["switch", "light", "fan"]:
-                        entity_config[entity_type_plural][entity_id_name]["turn_off"] = (
-                            entity_config[entity_type_plural][entity_id_name]["turn_on"]
-                        )
-
-                    all_entities.append(entity_config)
-                    entity_count += 1
-
-            # Write to YAML files
-            if all_entities:
-                self._write_yaml_file(all_entities)
-                self._write_package_file(all_entities)
-                logger.info(
-                    f"✅ Generated {entity_count} entities in {self.entities_file} and {self.package_file}"
-                )
-                return {
-                    "success": True,
-                    "entities_count": entity_count,
-                    "file": str(self.entities_file),
-                    "package_file": str(self.package_file),
-                }
-            else:
-                return {"success": False, "message": "No entities to generate"}
+            return result
 
         except Exception as e:
             logger.error(f"Error generating entities: {e}", exc_info=True)
             return {"success": False, "message": str(e)}
-
-    def _write_yaml_file(self, entities):
-        """Write entities to YAML file"""
-        try:
-            # Create header comment
-            header = [
-                "# Broadlink Manager - Generated Entities",
-                "# This file is auto-generated. Do not edit manually.",
-                "# Generated from devices.json",
-                "",
-            ]
-
-            with open(self.entities_file, "w") as f:
-                # Write header
-                for line in header:
-                    f.write(f"{line}\n")
-
-                # Write entities
-                yaml.dump(entities, f, default_flow_style=False, sort_keys=False)
-
-            logger.info(
-                f"Wrote {len(entities)} entity configurations to {self.entities_file}"
-            )
-
-        except Exception as e:
-            logger.error(f"Error writing YAML file: {e}")
-            raise
-
-    def _write_package_file(self, entities):
-        """Write entities to package file for HA package structure"""
-        try:
-            # Create broadlink_manager directory if it doesn't exist
-            self.broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
-
-            # Convert list of entity configs to proper package structure
-            # Package needs to be a dictionary with entity type keys containing lists
-            package = {}
-
-            for entity_config in entities:
-                # Get the entity type plural key (lights, switches, etc.)
-                entity_type_plural = None
-                for key in entity_config:
-                    if key != "platform":
-                        entity_type_plural = key
-                        break
-
-                if not entity_type_plural:
-                    continue
-
-                # Convert plural back to singular for package grouping (lights -> light)
-                entity_type = entity_type_plural.rstrip("s")
-
-                # Initialize entity type list if not exists
-                if entity_type not in package:
-                    package[entity_type] = []
-
-                # Add the entire entity config (includes platform and entity definitions)
-                package[entity_type].append(entity_config)
-
-            # Create header comment
-            header = [
-                "# Broadlink Manager - Generated Entities Package",
-                "# This file is auto-generated. Do not edit manually.",
-                "# Generated from devices.json",
-                "",
-                "# To use this package, add to your configuration.yaml:",
-                "# homeassistant:",
-                "#   packages:",
-                "#     broadlink_manager: !include broadlink_manager/package.yaml",
-                "",
-            ]
-
-            with open(self.package_file, "w") as f:
-                # Write header
-                for line in header:
-                    f.write(f"{line}\n")
-
-                # Write package structure
-                yaml.dump(package, f, default_flow_style=False, sort_keys=False)
-
-            logger.info(
-                f"Wrote {len(entities)} entity configurations to package file {self.package_file}"
-            )
-
-        except Exception as e:
-            logger.error(f"Error writing package file: {e}")
-            # Don't raise - package file is optional
-            logger.warning(
-                "Package file creation failed, but entities file was created successfully"
-            )

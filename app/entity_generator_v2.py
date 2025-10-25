@@ -153,6 +153,31 @@ class EntityGeneratorV2:
             # Create broadlink_manager directory if it doesn't exist
             self.broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
 
+            # Convert list of entity configs to proper package structure
+            # Package needs to be a dictionary with platform keys
+            package = {}
+
+            for entity_config in entities:
+                platform = entity_config.get("platform")
+                # Get the entity type (switch, light, etc.)
+                entity_type = None
+                for key in entity_config:
+                    if key != "platform":
+                        entity_type = key
+                        break
+
+                if not entity_type:
+                    continue
+
+                # Initialize platform list if not exists
+                if entity_type not in package:
+                    package[entity_type] = []
+
+                # Add this entity config to the platform list
+                package[entity_type].append(
+                    {"platform": platform, entity_type: entity_config[entity_type]}
+                )
+
             # Create header comment
             header = [
                 "# Broadlink Manager - Generated Entities Package",
@@ -171,8 +196,8 @@ class EntityGeneratorV2:
                 for line in header:
                     f.write(f"{line}\n")
 
-                # Write entities
-                yaml.dump(entities, f, default_flow_style=False, sort_keys=False)
+                # Write package structure
+                yaml.dump(package, f, default_flow_style=False, sort_keys=False)
 
             logger.info(
                 f"Wrote {len(entities)} entity configurations to package file {self.package_file}"

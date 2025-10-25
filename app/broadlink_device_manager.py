@@ -49,6 +49,9 @@ class BroadlinkDeviceManager:
         logger.info(f"Discovering Broadlink devices (timeout: {timeout}s)")
 
         try:
+            # broadlink.discover() expects timeout in seconds as a number
+            # It will broadcast and wait for responses
+            logger.debug(f"Calling broadlink.discover with timeout={timeout}")
             devices = broadlink.discover(timeout=timeout)
 
             device_list = []
@@ -76,7 +79,7 @@ class BroadlinkDeviceManager:
             return device_list
 
         except Exception as e:
-            logger.error(f"Error discovering devices: {e}")
+            logger.error(f"Error discovering devices: {e}", exc_info=True)
             return []
 
     def get_ha_entity_info(self, entity_id: str) -> Optional[Dict]:

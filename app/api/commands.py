@@ -1233,7 +1233,7 @@ def learn_command_direct():
                 )
 
         # Save to devices.json
-        device_manager = DeviceManager()
+        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
         success = device_manager.add_learned_command(
             device_id=device_id,
             command_name=command_name,
@@ -1314,8 +1314,11 @@ def test_command_direct():
         if not all([device_id, entity_id, command_name]):
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
+        # Get web server for storage path
+        web_server = get_web_server()
+
         # Get command data
-        device_manager = DeviceManager()
+        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:
@@ -1327,7 +1330,6 @@ def test_command_direct():
             )
 
         # Get device connection info
-        web_server = get_web_server()
         device_manager_bl = BroadlinkDeviceManager(
             web_server.ha_url, web_server.ha_token
         )
@@ -1407,8 +1409,11 @@ def test_command_ha():
         if not all([device_id, entity_id, command_name]):
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
+        # Get web server for storage path
+        web_server = get_web_server()
+
         # Get command data
-        device_manager = DeviceManager()
+        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:

@@ -92,10 +92,17 @@ class BroadlinkLearner:
             # Step 2: Poll for data
             start_time = time.time()
             storage_errors = 0
+            check_count = 0
 
             while time.time() - start_time < timeout:
                 time.sleep(1)
                 elapsed = int(time.time() - start_time)
+                check_count += 1
+
+                if check_count % 5 == 0:
+                    logger.debug(
+                        f"Still waiting for IR signal... ({elapsed}s elapsed, {storage_errors} storage errors)"
+                    )
 
                 try:
                     packet = self.device.check_data()
@@ -121,7 +128,9 @@ class BroadlinkLearner:
                     logger.info(f"Command encoded to base64 ({len(base64_data)} chars)")
                     return base64_data
 
-            logger.warning(f"Timeout - no IR signal detected after {timeout} seconds")
+            logger.warning(
+                f"Timeout - no IR signal detected after {timeout} seconds ({check_count} checks, {storage_errors} storage errors)"
+            )
             return None
 
         except Exception as e:

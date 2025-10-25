@@ -26,7 +26,9 @@ class EntityGeneratorV2:
         """
         self.device_manager = device_manager
         self.config_path = Path(config_path)
+        self.broadlink_manager_dir = self.config_path / "broadlink_manager"
         self.entities_file = self.config_path / "broadlink_manager_entities.yaml"
+        self.package_file = self.broadlink_manager_dir / "package.yaml"
 
     def generate_all_devices(self, devices: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -98,16 +100,18 @@ class EntityGeneratorV2:
                     all_entities.append(entity_config)
                     entity_count += 1
 
-            # Write to YAML file
+            # Write to YAML files
             if all_entities:
                 self._write_yaml_file(all_entities)
+                self._write_package_file(all_entities)
                 logger.info(
-                    f"✅ Generated {entity_count} entities in {self.entities_file}"
+                    f"✅ Generated {entity_count} entities in {self.entities_file} and {self.package_file}"
                 )
                 return {
                     "success": True,
                     "entities_count": entity_count,
                     "file": str(self.entities_file),
+                    "package_file": str(self.package_file),
                 }
             else:
                 return {"success": False, "message": "No entities to generate"}
@@ -142,3 +146,41 @@ class EntityGeneratorV2:
         except Exception as e:
             logger.error(f"Error writing YAML file: {e}")
             raise
+
+    def _write_package_file(self, entities):
+        """Write entities to package file for HA package structure"""
+        try:
+            # Create broadlink_manager directory if it doesn't exist
+            self.broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create header comment
+            header = [
+                "# Broadlink Manager - Generated Entities Package",
+                "# This file is auto-generated. Do not edit manually.",
+                "# Generated from devices.json",
+                "",
+                "# To use this package, add to your configuration.yaml:",
+                "# homeassistant:",
+                "#   packages:",
+                "#     broadlink_manager: !include broadlink_manager/package.yaml",
+                "",
+            ]
+
+            with open(self.package_file, "w") as f:
+                # Write header
+                for line in header:
+                    f.write(f"{line}\n")
+
+                # Write entities
+                yaml.dump(entities, f, default_flow_style=False, sort_keys=False)
+
+            logger.info(
+                f"Wrote {len(entities)} entity configurations to package file {self.package_file}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error writing package file: {e}")
+            # Don't raise - package file is optional
+            logger.warning(
+                "Package file creation failed, but entities file was created successfully"
+            )

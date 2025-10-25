@@ -690,14 +690,14 @@ const handleDeleteConfirm = async () => {
     // Remove from local list immediately (optimistic update)
     learnedCommands.value = learnedCommands.value.filter(cmd => cmd.name !== command)
     
-    // Reload from server to sync
-    await loadLearnedCommands()
+    // Refresh untracked commands (in case it becomes untracked)
     await loadUntrackedCommands()
     
     resultMessage.value = `Command "${command}" deleted`
     resultType.value = 'success'
     
     // Emit event to parent to refresh device list and update command count
+    // Parent will reload all devices from API, which will update the command count
     emit('learned', {
       deviceId: props.device.id,
       commandName: command,
@@ -707,6 +707,8 @@ const handleDeleteConfirm = async () => {
     console.error('❌ Delete error:', error)
     resultMessage.value = `Failed to delete command: ${error.message}`
     resultType.value = 'error'
+    // On error, reload to get accurate state
+    await loadLearnedCommands()
   } finally {
     commandToDelete.value = ''
   }

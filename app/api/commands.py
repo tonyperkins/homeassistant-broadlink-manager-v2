@@ -1319,7 +1319,7 @@ def test_command_direct():
         # Get web server for storage path
         web_server = get_web_server()
 
-        # Get command data
+        # Get command data and device info
         device_manager = DeviceManager(
             storage_path=str(web_server.broadlink_manager_path)
         )
@@ -1333,11 +1333,25 @@ def test_command_direct():
                 404,
             )
 
-        # Get device connection info
-        device_manager_bl = BroadlinkDeviceManager(
-            web_server.ha_url, web_server.ha_token
-        )
-        connection_info = device_manager_bl.get_device_connection_info(entity_id)
+        # Check if device has stored connection info
+        device_info = device_manager.get_device(device_id)
+        stored_connection = device_info.get("connection") if device_info else None
+
+        if stored_connection and stored_connection.get("host"):
+            # Use stored connection info
+            logger.info(f"Using stored connection info for device {device_id}")
+            connection_info = {
+                "host": stored_connection["host"],
+                "mac_bytes": bytes.fromhex(stored_connection["mac"].replace(":", "")),
+                "type": stored_connection.get("type", 0x2712),  # Default RM type
+            }
+        else:
+            # Fall back to discovery
+            logger.info(f"No stored connection, discovering device for {entity_id}")
+            device_manager_bl = BroadlinkDeviceManager(
+                web_server.ha_url, web_server.ha_token
+            )
+            connection_info = device_manager_bl.get_device_connection_info(entity_id)
 
         if not connection_info:
             return (

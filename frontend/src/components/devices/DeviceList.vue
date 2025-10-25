@@ -665,8 +665,7 @@ const handleCommandLearned = async (eventData) => {
     return
   }
   
-  // OPTIMISTIC UPDATE: Add the new command immediately
-  // Don't wait for storage files - they have 10+ second lag
+  // OPTIMISTIC UPDATE: Add the new command immediately to selectedDevice (for dialog)
   const currentCommands = selectedDevice.value.commands || {}
   const updatedCommands = {
     ...currentCommands,
@@ -679,21 +678,17 @@ const handleCommandLearned = async (eventData) => {
   console.log(`✅ DeviceList: Optimistically adding command '${eventData.commandName}'`)
   console.log(`✅ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
   
-  // Update store (for device cards)
-  deviceStore.updateDeviceCommands(eventData.deviceId, updatedCommands)
-  
-  // Update selectedDevice (for dialog)
+  // Update selectedDevice (for dialog to show immediately)
   selectedDevice.value = {
     ...selectedDevice.value,
     commands: updatedCommands
   }
   
-  // Background: Reload devices after a delay to sync with storage
-  // This ensures we eventually get the real data from devices.json
-  setTimeout(() => {
-    console.log('🔄 DeviceList: Background sync from storage')
-    deviceStore.loadDevices()
-  }, 15000) // 15 seconds - after storage lag
+  // FORCE FULL STORE RELOAD: This is more reliable than trying to update individual devices
+  // The store reload will get fresh data from devices.json API endpoint
+  // We do this immediately because the API reads from devices.json which was just updated
+  console.log('🔄 DeviceList: Force reloading all devices from API')
+  await deviceStore.loadDevices(true) // true = bust cache
   
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {

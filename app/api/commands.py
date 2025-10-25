@@ -178,6 +178,33 @@ def learn_command():
             finally:
                 loop.close()
 
+            # Update devices.json if this is a managed device
+            if device_id:
+                try:
+                    device_manager = get_device_manager()
+                    if device_manager:
+                        managed_device = device_manager.get_device(device_id)
+                        if managed_device:
+                            # Add the new command to the device's commands
+                            if "commands" not in managed_device:
+                                managed_device["commands"] = {}
+                            
+                            managed_device["commands"][command] = {
+                                "command_type": command_type,
+                                "type": command_type
+                            }
+                            
+                            # Save updated device
+                            device_manager.update_device(device_id, managed_device)
+                            logger.info(f"✅ Updated devices.json for {device_id} with new command '{command}'")
+                        else:
+                            logger.warning(f"⚠️ Device {device_id} not found in device manager")
+                    else:
+                        logger.warning("⚠️ Device manager not available")
+                except Exception as save_error:
+                    logger.error(f"❌ Error updating devices.json: {save_error}")
+                    # Don't fail the request if devices.json update fails
+
             return jsonify(result)
         else:
             loop.close()

@@ -154,11 +154,10 @@ class EntityGeneratorV2:
             self.broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
 
             # Convert list of entity configs to proper package structure
-            # Package needs to be a dictionary with platform keys
+            # Package needs to be a dictionary with entity type keys containing lists
             package = {}
 
             for entity_config in entities:
-                platform = entity_config.get("platform")
                 # Get the entity type (switch, light, etc.)
                 entity_type = None
                 for key in entity_config:
@@ -169,14 +168,12 @@ class EntityGeneratorV2:
                 if not entity_type:
                     continue
 
-                # Initialize platform list if not exists
+                # Initialize entity type list if not exists
                 if entity_type not in package:
                     package[entity_type] = []
 
-                # Add this entity config to the platform list
-                package[entity_type].append(
-                    {"platform": platform, entity_type: entity_config[entity_type]}
-                )
+                # Add the entire entity config (includes platform and entity definitions)
+                package[entity_type].append(entity_config)
 
             # Create header comment
             header = [

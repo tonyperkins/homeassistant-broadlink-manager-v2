@@ -115,12 +115,17 @@
           
           <!-- RF Learning Instructions -->
           <div v-else-if="commandType === 'rf'" class="rf-instructions">
-            <p><strong>RF Learning - Two Steps:</strong></p>
+            <p><strong>RF Learning Process:</strong></p>
             <ol>
-              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and HOLD the button on your remote for 2-3 seconds</li>
-              <li><strong>Step 2 - Learn Signal:</strong> After frequency locks, press the button again (short press)</li>
+              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong><br>
+                Press and HOLD the button on your remote for 2-3 seconds, then RELEASE</li>
+              <li><strong>Step 2 - Capture Signal (automatic):</strong><br>
+                After releasing, the device will capture the signal (may take a few seconds)</li>
             </ol>
-            <small>Watch for status updates below</small>
+            <div class="rf-note">
+              <i class="mdi mdi-information"></i>
+              <span>The UI will update once the signal is captured. Be patient after releasing the button.</span>
+            </div>
           </div>
         </div>
 
@@ -1279,6 +1284,26 @@ const handleImportConfirm = async () => {
 
 .rf-instructions .ha-note i {
   color: #ffc107;
+}
+
+.rf-instructions .rf-note {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid #2196f3;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rf-instructions .rf-note i {
+  color: #2196f3;
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .modal-footer {

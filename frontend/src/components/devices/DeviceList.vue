@@ -834,51 +834,73 @@ const isDeviceType = (word) => {
 }
 
 const adoptDevice = async (discoveredDevice) => {
-  // Convert storage name to display name
-  const displayName = convertStorageNameToDisplay(discoveredDevice.device_name)
-  
-  // Try to detect area from device name
-  const detectedArea = detectAreaFromName(discoveredDevice.device_name)
-  
-  // Detect entity type and icon from device name and commands
-  const detectedType = detectEntityType(discoveredDevice.device_name, discoveredDevice.commands)
-  const detectedIcon = detectIcon(discoveredDevice.device_name, detectedType)
-  
-  // Find which Broadlink device owns these commands
-  let broadlinkEntity = ''
   try {
-    console.log('Finding Broadlink owner for:', discoveredDevice.device_name)
-    const response = await api.post('/api/devices/find-broadlink-owner', {
-      device_name: discoveredDevice.device_name
-    })
-    console.log('Broadlink owner response:', response.data)
-    broadlinkEntity = response.data.broadlink_entity || ''
-    console.log('Detected Broadlink entity:', broadlinkEntity)
+    // Convert storage name to display name
+    const displayName = convertStorageNameToDisplay(discoveredDevice.device_name)
+    
+    // Try to detect area from device name
+    const detectedArea = detectAreaFromName(discoveredDevice.device_name)
+    
+    // Detect entity type and icon from device name and commands
+    const detectedType = detectEntityType(discoveredDevice.device_name, discoveredDevice.commands)
+    const detectedIcon = detectIcon(discoveredDevice.device_name, detectedType)
+    
+    // Find which Broadlink device owns these commands
+    let broadlinkEntity = ''
+    try {
+      console.log('Finding Broadlink owner for:', discoveredDevice.device_name)
+      const response = await api.post('/api/devices/find-broadlink-owner', {
+        device_name: discoveredDevice.device_name
+      })
+      console.log('Broadlink owner response:', response.data)
+      broadlinkEntity = response.data.broadlink_entity || ''
+      console.log('Detected Broadlink entity:', broadlinkEntity)
+    } catch (error) {
+      console.error('Error finding Broadlink owner:', error)
+    }
+    
+    // Fetch actual command data from Broadlink storage
+    console.log('Fetching command data from Broadlink storage...')
+    const commandsResponse = await api.get(`/api/commands/broadlink/${discoveredDevice.device_name}`)
+    const commandData = commandsResponse.data.commands || {}
+    
+    console.log('Fetched command data:', commandData)
+    
+    // Transform command data to new format with metadata
+    const transformedCommands = {}
+    for (const [cmdName, cmdValue] of Object.entries(commandData)) {
+      // Detect command type from data
+      const isRF = typeof cmdValue === 'string' && cmdValue.length > 200
+      
+      transformedCommands[cmdName] = {
+        data: cmdValue,
+        type: isRF ? 'rf' : 'ir',
+        name: cmdName,
+        learned_at: new Date().toISOString()
+      }
+    }
+    
+    console.log('Transformed commands:', transformedCommands)
+    
+    // Pre-populate form with discovered device data
+    selectedDevice.value = {
+      id: null, // New device
+      device: discoveredDevice.device_name, // Keep original storage name
+      name: displayName, // Display name for user
+      entity_type: detectedType, // Auto-detected type
+      commands: transformedCommands, // Import actual command data
+      area: detectedArea, // Pre-select detected area
+      icon: detectedIcon, // Auto-detected icon
+      broadlink_entity: broadlinkEntity, // Auto-detected Broadlink device
+      enabled: true
+    }
+    
+    showCreateForm.value = true
+    toast.success(`Imported ${Object.keys(transformedCommands).length} commands from Broadlink storage`)
   } catch (error) {
-    console.error('Error finding Broadlink owner:', error)
+    console.error('Error adopting device:', error)
+    toast.error('Failed to adopt device: ' + (error.response?.data?.error || error.message))
   }
-  
-  // Pre-populate form with discovered device data
-  selectedDevice.value = {
-    id: null, // New device
-    device: discoveredDevice.device_name, // Keep original storage name
-    name: displayName, // Display name for user
-    entity_type: detectedType, // Auto-detected type
-    commands: {},
-    area: detectedArea, // Pre-select detected area
-    icon: detectedIcon, // Auto-detected icon
-    broadlink_entity: broadlinkEntity, // Auto-detected Broadlink device
-    enabled: true
-  }
-  
-  // Import commands automatically
-  const commandMapping = {}
-  discoveredDevice.commands.forEach(cmd => {
-    commandMapping[cmd] = cmd
-  })
-  selectedDevice.value.commands = commandMapping
-  
-  showCreateForm.value = true
 }
 
 const syncAllAreas = async () => {

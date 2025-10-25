@@ -56,7 +56,73 @@ The script will:
 
 ---
 
+### test_direct_learning.py
+
+**Purpose:** Test learning IR and RF commands directly from Broadlink devices using python-broadlink.
+
+**Why This Matters:** This test validates that we can learn commands without using Home Assistant's Broadlink integration, eliminating the `.storage` file lag and giving us full control over the learning UX.
+
+**Setup:**
+
+No configuration needed! The script will automatically discover Broadlink devices on your network.
+
+**Usage:**
+
+```bash
+python tests/manual/test_direct_learning.py
+```
+
+**What It Tests:**
+
+1. ✅ Device discovery on local network
+2. ✅ Device authentication
+3. ✅ IR command learning (1-step process)
+4. ✅ RF command learning (2-step process)
+5. ✅ Immediate command data capture
+6. ✅ Testing learned commands by sending them back
+
+**IR Learning Process:**
+1. Device enters learning mode
+2. User presses remote button once
+3. Command captured immediately (no file lag!)
+
+**RF Learning Process:**
+1. Device sweeps RF frequencies
+2. User presses and holds remote button (2-3 seconds)
+3. Frequency locked
+4. User presses remote button again (short press)
+5. RF signal captured immediately (no file lag!)
+
+**Expected Output:**
+
+The script will:
+1. Discover and list all Broadlink devices
+2. Let you select a device
+3. Authenticate with the device
+4. Let you choose IR or RF learning
+5. Guide you through the learning process
+6. Return base64 command data immediately
+7. Optionally test sending the command back
+
+**Key Benefits Demonstrated:**
+- ✅ No dependency on Home Assistant
+- ✅ No `.storage` file lag (instant capture)
+- ✅ Full control over learning UX
+- ✅ Can test commands immediately
+- ✅ Better error handling and user feedback
+
+---
+
 ## Other Test Scripts
+
+### test_find_entities.py
+Find all remote entities in Home Assistant.
+
+### test_which_device.py
+Identify which Broadlink device has specific commands.
+
+### test_command_send_debug.py
+Debug command sending issues.
 
 ### test_api_debug.py
 Debug API endpoint responses and data structures.

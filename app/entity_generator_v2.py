@@ -75,12 +75,16 @@ class EntityGeneratorV2:
                         continue
 
                     # Create entity configuration
-                    entity_id = f"{entity_type}.{device_id}_{command_name}"
+                    # Template entities use plural keys: lights, switches, etc.
+                    entity_id_name = f"{device_id}_{command_name}"
+                    entity_type_plural = (
+                        f"{entity_type}s"  # light -> lights, switch -> switches
+                    )
 
                     entity_config = {
                         "platform": "template",
-                        entity_type: {
-                            entity_id: {
+                        entity_type_plural: {
+                            entity_id_name: {
                                 "friendly_name": f"{device_name} {command_name.replace('_', ' ').title()}",
                                 "turn_on": {
                                     "service": "remote.send_command",
@@ -93,9 +97,9 @@ class EntityGeneratorV2:
 
                     # For switches, add turn_off (same as turn_on for toggle devices)
                     if entity_type == "switch":
-                        entity_config[entity_type][entity_id]["turn_off"] = (
-                            entity_config[entity_type][entity_id]["turn_on"]
-                        )
+                        entity_config[entity_type_plural][entity_id_name][
+                            "turn_off"
+                        ] = entity_config[entity_type_plural][entity_id_name]["turn_on"]
 
                     all_entities.append(entity_config)
                     entity_count += 1
@@ -158,15 +162,18 @@ class EntityGeneratorV2:
             package = {}
 
             for entity_config in entities:
-                # Get the entity type (switch, light, etc.)
-                entity_type = None
+                # Get the entity type plural key (lights, switches, etc.)
+                entity_type_plural = None
                 for key in entity_config:
                     if key != "platform":
-                        entity_type = key
+                        entity_type_plural = key
                         break
 
-                if not entity_type:
+                if not entity_type_plural:
                     continue
+
+                # Convert plural back to singular for package grouping (lights -> light)
+                entity_type = entity_type_plural.rstrip("s")
 
                 # Initialize entity type list if not exists
                 if entity_type not in package:

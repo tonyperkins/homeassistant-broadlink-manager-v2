@@ -1129,9 +1129,9 @@ def learn_command_direct():
     }
     """
     try:
-        from app.broadlink_learner import BroadlinkLearner
-        from app.broadlink_device_manager import BroadlinkDeviceManager
-        from app.device_manager import DeviceManager
+        from broadlink_learner import BroadlinkLearner
+        from broadlink_device_manager import BroadlinkDeviceManager
+        from device_manager import DeviceManager
 
         data = request.get_json()
         device_id = data.get("device_id")
@@ -1302,9 +1302,9 @@ def test_command_direct():
     }
     """
     try:
-        from app.broadlink_learner import BroadlinkLearner
-        from app.broadlink_device_manager import BroadlinkDeviceManager
-        from app.device_manager import DeviceManager
+        from broadlink_learner import BroadlinkLearner
+        from broadlink_device_manager import BroadlinkDeviceManager
+        from device_manager import DeviceManager
 
         data = request.get_json()
         device_id = data.get("device_id")
@@ -1396,7 +1396,7 @@ def test_command_ha():
     }
     """
     try:
-        from app.device_manager import DeviceManager
+        from device_manager import DeviceManager
         import requests
 
         data = request.get_json()

@@ -9,7 +9,7 @@ import broadlink
 import base64
 import time
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -137,13 +137,12 @@ class BroadlinkLearner:
             logger.error(f"Error during IR learning: {e}")
             return None
 
-    def learn_rf_command(self, timeout: int = 30) -> Optional[Tuple[str, float]]:
+    def learn_rf_command_with_progress(
+        self, timeout: int = 30, progress_callback: Callable[[str, str], None] = None
+    ) -> Optional[Tuple[str, float]]:
         """
-        Learn an RF command (2-step process)
+        Learn an RF command with progress callbacks
 
-        Process:
-        1. Sweep frequency (user holds button)
-        2. Lock frequency
         3. Sleep 1 second (let user release)
         4. Find RF packet (user presses again)
         5. Poll check_data() until command received
@@ -162,6 +161,8 @@ class BroadlinkLearner:
         try:
             # Step 1: Sweep frequency
             logger.info("Starting RF frequency sweep")
+            if progress_callback:
+                progress_callback("Starting RF frequency sweep...", "sweep")
             self.device.sweep_frequency()
 
             start_time = time.time()
@@ -175,6 +176,10 @@ class BroadlinkLearner:
                 if is_found:
                     frequency = freq
                     logger.info(f"RF frequency locked: {frequency} MHz")
+                    if progress_callback:
+                        progress_callback(
+                            f"Frequency locked: {frequency} MHz", "locked"
+                        )
                     break
 
             if frequency is None:
@@ -189,6 +194,10 @@ class BroadlinkLearner:
 
             # Step 2: Find and capture RF packet
             logger.info("Capturing RF packet")
+            if progress_callback:
+                progress_callback(
+                    "Capturing RF packet... (release button now)", "capture"
+                )
             self.device.find_rf_packet()
 
             start_time = time.time()
@@ -213,6 +222,8 @@ class BroadlinkLearner:
 
                 if packet:
                     logger.info(f"RF command captured ({len(packet)} bytes)")
+                    if progress_callback:
+                        progress_callback("RF command captured!", "captured")
                     if storage_errors > 0:
                         logger.debug(f"Ignored {storage_errors} storage errors")
 

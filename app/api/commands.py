@@ -5,6 +5,7 @@ Command API endpoints
 import logging
 import asyncio
 import json
+import time
 from pathlib import Path
 from flask import jsonify, request, current_app
 from . import api_bp
@@ -1103,6 +1104,144 @@ def detect_command_type(command_data):
 
 
 # Direct Learning Endpoints (New Hybrid Approach)
+
+
+@api_bp.route("/commands/learn/direct/stream", methods=["POST"])
+def learn_command_direct_stream():
+    """Learn a command with SSE progress updates"""
+    from flask import Response, stream_with_context
+    import json
+
+    data = request.json
+    device_id = data.get("device_id")
+    entity_id = data.get("entity_id")
+    command_name = data.get("command_name")
+    command_type = data.get("command_type", "ir")
+
+    def generate():
+        try:
+            yield f"data: {json.dumps({'status': 'starting', 'message': 'Initializing...'})}\n\n"
+
+            if not all([device_id, entity_id, command_name]):
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Missing required fields'})}\n\n"
+                return
+
+            # Get HA config
+            web_server = get_web_server()
+            ha_url = web_server.ha_url
+            ha_token = web_server.ha_token
+
+            # Get device connection info
+            yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
+
+            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+            connection_info = device_manager_bl.get_device_connection_info(entity_id)
+
+            if not connection_info:
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Could not get connection info'})}\n\n"
+                return
+
+            # Create learner
+            learner = BroadlinkLearner(
+                host=connection_info["host"],
+                mac=connection_info["mac_bytes"],
+                device_type=connection_info["type"],
+            )
+
+            # Authenticate
+            if not learner.authenticate():
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Failed to authenticate'})}\n\n"
+                return
+
+            yield f"data: {json.dumps({'status': 'ready', 'message': f'Ready to learn {command_type.upper()} command'})}\n\n"
+
+            # Learn command with progress
+            if command_type == "rf":
+                # Create a list to capture progress messages
+                progress_messages = []
+
+                def progress_handler(message, step):
+                    progress_messages.append((message, step))
+
+                # Start RF learning in a thread so we can yield progress
+                import threading
+
+                result_container = [None]
+
+                def learn_thread():
+                    result_container[0] = learner.learn_rf_command_with_progress(
+                        timeout=30, progress_callback=progress_handler
+                    )
+
+                thread = threading.Thread(target=learn_thread)
+                thread.start()
+
+                # Poll for progress updates
+                last_message_count = 0
+                while thread.is_alive():
+                    time.sleep(0.5)
+                    if len(progress_messages) > last_message_count:
+                        for msg, step in progress_messages[last_message_count:]:
+                            yield f"data: {json.dumps({'status': 'learning', 'message': msg, 'step': step})}\n\n"
+                        last_message_count = len(progress_messages)
+
+                thread.join()
+                result = result_container[0]
+
+                if result:
+                    base64_data, frequency = result
+                    yield f"data: {json.dumps({'status': 'captured', 'message': f'RF command captured at {frequency} MHz', 'frequency': frequency})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no RF signal detected'})}\n\n"
+                    return
+            else:
+                yield f"data: {json.dumps({'status': 'learning', 'message': 'Waiting for IR signal...', 'step': 'capture'})}\n\n"
+                result = learner.learn_ir_command(timeout=30)
+                if result:
+                    base64_data = result
+                    frequency = None
+                    yield f"data: {json.dumps({'status': 'captured', 'message': 'IR command captured'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no IR signal detected'})}\n\n"
+                    return
+
+            # Save command
+            yield f"data: {json.dumps({'status': 'saving', 'message': 'Saving command...'})}\n\n"
+
+            device_manager = DeviceManager(
+                storage_path=str(web_server.broadlink_manager_path)
+            )
+            success = device_manager.add_learned_command(
+                device_id=device_id,
+                command_name=command_name,
+                command_data=base64_data,
+                command_type=command_type,
+                frequency=frequency,
+            )
+
+            if not success:
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Failed to save command'})}\n\n"
+                return
+
+            # Update connection info
+            device_manager.update_device_connection_info(
+                device_id,
+                {
+                    "host": connection_info["host"],
+                    "mac": connection_info["mac"],
+                    "type": connection_info["type"],
+                    "type_hex": connection_info["type_hex"],
+                    "model": connection_info["model"],
+                },
+            )
+
+            yield f"data: {json.dumps({'status': 'complete', 'message': 'Command learned successfully!', 'command_name': command_name})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in SSE learning: {e}", exc_info=True)
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
 
 
 @api_bp.route("/commands/learn/direct", methods=["POST"])

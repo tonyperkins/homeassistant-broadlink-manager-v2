@@ -12,11 +12,6 @@ from . import api_bp
 logger = logging.getLogger(__name__)
 
 
-def get_storage_manager():
-    """Get storage manager from Flask app context"""
-    return current_app.config.get("storage_manager")
-
-
 def get_web_server():
     """Get web server instance from Flask app context"""
     return current_app.config.get("web_server")
@@ -334,65 +329,43 @@ def test_command():
             logger.error(f"{error_msg}. Received data: {data}")
             return jsonify({"success": False, "error": error_msg}), 400
 
-        # Get device manager and storage to look up command mapping and device type
+        # Get device manager to look up command mapping and device type
         device_manager = current_app.config.get("device_manager")
-        storage = get_storage_manager()
         is_smartir = False
         entity_data = None
 
-        if device_id:
-            # First try device_manager (for managed devices including SmartIR)
-            if device_manager:
-                entity_data = device_manager.get_device(device_id)
-                if entity_data:
-                    logger.info(f"Found device in device_manager: {device_id}")
-
-            # If not found, try storage_manager (for legacy/adopted devices)
-            if not entity_data and storage:
-                entity_data = storage.get_entity(device_id)
-
-                # If not found and device_id doesn't have a dot, try to find it in all entities
-                if not entity_data and "." not in device_id:
-                    logger.info(
-                        f"Device ID '{device_id}' not found, searching all entities..."
-                    )
-                    all_entities = storage.get_all_entities()
-                    for stored_entity_id, data in all_entities.items():
-                        if (
-                            stored_entity_id.endswith(f".{device_id}")
-                            or stored_entity_id == device_id
-                        ):
-                            entity_data = data
-                            logger.info(f"Found entity: {stored_entity_id}")
-                            break
-
+        if device_id and device_manager:
+            entity_data = device_manager.get_device(device_id)
             if entity_data:
-                is_smartir = entity_data.get("device_type") == "smartir"
-                logger.info(
-                    f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
+                logger.info(f"Found device in device_manager: {device_id}")
+
+        if entity_data:
+            is_smartir = entity_data.get("device_type") == "smartir"
+            logger.info(
+                f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
+            )
+            commands_mapping = entity_data.get("commands", {})
+
+            # Look up the actual command code from the mapping
+            command_data = commands_mapping.get(command, command)
+
+            # If command_data is a dict (metadata), extract the actual code
+            if isinstance(command_data, dict):
+                # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
+                actual_command = command_data.get(
+                    "code", command_data.get("data", command)
                 )
-                commands_mapping = entity_data.get("commands", {})
-
-                # Look up the actual command code from the mapping
-                command_data = commands_mapping.get(command, command)
-
-                # If command_data is a dict (metadata), extract the actual code
-                if isinstance(command_data, dict):
-                    # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
-                    actual_command = command_data.get(
-                        "code", command_data.get("data", command)
-                    )
-                    logger.info(
-                        f"Command mapping: '{command}' -> extracted code from metadata"
-                    )
-                else:
-                    # Command stored as string directly
-                    actual_command = command_data
-                    logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
-
-                command = actual_command
+                logger.info(
+                    f"Command mapping: '{command}' -> extracted code from metadata"
+                )
             else:
-                logger.warning(f"Entity data not found for device_id: {device_id}")
+                # Command stored as string directly
+                actual_command = command_data
+                logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
+
+            command = actual_command
+        else:
+            logger.warning(f"Entity data not found for device_id: {device_id}")
 
         # Get web server instance
         web_server = get_web_server()
@@ -605,122 +578,38 @@ def test_command():
 
 @api_bp.route("/commands/<device_id>/<command_name>", methods=["DELETE"])
 def delete_command(device_id, command_name):
-    """Delete a command from a device via HA API"""
+    """Delete a command from a device"""
     try:
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Get device entity
-        entity_data = storage.get_entity(device_id)
-        if not entity_data:
+        # Get device
+        device = device_manager.get_device(device_id)
+        if not device:
             return jsonify({"error": "Device not found"}), 404
 
         # Check command exists
-        commands = entity_data.get("commands", {})
+        commands = device.get("commands", {})
         if command_name not in commands:
             return jsonify({"error": "Command not found"}), 404
 
-        # Get the actual Broadlink command name (might be mapped)
-        # commands is like {"turn_off": "living_room_stereo_turn_off"}
-        broadlink_command_name = commands[command_name]
-
-        # Get the broadlink entity and device name
-        broadlink_entity = entity_data.get("broadlink_entity", "")
-        device_name = entity_data.get("device")
-        if not device_name:
-            # Fallback: extract from device_id
-            device_name = device_id.split(".")[1] if "." in device_id else device_id
-
         logger.info(f"Delete command request:")
         logger.info(f"  device_id: {device_id}")
-        logger.info(f"  command_name (key): {command_name}")
-        logger.info(f"  broadlink_command_name (value): {broadlink_command_name}")
-        logger.info(f"  device_name: {device_name}")
-        logger.info(f"  broadlink_entity: '{broadlink_entity}'")
-        logger.info(f"  entity_data keys: {list(entity_data.keys())}")
+        logger.info(f"  command_name: {command_name}")
 
-        # If no broadlink_entity specified, find which Broadlink device owns this device's commands
-        if not broadlink_entity:
-            web_server = get_web_server()
-            if web_server:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                # Use the new method to find the correct Broadlink entity
-                broadlink_entity = loop.run_until_complete(
-                    web_server._find_broadlink_entity_for_device(device_name)
-                )
-                loop.close()
-
-                if broadlink_entity:
-                    logger.info(
-                        f"Found Broadlink entity for device '{device_name}': {broadlink_entity}"
-                    )
-
-        if not broadlink_entity:
-            logger.error(
-                f"No broadlink_entity configured and could not auto-detect for device {device_id}"
-            )
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": (
-                            "No Broadlink device configured for this device. "
-                            "Please edit the device and select a Broadlink device."
-                        ),
-                    }
-                ),
-                400,
-            )
-
-        logger.info(
-            f"Deleting command '{broadlink_command_name}' from device '{device_name}' "
-            f"using Broadlink entity '{broadlink_entity}'"
-        )
-
-        # Call HA API to delete the command from Broadlink storage
-        web_server = get_web_server()
-        if not web_server:
-            return jsonify({"error": "Web server not available"}), 500
-
-        delete_data = {
-            "entity_id": broadlink_entity,
-            "device": device_name,
-            "command": broadlink_command_name,  # Use the actual Broadlink command name
-        }
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(web_server._delete_command(delete_data))
-        loop.close()
-
-        if result.get("success"):
-            # Add to deletion cache to handle storage lag
-            web_server._add_to_deletion_cache(device_name, broadlink_command_name)
-
-            # Remove from metadata (trust that HA deleted it from Broadlink storage)
-            del commands[command_name]
-            entity_data["commands"] = commands
-            storage.save_entity(device_id, entity_data)
-            logger.info(f"✅ Command '{command_name}' deleted from metadata")
-
-            return jsonify(
-                {
-                    "success": True,
-                    "message": f"Command '{command_name}' deleted successfully",
-                }
-            )
+        # Delete from devices.json
+        if device_manager.delete_command(device_id, command_name):
+            logger.info(f"✅ Command '{command_name}' deleted successfully")
+            return jsonify({
+                "success": True,
+                "message": f"Command '{command_name}' deleted successfully"
+            })
         else:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": result.get("error", "Failed to delete command"),
-                    }
-                ),
-                400,
-            )
+            return jsonify({
+                "success": False,
+                "error": "Failed to delete command"
+            }), 500
 
     except Exception as e:
         logger.error(f"Error deleting command: {e}")
@@ -729,42 +618,19 @@ def delete_command(device_id, command_name):
 
 @api_bp.route("/commands/<device_id>", methods=["GET"])
 def get_device_commands(device_id):
-    """Get all commands for a device (managed or adopted)"""
+    """Get all commands for a device"""
     try:
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
-
-        # Try device_manager first (for managed devices)
-        entity_data = None
-        if device_manager:
-            entity_data = device_manager.get_device(device_id)
-            if entity_data:
-                logger.info(f"Found device '{device_id}' in device_manager")
-
-        # If not found, try storage_manager (for adopted devices)
-        if not entity_data:
-            entity_data = storage.get_entity(device_id)
-            if entity_data:
-                logger.info(f"Found device '{device_id}' in storage_manager")
-
-        if not entity_data:
-            logger.warning(
-                f"Device '{device_id}' not found in device_manager or storage_manager"
-            )
+        device = device_manager.get_device(device_id)
+        if not device:
+            logger.warning(f"Device '{device_id}' not found")
             return jsonify({"error": "Device not found"}), 404
 
-        commands = entity_data.get("commands", {})
+        commands = device.get("commands", {})
         logger.info(f"Returning {len(commands)} commands for device '{device_id}'")
-
-        # Log command format for debugging
-        if commands:
-            first_cmd = next(iter(commands.items()))
-            logger.info(
-                f"Sample command format: {first_cmd[0]} = {first_cmd[1]} (type: {type(first_cmd[1])})"
-            )
 
         return jsonify({"commands": commands, "device_id": device_id})
 
@@ -1235,8 +1101,8 @@ def detect_command_type(command_data):
 
 # Direct Learning Endpoints (New Hybrid Approach)
 
-@api_bp.route("/commands/learn", methods=["POST"])
-def learn_command():
+@api_bp.route("/commands/learn/direct", methods=["POST"])
+def learn_command_direct():
     """
     Learn a command directly from Broadlink device
     

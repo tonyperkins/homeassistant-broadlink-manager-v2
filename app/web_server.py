@@ -19,12 +19,10 @@ import aiohttp
 import aiofiles  # type: ignore
 import websockets
 
-from storage_manager import StorageManager
 from entity_detector import EntityDetector
 from entity_generator import EntityGenerator
 from area_manager import AreaManager
 from config_loader import ConfigLoader
-from migration_manager import MigrationManager
 from device_manager import DeviceManager
 from smartir_detector import SmartIRDetector
 from smartir_code_service import SmartIRCodeService
@@ -104,19 +102,10 @@ class BroadlinkWebServer:
         self._call_lock = threading.Lock()
 
         # Initialize entity management components
-        self.storage_manager = StorageManager(
-            str(self.config_loader.get_broadlink_manager_path())
-        )
         self.entity_detector = EntityDetector()
         self.area_manager = AreaManager(self.ha_url or "", self.ha_token or "")
         self.device_manager = DeviceManager(
             str(self.config_loader.get_broadlink_manager_path())
-        )
-        self.migration_manager = MigrationManager(
-            self.storage_manager,
-            self.entity_detector,
-            self.device_manager,
-            self.storage_path,
         )
         self.smartir_detector = SmartIRDetector(
             str(self.config_loader.get_config_path())
@@ -127,7 +116,6 @@ class BroadlinkWebServer:
         )
 
         # Make managers available to API endpoints
-        self.app.config["storage_manager"] = self.storage_manager
         self.app.config["device_manager"] = self.device_manager
         self.app.config["area_manager"] = self.area_manager
         self.app.config["web_server"] = self  # For command learning

@@ -316,6 +316,7 @@ class DeviceManager:
 
             if device_id not in devices:
                 logger.warning(f"Device {device_id} not found")
+                logger.debug(f"Available devices: {list(devices.keys())}")
                 return False
 
             if "commands" not in devices[device_id]:

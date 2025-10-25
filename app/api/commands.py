@@ -183,17 +183,21 @@ def learn_command():
                             # Add the new command to the device's commands
                             if "commands" not in managed_device:
                                 managed_device["commands"] = {}
-                            
+
                             managed_device["commands"][command] = {
                                 "command_type": command_type,
-                                "type": command_type
+                                "type": command_type,
                             }
-                            
+
                             # Save updated device
                             device_manager.update_device(device_id, managed_device)
-                            logger.info(f"✅ Updated devices.json for {device_id} with new command '{command}'")
+                            logger.info(
+                                f"✅ Updated devices.json for {device_id} with new command '{command}'"
+                            )
                         else:
-                            logger.warning(f"⚠️ Device {device_id} not found in device manager")
+                            logger.warning(
+                                f"⚠️ Device {device_id} not found in device manager"
+                            )
                     else:
                         logger.warning("⚠️ Device manager not available")
                 except Exception as save_error:
@@ -601,15 +605,14 @@ def delete_command(device_id, command_name):
         # Delete from devices.json
         if device_manager.delete_command(device_id, command_name):
             logger.info(f"✅ Command '{command_name}' deleted successfully")
-            return jsonify({
-                "success": True,
-                "message": f"Command '{command_name}' deleted successfully"
-            })
+            return jsonify(
+                {
+                    "success": True,
+                    "message": f"Command '{command_name}' deleted successfully",
+                }
+            )
         else:
-            return jsonify({
-                "success": False,
-                "error": "Failed to delete command"
-            }), 500
+            return jsonify({"success": False, "error": "Failed to delete command"}), 500
 
     except Exception as e:
         logger.error(f"Error deleting command: {e}")
@@ -1101,11 +1104,12 @@ def detect_command_type(command_data):
 
 # Direct Learning Endpoints (New Hybrid Approach)
 
+
 @api_bp.route("/commands/learn/direct", methods=["POST"])
 def learn_command_direct():
     """
     Learn a command directly from Broadlink device
-    
+
     Request body:
     {
         "device_id": "living_room_tv",
@@ -1113,7 +1117,7 @@ def learn_command_direct():
         "command_name": "power",
         "command_type": "ir"  // or "rf"
     }
-    
+
     Returns:
     {
         "success": true,
@@ -1128,77 +1132,106 @@ def learn_command_direct():
         from app.broadlink_learner import BroadlinkLearner
         from app.broadlink_device_manager import BroadlinkDeviceManager
         from app.device_manager import DeviceManager
-        
+
         data = request.get_json()
-        device_id = data.get('device_id')
-        entity_id = data.get('entity_id')
-        command_name = data.get('command_name')
-        command_type = data.get('command_type', 'ir')
-        
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+        command_type = data.get("command_type", "ir")
+
         if not all([device_id, entity_id, command_name]):
-            return jsonify({
-                'success': False,
-                'error': 'Missing required fields: device_id, entity_id, command_name'
-            }), 400
-        
-        if command_type not in ['ir', 'rf']:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid command_type. Must be "ir" or "rf"'
-            }), 400
-        
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Missing required fields: device_id, entity_id, command_name",
+                    }
+                ),
+                400,
+            )
+
+        if command_type not in ["ir", "rf"]:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": 'Invalid command_type. Must be "ir" or "rf"',
+                    }
+                ),
+                400,
+            )
+
         # Get HA config
         web_server = get_web_server()
         ha_url = web_server.ha_url
         ha_token = web_server.ha_token
-        
+
         # Get device connection info
         device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
         connection_info = device_manager_bl.get_device_connection_info(entity_id)
-        
+
         if not connection_info:
-            return jsonify({
-                'success': False,
-                'error': f'Could not get connection info for {entity_id}'
-            }), 404
-        
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Could not get connection info for {entity_id}",
+                    }
+                ),
+                404,
+            )
+
         # Create learner
         learner = BroadlinkLearner(
-            host=connection_info['host'],
-            mac=connection_info['mac_bytes'],
-            device_type=connection_info['type']
+            host=connection_info["host"],
+            mac=connection_info["mac_bytes"],
+            device_type=connection_info["type"],
         )
-        
+
         # Authenticate
         if not learner.authenticate():
-            return jsonify({
-                'success': False,
-                'error': 'Failed to authenticate with device'
-            }), 500
-        
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
+                500,
+            )
+
         # Learn command
-        logger.info(f"Learning {command_type} command '{command_name}' for device {device_id}")
-        
-        if command_type == 'ir':
+        logger.info(
+            f"Learning {command_type} command '{command_name}' for device {device_id}"
+        )
+
+        if command_type == "ir":
             result = learner.learn_ir_command(timeout=30)
             if result:
                 base64_data = result
                 frequency = None
             else:
-                return jsonify({
-                    'success': False,
-                    'error': 'Timeout - no IR signal detected within 30 seconds'
-                }), 408
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Timeout - no IR signal detected within 30 seconds",
+                        }
+                    ),
+                    408,
+                )
         else:  # RF
             result = learner.learn_rf_command(timeout=30)
             if result:
                 base64_data, frequency = result
             else:
-                return jsonify({
-                    'success': False,
-                    'error': 'Timeout - no RF signal detected within 30 seconds'
-                }), 408
-        
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Timeout - no RF signal detected within 30 seconds",
+                        }
+                    ),
+                    408,
+                )
+
         # Save to devices.json
         device_manager = DeviceManager()
         success = device_manager.add_learned_command(
@@ -1206,58 +1239,62 @@ def learn_command_direct():
             command_name=command_name,
             command_data=base64_data,
             command_type=command_type,
-            frequency=frequency
+            frequency=frequency,
         )
-        
+
         if not success:
-            return jsonify({
-                'success': False,
-                'error': 'Failed to save command to storage'
-            }), 500
-        
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to save command to storage"}
+                ),
+                500,
+            )
+
         # Also update connection info in device
-        device_manager.update_device_connection_info(device_id, {
-            'host': connection_info['host'],
-            'mac': connection_info['mac'],
-            'type': connection_info['type'],
-            'type_hex': connection_info['type_hex'],
-            'model': connection_info['model']
-        })
-        
+        device_manager.update_device_connection_info(
+            device_id,
+            {
+                "host": connection_info["host"],
+                "mac": connection_info["mac"],
+                "type": connection_info["type"],
+                "type_hex": connection_info["type_hex"],
+                "model": connection_info["model"],
+            },
+        )
+
         response = {
-            'success': True,
-            'command_name': command_name,
-            'command_type': command_type,
-            'data': base64_data,
-            'data_length': len(base64_data)
+            "success": True,
+            "command_name": command_name,
+            "command_type": command_type,
+            "data": base64_data,
+            "data_length": len(base64_data),
         }
-        
+
         if frequency:
-            response['frequency'] = frequency
-        
-        logger.info(f"Successfully learned command '{command_name}' ({len(base64_data)} chars)")
+            response["frequency"] = frequency
+
+        logger.info(
+            f"Successfully learned command '{command_name}' ({len(base64_data)} chars)"
+        )
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error(f"Error learning command: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @api_bp.route("/commands/test/direct", methods=["POST"])
 def test_command_direct():
     """
     Test a command by sending it directly to the device
-    
+
     Request body:
     {
         "device_id": "living_room_tv",
         "entity_id": "remote.living_room_rm4_pro",
         "command_name": "power"
     }
-    
+
     Returns:
     {
         "success": true,
@@ -1268,86 +1305,90 @@ def test_command_direct():
         from app.broadlink_learner import BroadlinkLearner
         from app.broadlink_device_manager import BroadlinkDeviceManager
         from app.device_manager import DeviceManager
-        
+
         data = request.get_json()
-        device_id = data.get('device_id')
-        entity_id = data.get('entity_id')
-        command_name = data.get('command_name')
-        
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+
         if not all([device_id, entity_id, command_name]):
-            return jsonify({
-                'success': False,
-                'error': 'Missing required fields'
-            }), 400
-        
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
         # Get command data
         device_manager = DeviceManager()
         command_data = device_manager.get_command_data(device_id, command_name)
-        
+
         if not command_data:
-            return jsonify({
-                'success': False,
-                'error': f'Command {command_name} not found'
-            }), 404
-        
+            return (
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
+                404,
+            )
+
         # Get device connection info
         web_server = get_web_server()
-        device_manager_bl = BroadlinkDeviceManager(web_server.ha_url, web_server.ha_token)
+        device_manager_bl = BroadlinkDeviceManager(
+            web_server.ha_url, web_server.ha_token
+        )
         connection_info = device_manager_bl.get_device_connection_info(entity_id)
-        
+
         if not connection_info:
-            return jsonify({
-                'success': False,
-                'error': f'Could not get connection info for {entity_id}'
-            }), 404
-        
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Could not get connection info for {entity_id}",
+                    }
+                ),
+                404,
+            )
+
         # Create learner and test
         learner = BroadlinkLearner(
-            host=connection_info['host'],
-            mac=connection_info['mac_bytes'],
-            device_type=connection_info['type']
+            host=connection_info["host"],
+            mac=connection_info["mac_bytes"],
+            device_type=connection_info["type"],
         )
-        
+
         if not learner.authenticate():
-            return jsonify({
-                'success': False,
-                'error': 'Failed to authenticate with device'
-            }), 500
-        
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
+                500,
+            )
+
         if learner.test_command(command_data):
             # Update test status
-            device_manager.update_command_test_status(device_id, command_name, 'direct')
-            
-            return jsonify({
-                'success': True,
-                'message': 'Command sent successfully via direct connection'
-            })
+            device_manager.update_command_test_status(device_id, command_name, "direct")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Command sent successfully via direct connection",
+                }
+            )
         else:
-            return jsonify({
-                'success': False,
-                'error': 'Failed to send command'
-            }), 500
-        
+            return jsonify({"success": False, "error": "Failed to send command"}), 500
+
     except Exception as e:
         logger.error(f"Error testing command: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @api_bp.route("/commands/test/ha", methods=["POST"])
 def test_command_ha():
     """
     Test a command via HA remote.send_command service
-    
+
     Request body:
     {
         "device_id": "living_room_tv",
         "entity_id": "remote.living_room_rm4_pro",
         "command_name": "power"
     }
-    
+
     Returns:
     {
         "success": true,
@@ -1357,67 +1398,70 @@ def test_command_ha():
     try:
         from app.device_manager import DeviceManager
         import requests
-        
+
         data = request.get_json()
-        device_id = data.get('device_id')
-        entity_id = data.get('entity_id')
-        command_name = data.get('command_name')
-        
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+
         if not all([device_id, entity_id, command_name]):
-            return jsonify({
-                'success': False,
-                'error': 'Missing required fields'
-            }), 400
-        
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
         # Get command data
         device_manager = DeviceManager()
         command_data = device_manager.get_command_data(device_id, command_name)
-        
+
         if not command_data:
-            return jsonify({
-                'success': False,
-                'error': f'Command {command_name} not found'
-            }), 404
-        
+            return (
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
+                404,
+            )
+
         # Send via HA
         web_server = get_web_server()
         ha_url = web_server.ha_url
         ha_token = web_server.ha_token
-        
+
         headers = {
-            'Authorization': f'Bearer {ha_token}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {ha_token}",
+            "Content-Type": "application/json",
         }
-        
+
         payload = {
-            'entity_id': entity_id,
-            'command': command_data  # Raw base64, no prefix
+            "entity_id": entity_id,
+            "command": command_data,  # Raw base64, no prefix
         }
-        
+
         response = requests.post(
-            f'{ha_url}/api/services/remote/send_command',
+            f"{ha_url}/api/services/remote/send_command",
             headers=headers,
             json=payload,
-            timeout=10
+            timeout=10,
         )
-        
+
         if response.status_code == 200:
             # Update test status
-            device_manager.update_command_test_status(device_id, command_name, 'ha')
-            
-            return jsonify({
-                'success': True,
-                'message': 'Command sent successfully via Home Assistant'
-            })
+            device_manager.update_command_test_status(device_id, command_name, "ha")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Command sent successfully via Home Assistant",
+                }
+            )
         else:
-            return jsonify({
-                'success': False,
-                'error': f'HA API returned status {response.status_code}'
-            }), response.status_code
-        
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"HA API returned status {response.status_code}",
+                    }
+                ),
+                response.status_code,
+            )
+
     except Exception as e:
         logger.error(f"Error testing command via HA: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500

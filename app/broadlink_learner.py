@@ -239,6 +239,22 @@ class BroadlinkLearner:
             logger.error(f"Error during RF learning: {e}")
             return None
 
+    def learn_rf_command(self, timeout: int = 30) -> Optional[Tuple[str, float]]:
+        """
+        Learn an RF command (without progress callbacks)
+
+        This is a wrapper around learn_rf_command_with_progress for backward compatibility.
+
+        Args:
+            timeout: Maximum seconds to wait for each step
+
+        Returns:
+            Tuple of (base64 data, frequency in MHz), or None if timeout/error
+        """
+        return self.learn_rf_command_with_progress(
+            timeout=timeout, progress_callback=None
+        )
+
     def test_command(self, base64_data: str) -> bool:
         """
         Test a command by sending it directly to the device

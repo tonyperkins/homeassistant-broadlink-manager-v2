@@ -623,26 +623,15 @@ class BroadlinkWebServer:
                     logger.info(
                         f"📝 Generating {len(broadlink_devices)} Broadlink native entities..."
                     )
-                    broadlink_commands = loop.run_until_complete(
-                        self._get_all_broadlink_commands()
+
+                    # Use device_manager directly - commands are now stored in devices.json
+                    from entity_generator_v2 import EntityGeneratorV2
+
+                    generator = EntityGeneratorV2(
+                        device_manager=self.device_manager,
+                        config_path=str(self.config_loader.get_config_path()),
                     )
-
-                    # Temporarily filter metadata to only include Broadlink devices
-                    original_metadata = self.storage_manager.get_all_entities()
-                    broadlink_metadata = {
-                        k: v
-                        for k, v in original_metadata.items()
-                        if v.get("device_type", "broadlink") == "broadlink"
-                    }
-
-                    # Temporarily replace metadata
-                    self.storage_manager.metadata["entities"] = broadlink_metadata
-
-                    generator = EntityGenerator(self.storage_manager, device_id)
-                    broadlink_result = generator.generate_all(broadlink_commands)
-
-                    # Restore original metadata
-                    self.storage_manager.metadata["entities"] = original_metadata
+                    broadlink_result = generator.generate_all_devices(broadlink_devices)
 
                     if broadlink_result.get("success"):
                         results["broadlink_count"] = broadlink_result.get(

@@ -536,11 +536,11 @@ const startLearning = async () => {
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
     
-    const response = await api.post('/api/commands/learn', {
-      entity_id: selectedBroadlink.value,
-      device: deviceName,
-      device_id: props.device.id,  // Send device_id for managed devices
-      command: actualCommand.trim(),
+    // Use direct learning API
+    const response = await api.post('/api/commands/learn/direct', {
+      device_id: props.device.id,
+      entity_id: selectedBroadlink.value || props.device.broadlink_entity,
+      command_name: actualCommand.trim(),
       command_type: commandType.value
     })
     

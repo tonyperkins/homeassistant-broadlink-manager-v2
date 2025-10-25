@@ -227,7 +227,7 @@
       @cancel="closeForm"
     />
 
-    <DirectCommandLearner
+    <CommandLearner
       v-if="showCommandLearner"
       :device="selectedDevice"
       @learned="handleCommandLearned"
@@ -279,7 +279,7 @@ import { useResponsive } from '@/composables/useResponsive'
 import DeviceCard from './DeviceCard.vue'
 import DeviceListView from './DeviceListView.vue'
 import DeviceForm from './DeviceForm.vue'
-import DirectCommandLearner from '../commands/DirectCommandLearner.vue'
+import CommandLearner from '../commands/CommandLearner.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import ErrorDialog from '../common/ErrorDialog.vue'
 import DeviceDiscovery from './DeviceDiscovery.vue'

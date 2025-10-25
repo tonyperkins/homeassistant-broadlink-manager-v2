@@ -131,70 +131,53 @@ def learn_command():
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(web_server._learn_command(data))
 
-        # If HA API returned success, save the command immediately
-        # Don't wait for storage file - trust that HA learned it successfully
+        # If HA API returned success, fetch the learned code immediately
         if result.get("success"):
             logger.info(
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
-            # Save the command to devices.json immediately if device_id is provided
-            # We trust HA's success response - don't wait for storage file lag
-            if device_id:
-                device_manager = current_app.config.get("device_manager")
-                if device_manager:
-                    command_data = {
-                        "command_type": command_type,
-                        "type": command_type,
-                        "learned_at": result.get("learned_at"),
-                    }
-
-                    # Save to device manager immediately
-                    if device_manager.add_command(device_id, command, command_data):
-                        logger.info(
-                            f"✅ Saved command '{command}' to device '{device_id}' with type '{command_type}'"
-                        )
-                    else:
-                        logger.warning(
-                            f"⚠️ Failed to save command '{command}' to device manager"
-                        )
-                else:
-                    logger.warning("⚠️ Device manager not available to save command")
-            else:
-                logger.info(
-                    "ℹ️ No device_id provided, command not saved to device manager"
-                )
-
-            # Optionally try to fetch the code from storage for verification
-            # But don't block on this - the command is already saved
+            # Fetch the learned code from Broadlink storage immediately
+            # The code is available right away, even though the file write may lag
             try:
                 import time
 
+                # Give HA a moment to process (usually instant, but be safe)
                 time.sleep(0.5)
+
+                # Fetch all commands from storage
                 all_commands = loop.run_until_complete(
                     web_server._get_all_broadlink_commands()
                 )
+
+                # Get the specific command we just learned
                 device_commands = all_commands.get(device, {})
                 learned_code = device_commands.get(command)
 
                 if learned_code:
                     logger.info(
-                        f"✅ Verified command '{command}' in storage (length: {len(learned_code)} chars)"
+                        f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
                     )
                     result["code"] = learned_code
+                    result["message"] = f"✅ Command '{command}' learned successfully!"
                 else:
-                    logger.info(
-                        f"ℹ️ Command '{command}' not yet in storage file (expected lag)"
+                    logger.warning(
+                        f"⚠️ Command learned but code not yet available in storage, using pending"
                     )
                     result["code"] = "pending"
+                    result["message"] = (
+                        f"✅ Command '{command}' learned! Code will be available shortly."
+                    )
 
             except Exception as fetch_error:
-                logger.warning(f"Could not verify command in storage: {fetch_error}")
+                logger.error(f"Error fetching learned code: {fetch_error}")
                 result["code"] = "pending"
+                result["message"] = (
+                    f"✅ Command '{command}' learned! Code will be available shortly."
+                )
             finally:
                 loop.close()
 
-            result["message"] = f"✅ Command '{command}' learned successfully!"
             return jsonify(result)
         else:
             loop.close()
@@ -928,8 +911,6 @@ def import_commands():
 @api_bp.route("/commands/sync", methods=["POST"])
 def sync_commands():
     """Sync all device commands with Broadlink storage"""
-    from datetime import datetime, timedelta
-
     try:
         logger.info("🔄 Starting command sync...")
         storage = get_storage_manager()
@@ -1000,35 +981,11 @@ def sync_commands():
                             "type": cmd_type,
                         }
 
-            # Don't remove recently learned commands (grace period for storage file lag)
-            grace_period = timedelta(seconds=60)
-            now = datetime.now()
-
-            commands_to_remove = []
-            for cmd_name in tracked_commands.keys():
-                if cmd_name not in storage_commands:
-                    # Check if this command was recently learned
-                    cmd_data = tracked_commands[cmd_name]
-                    if isinstance(cmd_data, dict):
-                        learned_at_str = cmd_data.get("learned_at")
-                        if learned_at_str:
-                            try:
-                                learned_at = datetime.fromisoformat(learned_at_str)
-                                time_since_learned = now - learned_at
-                                if time_since_learned < grace_period:
-                                    logger.info(
-                                        f"⏳ Keeping recently learned command '{cmd_name}' for device '{device_id}' "
-                                        f"(learned {time_since_learned.seconds}s ago, grace period: 60s)"
-                                    )
-                                    continue  # Don't remove - still within grace period
-                            except (ValueError, TypeError):
-                                pass  # Invalid timestamp, treat as old command
-
-                    # Command not in storage and not recently learned - remove it
-                    commands_to_remove.append(cmd_name)
-                    logger.info(
-                        f"🗑️ Removing command '{cmd_name}' from device '{device_id}' (not in storage and past grace period)"
-                    )
+            commands_to_remove = [
+                cmd_name
+                for cmd_name in tracked_commands.keys()
+                if cmd_name not in storage_commands
+            ]
 
             if commands_to_add or commands_to_remove or commands_to_update:
                 updated_commands = {**tracked_commands}
@@ -1106,35 +1063,11 @@ def sync_commands():
                             "type": cmd_type,
                         }
 
-            # Don't remove recently learned commands (grace period for storage file lag)
-            grace_period = timedelta(seconds=60)
-            now = datetime.now()
-
-            commands_to_remove = []
-            for cmd_name in tracked_commands.keys():
-                if cmd_name not in storage_commands:
-                    # Check if this command was recently learned
-                    cmd_data = tracked_commands[cmd_name]
-                    if isinstance(cmd_data, dict):
-                        learned_at_str = cmd_data.get("learned_at")
-                        if learned_at_str:
-                            try:
-                                learned_at = datetime.fromisoformat(learned_at_str)
-                                time_since_learned = now - learned_at
-                                if time_since_learned < grace_period:
-                                    logger.info(
-                                        f"⏳ Keeping recently learned command '{cmd_name}' for device '{entity_id}' "
-                                        f"(learned {time_since_learned.seconds}s ago, grace period: 60s)"
-                                    )
-                                    continue  # Don't remove - still within grace period
-                            except (ValueError, TypeError):
-                                pass  # Invalid timestamp, treat as old command
-
-                    # Command not in storage and not recently learned - remove it
-                    commands_to_remove.append(cmd_name)
-                    logger.info(
-                        f"🗑️ Removing command '{cmd_name}' from device '{entity_id}' (not in storage and past grace period)"
-                    )
+            commands_to_remove = [
+                cmd_name
+                for cmd_name in tracked_commands.keys()
+                if cmd_name not in storage_commands
+            ]
 
             if commands_to_add or commands_to_remove or commands_to_update:
                 updated_commands = {**tracked_commands}

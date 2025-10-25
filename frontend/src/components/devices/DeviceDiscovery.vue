@@ -144,23 +144,29 @@ const confirmDeleteDevice = (device) => {
 const deleteDevice = async () => {
   if (!deviceToDelete.value) return
   
+  const deviceName = deviceToDelete.value.device_name
   deleting.value = true
   
   try {
-    const response = await api.delete(`/api/devices/untracked/${encodeURIComponent(deviceToDelete.value.device_name)}`)
+    const response = await api.delete(`/api/devices/untracked/${encodeURIComponent(deviceName)}`)
     
     if (response.data.success) {
-      // Remove from list
+      // Optimistically remove from list immediately (don't wait for storage)
       untrackedDevices.value = untrackedDevices.value.filter(
-        d => d.device_name !== deviceToDelete.value.device_name
+        d => d.device_name !== deviceName
       )
       
-      // Close modals
+      // Close delete confirmation modal
       showDeleteConfirm.value = false
       deviceToDelete.value = null
       
-      // Show success message (you can add a toast notification here)
-      console.log('Device deleted successfully')
+      // If no more devices, close the discovery modal too
+      if (untrackedDevices.value.length === 0) {
+        showDiscovery.value = false
+      }
+      
+      // Show success message
+      toast.success(`Deleted all commands for '${deviceName}'`)
     } else {
       throw new Error(response.data.error || 'Failed to delete device')
     }

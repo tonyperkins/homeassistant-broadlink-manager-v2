@@ -165,25 +165,6 @@ const cycleTheme = () => {
   localStorage.setItem('theme', theme.value)
 }
 
-const checkMigrationStatus = async () => {
-  try {
-    const response = await api.get('/api/migrate/status')
-    const status = response.data
-    
-    // If migration is needed, show notification
-    if (status.needs_migration && status.metadata_entity_count > 0) {
-      console.log('⚠️ Migration needed:', status.metadata_entity_count, 'devices in old format')
-      toastRef.value?.warning(
-        `Found ${status.metadata_entity_count} devices in v1 format. They will be automatically migrated on next restart.`,
-        'Migration Available',
-        10000
-      )
-    }
-  } catch (error) {
-    console.error('Error checking migration status:', error)
-  }
-}
-
 const checkSmartIR = async () => {
   try {
     const status = await smartirService.getStatus()
@@ -345,9 +326,6 @@ onMounted(async () => {
       localStorage.setItem('theme', 'dark')
     }
   }
-  
-  // Check for migration status
-  await checkMigrationStatus()
   
   // Check SmartIR status
   await checkSmartIR()

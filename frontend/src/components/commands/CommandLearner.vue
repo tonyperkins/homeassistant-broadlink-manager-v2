@@ -548,27 +548,20 @@ const startLearning = async () => {
       resultMessage.value = `Command "${actualCommand}" learned successfully!`
       resultType.value = 'success'
       
-      // Immediately add to learned commands list (optimistic update)
+      // Immediately add to learned commands list (optimistic update for dialog)
       const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
       if (!existingCommand) {
         learnedCommands.value.push({
           name: actualCommand,
           type: commandType.value
         })
+        console.log(`✅ CommandLearner: Added '${actualCommand}' to local list, total: ${learnedCommands.value.length}`)
       }
       
       // Remove from untracked if it was there
       const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
       if (untrackedIndex > -1) {
         untrackedCommands.value.splice(untrackedIndex, 1)
-      }
-      
-      // Optimistically update the device's command count in the store
-      // This prevents the UI from showing stale data while waiting for storage file updates
-      const updatedCommands = { ...props.device.commands }
-      updatedCommands[actualCommand] = {
-        command_type: commandType.value,
-        type: commandType.value
       }
       
       // Reload untracked commands to remove the newly learned one
@@ -578,8 +571,14 @@ const startLearning = async () => {
       commandName.value = ''
       customCommandName.value = ''
       
-      // Notify parent component with updated command data
-      emit('learned', { commands: updatedCommands, commandName: actualCommand })
+      // Notify parent - just tell them a command was learned
+      // Parent will handle fetching fresh data from API
+      console.log(`📤 CommandLearner: Emitting learned event for '${actualCommand}'`)
+      emit('learned', { 
+        deviceId: props.device.id,
+        commandName: actualCommand,
+        commandType: commandType.value
+      })
     } else {
       resultMessage.value = response.data.error || 'Failed to learn command'
       resultType.value = 'error'

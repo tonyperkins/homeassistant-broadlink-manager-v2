@@ -657,21 +657,43 @@ const closeGenerationResultDialog = () => {
   showGenerationResultDialog.value = false
 }
 
-const handleCommandLearned = async (updateData) => {
-  // Optimistically update the device in the store immediately
-  // This prevents UI lag while waiting for storage file updates (which can take 10+ seconds in standalone mode)
-  if (updateData && updateData.commands && selectedDevice.value) {
-    const deviceIndex = deviceStore.devices.findIndex(d => d.id === selectedDevice.value.id)
-    if (deviceIndex !== -1) {
-      // Update the device's commands in the store
-      deviceStore.devices[deviceIndex].commands = updateData.commands
-      console.log(`Optimistically updated device ${selectedDevice.value.id} with new command: ${updateData.commandName}`)
+const handleCommandLearned = async (eventData) => {
+  console.log('📥 DeviceList: Command learned:', eventData)
+  
+  if (!eventData || !eventData.deviceId || !selectedDevice.value) {
+    console.warn('⚠️ DeviceList: Missing required data in learned event')
+    return
+  }
+  
+  // OPTIMISTIC UPDATE: Add the new command immediately
+  // Don't wait for storage files - they have 10+ second lag
+  const currentCommands = selectedDevice.value.commands || {}
+  const updatedCommands = {
+    ...currentCommands,
+    [eventData.commandName]: {
+      command_type: eventData.commandType,
+      type: eventData.commandType
     }
   }
   
-  // Still reload devices in the background to sync with storage
-  // But don't await it - let it happen asynchronously
-  deviceStore.loadDevices()
+  console.log(`✅ DeviceList: Optimistically adding command '${eventData.commandName}'`)
+  console.log(`✅ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
+  
+  // Update store (for device cards)
+  deviceStore.updateDeviceCommands(eventData.deviceId, updatedCommands)
+  
+  // Update selectedDevice (for dialog)
+  selectedDevice.value = {
+    ...selectedDevice.value,
+    commands: updatedCommands
+  }
+  
+  // Background: Reload devices after a delay to sync with storage
+  // This ensures we eventually get the real data from devices.json
+  setTimeout(() => {
+    console.log('🔄 DeviceList: Background sync from storage')
+    deviceStore.loadDevices()
+  }, 15000) // 15 seconds - after storage lag
   
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {

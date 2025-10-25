@@ -54,8 +54,8 @@ class DeviceManagerAdapter:
             broadlink_entity = device_data.get("broadlink_entity", "")
             device_name = device_data.get("name", device_id)
 
-            # Infer entity type from commands
-            entity_type = self._infer_entity_type(commands)
+            # Infer entity type from commands and device info
+            entity_type = self._infer_entity_type(commands, device_id, device_data)
 
             # Create entity metadata in v1 format
             entity_id = device_id
@@ -70,9 +70,18 @@ class DeviceManagerAdapter:
 
         return entities
 
-    def _infer_entity_type(self, commands: Dict[str, Any]) -> str:
-        """Infer entity type from command names"""
+    def _infer_entity_type(
+        self,
+        commands: Dict[str, Any],
+        device_id: str = "",
+        device_data: Dict[str, Any] = None,
+    ) -> str:
+        """Infer entity type from command names and device info"""
         command_names = set(commands.keys())
+
+        # Check explicit entity_type in device_data
+        if device_data and device_data.get("entity_type"):
+            return device_data["entity_type"]
 
         # Check for fan patterns
         fan_patterns = {
@@ -88,9 +97,9 @@ class DeviceManagerAdapter:
         if command_names & fan_patterns:
             return "fan"
 
-        # Check for light patterns
+        # Check for light patterns in commands or device name
         light_patterns = {"brightness_up", "brightness_down", "dim", "bright"}
-        if command_names & light_patterns or "light" in str(command_names).lower():
+        if command_names & light_patterns or "light" in device_id.lower():
             return "light"
 
         # Default to switch

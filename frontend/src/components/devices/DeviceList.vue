@@ -658,25 +658,34 @@ const closeGenerationResultDialog = () => {
 }
 
 const handleCommandLearned = async (eventData) => {
-  console.log('📥 DeviceList: Command learned:', eventData)
+  console.log('📥 DeviceList: Command learned/deleted:', eventData)
   
   if (!eventData || !eventData.deviceId || !selectedDevice.value) {
     console.warn('⚠️ DeviceList: Missing required data in learned event')
     return
   }
   
-  // OPTIMISTIC UPDATE: Add the new command immediately to selectedDevice (for dialog)
   const currentCommands = selectedDevice.value.commands || {}
-  const updatedCommands = {
-    ...currentCommands,
-    [eventData.commandName]: {
-      command_type: eventData.commandType,
-      type: eventData.commandType
-    }
-  }
+  let updatedCommands
   
-  console.log(`✅ DeviceList: Optimistically adding command '${eventData.commandName}'`)
-  console.log(`✅ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
+  if (eventData.action === 'deleted') {
+    // OPTIMISTIC UPDATE: Remove command immediately from selectedDevice (for dialog)
+    updatedCommands = { ...currentCommands }
+    delete updatedCommands[eventData.commandName]
+    console.log(`🗑️ DeviceList: Optimistically removing command '${eventData.commandName}'`)
+    console.log(`🗑️ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
+  } else {
+    // OPTIMISTIC UPDATE: Add the new command immediately to selectedDevice (for dialog)
+    updatedCommands = {
+      ...currentCommands,
+      [eventData.commandName]: {
+        command_type: eventData.commandType,
+        type: eventData.commandType
+      }
+    }
+    console.log(`✅ DeviceList: Optimistically adding command '${eventData.commandName}'`)
+    console.log(`✅ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
+  }
   
   // Update selectedDevice (for dialog to show immediately)
   selectedDevice.value = {

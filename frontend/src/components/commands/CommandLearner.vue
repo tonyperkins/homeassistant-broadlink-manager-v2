@@ -696,7 +696,13 @@ const handleDeleteConfirm = async () => {
     
     resultMessage.value = `Command "${command}" deleted`
     resultType.value = 'success'
-    emit('learned')
+    
+    // Emit event to parent to refresh device list and update command count
+    emit('learned', {
+      deviceId: props.device.id,
+      commandName: command,
+      action: 'deleted'
+    })
   } catch (error) {
     console.error('❌ Delete error:', error)
     resultMessage.value = `Failed to delete command: ${error.message}`

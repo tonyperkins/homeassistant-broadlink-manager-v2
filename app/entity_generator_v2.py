@@ -10,7 +10,12 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
-from .entity_generator import EntityGenerator
+
+# Handle both package and script imports
+try:
+    from .entity_generator import EntityGenerator
+except ImportError:
+    from entity_generator import EntityGenerator
 
 logger = logging.getLogger(__name__)
 

@@ -594,8 +594,8 @@ class BroadlinkWebServer:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-                # Sync devices.json to metadata.json
-                self._sync_devices_to_metadata()
+                # Note: No longer need to sync to metadata - adapter handles conversion
+                # self._sync_devices_to_metadata()
 
                 # Separate devices by type
                 all_devices = self.device_manager.get_all_devices()

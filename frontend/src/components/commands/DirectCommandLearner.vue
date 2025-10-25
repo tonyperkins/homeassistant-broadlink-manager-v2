@@ -230,6 +230,15 @@ const startLearning = async () => {
   if (!commandName.value.trim()) return
 
   try {
+    // Get entity_id from device (could be broadlink_entity or controller_device for SmartIR)
+    const entityId = props.device.broadlink_entity || props.device.controller_device
+    
+    if (!entityId) {
+      errorMessage.value = 'No Broadlink entity configured for this device'
+      state.value = 'error'
+      return
+    }
+    
     // Start learning based on type
     if (commandType.value === 'ir') {
       state.value = 'learning-ir'
@@ -241,7 +250,7 @@ const startLearning = async () => {
 
     const response = await api.post('/api/commands/learn/direct', {
       device_id: props.device.id,
-      entity_id: props.device.entity_id,
+      entity_id: entityId,
       command_name: commandName.value.trim(),
       command_type: commandType.value
     })
@@ -277,9 +286,10 @@ const testDirect = async () => {
   state.value = 'testing'
 
   try {
+    const entityId = props.device.broadlink_entity || props.device.controller_device
     const response = await api.post('/api/commands/test/direct', {
       device_id: props.device.id,
-      entity_id: props.device.entity_id,
+      entity_id: entityId,
       command_name: commandName.value.trim()
     })
 
@@ -300,9 +310,10 @@ const testViaHA = async () => {
   state.value = 'testing'
 
   try {
+    const entityId = props.device.broadlink_entity || props.device.controller_device
     const response = await api.post('/api/commands/test/ha', {
       device_id: props.device.id,
-      entity_id: props.device.entity_id,
+      entity_id: entityId,
       command_name: commandName.value.trim()
     })
 

@@ -105,10 +105,10 @@ class BroadlinkDeviceManager:
 
     def get_device_connection_info(self, entity_id: str) -> Optional[Dict]:
         """
-        Get device connection info from HA entity
+        Get device connection info from HA entity or network discovery
 
-        Extracts host, MAC, and device type from entity attributes
-        for use with python-broadlink.
+        Tries to extract from entity attributes first, then falls back to
+        network discovery to find the device.
 
         Args:
             entity_id: Entity ID (e.g., "remote.living_room_rm4_pro")
@@ -124,15 +124,33 @@ class BroadlinkDeviceManager:
 
         attributes = entity.get("attributes", {})
 
-        # Extract connection info
+        # Try to extract connection info from attributes
         host = attributes.get("host")
         mac_str = attributes.get("mac")
         device_type = attributes.get("type")
 
+        # If not in attributes, try network discovery
         if not all([host, mac_str, device_type]):
-            logger.error(f"Missing connection info in entity attributes")
-            logger.debug(f"host={host}, mac={mac_str}, type={device_type}")
-            return None
+            logger.info(
+                f"Connection info not in entity attributes, trying network discovery"
+            )
+            discovered = self.discover_devices(timeout=5)
+
+            if not discovered:
+                logger.error(f"No devices found via network discovery")
+                return None
+
+            # Use the first discovered device (assumes single Broadlink device on network)
+            # TODO: Match by friendly name or other identifier
+            if len(discovered) > 0:
+                device = discovered[0]
+                host = device["host"]
+                mac_str = device["mac"]
+                device_type = device["type"]
+                logger.info(f"Found device via discovery: {device['model']} at {host}")
+            else:
+                logger.error(f"No suitable device found")
+                return None
 
         # Convert MAC string to bytes
         try:

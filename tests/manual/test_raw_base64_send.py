@@ -35,12 +35,14 @@ import time
 
 # Configuration
 HA_URL = "http://homeassistant.local:8123"
-HA_TOKEN = "YOUR_LONG_LIVED_ACCESS_TOKEN"  # Get from HA profile
-BROADLINK_ENTITY_ID = "remote.bedroom_rm4"  # Change to your device
+HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJlMzcyYmFiYmIyNjQ0YzVkOTI3MTFhNTFjZTcxMTJkNCIsImlhdCI6MTc1NzQ0NDMwOCwiZXhwIjoyMDcyODA0MzA4fQ.hakvxq-vSfZMnBX7dUfVLClx8riDuA4QPxokHz9-x08"  # Get from HA profile
+BROADLINK_ENTITY_ID = "remote.tony_s_office_rm4_pro"  # Tony's Office RM4 Pro
 
 # Test configuration
-STORAGE_PATH = Path("/config/.storage")
-TEST_COMMAND_NAME = "power"  # Change to a command you have learned
+STORAGE_PATH = Path("h:/.storage")
+TEST_COMMAND_GROUP = "tony_s_office_ceiling_fan_light"  # Group name
+TEST_COMMAND_ON = "light_on"  # Command to turn on
+TEST_COMMAND_OFF = "light_off"  # Command to turn off
 
 
 def get_headers():
@@ -68,28 +70,111 @@ def find_broadlink_storage_file(entity_id):
     return None
 
 
+def get_specific_command_from_storage(storage_file, group_name, command_name):
+    """Read a specific command from a group in Broadlink storage file"""
+    try:
+        with open(storage_file, 'r') as f:
+            data = json.load(f)
+            
+        if "data" not in data:
+            print(f"❌ No 'data' key in storage file")
+            return None
+        
+        storage_data = data["data"]
+        
+        # Check if group exists
+        if group_name not in storage_data:
+            print(f"❌ Group '{group_name}' not found in storage")
+            return None
+        
+        group_data = storage_data[group_name]
+        
+        # Check if it's a dict (nested format)
+        if not isinstance(group_data, dict):
+            print(f"❌ '{group_name}' is not a group")
+            return None
+        
+        # Get specific command
+        if command_name not in group_data:
+            print(f"❌ Command '{command_name}' not found in group '{group_name}'")
+            print(f"   Available: {list(group_data.keys())}")
+            return None
+        
+        command_data = group_data[command_name]
+        print(f"✅ Found '{group_name}.{command_name}'")
+        print(f"   Data length: {len(command_data)} characters")
+        print(f"   First 50 chars: {command_data[:50]}...")
+        return command_data
+            
+    except Exception as e:
+        print(f"❌ Error reading storage file: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def get_command_from_storage(storage_file, command_name):
     """Read a command from Broadlink storage file"""
     try:
         with open(storage_file, 'r') as f:
             data = json.load(f)
             
-        # Broadlink storage format:
-        # {"data": {"command_name": "base64_data", ...}}
-        if "data" in data and command_name in data["data"]:
-            command_data = data["data"][command_name]
-            print(f"✅ Found command '{command_name}' in storage")
-            print(f"   Data length: {len(command_data)} characters")
-            print(f"   First 50 chars: {command_data[:50]}...")
-            return command_data
-        else:
-            print(f"❌ Command '{command_name}' not found in storage")
-            if "data" in data:
-                print(f"   Available commands: {list(data['data'].keys())}")
+        # Broadlink storage can have two formats:
+        # Format 1 (flat): {"data": {"command_name": "base64_data", ...}}
+        # Format 2 (nested): {"data": {"group": {"command_name": "base64_data", ...}}}
+        
+        if "data" not in data:
+            print(f"❌ No 'data' key in storage file")
             return None
+        
+        storage_data = data["data"]
+        
+        # Try flat format first
+        if command_name in storage_data:
+            command_data = storage_data[command_name]
+            
+            # Check if it's a string (actual command) or nested object
+            if isinstance(command_data, str):
+                print(f"✅ Found command '{command_name}' in storage (flat format)")
+                print(f"   Data length: {len(command_data)} characters")
+                print(f"   First 50 chars: {command_data[:50]}...")
+                return command_data
+            elif isinstance(command_data, dict):
+                # Nested format - command_name is a group
+                print(f"⚠️  '{command_name}' is a group with sub-commands:")
+                print(f"   Available sub-commands: {list(command_data.keys())}")
+                
+                # If there's a command with the same name as the group, use it
+                if command_name in command_data:
+                    actual_command = command_data[command_name]
+                    print(f"✅ Using '{command_name}.{command_name}' command")
+                    print(f"   Data length: {len(actual_command)} characters")
+                    print(f"   First 50 chars: {actual_command[:50]}...")
+                    return actual_command
+                else:
+                    # Use the first command in the group
+                    first_key = list(command_data.keys())[0]
+                    actual_command = command_data[first_key]
+                    print(f"✅ Using first command '{command_name}.{first_key}'")
+                    print(f"   Data length: {len(actual_command)} characters")
+                    print(f"   First 50 chars: {actual_command[:50]}...")
+                    return actual_command
+        
+        # Command not found - list available
+        print(f"❌ Command '{command_name}' not found in storage")
+        all_commands = []
+        for key, value in storage_data.items():
+            if isinstance(value, str):
+                all_commands.append(key)
+            elif isinstance(value, dict):
+                all_commands.append(f"{key} (group with: {', '.join(value.keys())})")
+        print(f"   Available: {all_commands}")
+        return None
             
     except Exception as e:
         print(f"❌ Error reading storage file: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -141,7 +226,8 @@ def main():
     
     print(f"✅ HA URL: {HA_URL}")
     print(f"✅ Entity ID: {BROADLINK_ENTITY_ID}")
-    print(f"✅ Test Command: {TEST_COMMAND_NAME}")
+    print(f"✅ Test Group: {TEST_COMMAND_GROUP}")
+    print(f"✅ Test Commands: {TEST_COMMAND_ON} / {TEST_COMMAND_OFF}")
     print()
     
     # Step 2: Find storage file
@@ -153,54 +239,94 @@ def main():
         return
     print()
     
-    # Step 3: Get command data
-    print("Step 3: Reading command from storage...")
-    command_data = get_command_from_storage(storage_file, TEST_COMMAND_NAME)
-    if not command_data:
-        print("❌ ERROR: Could not read command from storage")
-        print(f"   Make sure command '{TEST_COMMAND_NAME}' exists")
+    # Step 3: Get command data for both ON and OFF
+    print("Step 3: Reading commands from storage...")
+    print(f"Group: {TEST_COMMAND_GROUP}")
+    print(f"Commands: {TEST_COMMAND_ON}, {TEST_COMMAND_OFF}")
+    print()
+    
+    command_on_data = get_specific_command_from_storage(storage_file, TEST_COMMAND_GROUP, TEST_COMMAND_ON)
+    if not command_on_data:
+        print(f"❌ ERROR: Could not read '{TEST_COMMAND_ON}' command")
+        return
+    print()
+    
+    command_off_data = get_specific_command_from_storage(storage_file, TEST_COMMAND_GROUP, TEST_COMMAND_OFF)
+    if not command_off_data:
+        print(f"❌ ERROR: Could not read '{TEST_COMMAND_OFF}' command")
         return
     print()
     
     # Step 4: Run tests
     print("Step 4: Running send tests...")
     print("⚠️  WARNING: These tests will actually send IR/RF signals!")
-    print("   Make sure your device is ready to receive commands")
+    print("   Your light should turn ON, wait 5 seconds, then turn OFF for each test")
     input("Press Enter to continue...")
     print()
     
     results = {}
     
-    # Test 1: Baseline - Send using command name (should work)
-    results['command_name'] = send_command_via_ha(
+    # Test 1: Raw base64 with "b64:" prefix
+    print("\n" + "="*60)
+    print("TEST 1: Raw Base64 with 'b64:' prefix")
+    print("="*60)
+    print("Sending LIGHT ON...")
+    on_result = send_command_via_ha(
         BROADLINK_ENTITY_ID,
-        TEST_COMMAND_NAME,
-        "Baseline: Command Name"
+        f"b64:{command_on_data}",
+        "Light ON with 'b64:' prefix"
     )
+    print("⏳ Waiting 5 seconds...")
+    time.sleep(5)
+    print("Sending LIGHT OFF...")
+    off_result = send_command_via_ha(
+        BROADLINK_ENTITY_ID,
+        f"b64:{command_off_data}",
+        "Light OFF with 'b64:' prefix"
+    )
+    results['b64_prefix'] = on_result and off_result
     time.sleep(2)
     
-    # Test 2: Raw base64 with "b64:" prefix
-    results['b64_prefix'] = send_command_via_ha(
+    # Test 2: Raw base64 without prefix
+    print("\n" + "="*60)
+    print("TEST 2: Raw Base64 without prefix")
+    print("="*60)
+    print("Sending LIGHT ON...")
+    on_result = send_command_via_ha(
         BROADLINK_ENTITY_ID,
-        f"b64:{command_data}",
-        "Raw Base64 with 'b64:' prefix"
+        command_on_data,
+        "Light ON without prefix"
     )
+    print("⏳ Waiting 5 seconds...")
+    time.sleep(5)
+    print("Sending LIGHT OFF...")
+    off_result = send_command_via_ha(
+        BROADLINK_ENTITY_ID,
+        command_off_data,
+        "Light OFF without prefix"
+    )
+    results['b64_no_prefix'] = on_result and off_result
     time.sleep(2)
     
-    # Test 3: Raw base64 without prefix
-    results['b64_no_prefix'] = send_command_via_ha(
+    # Test 3: Raw base64 with "base64:" prefix
+    print("\n" + "="*60)
+    print("TEST 3: Raw Base64 with 'base64:' prefix")
+    print("="*60)
+    print("Sending LIGHT ON...")
+    on_result = send_command_via_ha(
         BROADLINK_ENTITY_ID,
-        command_data,
-        "Raw Base64 without prefix"
+        f"base64:{command_on_data}",
+        "Light ON with 'base64:' prefix"
     )
-    time.sleep(2)
-    
-    # Test 4: Raw base64 with "base64:" prefix
-    results['base64_prefix'] = send_command_via_ha(
+    print("⏳ Waiting 5 seconds...")
+    time.sleep(5)
+    print("Sending LIGHT OFF...")
+    off_result = send_command_via_ha(
         BROADLINK_ENTITY_ID,
-        f"base64:{command_data}",
-        "Raw Base64 with 'base64:' prefix"
+        f"base64:{command_off_data}",
+        "Light OFF with 'base64:' prefix"
     )
+    results['base64_prefix'] = on_result and off_result
     time.sleep(2)
     
     # Step 5: Summary

@@ -1233,7 +1233,9 @@ def learn_command_direct():
                 )
 
         # Save to devices.json
-        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         success = device_manager.add_learned_command(
             device_id=device_id,
             command_name=command_name,
@@ -1318,7 +1320,9 @@ def test_command_direct():
         web_server = get_web_server()
 
         # Get command data
-        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:
@@ -1413,7 +1417,9 @@ def test_command_ha():
         web_server = get_web_server()
 
         # Get command data
-        device_manager = DeviceManager(storage_path=str(web_server.storage_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:

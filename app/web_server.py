@@ -81,12 +81,14 @@ class BroadlinkWebServer:
         # Home Assistant configuration (from ConfigLoader)
         self.ha_url = self.config_loader.get_ha_url()
         self.ha_token = self.config_loader.get_ha_token()
-        self.storage_path = self.config_loader.get_storage_path()
+        self.storage_path = (
+            self.config_loader.get_storage_path()
+        )  # For HA storage files (.storage/)
+        self.broadlink_manager_path = (
+            self.config_loader.get_broadlink_manager_path()
+        )  # For devices.json (broadlink_manager/)
 
         logger.info(f"Web server initialized in {self.config_loader.mode} mode")
-
-        # Broadlink manager path
-        self.broadlink_manager_path = self.config_loader.get_broadlink_manager_path()
 
         # WebSocket notifications cache
         self.ws_notifications: list[str] = []

@@ -56,33 +56,30 @@ class BroadlinkDeviceManager:
 
             device_list = []
             for device in devices:
-                # device.type might be int or string depending on python-broadlink version
-                device_type = device.type
-                if isinstance(device_type, str):
-                    # Already a string, try to convert to int for hex
-                    try:
-                        device_type_int = (
-                            int(device_type, 16)
-                            if device_type.startswith("0x")
-                            else int(device_type)
-                        )
-                        type_hex = hex(device_type_int)
-                    except:
-                        type_hex = device_type  # Use as-is if conversion fails
-                else:
-                    # It's an integer
-                    device_type_int = device_type
-                    type_hex = hex(device_type)
+                # Get numeric device type - try devtype first, then type
+                device_type = None
+                if hasattr(device, "devtype"):
+                    device_type = device.devtype
+                elif hasattr(device, "type") and isinstance(device.type, int):
+                    device_type = device.type
+
+                # If we still don't have a numeric type, log warning and skip
+                if device_type is None or not isinstance(device_type, int):
+                    logger.warning(
+                        f"Could not get numeric device type for {device.model if hasattr(device, 'model') else 'unknown device'}"
+                    )
+                    logger.debug(
+                        f"device.type = {device.type if hasattr(device, 'type') else 'N/A'}, device.devtype = {device.devtype if hasattr(device, 'devtype') else 'N/A'}"
+                    )
+                    continue
 
                 device_info = {
                     "host": device.host[0],
                     "port": device.host[1],
                     "mac": device.mac.hex(":"),
                     "mac_bytes": device.mac,
-                    "type": (
-                        device_type_int if isinstance(device_type, int) else device_type
-                    ),
-                    "type_hex": type_hex,
+                    "type": device_type,
+                    "type_hex": hex(device_type),
                     "model": device.model if hasattr(device, "model") else "Unknown",
                     "manufacturer": (
                         device.manufacturer

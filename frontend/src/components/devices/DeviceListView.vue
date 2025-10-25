@@ -36,8 +36,9 @@
               <button 
                 v-for="cmd in getDeviceCommands(device)" 
                 :key="cmd"
-                class="command-btn"
+                :class="['command-btn', getCommandTypeClass(device, cmd)]"
                 @click="sendCommand(device, cmd)"
+                :title="getCommandTypeLabel(device, cmd)"
               >
                 {{ cmd }}
               </button>
@@ -88,6 +89,21 @@ export default {
         return Object.keys(device.commands);
       }
       return [];
+    },
+    getCommandType(device, commandName) {
+      if (device.commands && device.commands[commandName]) {
+        const cmd = device.commands[commandName];
+        return cmd.type || 'ir'; // Default to IR
+      }
+      return 'ir';
+    },
+    getCommandTypeClass(device, commandName) {
+      const type = this.getCommandType(device, commandName);
+      return type === 'rf' ? 'command-rf' : 'command-ir';
+    },
+    getCommandTypeLabel(device, commandName) {
+      const type = this.getCommandType(device, commandName);
+      return type === 'rf' ? 'RF Command' : 'IR Command';
     },
     sendCommand(device, command) {
       this.$emit('send-command', { device, command });
@@ -203,7 +219,6 @@ export default {
 
 .command-btn {
   padding: 4px 10px;
-  background: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -212,8 +227,22 @@ export default {
   transition: background-color 0.2s;
 }
 
-.command-btn:hover {
+/* IR Commands - Blue */
+.command-btn.command-ir {
+  background: #007bff;
+}
+
+.command-btn.command-ir:hover {
   background: #0056b3;
+}
+
+/* RF Commands - Purple */
+.command-btn.command-rf {
+  background: #7b1fa2;
+}
+
+.command-btn.command-rf:hover {
+  background: #6a1b9a;
 }
 
 .no-commands {

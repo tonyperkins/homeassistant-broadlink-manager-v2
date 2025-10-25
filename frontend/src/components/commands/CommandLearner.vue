@@ -101,23 +101,26 @@
         <div v-if="learning" class="learning-status">
           <i class="mdi mdi-loading mdi-spin"></i>
           
+          <!-- Preparing Phase -->
+          <div v-if="learningPhase === 'preparing'">
+            <p><strong>Preparing device...</strong></p>
+            <small>Connecting and authenticating with Broadlink device (this takes a few seconds)</small>
+          </div>
+          
           <!-- IR Learning Instructions -->
-          <div v-if="commandType === 'ir'">
-            <p>Point your remote at the Broadlink device and press the button...</p>
+          <div v-else-if="commandType === 'ir'">
+            <p><strong>Ready!</strong> Point your remote at the Broadlink device and press the button...</p>
             <small>This may take up to 30 seconds</small>
           </div>
           
           <!-- RF Learning Instructions -->
           <div v-else-if="commandType === 'rf'" class="rf-instructions">
-            <p><strong>Learning request sent to device.</strong></p>
-            <p>RF learning is a two-step process:</p>
+            <p><strong>RF Learning - Two Steps:</strong></p>
             <ol>
-              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
-              <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
+              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and HOLD the button on your remote for 2-3 seconds</li>
+              <li><strong>Step 2 - Learn Signal:</strong> After frequency locks, press the button again (short press)</li>
             </ol>
-            <p class="ha-note">
-              Follow the Home Assistant notifications (<i class="mdi mdi-bell"></i>) for real-time instructions.
-            </p>
+            <small>Watch for status updates below</small>
           </div>
         </div>
 
@@ -250,6 +253,7 @@ const commandName = ref('')
 const customCommandName = ref('')
 const commandType = ref('ir')
 const learning = ref(false)
+const learningPhase = ref('') // 'preparing', 'ready', or ''
 const resultMessage = ref('')
 const resultType = ref('success')
 const learnedCommands = ref([])
@@ -523,6 +527,12 @@ const startLearning = async () => {
   resultType.value = ''
   
   learning.value = true
+  learningPhase.value = 'preparing'
+  
+  // After 6 seconds, switch to ready phase (device should be connected by then)
+  const phaseTimer = setTimeout(() => {
+    learningPhase.value = 'ready'
+  }, 6000)
   
   try {
     // Extract device name - try multiple sources
@@ -587,7 +597,9 @@ const startLearning = async () => {
     resultMessage.value = error.response?.data?.error || 'Error learning command'
     resultType.value = 'error'
   } finally {
+    clearTimeout(phaseTimer)
     learning.value = false
+    learningPhase.value = ''
   }
 }
 
@@ -624,15 +636,15 @@ const testCommand = async (command) => {
     }
     
     const requestData = {
+      device_id: props.device.id,
       entity_id: entityId,
-      device: deviceName,
-      command: command,
-      device_id: props.device.id
+      command_name: command
     }
     
     console.log('🧪 Testing command:', requestData)
     
-    const response = await api.post('/api/commands/test', requestData)
+    // Use direct test endpoint
+    const response = await api.post('/api/commands/test/direct', requestData)
     
     if (response.data.success) {
       // Show success on the command row

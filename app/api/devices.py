@@ -891,11 +891,16 @@ def sync_device_area(device_id):
             logger.warning(f"Device '{device_id}' not found in either manager")
             return jsonify({"error": "Device not found"}), 404
 
-        # Build full entity_id
-        entity_type = device_data.get("entity_type", "switch")
-        full_entity_id = f"{entity_type}.{device_id}"
-
-        logger.info(f"Syncing area for entity: {full_entity_id}")
+        # Build full entity_id - check if device_id already includes entity type
+        if "." in device_id:
+            # Already a full entity ID (e.g., "light.testrf")
+            full_entity_id = device_id
+            logger.info(f"Using provided entity_id: {full_entity_id}")
+        else:
+            # Just the device ID, need to add entity type
+            entity_type = device_data.get("entity_type", "switch")
+            full_entity_id = f"{entity_type}.{device_id}"
+            logger.info(f"Built entity_id: {full_entity_id}")
 
         # Get entity details from HA (includes area_id)
         loop = asyncio.new_event_loop()

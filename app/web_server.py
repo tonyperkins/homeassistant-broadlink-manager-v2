@@ -98,6 +98,15 @@ class BroadlinkWebServer:
         # Format: {device_name: {command_name: timestamp}}
         self.recently_deleted_commands: dict[str, dict[str, int]] = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
+        
+        # Storage command cache to handle async file writes
+        # This cache sits in front of _get_all_broadlink_commands()
+        # Format: {device_name: {command_name: command_data}}
+        # When we write to storage, we update this cache immediately
+        # Reads return cached data until file is actually written
+        self.storage_command_cache: dict[str, dict[str, str]] = {}
+        self.storage_cache_timestamp: float = 0
+        self.STORAGE_CACHE_TTL = 60  # Refresh cache every 60 seconds
 
         # Device connection info cache to speed up learning/testing
         # Format: {entity_id: {host, mac, type, type_hex, model, mac_bytes, cached_at}}
@@ -1768,10 +1777,20 @@ class BroadlinkWebServer:
             return {}
 
     async def _get_all_broadlink_commands(self) -> Dict[str, Dict[str, str]]:
-        """Get all Broadlink commands in simple format for entity generator"""
+        """
+        Get all Broadlink commands with cache layer.
+        
+        This method sits behind a cache that handles async file writes:
+        - On read: Returns cached data merged with file data
+        - Cache is refreshed periodically (STORAGE_CACHE_TTL)
+        - Recently deleted commands are filtered out
+        """
         try:
+            current_time = time.time()
+            
+            # Read from storage files
             storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
-            all_commands = {}
+            file_commands = {}
 
             for storage_file in storage_files:
                 try:
@@ -1782,11 +1801,39 @@ class BroadlinkWebServer:
                         # Extract device commands
                         for device_name, commands in data.get("data", {}).items():
                             if isinstance(commands, dict):
-                                all_commands[device_name] = commands
+                                file_commands[device_name] = commands
 
                 except Exception as e:
                     logger.warning(f"Error reading storage file {storage_file}: {e}")
                     continue
+
+            # Merge with cache: cache takes precedence for devices that have cached data
+            all_commands = {}
+            
+            # Start with file data
+            for device_name, commands in file_commands.items():
+                all_commands[device_name] = commands.copy()
+            
+            # Apply cache updates (additions/modifications)
+            for device_name, cached_commands in self.storage_command_cache.items():
+                if device_name not in all_commands:
+                    all_commands[device_name] = {}
+                all_commands[device_name].update(cached_commands)
+            
+            # Filter out recently deleted commands
+            for device_name in list(all_commands.keys()):
+                if device_name in self.recently_deleted_commands:
+                    for cmd_name in list(all_commands[device_name].keys()):
+                        if self._is_recently_deleted(device_name, cmd_name):
+                            logger.debug(f"Filtering out recently deleted: {device_name}/{cmd_name}")
+                            del all_commands[device_name][cmd_name]
+                    
+                    # Clean up empty devices
+                    if not all_commands[device_name]:
+                        del all_commands[device_name]
+            
+            # Clean up expired deletion cache entries
+            self._cleanup_deletion_cache()
 
             return all_commands
 
@@ -1834,12 +1881,52 @@ class BroadlinkWebServer:
 
             for command_name in commands_to_remove:
                 del commands[command_name]
-
+            
+            # Mark device for removal if no commands left
             if not commands:
                 devices_to_remove.append(device_name)
-
+        
+        # Remove empty devices
         for device_name in devices_to_remove:
             del self.recently_deleted_commands[device_name]
+    
+    def _add_to_storage_cache(self, device_name: str, command_name: str, command_data: str):
+        """
+        Add a command to the storage cache.
+        This is called immediately when learning/importing a command.
+        The cache will return this data until the file is actually written.
+        """
+        if device_name not in self.storage_command_cache:
+            self.storage_command_cache[device_name] = {}
+        self.storage_command_cache[device_name][command_name] = command_data
+        logger.info(f"✅ Added to storage cache: {device_name}/{command_name}")
+    
+    def _remove_from_storage_cache(self, device_name: str, command_name: str):
+        """
+        Remove a command from the storage cache.
+        This is called immediately when deleting a command.
+        """
+        if device_name in self.storage_command_cache:
+            if command_name in self.storage_command_cache[device_name]:
+                del self.storage_command_cache[device_name][command_name]
+                logger.info(f"🗑️ Removed from storage cache: {device_name}/{command_name}")
+                
+                # Clean up empty device entries
+                if not self.storage_command_cache[device_name]:
+                    del self.storage_command_cache[device_name]
+    
+    def _clear_storage_cache(self, device_name: Optional[str] = None):
+        """
+        Clear storage cache for a device or all devices.
+        Called after file operations complete to sync with actual file state.
+        """
+        if device_name:
+            if device_name in self.storage_command_cache:
+                del self.storage_command_cache[device_name]
+                logger.debug(f"Cleared storage cache for device: {device_name}")
+        else:
+            self.storage_command_cache.clear()
+            logger.debug("Cleared all storage cache")
 
     async def _find_broadlink_entity_for_device(self, device_name: str) -> str:
         """Find which Broadlink entity owns the commands for a given device name"""

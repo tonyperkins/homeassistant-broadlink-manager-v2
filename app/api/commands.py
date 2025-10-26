@@ -159,6 +159,11 @@ def learn_command():
                     )
                     result["code"] = learned_code
                     result["message"] = f"✅ Command '{command}' learned successfully!"
+                    
+                    # Add to storage cache for integration_only saves
+                    if save_destination in ["integration_only", "both"]:
+                        web_server._add_to_storage_cache(device, command, learned_code)
+                        logger.info(f"Added {device}/{command} to storage cache")
                 else:
                     logger.warning(
                         f"⚠️ Command learned but code not yet available in storage, using pending"
@@ -754,6 +759,10 @@ def delete_command_from_storage():
             # This prevents the command from showing as "untracked" during storage file update lag
             web_server._add_to_deletion_cache(device, command)
             logger.info(f"Added {device}/{command} to deletion cache for optimistic UI")
+            
+            # Also remove from storage cache immediately
+            web_server._remove_from_storage_cache(device, command)
+            logger.info(f"Removed {device}/{command} from storage cache")
 
             return jsonify(
                 {

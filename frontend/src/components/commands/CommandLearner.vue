@@ -641,17 +641,9 @@ const startLearning = async () => {
     // Handle simple response (no SSE streaming)
     if (response.data.success) {
       learningPhase.value = 'complete'
-      // Clear any warning messages and show success
-      resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
-      resultType.value = 'success'
-      
-      // Auto-clear success message after 5 seconds
-      setTimeout(() => {
-        if (resultType.value === 'success') {
-          resultMessage.value = ''
-          resultType.value = ''
-        }
-      }, 5000)
+      // Don't show success message - command will appear in list automatically
+      resultMessage.value = ''
+      resultType.value = ''
       
       // Only add to learned commands if saved to manager (manager_only or both)
       if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {

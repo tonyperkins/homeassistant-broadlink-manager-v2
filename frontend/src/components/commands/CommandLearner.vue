@@ -75,13 +75,19 @@
           <div class="radio-card-group">
             <label class="radio-card" :class="{ active: commandType === 'ir', disabled: learning }">
               <input type="radio" v-model="commandType" value="ir" :disabled="learning" />
-              <i class="mdi mdi-remote"></i>
-              <span>IR (Infrared)</span>
+              <span class="radio-indicator">
+                <i class="mdi" :class="commandType === 'ir' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              </span>
+              <i class="mdi mdi-remote card-icon"></i>
+              <span class="card-text">IR (Infrared)</span>
             </label>
             <label class="radio-card" :class="{ active: commandType === 'rf', disabled: learning }">
               <input type="radio" v-model="commandType" value="rf" :disabled="learning" />
-              <i class="mdi mdi-radio-tower"></i>
-              <span>RF (Radio Frequency)</span>
+              <span class="radio-indicator">
+                <i class="mdi" :class="commandType === 'rf' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              </span>
+              <i class="mdi mdi-radio-tower card-icon"></i>
+              <span class="card-text">RF (Radio Frequency)</span>
             </label>
           </div>
         </div>
@@ -97,18 +103,27 @@
           <div class="radio-card-group">
             <label class="radio-card" :class="{ active: saveDestination === 'manager_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="manager_only" :disabled="learning" />
-              <i class="mdi mdi-application"></i>
-              <span>Broadlink Manager</span>
+              <span class="radio-indicator">
+                <i class="mdi" :class="saveDestination === 'manager_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              </span>
+              <i class="mdi mdi-application card-icon"></i>
+              <span class="card-text">Broadlink Manager</span>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'integration_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
-              <i class="mdi mdi-home-assistant"></i>
-              <span>Broadlink Integration</span>
+              <span class="radio-indicator">
+                <i class="mdi" :class="saveDestination === 'integration_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              </span>
+              <i class="mdi mdi-home-assistant card-icon"></i>
+              <span class="card-text">Broadlink Integration</span>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
-              <i class="mdi mdi-swap-horizontal"></i>
-              <span>Both</span>
+              <span class="radio-indicator">
+                <i class="mdi" :class="saveDestination === 'both' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              </span>
+              <i class="mdi mdi-swap-horizontal card-icon"></i>
+              <span class="card-text">Both</span>
             </label>
           </div>
           <div v-if="showSaveDestinationHelp" class="help-box">
@@ -1171,7 +1186,22 @@ const handleImportConfirm = async () => {
   pointer-events: none;
 }
 
-.radio-card i {
+.radio-indicator {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.radio-indicator i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.radio-card.active .radio-indicator i {
+  color: var(--ha-primary-color);
+}
+
+.radio-card .card-icon {
   font-size: 18px;
   color: var(--ha-text-secondary-color);
   flex-shrink: 0;
@@ -1180,11 +1210,11 @@ const handleImportConfirm = async () => {
   justify-content: center;
 }
 
-.radio-card.active i {
+.radio-card.active .card-icon {
   color: var(--ha-primary-color);
 }
 
-.radio-card span {
+.radio-card .card-text {
   font-size: 14px;
   color: var(--ha-text-primary-color);
   font-weight: 500;
@@ -1192,7 +1222,7 @@ const handleImportConfirm = async () => {
   line-height: 1.2;
 }
 
-.radio-card.active span {
+.radio-card.active .card-text {
   color: var(--ha-primary-color);
 }
 

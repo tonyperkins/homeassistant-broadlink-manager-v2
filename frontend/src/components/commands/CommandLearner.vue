@@ -397,24 +397,8 @@ watch(() => props.device, async (newDevice, oldDevice) => {
 onMounted(async () => {
   await loadBroadlinkDevices()
   
-  // Sync command types on mount (fixes RF/IR detection for adopted devices)
-  // Do this BEFORE loading commands so we get the updated types
-  try {
-    console.log('🔄 Syncing command types...')
-    const syncResponse = await api.post('/api/commands/sync')
-    console.log('✅ Command types synced:', syncResponse.data)
-  } catch (error) {
-    console.error('⚠️ Failed to sync command types:', error)
-  }
-  
-  // Always force reload from API for non-SmartIR devices to get fresh command types
-  // This ensures we get the updated RF/IR types after sync
-  const shouldForceReload = !isSmartIR.value
-  console.log(`📋 Will ${shouldForceReload ? 'FORCE RELOAD' : 'use cached'} commands`)
-  
-  // Load commands AFTER sync completes
-  await loadLearnedCommands(shouldForceReload)
-  // Note: Untracked commands are now synced via the sync button, not auto-imported
+  // Load commands from devices.json (no syncing from .storage files)
+  await loadLearnedCommands()
   
   // Set custom validation messages
   if (commandSelect.value) {

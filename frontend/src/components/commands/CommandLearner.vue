@@ -145,7 +145,11 @@
             <small>This may take up to 30 seconds</small>
           </div>
           
-          <!-- RF Learning Instructions - REMOVED, message shown below instead -->
+          <!-- RF Learning Instructions -->
+          <div v-else-if="commandType === 'rf'">
+            <p><strong>Learning RF command...</strong></p>
+            <small>Check Home Assistant notifications (🔔) for instructions</small>
+          </div>
         </div>
 
         <!-- Result Message (success only, warning removed) -->

@@ -622,24 +622,6 @@ const startLearning = async () => {
         }
       }
       
-      // For integration_only, poll until command appears in storage
-      if (saveDestination.value === 'integration_only') {
-        const deviceName = props.device.device || props.device.id
-        await pollForStorageChange(
-          async () => {
-            const response = await api.get('/api/commands/untracked')
-            const untracked = response.data.untracked || {}
-            const deviceCommands = untracked[deviceName]?.commands || {}
-            return actualCommand in deviceCommands
-          },
-          {
-            maxAttempts: 15,
-            intervalMs: 500,
-            description: `command "${actualCommand}" in storage`
-          }
-        )
-      }
-      
       // Always reload untracked commands to get current state from server
       // This will show integration_only commands as untracked
       await loadUntrackedCommands()
@@ -763,21 +745,6 @@ const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {
           command: command
         })
         console.log(`✅ Also deleted from Broadlink Integration storage`)
-        
-        // Poll until command is removed from storage
-        await pollForStorageChange(
-          async () => {
-            const response = await api.get('/api/commands/untracked')
-            const untracked = response.data.untracked || {}
-            const deviceCommands = untracked[deviceName]?.commands || {}
-            return !(command in deviceCommands)
-          },
-          {
-            maxAttempts: 15,
-            intervalMs: 500,
-            description: `command "${command}" removed from storage`
-          }
-        )
       } catch (storageError) {
         console.warn(`⚠️ Failed to delete from Broadlink Integration storage:`, storageError)
         // Don't fail the whole operation if storage deletion fails
@@ -787,7 +754,7 @@ const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {
     // Reload commands from server to get actual state
     await loadLearnedCommands(true)
     
-    // Refresh untracked commands (should not show deleted command)
+    // Refresh untracked commands (in case it becomes untracked)
     await loadUntrackedCommands()
     
     resultMessage.value = `Command "${command}" deleted`
@@ -808,41 +775,6 @@ const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {
   } finally {
     commandToDelete.value = ''
   }
-}
-
-/**
- * Poll for storage file changes with retry logic
- * @param {Function} checkFn - Function that returns true when expected state is reached
- * @param {Object} options - Polling options
- * @returns {Promise<boolean>} - True if expected state reached, false if timeout
- */
-const pollForStorageChange = async (checkFn, options = {}) => {
-  const {
-    maxAttempts = 10,
-    intervalMs = 500,
-    description = 'storage change'
-  } = options
-  
-  console.log(`⏳ Polling for ${description} (max ${maxAttempts} attempts, ${intervalMs}ms interval)`)
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const result = await checkFn()
-      if (result) {
-        console.log(`✅ ${description} detected after ${attempt} attempt(s)`)
-        return true
-      }
-    } catch (error) {
-      console.warn(`⚠️ Poll attempt ${attempt} failed:`, error.message)
-    }
-    
-    if (attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, intervalMs))
-    }
-  }
-  
-  console.warn(`⏰ Timeout waiting for ${description} after ${maxAttempts} attempts`)
-  return false
 }
 
 const loadUntrackedCommands = async () => {
@@ -909,13 +841,6 @@ const importSingleCommand = async (commandName) => {
       // Reload commands to reflect the import
       await loadLearnedCommands(true)
       await loadUntrackedCommands()
-      
-      // Emit event to parent to refresh device list and update command count
-      emit('learned', {
-        deviceId: props.device.id,
-        commandName: commandName,
-        action: 'imported'
-      })
     } else {
       resultMessage.value = response.data.error || 'Failed to import command'
       resultType.value = 'error'

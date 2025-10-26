@@ -686,7 +686,8 @@ def delete_command_from_storage():
             entity_id = f"remote.{device}"
             logger.warning(f"⚠️ Could not find entity_id, using fallback: {entity_id}")
 
-        service_payload = {"entity_id": entity_id, "command": command}
+        # HA's remote.delete_command expects command as a list
+        service_payload = {"entity_id": entity_id, "command": [command]}
         logger.info(f"🔧 Calling HA service with payload: {service_payload}")
 
         result = loop.run_until_complete(

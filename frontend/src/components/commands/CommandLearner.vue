@@ -229,7 +229,6 @@
           <div class="command-list">
             <div v-for="cmd in untrackedCommands" :key="cmd" class="command-item untracked">
               <span class="command-name">{{ cmd }}</span>
-              <span class="untracked-badge">Not tracked</span>
               <button 
                 type="button" 
                 @click="importSingleCommand(cmd)" 
@@ -239,7 +238,7 @@
                 <i class="mdi mdi-import"></i>
               </button>
             </div>
-          </div>
+          </div><br></br>
           <button type="button" @click="importUntrackedCommands" class="btn btn-secondary">
             <i class="mdi mdi-import"></i>
             Import All Untracked Commands

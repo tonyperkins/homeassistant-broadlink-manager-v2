@@ -136,9 +136,16 @@ def learn_command():
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
-            # For integration_only/both: Add to cache immediately and trust it
-            # The command will appear as untracked right away
-            if save_destination in ["integration_only", "both"]:
+            # For RF commands, keep the original notification message
+            if command_type == "rf":
+                # Use the message from _learn_command which tells user to check HA notifications
+                logger.info(f"RF command - using notification message from _learn_command")
+                # Add to cache for integration_only/both
+                if save_destination in ["integration_only", "both"]:
+                    web_server._add_to_storage_cache(device, command, "pending")
+                    logger.info(f"✅ Added {device}/{command} to storage cache")
+            # For IR commands with integration_only/both: Add to cache immediately and trust it
+            elif save_destination in ["integration_only", "both"]:
                 web_server._add_to_storage_cache(device, command, "pending")
                 logger.info(f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately")
                 result["code"] = "pending"

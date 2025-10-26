@@ -555,102 +555,59 @@ const startLearning = async () => {
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
     
-    // Use fetch with streaming for SSE (supports POST with JSON body)
-    const response = await fetch('/api/commands/learn/direct/stream', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        device_id: props.device.id,
-        entity_id: selectedBroadlink.value || props.device.broadlink_entity,
-        command_name: actualCommand.trim(),
-        command_type: commandType.value
-      })
+    // Use HA API method (works in both standalone and add-on modes)
+    // Note: Direct learning endpoint (/commands/learn/direct/stream) is kept in backend
+    // but not used to avoid network isolation issues in add-on mode
+    learningPhase.value = 'learning'
+    
+    const response = await api.post('/api/commands/learn', {
+      device_id: props.device.id,
+      entity_id: selectedBroadlink.value || props.device.broadlink_entity,
+      device: props.device.device || props.device.id,
+      command: actualCommand.trim(),
+      command_type: commandType.value
     })
     
-    if (!response.ok) {
-      throw new Error('Failed to start learning')
-    }
-    
-    // Read the stream
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    
-    while (true) {
-      const { done, value } = await reader.read()
+    // Handle simple response (no SSE streaming)
+    if (response.data.success) {
+      learningPhase.value = 'complete'
+      resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
+      resultType.value = 'success'
       
-      if (done) break
-      
-      // Decode chunk and add to buffer
-      buffer += decoder.decode(value, { stream: true })
-      
-      // Process complete SSE messages (separated by \n\n)
-      const messages = buffer.split('\n\n')
-      buffer = messages.pop() // Keep incomplete message in buffer
-      
-      for (const message of messages) {
-        if (!message.trim() || !message.startsWith('data: ')) continue
-        
-        try {
-          const jsonStr = message.replace('data: ', '')
-          const data = JSON.parse(jsonStr)
-          console.log('📡 SSE Status:', data.status, data.message)
-          
-          // Update phase and status message
-          learningPhase.value = data.status
-          learningStatusMessage.value = data.message
-          
-          if (data.status === 'complete') {
-            resultMessage.value = `Command "${actualCommand}" learned successfully!`
-            resultType.value = 'success'
-            
-            // Immediately add to learned commands list
-            const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
-            if (!existingCommand) {
-              learnedCommands.value.push({
-                name: actualCommand,
-                type: commandType.value
-              })
-            }
-            
-            // Remove from untracked if it was there
-            const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
-            if (untrackedIndex > -1) {
-              untrackedCommands.value.splice(untrackedIndex, 1)
-            }
-            
-            // Reload untracked commands
-            loadUntrackedCommands()
-            
-            // Clear form for next command
-            commandName.value = ''
-            customCommandName.value = ''
-            
-            // Notify parent
-            emit('learned', { 
-              deviceId: props.device.id,
-              commandName: actualCommand,
-              commandType: commandType.value
-            })
-            
-            learning.value = false
-            learningPhase.value = ''
-            return
-          } else if (data.status === 'error') {
-            resultMessage.value = data.message || 'Failed to learn command'
-            resultType.value = 'error'
-            learning.value = false
-            learningPhase.value = ''
-            return
-          }
-        } catch (parseError) {
-          console.error('Error parsing SSE message:', parseError)
-        }
+      // Immediately add to learned commands list
+      const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+      if (!existingCommand) {
+        learnedCommands.value.push({
+          name: actualCommand,
+          type: commandType.value
+        })
       }
+      
+      // Remove from untracked if it was there
+      const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
+      if (untrackedIndex > -1) {
+        untrackedCommands.value.splice(untrackedIndex, 1)
+      }
+      
+      // Reload untracked commands
+      loadUntrackedCommands()
+      
+      // Clear form for next command
+      commandName.value = ''
+      customCommandName.value = ''
+      
+      // Notify parent
+      emit('learned', { 
+        deviceId: props.device.id,
+        commandName: actualCommand,
+        commandType: commandType.value
+      })
+      
+      learning.value = false
+      learningPhase.value = ''
+    } else {
+      throw new Error(response.data.error || 'Failed to learn command')
     }
-    
   } catch (error) {
     console.error('Learning error:', error)
     resultMessage.value = error.message || 'Error learning command'

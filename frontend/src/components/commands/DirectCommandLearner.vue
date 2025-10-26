@@ -252,37 +252,27 @@ const startLearning = async () => {
       return
     }
     
-    // Show preparing state first
-    state.value = 'preparing'
-    
-    // After 6 seconds, switch to learning state (device should be ready by then)
-    const learningStateTimer = setTimeout(() => {
-      if (commandType.value === 'ir') {
-        state.value = 'learning-ir'
-      } else {
-        state.value = 'learning-rf-sweep'
-      }
-      startTimer()
-    }, 6000)
+    // Show learning state
+    if (commandType.value === 'ir') {
+      state.value = 'learning-ir'
+    } else {
+      state.value = 'learning-rf-sweep'
+    }
+    startTimer()
 
-    const response = await api.post('/api/commands/learn/direct', {
+    // Use HA API method (works in both standalone and add-on modes)
+    const response = await api.post('/api/commands/learn', {
       device_id: props.device.id,
       entity_id: entityId,
-      command_name: commandName.value.trim(),
+      device: props.device.device || props.device.id,
+      command: commandName.value.trim(),
       command_type: commandType.value
     })
-    
-    // Clear the timer if request completes early
-    clearTimeout(learningStateTimer)
 
     stopTimer()
 
     if (response.data.success) {
       // Success!
-      dataLength.value = response.data.data_length
-      if (response.data.frequency) {
-        rfFrequency.value = response.data.frequency
-      }
       state.value = 'success'
     } else {
       errorMessage.value = response.data.error || 'Learning failed'

@@ -157,14 +157,16 @@ def learn_command():
                 result["code"] = "pending"
                 result["message"] = f"✅ Command '{command}' learned and added to storage!"
             else:
-                # For manager_only: Try to fetch the code from storage
+                # For manager_only: Fetch code from storage (goes through cache layer)
+                # The cache will return it immediately if available, otherwise reads from file
                 try:
                     import time
 
-                    # Give HA a moment to process (usually instant, but be safe)
-                    time.sleep(0.5)
+                    # Wait a bit for HA to write to storage (usually 1-3 seconds)
+                    # This is acceptable for manager_only since we need the actual code
+                    time.sleep(2)
 
-                    # Fetch all commands from storage
+                    # Fetch all commands from storage (uses cache layer)
                     all_commands = loop.run_until_complete(
                         web_server._get_all_broadlink_commands()
                     )
@@ -180,19 +182,22 @@ def learn_command():
                         result["code"] = learned_code
                         result["message"] = f"✅ Command '{command}' learned successfully!"
                     else:
+                        # Code not available yet - save as pending and user can test later
                         logger.warning(
-                            f"⚠️ Command learned but code not yet available in storage"
+                            f"⚠️ Command learned but code not yet in storage - saving as pending"
                         )
+                        learned_code = "pending"
                         result["code"] = "pending"
                         result["message"] = (
-                            f"✅ Command '{command}' learned! Code will be available shortly."
+                            f"✅ Command '{command}' learned! Test it after a few seconds when code is available."
                         )
 
                 except Exception as fetch_error:
                     logger.error(f"Error fetching learned code: {fetch_error}")
+                    learned_code = "pending"
                     result["code"] = "pending"
                     result["message"] = (
-                        f"✅ Command '{command}' learned! Code will be available shortly."
+                        f"✅ Command '{command}' learned! Test it after a few seconds when code is available."
                     )
 
             # Handle save destination logic

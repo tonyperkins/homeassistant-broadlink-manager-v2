@@ -145,31 +145,13 @@
             <small>This may take up to 30 seconds</small>
           </div>
           
-          <!-- RF Learning Instructions -->
-          <div v-else-if="commandType === 'rf'" class="rf-instructions">
-            <p v-if="!learningStatusMessage"><strong>RF Learning - Single Action:</strong></p>
-            <div v-if="!learningStatusMessage" class="rf-action">
-              <strong>Press and HOLD the button for 2-3 seconds, then RELEASE</strong>
-            </div>
-            <!-- Real-time status from backend -->
-            <div v-if="learningStatusMessage" class="rf-status">
-              <strong>{{ learningStatusMessage }}</strong>
-            </div>
-            <div v-if="learningPhase === 'captured'" class="rf-success">
-              <i class="mdi mdi-check-circle"></i>
-              <span>Signal captured! Saving...</span>
-            </div>
-          </div>
+          <!-- RF Learning Instructions - REMOVED, message shown below instead -->
         </div>
 
-        <!-- Result Message (success/warning for learning/deleting, errors use native validation) -->
+        <!-- Result Message (success only, warning removed) -->
         <!-- Test command success is shown inline on the command row -->
         <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully')" class="result-message success">
           <i class="mdi mdi-check-circle"></i>
-          <p>{{ resultMessage }}</p>
-        </div>
-        <div v-if="resultMessage && resultType === 'warning'" class="result-message warning">
-          <i class="mdi mdi-alert"></i>
           <p>{{ resultMessage }}</p>
         </div>
         </form>
@@ -189,7 +171,7 @@
         <div v-else-if="learnedCommands.length > 0" class="learned-commands">
           <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
           <div class="command-list">
-            <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
+            <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item" :class="{ 'error-state': cmd.hasError, 'pending-state': cmd.isPending }">
               <div class="command-info">
                 <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
@@ -220,10 +202,16 @@
                 
                 <!-- Action buttons -->
                 <div class="command-actions">
-                  <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
+                  <button 
+                    type="button" 
+                    @click="testCommand(cmd.name)" 
+                    class="icon-btn" 
+                    :title="cmd.hasError ? 'Cannot test - command failed to learn' : cmd.isPending ? 'Cannot test - waiting for code' : 'Test command'" 
+                    :disabled="testingCommand === cmd.name || cmd.hasError || cmd.isPending"
+                  >
                     <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
                   </button>
-                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
+                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" :title="cmd.hasError ? 'Delete and re-learn' : 'Delete command'">
                     <i class="mdi mdi-delete"></i>
                   </button>
                 </div>
@@ -637,12 +625,9 @@ const startLearning = async () => {
     // Handle simple response (no SSE streaming)
     if (response.data.success) {
       learningPhase.value = 'complete'
-      // For RF commands, keep the warning message; for IR, show success
-      if (commandType.value !== 'rf') {
-        resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
-        resultType.value = 'success'
-      }
-      // RF message already shown above, just mark as complete
+      // Clear any warning messages and show success
+      resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
+      resultType.value = 'success'
       
       // Only add to learned commands if saved to manager (manager_only or both)
       if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {
@@ -1270,6 +1255,36 @@ const handleImportConfirm = async () => {
 .command-item.untracked {
   background: rgba(var(--ha-warning-rgb, 255, 152, 0), 0.05);
   border-color: var(--ha-warning-color, #ff9800);
+}
+
+.command-item.error-state {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+  border-width: 3px;
+}
+
+.command-item.pending-state {
+  background: rgba(255, 152, 0, 0.05);
+  border-color: #ff9800;
+  border-style: dashed;
+}
+
+.error-icon {
+  font-size: 20px;
+  color: #f44336;
+  cursor: help;
+}
+
+.pending-icon {
+  font-size: 18px;
+  color: #ff9800;
+  cursor: help;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .command-right {

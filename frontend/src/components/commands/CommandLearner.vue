@@ -230,6 +230,14 @@
             <div v-for="cmd in untrackedCommands" :key="cmd" class="command-item untracked">
               <span class="command-name">{{ cmd }}</span>
               <span class="untracked-badge">Not tracked</span>
+              <button 
+                type="button" 
+                @click="importSingleCommand(cmd)" 
+                class="btn-icon" 
+                title="Import this command"
+              >
+                <i class="mdi mdi-import"></i>
+              </button>
             </div>
           </div>
           <button type="button" @click="importUntrackedCommands" class="btn btn-secondary">
@@ -798,6 +806,44 @@ const loadUntrackedCommands = async () => {
 const importUntrackedCommands = () => {
   if (untrackedCommands.value.length === 0) return
   showImportConfirm.value = true
+}
+
+const importSingleCommand = async (commandName) => {
+  console.log('🔵 [IMPORT SINGLE] Importing command:', commandName)
+  
+  try {
+    // Get the device name (storage key)
+    const deviceName = props.device.device || props.device.id || (props.device.id?.includes('.') ? props.device.id.split('.')[1] : null)
+    
+    if (!deviceName) {
+      throw new Error('Could not determine device name for import')
+    }
+    
+    console.log('🔵 [IMPORT SINGLE] Calling API to import command...')
+    const response = await api.post('/api/commands/import', {
+      device_id: props.device.id,
+      source_device: deviceName,
+      commands: [commandName]  // Import just this one command
+    })
+    
+    console.log('🔵 [IMPORT SINGLE] API response:', response.data)
+    
+    if (response.data.success) {
+      resultMessage.value = `Imported command '${commandName}' successfully!`
+      resultType.value = 'success'
+      
+      // Reload commands to reflect the import
+      await loadLearnedCommands(true)
+      await loadUntrackedCommands()
+    } else {
+      resultMessage.value = response.data.error || 'Failed to import command'
+      resultType.value = 'error'
+    }
+  } catch (error) {
+    console.error('🔴 [IMPORT SINGLE] Error:', error)
+    resultMessage.value = error.response?.data?.error || error.message || 'Failed to import command'
+    resultType.value = 'error'
+  }
 }
 
 const handleImportConfirm = async () => {

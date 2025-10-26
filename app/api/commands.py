@@ -635,24 +635,27 @@ def delete_command_from_storage():
     """Delete a command from Broadlink Integration storage (.storage files)"""
     try:
         data = request.json
+        logger.info(f"🗑️ Delete from storage request: {data}")
+
         device = data.get("device")
         command = data.get("command")
 
         if not device or not command:
+            error_msg = f"Missing device or command parameter: device={device}, command={command}"
+            logger.error(f"❌ {error_msg}")
             return (
-                jsonify(
-                    {"success": False, "error": "Missing device or command parameter"}
-                ),
+                jsonify({"success": False, "error": error_msg}),
                 400,
             )
 
         logger.info(
-            f"Deleting command '{command}' from Broadlink storage for device '{device}'"
+            f"🗑️ Deleting command '{command}' from Broadlink storage for device '{device}'"
         )
 
         # Get web server instance
         web_server = get_web_server()
         if not web_server:
+            logger.error("❌ Web server not available")
             return jsonify({"success": False, "error": "Web server not available"}), 500
 
         # Call HA API to delete the command
@@ -660,7 +663,29 @@ def delete_command_from_storage():
         asyncio.set_event_loop(loop)
 
         # Use HA's remote.delete_command service
-        service_payload = {"entity_id": f"remote.{device}", "command": command}
+        # The device parameter should be the storage key (e.g., "tony_s_office_workbench_lamp")
+        # We need to find the corresponding entity_id
+        device_manager = current_app.config.get("device_manager")
+        entity_id = None
+
+        if device_manager:
+            # Try to find the device by its storage name
+            all_devices = device_manager.get_all_devices()
+            for dev_id, dev_data in all_devices.items():
+                if dev_data.get("device") == device:
+                    entity_id = dev_data.get("broadlink_entity")
+                    logger.info(
+                        f"🔍 Found entity_id '{entity_id}' for device '{device}'"
+                    )
+                    break
+
+        if not entity_id:
+            # Fallback: assume device is already the entity name part
+            entity_id = f"remote.{device}"
+            logger.warning(f"⚠️ Could not find entity_id, using fallback: {entity_id}")
+
+        service_payload = {"entity_id": entity_id, "command": command}
+        logger.info(f"🔧 Calling HA service with payload: {service_payload}")
 
         result = loop.run_until_complete(
             web_server._make_ha_request(
@@ -669,8 +694,12 @@ def delete_command_from_storage():
         )
         loop.close()
 
+        logger.info(f"📥 HA API response: {result}")
+
         if result is not None:
-            logger.info(f"✅ Command '{command}' deleted from Broadlink storage")
+            logger.info(
+                f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}"
+            )
             return jsonify(
                 {
                     "success": True,

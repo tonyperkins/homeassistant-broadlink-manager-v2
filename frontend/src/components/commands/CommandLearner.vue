@@ -817,33 +817,52 @@ const importUntrackedCommands = () => {
 }
 
 const handleImportConfirm = async () => {
+  console.log('🔵 [IMPORT] Starting import process...')
+  console.log('🔵 [IMPORT] Current learned commands:', learnedCommands.value.length)
+  console.log('🔵 [IMPORT] Current untracked commands:', untrackedCommands.value.length)
+  
   showImportConfirm.value = false
   
   try {
     const deviceName = props.device.device || props.device.id.split('.')[1]
     
+    console.log('🔵 [IMPORT] Calling API to import commands...')
     const response = await api.post('/api/commands/import', {
       device_id: props.device.id,
       source_device: deviceName,
       commands: untrackedCommands.value
     })
     
+    console.log('🔵 [IMPORT] API response:', response.data)
+    
     if (response.data.success) {
       resultMessage.value = `Imported ${response.data.imported_count} commands successfully!`
       resultType.value = 'success'
       
+      console.log('🔵 [IMPORT] Import successful, now reloading commands...')
+      console.log('🔵 [IMPORT] BEFORE reload - learned:', learnedCommands.value.length, 'untracked:', untrackedCommands.value.length)
+      
       // CRITICAL: Force reload from server to get actual state
       await loadLearnedCommands(true)  // ← Added forceReload=true
+      
+      console.log('🔵 [IMPORT] AFTER loadLearnedCommands - learned:', learnedCommands.value.length)
+      
       await loadUntrackedCommands()
       
+      console.log('🔵 [IMPORT] AFTER loadUntrackedCommands - untracked:', untrackedCommands.value.length)
+      console.log('🔵 [IMPORT] Final state - learned:', learnedCommands.value, 'untracked:', untrackedCommands.value)
+      
       // Emit event to parent to refresh device list and update command count
+      console.log('🔵 [IMPORT] Emitting learned event to parent...')
       emit('learned', {
         deviceId: props.device.id,
         action: 'imported',
         count: response.data.imported_count
       })
+      console.log('🔵 [IMPORT] ✅ Import process complete!')
     }
   } catch (error) {
+    console.error('🔵 [IMPORT] ❌ Import failed:', error)
     resultMessage.value = `Failed to import commands: ${error.message}`
     resultType.value = 'error'
   }

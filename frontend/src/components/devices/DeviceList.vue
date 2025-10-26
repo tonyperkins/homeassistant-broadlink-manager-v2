@@ -659,31 +659,43 @@ const closeGenerationResultDialog = () => {
 }
 
 const handleCommandLearned = async (eventData) => {
-  console.log('📥 DeviceList: Command learned/deleted/imported:', eventData)
+  console.log('🟢 [PARENT] Received learned event:', eventData)
   
   if (!eventData || !eventData.deviceId) {
-    console.warn('⚠️ DeviceList: Missing required data in learned event')
+    console.warn('⚠️ [PARENT] Missing required data in learned event')
     return
   }
   
+  console.log('🟢 [PARENT] Current selectedDevice commands:', Object.keys(selectedDevice.value?.commands || {}).length)
+  console.log('🟢 [PARENT] Current store device count:', deviceStore.devices.length)
+  
   // CRITICAL: Always reload from server to get actual state
   // Don't do optimistic updates - they cause state sync issues
-  console.log('🔄 DeviceList: Force reloading all devices from API')
+  console.log('🟢 [PARENT] Force reloading all devices from API with cache bust...')
   await deviceStore.loadDevices(true) // true = bust cache
+  
+  console.log('🟢 [PARENT] After reload - store device count:', deviceStore.devices.length)
   
   // Update selectedDevice with fresh data from store
   if (selectedDevice.value) {
+    console.log('🟢 [PARENT] Looking for device:', eventData.deviceId)
     const freshDevice = deviceStore.devices.find(d => d.id === eventData.deviceId)
     if (freshDevice) {
+      console.log('🟢 [PARENT] Found fresh device with', Object.keys(freshDevice.commands || {}).length, 'commands')
       selectedDevice.value = { ...freshDevice }
-      console.log(`✅ DeviceList: Updated selectedDevice with fresh data (${Object.keys(freshDevice.commands || {}).length} commands)`)
+      console.log('🟢 [PARENT] ✅ Updated selectedDevice - now has', Object.keys(selectedDevice.value.commands || {}).length, 'commands')
+    } else {
+      console.error('🟢 [PARENT] ❌ Device not found in store after reload!')
     }
   }
   
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {
+    console.log('🟢 [PARENT] Refreshing discovery...')
     discoveryRef.value.refresh()
   }
+  
+  console.log('🟢 [PARENT] ✅ handleCommandLearned complete!')
 }
 
 const convertStorageNameToDisplay = (storageName) => {

@@ -196,8 +196,19 @@
               
               <!-- Right-aligned icons and buttons -->
               <div class="command-right">
-                <!-- Learned status - just checkmark with tooltip -->
+                <!-- Status icon - checkmark, error, or pending -->
                 <i 
+                  v-if="cmd.hasError"
+                  class="mdi mdi-alert-circle error-icon" 
+                  title="Error: Command failed to learn. Delete and try again."
+                ></i>
+                <i 
+                  v-else-if="cmd.isPending"
+                  class="mdi mdi-clock-outline pending-icon" 
+                  title="Pending: Waiting for code from storage..."
+                ></i>
+                <i 
+                  v-else
                   class="mdi mdi-check-circle learned-icon" 
                   :title="`Learned (${(cmd.type || 'ir').toUpperCase()})`"
                 ></i>
@@ -518,9 +529,13 @@ const loadLearnedCommands = async (forceReload = false) => {
             const cmdType = typeof data === 'object' && data !== null 
               ? (data.command_type || data.type || 'ir')
               : 'ir'
+            const cmdData = typeof data === 'object' && data !== null ? data.data : data
             return {
               name,
-              type: cmdType
+              type: cmdType,
+              data: cmdData,
+              hasError: cmdData === 'error',
+              isPending: cmdData === 'pending'
             }
           })
           console.log('📋 Reloaded commands:', learnedCommands.value)
@@ -535,10 +550,16 @@ const loadLearnedCommands = async (forceReload = false) => {
         }
       } else if (props.device.commands && Object.keys(props.device.commands).length > 0) {
         console.log('✅ Using commands from device object')
-        learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => ({
-          name,
-          type: data.command_type || data.type || 'ir'
-        }))
+        learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => {
+          const cmdData = data.data || data
+          return {
+            name,
+            type: data.command_type || data.type || 'ir',
+            data: cmdData,
+            hasError: cmdData === 'error',
+            isPending: cmdData === 'pending'
+          }
+        })
       } else if (props.device.commands !== undefined) {
         // Device has commands property but it's empty - no need to fetch
         console.log('ℹ️ Device has empty commands object - skipping API call')

@@ -52,12 +52,34 @@ class DeviceManager:
 
     def _load_devices(self) -> Dict[str, Any]:
         """Load devices from storage"""
-        try:
-            with open(self.devices_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading devices: {e}")
-            return {}
+        # On Windows, editors often replace files atomically which can briefly
+        # lock the target or leave a partially-written file. Retry a few times
+        # on PermissionError or JSONDecodeError before giving up.
+        import time
+        from json import JSONDecodeError
+
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                with open(self.devices_file, "r") as f:
+                    return json.load(f)
+            except (PermissionError, JSONDecodeError) as e:
+                if attempt < max_retries - 1:
+                    backoff = 0.05 * (attempt + 1)
+                    logger.debug(
+                        f"Load devices retry due to {type(e).__name__}: waiting {backoff:.2f}s (attempt {attempt+1}/{max_retries})"
+                    )
+                    time.sleep(backoff)
+                    continue
+                logger.error(f"Error loading devices after retries: {e}")
+                return {}
+            except FileNotFoundError:
+                # If file truly doesn't exist yet, return empty
+                logger.warning("devices.json not found when loading; returning empty set")
+                return {}
+            except Exception as e:
+                logger.error(f"Unexpected error loading devices: {e}")
+                return {}
 
     def _save_devices(self, devices: Dict[str, Any]) -> bool:
         """

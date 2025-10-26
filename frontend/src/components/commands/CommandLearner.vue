@@ -107,7 +107,7 @@
               <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
               <i class="mdi radio-indicator" :class="saveDestination === 'integration_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               <i class="mdi mdi-home-assistant card-icon"></i>
-              <span class="card-text">Broadlink Integration</span>
+              <span class="card-text">HA Broadlink</span>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
@@ -120,7 +120,7 @@
             <h4>Save Destination Options</h4>
             <ul>
               <li><strong>Broadlink Manager (Recommended):</strong> Commands are saved only in this app's database (devices.json). This gives you full control and makes commands portable. The Broadlink Integration won't see these commands.</li>
-              <li><strong>Broadlink Integration:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
+              <li><strong>HA Broadlink:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
               <li><strong>Both:</strong> Commands are saved in both places. Use this if you want commands available in both this app and the Broadlink Integration.</li>
             </ul>
           </div>
@@ -1148,8 +1148,8 @@ const handleImportConfirm = async () => {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 0;
+  padding: 10px 12px;
   border: 2px solid var(--ha-border-color);
   border-radius: 8px;
   background: var(--ha-card-background);
@@ -1158,7 +1158,7 @@ const handleImportConfirm = async () => {
   width: 100%;
   min-width: 0;
   justify-content: flex-start;
-  min-height: 44px;
+  min-height: 40px;
   box-sizing: border-box;
 }
 
@@ -1191,9 +1191,10 @@ const handleImportConfirm = async () => {
 }
 
 .radio-indicator {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--ha-text-secondary-color);
   flex-shrink: 0;
+  margin-right: 10px; /* extra space between radio and icon */
 }
 
 .radio-card.active .radio-indicator {
@@ -1204,6 +1205,7 @@ const handleImportConfirm = async () => {
   font-size: 18px;
   color: var(--ha-text-secondary-color);
   flex-shrink: 0;
+  margin-right: 8px; /* space between icon and text */
 }
 
 .radio-card.active .card-icon {

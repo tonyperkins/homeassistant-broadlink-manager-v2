@@ -42,17 +42,38 @@ class DevicesJsonWatcher(FileSystemEventHandler):
     def __init__(self, web_server):
         self.web_server = web_server
         self.last_modified = 0
-        
+    
+    def _is_devices_file(self, event) -> bool:
+        """Return True if the event refers to devices.json (src or dest path)."""
+        try:
+            src = getattr(event, "src_path", "") or ""
+            dest = getattr(event, "dest_path", "") or ""
+            return src.endswith("devices.json") or dest.endswith("devices.json")
+        except Exception:
+            return False
+
+    def _handle_change(self, event, action_label: str):
+        # Debounce - only process if more than 1 second since last modification
+        current_time = time.time()
+        if current_time - self.last_modified < 1:
+            return
+        self.last_modified = current_time
+
+        path = getattr(event, "dest_path", None) or getattr(event, "src_path", "")
+        logger.info(f"📁 devices.json {action_label} ({event.event_type}): {path}. Checking for pending commands...")
+        self.web_server._check_and_start_polling_for_pending()
+
     def on_modified(self, event):
-        if event.src_path.endswith('devices.json'):
-            # Debounce - only process if more than 1 second since last modification
-            current_time = time.time()
-            if current_time - self.last_modified < 1:
-                return
-            self.last_modified = current_time
-            
-            logger.info("📁 devices.json modified, checking for pending commands...")
-            self.web_server._check_and_start_polling_for_pending()
+        if self._is_devices_file(event):
+            self._handle_change(event, "modified")
+
+    def on_created(self, event):
+        if self._is_devices_file(event):
+            self._handle_change(event, "created")
+
+    def on_moved(self, event):
+        if self._is_devices_file(event):
+            self._handle_change(event, "moved")
 
 
 class IngressMiddleware:

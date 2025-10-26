@@ -584,10 +584,18 @@ const startLearning = async () => {
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
     
+    // For RF commands, show instructional message immediately
+    if (commandType.value === 'rf') {
+      learningPhase.value = 'learning'
+      resultMessage.value = '⚠️ Learning request sent to device. Check Home Assistant notifications (🔔) for instructions. Note: If the device is offline or times out, you will see a notification but this dialog will still show success.'
+      resultType.value = 'warning'
+    } else {
+      learningPhase.value = 'learning'
+    }
+    
     // Use HA API method (works in both standalone and add-on modes)
     // Note: Direct learning endpoint (/commands/learn/direct/stream) is kept in backend
     // but not used to avoid network isolation issues in add-on mode
-    learningPhase.value = 'learning'
     
     const response = await api.post('/api/commands/learn', {
       device_id: props.device.id,
@@ -601,8 +609,12 @@ const startLearning = async () => {
     // Handle simple response (no SSE streaming)
     if (response.data.success) {
       learningPhase.value = 'complete'
-      resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
-      resultType.value = 'success'
+      // For RF commands, keep the warning message; for IR, show success
+      if (commandType.value !== 'rf') {
+        resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
+        resultType.value = 'success'
+      }
+      // RF message already shown above, just mark as complete
       
       // Only add to learned commands if saved to manager (manager_only or both)
       if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {

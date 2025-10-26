@@ -624,6 +624,35 @@ def test_command():
         else:
             # Broadlink device - send raw code with b64: prefix
             # This allows us to control commands in devices.json without relying on .storage files
+            
+            # If command is "pending", try to fetch from storage
+            if command == "pending":
+                logger.info(f"Command is 'pending' - attempting to fetch from storage")
+                try:
+                    all_commands = loop.run_until_complete(
+                        web_server._get_all_broadlink_commands()
+                    )
+                    device_commands = all_commands.get(device, {})
+                    stored_command = device_commands.get(data.get("command"))  # Use original command name
+                    
+                    if stored_command and stored_command != "pending":
+                        command = stored_command
+                        logger.info(f"✅ Found command in storage (length: {len(command)} chars)")
+                    else:
+                        logger.error(f"❌ Command not yet available in storage")
+                        loop.close()
+                        return jsonify({
+                            "success": False,
+                            "error": "Command is still being learned. Please wait a moment and try again."
+                        }), 400
+                except Exception as e:
+                    logger.error(f"Error fetching from storage: {e}")
+                    loop.close()
+                    return jsonify({
+                        "success": False,
+                        "error": "Command not yet available. Please wait a moment and try again."
+                    }), 400
+            
             service_payload = {
                 "entity_id": entity_id,
                 "command": f"b64:{command}",

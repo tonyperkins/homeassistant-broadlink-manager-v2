@@ -177,7 +177,7 @@ def learn_command():
             # Update devices.json if this is a managed device
             if device_id:
                 try:
-                    device_manager = get_device_manager()
+                    device_manager = current_app.config.get("device_manager")
                     if device_manager:
                         managed_device = device_manager.get_device(device_id)
                         if managed_device:
@@ -780,11 +780,8 @@ def import_commands():
 
         entity_data["commands"] = device_commands
 
-        # Save back to the appropriate store
-        if device_manager and device_manager.get_device(device_id):
-            device_manager.update_device(device_id, entity_data)
-        else:
-            storage.save_entity(device_id, entity_data)
+        # Save to device_manager
+        device_manager.update_device(device_id, entity_data)
 
         logger.info(
             f"Imported {len(commands)} commands from '{source_device}' to device '{device_id}'"
@@ -912,88 +909,6 @@ def sync_commands():
                     }
                 )
 
-        # Sync adopted devices (from storage_manager - metadata.json)
-        adopted_entities = storage.get_all_entities()
-        logger.info(f"📋 Found {len(adopted_entities)} adopted entities")
-
-        for entity_id, entity_data in adopted_entities.items():
-            device_name = entity_data.get("device")
-            if not device_name:
-                continue
-
-            logger.info(
-                f"🔍 Checking adopted device '{entity_id}' (storage name: '{device_name}')"
-            )
-
-            storage_commands = broadlink_commands.get(device_name, {})
-            tracked_commands = entity_data.get("commands", {})
-
-            commands_to_add = {}
-            commands_to_update = {}
-
-            for cmd_name, cmd_data in storage_commands.items():
-                cmd_type = detect_command_type(cmd_data)
-
-                if cmd_name not in tracked_commands:
-                    # New command - add it
-                    commands_to_add[cmd_name] = {
-                        "command_type": cmd_type,
-                        "type": cmd_type,
-                    }
-                else:
-                    # Existing command - check if type needs updating
-                    existing_cmd = tracked_commands[cmd_name]
-                    if isinstance(existing_cmd, dict):
-                        existing_type = existing_cmd.get(
-                            "command_type"
-                        ) or existing_cmd.get("type")
-                    else:
-                        existing_type = None
-
-                    if existing_type != cmd_type:
-                        # Type mismatch - update it
-                        commands_to_update[cmd_name] = {
-                            "command_type": cmd_type,
-                            "type": cmd_type,
-                        }
-
-            commands_to_remove = [
-                cmd_name
-                for cmd_name in tracked_commands.keys()
-                if cmd_name not in storage_commands
-            ]
-
-            if commands_to_add or commands_to_remove or commands_to_update:
-                updated_commands = {**tracked_commands}
-
-                for cmd_name, cmd_data in commands_to_add.items():
-                    updated_commands[cmd_name] = cmd_data
-                    total_added += 1
-
-                for cmd_name, cmd_data in commands_to_update.items():
-                    updated_commands[cmd_name] = cmd_data
-                    total_updated += 1
-                    logger.info(
-                        f"  ✏️ Updated type for '{cmd_name}' to {cmd_data['type']}"
-                    )
-
-                for cmd_name in commands_to_remove:
-                    del updated_commands[cmd_name]
-                    total_removed += 1
-
-                entity_data["commands"] = updated_commands
-                storage.save_entity(entity_id, entity_data)
-
-                synced_devices.append(
-                    {
-                        "device_id": entity_id,
-                        "device_name": device_name,
-                        "added": len(commands_to_add),
-                        "updated": len(commands_to_update),
-                        "removed": len(commands_to_remove),
-                    }
-                )
-
         logger.info(
             f"✅ Command sync complete: {len(synced_devices)} devices updated, "
             f"{total_added} added, {total_updated} updated, {total_removed} removed"
@@ -1107,7 +1022,6 @@ def detect_command_type(command_data):
 def learn_command_direct_stream():
     """Learn a command with SSE progress updates"""
     from flask import Response, stream_with_context
-    import json
 
     data = request.json
     device_id = data.get("device_id")

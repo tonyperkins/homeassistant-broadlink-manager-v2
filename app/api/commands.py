@@ -157,42 +157,56 @@ def learn_command():
                 result["code"] = "pending"
                 result["message"] = f"✅ Command '{command}' learned and added to storage!"
             else:
-                # For manager_only: Try to fetch the code from storage
+                # For manager_only: MUST fetch the actual code since we'll delete from storage
+                # Retry with longer waits since we need the real code
                 try:
                     import time
 
-                    # Give HA a moment to process (usually instant, but be safe)
-                    time.sleep(0.5)
-
-                    # Fetch all commands from storage
-                    all_commands = loop.run_until_complete(
-                        web_server._get_all_broadlink_commands()
-                    )
-
-                    # Get the specific command we just learned
-                    device_commands = all_commands.get(device, {})
-                    learned_code = device_commands.get(command)
-
-                    if learned_code and learned_code != "pending":
-                        logger.info(
-                            f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
+                    learned_code = None
+                    max_retries = 5
+                    retry_delay = 2  # Start with 2 seconds
+                    
+                    for attempt in range(max_retries):
+                        logger.info(f"Attempt {attempt + 1}/{max_retries} to fetch learned code...")
+                        
+                        # Wait before fetching (exponential backoff)
+                        time.sleep(retry_delay)
+                        
+                        # Fetch all commands from storage
+                        all_commands = loop.run_until_complete(
+                            web_server._get_all_broadlink_commands()
                         )
-                        result["code"] = learned_code
-                        result["message"] = f"✅ Command '{command}' learned successfully!"
-                    else:
-                        logger.warning(
-                            f"⚠️ Command learned but code not yet available in storage"
-                        )
+
+                        # Get the specific command we just learned
+                        device_commands = all_commands.get(device, {})
+                        learned_code = device_commands.get(command)
+
+                        if learned_code and learned_code != "pending":
+                            logger.info(
+                                f"✅ Successfully fetched learned code for '{command}' on attempt {attempt + 1} (length: {len(learned_code)} chars)"
+                            )
+                            result["code"] = learned_code
+                            result["message"] = f"✅ Command '{command}' learned successfully!"
+                            break
+                        else:
+                            logger.warning(
+                                f"⚠️ Attempt {attempt + 1}: Code not yet available, retrying..."
+                            )
+                            retry_delay = min(retry_delay * 1.5, 5)  # Exponential backoff, max 5s
+                    
+                    # If we still don't have the code after all retries
+                    if not learned_code or learned_code == "pending":
+                        logger.error(f"❌ Failed to fetch code after {max_retries} attempts")
                         result["code"] = "pending"
                         result["message"] = (
-                            f"✅ Command '{command}' learned! Code will be available shortly."
+                            f"⚠️ Command '{command}' learned but code not available yet. This may indicate a storage issue."
                         )
 
                 except Exception as fetch_error:
                     logger.error(f"Error fetching learned code: {fetch_error}")
                     result["code"] = "pending"
                     result["message"] = (
-                        f"✅ Command '{command}' learned! Code will be available shortly."
+                        f"⚠️ Command '{command}' learned but error fetching code: {str(fetch_error)}"
                     )
 
             # Handle save destination logic

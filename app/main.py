@@ -14,9 +14,6 @@ import time
 from typing import Dict, Any
 from pathlib import Path
 
-# Suppress Flask development server warning
-os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-
 # Load .env file if it exists (for development)
 from dotenv import load_dotenv
 

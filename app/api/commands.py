@@ -996,7 +996,17 @@ def sync_commands():
             commands_to_add = {}
             commands_to_update = {}
 
+            # Get recently deleted commands for this device to skip during sync
+            recently_deleted = web_server.recently_deleted_commands.get(device_name, {})
+
             for cmd_name, cmd_data in storage_commands.items():
+                # Skip commands that were recently deleted (optimistic UI)
+                if cmd_name in recently_deleted:
+                    logger.debug(
+                        f"  ⏭️ Skipping recently deleted command '{cmd_name}' during sync"
+                    )
+                    continue
+
                 cmd_type = detect_command_type(cmd_data)
 
                 if cmd_name not in tracked_commands:

@@ -54,6 +54,10 @@
         </div>
 
         <div class="modal-footer">
+          <button @click="adoptAllDevices" class="btn btn-primary" :disabled="adoptingAll || untrackedDevices.length === 0">
+            <i class="mdi" :class="adoptingAll ? 'mdi-loading mdi-spin' : 'mdi-plus-circle'"></i>
+            {{ adoptingAll ? 'Adopting...' : 'Adopt All' }}
+          </button>
           <button @click="showDiscovery = false" class="btn btn-secondary">
             Close
           </button>
@@ -110,6 +114,7 @@ const showDiscovery = ref(false)
 const showDeleteConfirm = ref(false)
 const deviceToDelete = ref(null)
 const deleting = ref(false)
+const adoptingAll = ref(false)
 
 const hasUntrackedDevices = computed(() => untrackedDevices.value.length > 0)
 
@@ -134,6 +139,35 @@ const openDiscovery = () => {
 const adoptDevice = (device) => {
   showDiscovery.value = false
   emit('adopt', device)
+}
+
+const adoptAllDevices = async () => {
+  if (untrackedDevices.value.length === 0) return
+  
+  adoptingAll.value = true
+  const count = untrackedDevices.value.length
+  
+  try {
+    // Adopt each device sequentially
+    for (const device of untrackedDevices.value) {
+      await new Promise(resolve => {
+        emit('adopt', device)
+        // Small delay to let the adoption process complete
+        setTimeout(resolve, 100)
+      })
+    }
+    
+    toast.success(`Successfully adopted ${count} device${count > 1 ? 's' : ''}!`)
+    showDiscovery.value = false
+    
+    // Reload untracked devices to update the list
+    await loadUntrackedDevices()
+  } catch (error) {
+    console.error('Error adopting all devices:', error)
+    toast.error('Failed to adopt all devices')
+  } finally {
+    adoptingAll.value = false
+  }
 }
 
 const confirmDeleteDevice = (device) => {

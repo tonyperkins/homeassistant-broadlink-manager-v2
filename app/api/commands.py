@@ -187,9 +187,9 @@ def learn_command():
 
                             # Store the learned code so we don't depend on .storage files
                             managed_device["commands"][command] = {
-                                "command_type": command_type,
+                                "data": learned_code if learned_code else "pending",
                                 "type": command_type,
-                                "code": learned_code if learned_code else "pending",
+                                "name": command,
                             }
 
                             # Save updated device

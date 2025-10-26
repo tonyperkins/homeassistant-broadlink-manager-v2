@@ -1151,9 +1151,16 @@ const handleImportConfirm = async () => {
 /* Radio Card Styling (like checkbox cards) */
 .radio-card-group {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 12px;
   margin-top: 8px;
+}
+
+@media (min-width: 768px) {
+  .radio-card-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
 }
 
 .radio-card {
@@ -1168,11 +1175,18 @@ const handleImportConfirm = async () => {
   background: var(--ha-card-background);
   cursor: pointer;
   transition: all 0.2s;
-  flex: 1;
+  width: 100%;
   min-width: 0;
   justify-content: flex-start;
   min-height: 44px;
   box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .radio-card {
+    flex: 1;
+    width: auto;
+  }
 }
 
 .radio-card .icon-text-group {

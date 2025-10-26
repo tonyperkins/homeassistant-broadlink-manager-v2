@@ -672,10 +672,12 @@ def delete_command_from_storage():
             # Try to find the device by its storage name
             all_devices = device_manager.get_all_devices()
             for dev_id, dev_data in all_devices.items():
-                if dev_data.get("device") == device:
+                # Check if device field matches, or if device_id matches (when device field is missing)
+                storage_key = dev_data.get("device") or dev_id
+                if storage_key == device:
                     entity_id = dev_data.get("broadlink_entity")
                     logger.info(
-                        f"🔍 Found entity_id '{entity_id}' for device '{device}'"
+                        f"🔍 Found entity_id '{entity_id}' for storage key '{device}' (device_id: {dev_id})"
                     )
                     break
 

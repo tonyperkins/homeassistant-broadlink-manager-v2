@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'app'))
 
 from device_manager import DeviceManager
 from area_manager import AreaManager
-from storage_manager import StorageManager
 from entity_generator import EntityGenerator
 
 # Import mocks
@@ -44,10 +43,8 @@ def area_manager():
     return AreaManager(ha_url="http://localhost:8123", ha_token="test_token")
 
 
-@pytest.fixture
-def storage_manager(temp_storage_dir):
-    """Create a StorageManager instance with temporary storage"""
-    return StorageManager(base_path=str(temp_storage_dir / 'broadlink_manager'))
+# StorageManager fixture removed - no longer using metadata.json
+# All device data is now managed through DeviceManager and devices.json
 
 
 @pytest.fixture
@@ -243,10 +240,10 @@ def mock_websocket_api():
 
 
 @pytest.fixture
-def entity_generator(storage_manager):
+def entity_generator(device_manager):
     """Create an EntityGenerator instance"""
     return EntityGenerator(
-        storage_manager=storage_manager,
+        device_manager=device_manager,
         broadlink_device_id="remote.test_rm4_pro"
     )
 
@@ -266,13 +263,12 @@ def area_manager_with_mock(mock_websocket_api):
 
 
 @pytest.fixture
-def web_server_with_mocks(temp_storage_dir, mock_ha_api, mock_broadlink_storage, device_manager, storage_manager):
+def web_server_with_mocks(temp_storage_dir, mock_ha_api, mock_broadlink_storage, device_manager):
     """Create a mock BroadlinkWebServer with mocked dependencies"""
     # Create a minimal mock server object with async methods
     # We don't call the real implementation to avoid event loop issues
     server = Mock()
     server.device_manager = device_manager
-    server.storage_manager = storage_manager
     server.ha_url = 'http://localhost:8123'
     server.ha_token = 'test_token'
     server.storage_path = temp_storage_dir

@@ -602,23 +602,26 @@ const startLearning = async () => {
       resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
       resultType.value = 'success'
       
-      // Immediately add to learned commands list
-      const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
-      if (!existingCommand) {
-        learnedCommands.value.push({
-          name: actualCommand,
-          type: commandType.value
-        })
+      // Only add to learned commands if saved to manager (manager_only or both)
+      if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {
+        const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+        if (!existingCommand) {
+          learnedCommands.value.push({
+            name: actualCommand,
+            type: commandType.value
+          })
+        }
+        
+        // Remove from untracked if it was there (since it's now tracked)
+        const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
+        if (untrackedIndex > -1) {
+          untrackedCommands.value.splice(untrackedIndex, 1)
+        }
       }
       
-      // Remove from untracked if it was there
-      const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
-      if (untrackedIndex > -1) {
-        untrackedCommands.value.splice(untrackedIndex, 1)
-      }
-      
-      // Reload untracked commands
-      loadUntrackedCommands()
+      // Always reload untracked commands to get current state from server
+      // This will show integration_only commands as untracked
+      await loadUntrackedCommands()
       
       // Clear form for next command
       commandName.value = ''

@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'app'))
 
 from entity_generator import EntityGenerator
-from storage_manager import StorageManager
+from device_manager import DeviceManager
 from smartir_yaml_generator import SmartIRYAMLGenerator
 
 
@@ -222,12 +222,12 @@ class TestFanDirectionHelperRegression:
 @pytest.mark.regression
 class TestSmartIRConfigPersistenceRegression:
     """
-    Regression test for SmartIR config not persisting
+    Regression test for SmartIR config persistence
     
-    BUG: Editing SmartIR device config didn't save changes
-    Root cause: update_managed_device wasn't extracting fields from nested smartir_config
+    BUG: SmartIR config fields (device_code, controller_device) were nested
+    inside 'config' object instead of being at top level
     
-    FIX: Extract smartir_code, controller_device, etc. to top level
+    FIX: Extract device_code, controller_device, etc. to top level in devices.json
     
     IMPACT: High - Users couldn't edit SmartIR devices
     """
@@ -238,48 +238,50 @@ class TestSmartIRConfigPersistenceRegression:
             yield Path(tmpdir)
     
     @pytest.fixture
-    def storage(self, temp_dir):
-        return StorageManager(base_path=str(temp_dir / 'broadlink_manager'))
+    def device_manager(self, temp_dir):
+        return DeviceManager(storage_path=temp_dir)
     
-    def test_smartir_config_fields_persist(self, storage):
+    def test_smartir_config_fields_persist(self, device_manager):
         """Test that SmartIR config fields are saved correctly"""
         # Create SmartIR device
         device_data = {
             'name': 'Test AC',
             'entity_type': 'climate',
             'device_type': 'smartir',
-            'smartir_code': '1234',
+            'device_code': 1234,
             'controller_device': 'remote.bedroom_rm4',
-            'area': 'Bedroom'
+            'area_id': 'bedroom'
         }
         
-        storage.save_entity('test_ac', device_data)
+        device_manager.create_device('test_ac', device_data)
         
         # Retrieve and verify
-        entity = storage.get_entity('test_ac')
-        assert entity is not None
-        assert entity['smartir_code'] == '1234'
-        assert entity['controller_device'] == 'remote.bedroom_rm4'
+        device = device_manager.get_device('test_ac')
+        assert device is not None
+        assert device['device_code'] == 1234
+        assert device['controller_device'] == 'remote.bedroom_rm4'
     
-    def test_smartir_config_update_persists(self, storage):
+    def test_smartir_config_update_persists(self, device_manager):
         """Test that updating SmartIR config persists changes"""
         # Create device
-        storage.save_entity('test_ac', {
+        device_manager.create_device('test_ac', {
             'name': 'Test AC',
             'entity_type': 'climate',
             'device_type': 'smartir',
-            'smartir_code': '1234',
+            'device_code': 1234,
             'controller_device': 'remote.bedroom_rm4'
         })
         
         # Update config
-        storage.update_entity_field('test_ac', 'smartir_code', '5678')
-        storage.update_entity_field('test_ac', 'controller_device', 'remote.living_room_rm4')
+        device_manager.update_device('test_ac', {
+            'device_code': 5678,
+            'controller_device': 'remote.living_room_rm4'
+        })
         
         # Verify changes persisted
-        entity = storage.get_entity('test_ac')
-        assert entity['smartir_code'] == '5678'
-        assert entity['controller_device'] == 'remote.living_room_rm4'
+        device = device_manager.get_device('test_ac')
+        assert device['device_code'] == 5678
+        assert device['controller_device'] == 'remote.living_room_rm4'
 
 
 @pytest.mark.unit
@@ -420,9 +422,9 @@ class TestDeviceNameNormalizationRegression:
 @pytest.mark.regression
 class TestBackupRecoveryRegression:
     """
-    Regression test for data loss issues
+    Regression test for backup and recovery
     
-    BUG: Interrupted writes could corrupt devices.json/metadata.json
+    BUG: Interrupted writes could corrupt devices.json
     
     FIX: Atomic writes with backup before save
     
@@ -435,47 +437,41 @@ class TestBackupRecoveryRegression:
             yield Path(tmpdir)
     
     @pytest.fixture
-    def storage(self, temp_dir):
-        return StorageManager(base_path=str(temp_dir / 'broadlink_manager'))
+    def device_manager(self, temp_dir):
+        return DeviceManager(storage_path=temp_dir)
     
-    def test_backup_created_before_save(self, storage):
+    def test_backup_created_before_save(self, device_manager):
         """Test that backup is created before saving"""
         # First save creates the file
-        storage.save_entity('device1', {'name': 'Device 1', 'entity_type': 'light'})
+        device_manager.create_device('device1', {'name': 'Device 1', 'device_type': 'broadlink'})
         
         # Second save creates backup
-        storage.save_entity('device2', {'name': 'Device 2', 'entity_type': 'fan'})
+        device_manager.create_device('device2', {'name': 'Device 2', 'device_type': 'broadlink'})
         
         # Backup should exist
-        backup_file = Path(str(storage.metadata_file) + '.backup')
+        backup_file = Path(str(device_manager.devices_file) + '.backup')
         assert backup_file.exists()
     
     def test_recovery_from_backup_on_missing_file(self, temp_dir):
         """Test that data is recovered from backup if main file is missing"""
-        storage_path = temp_dir / 'broadlink_manager'
-        storage_path.mkdir(parents=True, exist_ok=True)
-        
-        # Create backup only (simulate main file deletion)
         import json
-        backup_file = storage_path / 'metadata.json.backup'
+        backup_file = temp_dir / 'devices.json.backup'
         backup_data = {
-            'entities': {
-                'recovered_device': {
-                    'name': 'Recovered Device',
-                    'entity_type': 'switch'
-                }
+            'recovered_device': {
+                'name': 'Recovered Device',
+                'device_type': 'broadlink'
             }
         }
         with open(backup_file, 'w') as f:
             json.dump(backup_data, f)
         
-        # Initialize storage (should auto-recover)
-        storage = StorageManager(base_path=str(storage_path))
+        # Initialize device manager (should auto-recover)
+        device_manager = DeviceManager(storage_path=temp_dir)
         
         # Should have recovered data
-        entities = storage.get_all_entities()
-        assert 'recovered_device' in entities
-        assert entities['recovered_device']['name'] == 'Recovered Device'
+        devices = device_manager.get_all_devices()
+        assert 'recovered_device' in devices
+        assert devices['recovered_device']['name'] == 'Recovered Device'
 
 
 @pytest.mark.unit

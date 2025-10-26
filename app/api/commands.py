@@ -174,45 +174,83 @@ def learn_command():
                 result["message"] = (
                     f"✅ Command '{command}' learned! Code will be available shortly."
                 )
-            finally:
-                loop.close()
 
-            # Update devices.json if this is a managed device and save_destination allows it
-            if device_id and save_destination in ["manager_only", "both"]:
-                try:
-                    device_manager = current_app.config.get("device_manager")
-                    if device_manager:
-                        managed_device = device_manager.get_device(device_id)
-                        if managed_device:
-                            # Add the new command to the device's commands
-                            if "commands" not in managed_device:
-                                managed_device["commands"] = {}
+            # Handle save destination logic
+            if device_id:
+                device_manager = current_app.config.get("device_manager")
+                
+                # Save to devices.json if destination allows it
+                if save_destination in ["manager_only", "both"]:
+                    try:
+                        if device_manager:
+                            managed_device = device_manager.get_device(device_id)
+                            if managed_device:
+                                # Add the new command to the device's commands
+                                if "commands" not in managed_device:
+                                    managed_device["commands"] = {}
 
-                            # Store the learned code so we don't depend on .storage files
-                            managed_device["commands"][command] = {
-                                "data": learned_code if learned_code else "pending",
-                                "type": command_type,
-                                "name": command,
-                            }
+                                # Store the learned code so we don't depend on .storage files
+                                managed_device["commands"][command] = {
+                                    "data": learned_code if learned_code else "pending",
+                                    "type": command_type,
+                                    "name": command,
+                                }
 
-                            # Save updated device
-                            device_manager.update_device(device_id, managed_device)
+                                # Save updated device
+                                device_manager.update_device(device_id, managed_device)
+                                logger.info(
+                                    f"✅ Updated devices.json for {device_id} with new command '{command}' (save_destination={save_destination})"
+                                )
+                            else:
+                                logger.warning(
+                                    f"⚠️ Device {device_id} not found in device manager"
+                                )
+                        else:
+                            logger.warning("⚠️ Device manager not available")
+                    except Exception as save_error:
+                        logger.error(f"❌ Error updating devices.json: {save_error}")
+                        # Don't fail the request if devices.json update fails
+                
+                # Delete from integration storage if manager_only
+                if save_destination == "manager_only":
+                    try:
+                        logger.info(
+                            f"🗑️ Deleting command '{command}' from integration storage (save_destination=manager_only)"
+                        )
+                        # Call the delete service to remove from integration storage
+                        delete_result = loop.run_until_complete(
+                            web_server._call_ha_service(
+                                "remote",
+                                "delete_command",
+                                {
+                                    "entity_id": entity_id,
+                                    "device": device,
+                                    "command": [command]
+                                }
+                            )
+                        )
+                        if delete_result is not None:
                             logger.info(
-                                f"✅ Updated devices.json for {device_id} with new command '{command}' (save_destination={save_destination})"
+                                f"✅ Command '{command}' deleted from integration storage"
                             )
                         else:
                             logger.warning(
-                                f"⚠️ Device {device_id} not found in device manager"
+                                f"⚠️ Failed to delete command '{command}' from integration storage"
                             )
-                    else:
-                        logger.warning("⚠️ Device manager not available")
-                except Exception as save_error:
-                    logger.error(f"❌ Error updating devices.json: {save_error}")
-                    # Don't fail the request if devices.json update fails
-            elif device_id and save_destination == "integration_only":
-                logger.info(
-                    f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
-                )
+                    except Exception as delete_error:
+                        logger.error(
+                            f"❌ Error deleting from integration storage: {delete_error}"
+                        )
+                        # Don't fail the request if deletion fails
+                
+                # Log if integration_only (no devices.json update)
+                if save_destination == "integration_only":
+                    logger.info(
+                        f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
+                    )
+            
+            # Close the event loop
+            loop.close()
 
             return jsonify(result)
         else:

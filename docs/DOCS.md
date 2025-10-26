@@ -19,12 +19,11 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 ### User Guides
 
-- **[Entity Generation Guide](ENTITY_GENERATION.md)** - Complete guide to auto-generating Home Assistant entities
-  - Architecture overview
-  - Command naming conventions
-  - Entity types (lights, fans, switches, media players)
-  - API endpoints
-  - Testing procedures
+- **[Architecture Overview](ARCHITECTURE.md)** - High-level system architecture
+  - Key concepts (Broadlink devices, controlled devices, areas)
+  - Data model and storage
+  - How the system works
+  - Best practices
 
 - **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions to common problems
   - Installation issues
@@ -34,6 +33,22 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
   - Command learning issues
   - Entity generation problems
   - Performance optimization
+
+- **[YAML Validation](YAML_VALIDATION.md)** - SmartIR YAML validation system
+  - Validation rules
+  - Error messages
+  - CLI validation tool
+  - Troubleshooting safe mode issues
+
+- **[Customization Guide](CUSTOMIZATION.md)** - Customizing entities and behavior
+  - Entity customization
+  - Configuration options
+  - Advanced features
+
+- **[Installation Scenarios](INSTALLATION_SCENARIOS.md)** - Different installation options
+  - Add-on installation
+  - Standalone Docker
+  - Development setup
 
 ### Developer Resources
 
@@ -51,6 +66,13 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
   - Coding standards
   - Testing guidelines
   - Pull request process
+
+- **[Development Documentation](development/)** - For contributors and maintainers
+  - [Development Workflow](development/DEVELOPMENT.md)
+  - [Testing Guide](development/TESTING.md)
+  - [Architecture Analysis](development/ARCHITECTURE_ANALYSIS.md)
+  - [Implementation Details](development/)
+  - See [development/README.md](development/README.md) for complete index
 
 ### Project Information
 
@@ -75,19 +97,20 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 #### Auto-Generate Entities
 1. Read [README.md](../README.md) - Auto-Generating Entities section
-2. Read [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Complete guide
-3. Check [API.md](API.md) - Entity Management endpoints
-4. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Entity Generation Issues
+2. Check [API.md](API.md) - Entity Management endpoints
+3. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Entity Generation Issues
+4. Advanced: [development/ENTITY_GENERATION.md](development/ENTITY_GENERATION.md) - Technical implementation
 
 #### Use the API
 1. Read [API.md](API.md) - Complete API reference
-2. Check [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - API examples
+2. Check examples in [development/](development/) folder
 
 #### Contribute Code
 1. Read [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
-2. Check [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
-3. Check [API.md](API.md) - API structure
+2. Check [development/DEVELOPMENT.md](development/DEVELOPMENT.md) - Development workflow
+3. Check [development/TESTING.md](development/TESTING.md) - Testing guide
 4. Review [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
+5. See [development/README.md](development/README.md) - Complete development docs
 
 #### Fix a Problem
 1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues
@@ -107,20 +130,25 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Problem solving
 
 **Optional Reading:**
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Advanced entity configuration
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture overview
 - [API.md](API.md) - API usage for automation
 - [DOCKER.md](DOCKER.md) - Standalone Docker deployment
+- [YAML_VALIDATION.md](YAML_VALIDATION.md) - SmartIR YAML validation
+- [CUSTOMIZATION.md](CUSTOMIZATION.md) - Entity customization
 
 ### For Developers
 
 **Essential Reading:**
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development setup and standards
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow and testing
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and components
+- [development/DEVELOPMENT.md](development/DEVELOPMENT.md) - Development workflow
+- [development/TESTING.md](development/TESTING.md) - Testing framework and guidelines
+- [ARCHITECTURE.md](ARCHITECTURE.md) - High-level system architecture
 - [API.md](API.md) - API reference
-- [TESTING.md](TESTING.md) - Testing framework and guidelines
 
 **Optional Reading:**
+- [development/ARCHITECTURE_ANALYSIS.md](development/ARCHITECTURE_ANALYSIS.md) - Deep architecture analysis
+- [development/E2E_TESTING.md](development/E2E_TESTING.md) - Browser automation testing
+- [development/README.md](development/README.md) - Complete development docs index
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Build and deployment process
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and debugging
 
@@ -134,7 +162,8 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 **Optional Reading:**
 - [API.md](API.md) - API for monitoring and automation
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Storage and file structure
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Storage and file structure
+- [INSTALLATION_SCENARIOS.md](INSTALLATION_SCENARIOS.md) - Different deployment options
 
 ---
 
@@ -164,23 +193,25 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 
 ### Entity Generation
 - [README.md](../README.md) - Auto-generating entities section
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - Complete technical guide
 - [API.md](API.md) - Entity management endpoints
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Entity generation issues
+- [development/ENTITY_GENERATION.md](development/ENTITY_GENERATION.md) - Technical implementation details
 
 ### API Integration
 - [API.md](API.md) - Complete API reference
-- [ENTITY_GENERATION.md](ENTITY_GENERATION.md) - API examples
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - API troubleshooting
 
 ### Development
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
-- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
-- [TESTING.md](TESTING.md) - Testing documentation
-- [TEST_PLAN.md](TEST_PLAN.md) - Comprehensive test plan
-- [E2E_TESTING.md](E2E_TESTING.md) - Browser automation testing
+- [development/README.md](development/README.md) - Development documentation index
+- [development/DEVELOPMENT.md](development/DEVELOPMENT.md) - Development workflow
+- [development/TESTING.md](development/TESTING.md) - Testing documentation
+- [development/E2E_TESTING.md](development/E2E_TESTING.md) - Browser automation testing
 - [development/TESTING_QUICKSTART.md](development/TESTING_QUICKSTART.md) - Quick start guide
+- [development/ARCHITECTURE_ANALYSIS.md](development/ARCHITECTURE_ANALYSIS.md) - Architecture deep dive
+- [development/RELEASE_PROCESS.md](development/RELEASE_PROCESS.md) - Release workflow
+- [ARCHITECTURE.md](ARCHITECTURE.md) - High-level system architecture
+- [TEST_PLAN.md](TEST_PLAN.md) - Comprehensive test plan
 - [../CHANGELOG.md](../CHANGELOG.md) - Version history
 
 ---
@@ -216,26 +247,34 @@ broadlink_manager_addon/
 └── docs/                        # Documentation
     ├── DOCS.md                  # Documentation index (this file)
     ├── API.md                   # REST API reference
-    ├── ARCHITECTURE.md          # System architecture
-    ├── AUTO_MIGRATION.md        # Migration guide
+    ├── ARCHITECTURE.md          # High-level system architecture
     ├── CONTRIBUTING.md          # Contribution guidelines
     ├── CUSTOMIZATION.md         # Entity customization
     ├── DEPLOYMENT.md            # Installation and deployment
     ├── DEPLOYMENT_WINDOWS.md    # Windows deployment guide
-    ├── DEVELOPMENT.md           # Development workflow
     ├── DOCKER.md                # Standalone Docker guide
-    ├── E2E_TESTING.md           # Browser automation testing
-    ├── ENTITY_GENERATION.md     # Entity generation guide
     ├── INSTALLATION_SCENARIOS.md # Installation scenarios
-    ├── REDDIT_UPDATES.md        # Reddit automation
-    ├── TESTING.md               # Testing documentation
     ├── TEST_PLAN.md             # Comprehensive test plan
     ├── TROUBLESHOOTING.md       # Problem solving guide
     ├── YAML_VALIDATION.md       # YAML validation system
-    └── development/             # Development docs
-        ├── README.md            # Development index
+    └── development/             # Development documentation
+        ├── README.md            # Development docs index
+        ├── ARCHITECTURE_ANALYSIS.md # Deep architecture analysis
+        ├── AUTO_MIGRATION.md    # Migration implementation
+        ├── DEVELOPMENT.md       # Development workflow
+        ├── DIRECT_LEARNING_IMPLEMENTATION.md # Learning implementation
+        ├── E2E_TESTING.md       # Browser automation testing
+        ├── ENTITY_GENERATION.md # Entity generation implementation
+        ├── MIGRATION_FIX.md     # Migration bug fixes
+        ├── PHASE1_COMPLETE.md   # Phase 1 completion
+        ├── PHASE2_COMPLETE.md   # Phase 2 completion
+        ├── RAW_BASE64_TEST_RESULTS.md # Test results
+        ├── REDDIT_UPDATES.md    # Reddit automation
         ├── REFACTORING_ROADMAP.md # Future planning
-        ├── TESTING_QUICKSTART.md  # Testing quick start
+        ├── RELEASE_PROCESS.md   # Release workflow
+        ├── TESTING.md           # Testing documentation
+        ├── TESTING_QUICKSTART.md # Testing quick start
+        ├── V1_STYLE_ENTITY_GENERATION.md # v1 compatibility
         └── archive/             # Historical documentation
 ```
 
@@ -291,10 +330,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## 📊 Documentation Statistics
 
-- **Total Documentation Files**: 18 (main) + 3 (development) + 42 (archived)
+- **User-Facing Documentation**: 12 files in main docs/ folder
+- **Development Documentation**: 19 files in docs/development/ folder
+- **Archived Documentation**: 42+ files in docs/development/archive/
 - **Lines of Documentation**: ~5,000+
 - **Topics Covered**: Installation, Usage, API, Testing, Troubleshooting, Development, SmartIR
-- **Last Updated**: 2025-10-20
+- **Last Updated**: January 2025
+- **Organization**: Separated user-facing and development documentation
 
 ---
 

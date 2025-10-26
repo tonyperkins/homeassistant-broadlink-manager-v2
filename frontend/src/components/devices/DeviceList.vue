@@ -1017,10 +1017,11 @@ const handleSendCommand = async ({ device, command }) => {
   try {
     const payload = {
       device_id: device.id,
-      command_name: command,
+      command: command,
+      device: device.device || device.id,
       entity_id: device.broadlink_entity || device.controller_device
     }
-    await api.post('/api/commands/test/direct', payload)
+    await api.post('/api/commands/test', payload)
     toast.success(`Sent ${command} to ${device.name}`)
   } catch (error) {
     console.error('Error sending command:', error)

@@ -695,13 +695,14 @@ const testCommand = async (command) => {
     const requestData = {
       device_id: props.device.id,
       entity_id: entityId,
-      command_name: command
+      command: command,
+      device: props.device.device || props.device.id
     }
     
     console.log('🧪 Testing command:', requestData)
     
-    // Use direct test endpoint
-    const response = await api.post('/api/commands/test/direct', requestData)
+    // Use HA API test endpoint (works in add-on mode)
+    const response = await api.post('/api/commands/test', requestData)
     
     if (response.data.success) {
       // Show success on the command row

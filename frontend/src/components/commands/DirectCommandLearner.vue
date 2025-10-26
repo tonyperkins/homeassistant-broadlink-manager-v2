@@ -307,10 +307,11 @@ const testDirect = async () => {
 
   try {
     const entityId = props.device.broadlink_entity || props.device.controller_device
-    const response = await api.post('/api/commands/test/direct', {
+    const response = await api.post('/api/commands/test', {
       device_id: props.device.id,
       entity_id: entityId,
-      command_name: commandName.value.trim()
+      command: commandName.value.trim(),
+      device: props.device.device || props.device.id
     })
 
     testSuccess.value = response.data.success
@@ -331,10 +332,11 @@ const testViaHA = async () => {
 
   try {
     const entityId = props.device.broadlink_entity || props.device.controller_device
-    const response = await api.post('/api/commands/test/ha', {
+    const response = await api.post('/api/commands/test', {
       device_id: props.device.id,
       entity_id: entityId,
-      command_name: commandName.value.trim()
+      command: commandName.value.trim(),
+      device: props.device.device || props.device.id
     })
 
     testSuccess.value = response.data.success

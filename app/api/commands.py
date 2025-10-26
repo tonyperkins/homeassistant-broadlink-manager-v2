@@ -630,6 +630,65 @@ def delete_command(device_id, command_name):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@api_bp.route("/commands/delete-from-storage", methods=["POST"])
+def delete_command_from_storage():
+    """Delete a command from Broadlink Integration storage (.storage files)"""
+    try:
+        data = request.json
+        device = data.get("device")
+        command = data.get("command")
+
+        if not device or not command:
+            return (
+                jsonify(
+                    {"success": False, "error": "Missing device or command parameter"}
+                ),
+                400,
+            )
+
+        logger.info(
+            f"Deleting command '{command}' from Broadlink storage for device '{device}'"
+        )
+
+        # Get web server instance
+        web_server = get_web_server()
+        if not web_server:
+            return jsonify({"success": False, "error": "Web server not available"}), 500
+
+        # Call HA API to delete the command
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Use HA's remote.delete_command service
+        service_payload = {"entity_id": f"remote.{device}", "command": command}
+
+        result = loop.run_until_complete(
+            web_server._make_ha_request(
+                "POST", "services/remote/delete_command", service_payload
+            )
+        )
+        loop.close()
+
+        if result is not None:
+            logger.info(f"✅ Command '{command}' deleted from Broadlink storage")
+            return jsonify(
+                {
+                    "success": True,
+                    "message": f"Command '{command}' deleted from Broadlink storage",
+                }
+            )
+        else:
+            logger.error("❌ HA API returned None - delete failed")
+            return (
+                jsonify({"success": False, "error": "Failed to delete from storage"}),
+                400,
+            )
+
+    except Exception as e:
+        logger.error(f"Error deleting command from storage: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @api_bp.route("/commands/<device_id>", methods=["GET"])
 def get_device_commands(device_id):
     """Get all commands for a device"""

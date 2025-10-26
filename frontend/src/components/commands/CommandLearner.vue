@@ -250,7 +250,8 @@
     <ConfirmDialog
       :isOpen="showDeleteConfirm"
       :title="'Delete Command?'"
-      :message="`Delete command '${commandToDelete}'? This will remove it from Broadlink storage.`"
+      :message="`Delete command '${commandToDelete}' from Broadlink Manager?`"
+      checkboxLabel="Also delete from Broadlink Integration storage"
       confirmText="Delete"
       cancelText="Cancel"
       :dangerMode="true"
@@ -727,13 +728,30 @@ const cancelDeleteCommand = () => {
   commandToDelete.value = ''
 }
 
-const handleDeleteConfirm = async () => {
+const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {
   const command = commandToDelete.value
   showDeleteConfirm.value = false
   
   try {
-    console.log(`🗑️ Deleting command: ${command}`)
+    console.log(`🗑️ Deleting command: ${command}, alsoDeleteFromIntegration: ${alsoDeleteFromIntegration}`)
+    
+    // Delete from Broadlink Manager (devices.json)
     await api.delete(`/api/commands/${props.device.id}/${command}`)
+    
+    // If checkbox was checked, also delete from Broadlink Integration storage
+    if (alsoDeleteFromIntegration) {
+      try {
+        const deviceName = props.device.device || props.device.id
+        await api.post('/api/commands/delete-from-storage', {
+          device: deviceName,
+          command: command
+        })
+        console.log(`✅ Also deleted from Broadlink Integration storage`)
+      } catch (storageError) {
+        console.warn(`⚠️ Failed to delete from Broadlink Integration storage:`, storageError)
+        // Don't fail the whole operation if storage deletion fails
+      }
+    }
     
     // Reload commands from server to get actual state
     await loadLearnedCommands(true)
@@ -814,10 +832,16 @@ const handleImportConfirm = async () => {
       resultMessage.value = `Imported ${response.data.imported_count} commands successfully!`
       resultType.value = 'success'
       
-      // Reload commands
-      await loadLearnedCommands()
+      // CRITICAL: Force reload from server to get actual state
+      await loadLearnedCommands(true)  // ← Added forceReload=true
       await loadUntrackedCommands()
-      emit('learned')
+      
+      // Emit event to parent to refresh device list and update command count
+      emit('learned', {
+        deviceId: props.device.id,
+        action: 'imported',
+        count: response.data.imported_count
+      })
     }
   } catch (error) {
     resultMessage.value = `Failed to import commands: ${error.message}`

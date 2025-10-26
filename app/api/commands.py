@@ -130,61 +130,57 @@ def learn_command():
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(web_server._learn_command(data))
 
-        # If HA API returned success, fetch the learned code immediately
+        # If HA API returned success, handle based on save destination
         if result.get("success"):
             logger.info(
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
-            # For integration_only, add placeholder to cache immediately
-            # This makes it appear as "untracked" right away
+            # For integration_only/both: Add to cache immediately and trust it
+            # The command will appear as untracked right away
             if save_destination in ["integration_only", "both"]:
                 web_server._add_to_storage_cache(device, command, "pending")
-                logger.info(f"Added {device}/{command} to storage cache with pending status")
+                logger.info(f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately")
+                result["code"] = "pending"
+                result["message"] = f"✅ Command '{command}' learned and added to storage!"
+            else:
+                # For manager_only: Try to fetch the code from storage
+                try:
+                    import time
 
-            # Fetch the learned code from Broadlink storage immediately
-            # The code is available right away, even though the file write may lag
-            try:
-                import time
+                    # Give HA a moment to process (usually instant, but be safe)
+                    time.sleep(0.5)
 
-                # Give HA a moment to process (usually instant, but be safe)
-                time.sleep(0.5)
-
-                # Fetch all commands from storage
-                all_commands = loop.run_until_complete(
-                    web_server._get_all_broadlink_commands()
-                )
-
-                # Get the specific command we just learned
-                device_commands = all_commands.get(device, {})
-                learned_code = device_commands.get(command)
-
-                if learned_code and learned_code != "pending":
-                    logger.info(
-                        f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
+                    # Fetch all commands from storage
+                    all_commands = loop.run_until_complete(
+                        web_server._get_all_broadlink_commands()
                     )
-                    result["code"] = learned_code
-                    result["message"] = f"✅ Command '{command}' learned successfully!"
-                    
-                    # Update cache with actual code
-                    if save_destination in ["integration_only", "both"]:
-                        web_server._add_to_storage_cache(device, command, learned_code)
-                        logger.info(f"Updated {device}/{command} in storage cache with actual code")
-                else:
-                    logger.warning(
-                        f"⚠️ Command learned but code not yet available in storage, using pending"
-                    )
+
+                    # Get the specific command we just learned
+                    device_commands = all_commands.get(device, {})
+                    learned_code = device_commands.get(command)
+
+                    if learned_code and learned_code != "pending":
+                        logger.info(
+                            f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
+                        )
+                        result["code"] = learned_code
+                        result["message"] = f"✅ Command '{command}' learned successfully!"
+                    else:
+                        logger.warning(
+                            f"⚠️ Command learned but code not yet available in storage"
+                        )
+                        result["code"] = "pending"
+                        result["message"] = (
+                            f"✅ Command '{command}' learned! Code will be available shortly."
+                        )
+
+                except Exception as fetch_error:
+                    logger.error(f"Error fetching learned code: {fetch_error}")
                     result["code"] = "pending"
                     result["message"] = (
                         f"✅ Command '{command}' learned! Code will be available shortly."
                     )
-
-            except Exception as fetch_error:
-                logger.error(f"Error fetching learned code: {fetch_error}")
-                result["code"] = "pending"
-                result["message"] = (
-                    f"✅ Command '{command}' learned! Code will be available shortly."
-                )
 
             # Handle save destination logic
             if device_id:

@@ -645,6 +645,14 @@ const startLearning = async () => {
       resultMessage.value = response.data.message || `Command "${actualCommand}" learned successfully!`
       resultType.value = 'success'
       
+      // Auto-clear success message after 5 seconds
+      setTimeout(() => {
+        if (resultType.value === 'success') {
+          resultMessage.value = ''
+          resultType.value = ''
+        }
+      }, 5000)
+      
       // Only add to learned commands if saved to manager (manager_only or both)
       if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {
         const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)

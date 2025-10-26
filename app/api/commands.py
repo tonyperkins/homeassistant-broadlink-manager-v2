@@ -178,7 +178,7 @@ def learn_command():
             # Handle save destination logic
             if device_id:
                 device_manager = current_app.config.get("device_manager")
-                
+
                 # Save to devices.json if destination allows it
                 if save_destination in ["manager_only", "both"]:
                     try:
@@ -210,13 +210,19 @@ def learn_command():
                     except Exception as save_error:
                         logger.error(f"❌ Error updating devices.json: {save_error}")
                         # Don't fail the request if devices.json update fails
-                
+
                 # Delete from integration storage if manager_only
                 if save_destination == "manager_only":
                     try:
                         logger.info(
                             f"🗑️ Deleting command '{command}' from integration storage (save_destination=manager_only)"
                         )
+
+                        # Add to deletion cache BEFORE deleting to prevent showing as untracked
+                        # during storage file update lag
+                        web_server._add_to_deletion_cache(device, command)
+                        logger.info(f"Added {device}/{command} to deletion cache")
+
                         # Call the delete service to remove from integration storage
                         delete_result = loop.run_until_complete(
                             web_server._call_ha_service(
@@ -225,8 +231,8 @@ def learn_command():
                                 {
                                     "entity_id": entity_id,
                                     "device": device,
-                                    "command": [command]
-                                }
+                                    "command": [command],
+                                },
                             )
                         )
                         if delete_result is not None:
@@ -242,13 +248,13 @@ def learn_command():
                             f"❌ Error deleting from integration storage: {delete_error}"
                         )
                         # Don't fail the request if deletion fails
-                
+
                 # Log if integration_only (no devices.json update)
                 if save_destination == "integration_only":
                     logger.info(
                         f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
                     )
-            
+
             # Close the event loop
             loop.close()
 
@@ -728,7 +734,7 @@ def delete_command_from_storage():
         service_payload = {
             "entity_id": entity_id,
             "device": device,  # The storage key (e.g., "tony_s_office_workbench_lamp")
-            "command": [command]  # Must be a list
+            "command": [command],  # Must be a list
         }
         logger.info(f"🔧 Calling HA service with payload: {service_payload}")
 
@@ -745,12 +751,12 @@ def delete_command_from_storage():
             logger.info(
                 f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}"
             )
-            
+
             # Add to deletion cache for optimistic UI update
             # This prevents the command from showing as "untracked" during storage file update lag
             web_server._add_to_deletion_cache(device, command)
             logger.info(f"Added {device}/{command} to deletion cache for optimistic UI")
-            
+
             return jsonify(
                 {
                     "success": True,
@@ -859,14 +865,29 @@ def get_untracked_commands():
 
         # Find untracked commands (excluding recently deleted ones)
         untracked = {}
+        logger.info(f"🔍 Checking for untracked commands...")
+        logger.info(f"📦 Broadlink storage devices: {list(broadlink_commands.keys())}")
+        logger.info(f"📋 Tracked devices: {list(tracked_commands.keys())}")
+
         for device_name, commands in broadlink_commands.items():
             tracked = tracked_commands.get(device_name, set())
+            logger.info(f"🔍 Device '{device_name}':")
+            logger.info(f"  Storage commands: {list(commands.keys())}")
+            logger.info(f"  Tracked commands: {list(tracked)}")
+
             untracked_for_device = {
                 cmd: data
                 for cmd, data in commands.items()
                 if cmd not in tracked
                 and not web_server._is_recently_deleted(device_name, cmd)
             }
+
+            if untracked_for_device:
+                logger.info(
+                    f"  ⚠️ Untracked commands: {list(untracked_for_device.keys())}"
+                )
+            else:
+                logger.info(f"  ✅ All commands tracked")
 
             if untracked_for_device:
                 untracked[device_name] = {

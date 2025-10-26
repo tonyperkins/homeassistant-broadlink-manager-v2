@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import threading
 import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -32,6 +34,25 @@ from api import api_bp
 from api.smartir import init_smartir_routes
 
 logger = logging.getLogger(__name__)
+
+
+class DevicesJsonWatcher(FileSystemEventHandler):
+    """Watches devices.json for changes and triggers polling for pending commands"""
+    
+    def __init__(self, web_server):
+        self.web_server = web_server
+        self.last_modified = 0
+        
+    def on_modified(self, event):
+        if event.src_path.endswith('devices.json'):
+            # Debounce - only process if more than 1 second since last modification
+            current_time = time.time()
+            if current_time - self.last_modified < 1:
+                return
+            self.last_modified = current_time
+            
+            logger.info("📁 devices.json modified, checking for pending commands...")
+            self.web_server._check_and_start_polling_for_pending()
 
 
 class IngressMiddleware:
@@ -170,6 +191,9 @@ class BroadlinkWebServer:
         
         # Check for pending commands on startup and start polling if needed
         self._check_and_start_polling_on_startup()
+        
+        # Start file watcher for devices.json
+        self._start_file_watcher()
 
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -2101,6 +2125,49 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error checking for pending commands: {e}")
             return False
+    
+    def _start_file_watcher(self):
+        """Start watching devices.json for changes"""
+        try:
+            devices_json_path = self.device_manager.devices_file
+            watch_dir = str(Path(devices_json_path).parent)
+            
+            event_handler = DevicesJsonWatcher(self)
+            self.file_observer = Observer()
+            self.file_observer.schedule(event_handler, watch_dir, recursive=False)
+            self.file_observer.start()
+            logger.info(f"📁 Started file watcher for {devices_json_path}")
+        except Exception as e:
+            logger.error(f"Failed to start file watcher: {e}")
+    
+    def _check_and_start_polling_for_pending(self):
+        """Check for pending commands and start polling if needed (called by file watcher)"""
+        with self.poll_lock:
+            devices = self.device_manager.get_all_devices()
+            found_pending = False
+            
+            for device_id, device in devices.items():
+                commands = device.get("commands", {})
+                device_name = device.get("device_id", device_id)
+                
+                for cmd_name, cmd_data in commands.items():
+                    if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
+                        # Check if already in poll list
+                        already_polling = any(
+                            poll[0] == device_id and poll[2] == cmd_name 
+                            for poll in self.pending_command_polls
+                        )
+                        
+                        if not already_polling:
+                            found_pending = True
+                            logger.info(f"📋 File watcher found new pending command: {device_name}/{cmd_name}")
+                            self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
+            
+            if found_pending and not self.poll_thread_running:
+                self.poll_thread_running = True
+                self.poll_thread = threading.Thread(target=self._poll_pending_commands, daemon=True)
+                self.poll_thread.start()
+                logger.info("🔄 File watcher started background polling thread")
     
     def _check_and_start_polling_on_startup(self):
         """Check for pending commands on startup and start polling thread if needed"""

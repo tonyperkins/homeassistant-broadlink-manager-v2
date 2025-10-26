@@ -707,6 +707,12 @@ def delete_command_from_storage():
             logger.info(
                 f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}"
             )
+            
+            # Add to deletion cache for optimistic UI update
+            # This prevents the command from showing as "untracked" during storage file update lag
+            web_server._add_to_deletion_cache(device, command)
+            logger.info(f"Added {device}/{command} to deletion cache for optimistic UI")
+            
             return jsonify(
                 {
                     "success": True,

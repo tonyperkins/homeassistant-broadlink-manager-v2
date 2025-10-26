@@ -621,6 +621,11 @@ const startLearning = async () => {
       
       // Always reload untracked commands to get current state from server
       // This will show integration_only commands as untracked
+      // For integration_only, add a small delay to allow storage file to update
+      if (saveDestination.value === 'integration_only') {
+        // Wait a bit for HA to write to storage file
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
       await loadUntrackedCommands()
       
       // Clear form for next command

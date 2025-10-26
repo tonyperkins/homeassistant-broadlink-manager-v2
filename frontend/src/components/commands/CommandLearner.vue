@@ -824,7 +824,16 @@ const handleImportConfirm = async () => {
   showImportConfirm.value = false
   
   try {
-    const deviceName = props.device.device || props.device.id.split('.')[1]
+    // Get the device name (storage key) - this is what's used in Broadlink storage files
+    // Try: device.device field, or device.id (if it's already the storage name), or extract from entity ID
+    const deviceName = props.device.device || props.device.id || (props.device.id?.includes('.') ? props.device.id.split('.')[1] : null)
+    
+    console.log('🔵 [IMPORT] Device object:', props.device)
+    console.log('🔵 [IMPORT] Extracted device name:', deviceName)
+    
+    if (!deviceName) {
+      throw new Error('Could not determine device name for import')
+    }
     
     console.log('🔵 [IMPORT] Calling API to import commands...')
     const response = await api.post('/api/commands/import', {

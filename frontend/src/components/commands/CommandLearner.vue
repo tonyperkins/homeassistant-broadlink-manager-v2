@@ -589,6 +589,9 @@ const startLearning = async () => {
       learningPhase.value = 'learning'
       resultMessage.value = '⚠️ Learning request sent to device. Check Home Assistant notifications (🔔) for instructions. Note: If the device is offline or times out, you will see a notification but this dialog will still show success.'
       resultType.value = 'warning'
+      
+      // Force Vue to update the DOM before making the API call
+      await new Promise(resolve => setTimeout(resolve, 50))
     } else {
       learningPhase.value = 'learning'
     }

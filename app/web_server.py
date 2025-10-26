@@ -142,8 +142,8 @@ class BroadlinkWebServer:
         self.ws_message_id = 0
         self.ws_notifications = []
 
-        # Perform automatic migration check on startup (async)
-        self._schedule_migration_check()
+        # Automatic migration disabled - user preference
+        # self._schedule_migration_check()
 
     def _setup_routes(self):
         """Setup Flask routes"""

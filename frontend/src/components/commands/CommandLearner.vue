@@ -72,13 +72,15 @@
         <!-- Command Type -->
         <div class="form-group">
           <label>Command Type</label>
-          <div class="radio-group">
-            <label class="radio-label">
+          <div class="radio-card-group">
+            <label class="radio-card" :class="{ active: commandType === 'ir', disabled: learning }">
               <input type="radio" v-model="commandType" value="ir" :disabled="learning" />
+              <i class="mdi mdi-remote"></i>
               <span>IR (Infrared)</span>
             </label>
-            <label class="radio-label">
+            <label class="radio-card" :class="{ active: commandType === 'rf', disabled: learning }">
               <input type="radio" v-model="commandType" value="rf" :disabled="learning" />
+              <i class="mdi mdi-radio-tower"></i>
               <span>RF (Radio Frequency)</span>
             </label>
           </div>
@@ -92,17 +94,20 @@
               <i class="mdi mdi-help-circle-outline"></i>
             </button>
           </label>
-          <div class="radio-group">
-            <label class="radio-label">
+          <div class="radio-card-group">
+            <label class="radio-card" :class="{ active: saveDestination === 'manager_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="manager_only" :disabled="learning" />
+              <i class="mdi mdi-application"></i>
               <span>Only Save to Broadlink Manager</span>
             </label>
-            <label class="radio-label">
+            <label class="radio-card" :class="{ active: saveDestination === 'integration_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
+              <i class="mdi mdi-home-assistant"></i>
               <span>Only Save to Broadlink Integration</span>
             </label>
-            <label class="radio-label">
+            <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
+              <i class="mdi mdi-swap-horizontal"></i>
               <span>Save to Both</span>
             </label>
           </div>
@@ -1116,6 +1121,68 @@ const handleImportConfirm = async () => {
 .radio-label input[type="radio"] {
   width: auto;
   cursor: pointer;
+}
+
+/* Radio Card Styling (like checkbox cards) */
+.radio-card-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.radio-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid var(--ha-border-color);
+  border-radius: 8px;
+  background: var(--ha-card-background);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.radio-card:hover:not(.disabled) {
+  border-color: var(--ha-primary-color);
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.05);
+}
+
+.radio-card.active {
+  border-color: var(--ha-primary-color);
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+}
+
+.radio-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-card i {
+  font-size: 20px;
+  color: var(--ha-text-secondary-color);
+}
+
+.radio-card.active i {
+  color: var(--ha-primary-color);
+}
+
+.radio-card span {
+  font-size: 14px;
+  color: var(--ha-text-primary-color);
+  font-weight: 500;
+}
+
+.radio-card.active span {
+  color: var(--ha-primary-color);
 }
 
 .learning-status {

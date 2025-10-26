@@ -54,7 +54,7 @@
           <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
             <button @click="viewUntrackedDevices(); showSettingsMenu = false" class="menu-item">
               <i class="mdi mdi-radar"></i>
-              <span>View Untracked Devices</span>
+              <span>Untracked Devices</span>
             </button>
             <button @click="syncAllAreas(); showSettingsMenu = false" class="menu-item" :disabled="syncingAreas">
               <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>

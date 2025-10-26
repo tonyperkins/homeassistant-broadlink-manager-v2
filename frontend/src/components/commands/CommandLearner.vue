@@ -1135,8 +1135,8 @@ const handleImportConfirm = async () => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 14px 18px;
   border: 2px solid var(--ha-border-color);
   border-radius: 8px;
   background: var(--ha-card-background);
@@ -1144,7 +1144,9 @@ const handleImportConfirm = async () => {
   transition: all 0.2s;
   flex: 1;
   min-width: 0;
-  justify-content: flex-start;
+  justify-content: center;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .radio-card:hover:not(.disabled) {
@@ -1169,8 +1171,12 @@ const handleImportConfirm = async () => {
 }
 
 .radio-card i {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--ha-text-secondary-color);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .radio-card.active i {
@@ -1181,6 +1187,8 @@ const handleImportConfirm = async () => {
   font-size: 14px;
   color: var(--ha-text-primary-color);
   font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .radio-card.active span {

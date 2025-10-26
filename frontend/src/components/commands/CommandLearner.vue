@@ -78,16 +78,20 @@
               <span class="radio-indicator">
                 <i class="mdi" :class="commandType === 'ir' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               </span>
-              <i class="mdi mdi-remote card-icon"></i>
-              <span class="card-text">IR (Infrared)</span>
+              <div class="icon-text-group">
+                <i class="mdi mdi-remote card-icon"></i>
+                <span class="card-text">IR (Infrared)</span>
+              </div>
             </label>
             <label class="radio-card" :class="{ active: commandType === 'rf', disabled: learning }">
               <input type="radio" v-model="commandType" value="rf" :disabled="learning" />
               <span class="radio-indicator">
                 <i class="mdi" :class="commandType === 'rf' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               </span>
-              <i class="mdi mdi-radio-tower card-icon"></i>
-              <span class="card-text">RF (Radio Frequency)</span>
+              <div class="icon-text-group">
+                <i class="mdi mdi-radio-tower card-icon"></i>
+                <span class="card-text">RF (Radio Frequency)</span>
+              </div>
             </label>
           </div>
         </div>
@@ -106,24 +110,30 @@
               <span class="radio-indicator">
                 <i class="mdi" :class="saveDestination === 'manager_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               </span>
-              <i class="mdi mdi-application card-icon"></i>
-              <span class="card-text">Broadlink Manager</span>
+              <div class="icon-text-group">
+                <i class="mdi mdi-application card-icon"></i>
+                <span class="card-text">Broadlink Manager</span>
+              </div>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'integration_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
               <span class="radio-indicator">
                 <i class="mdi" :class="saveDestination === 'integration_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               </span>
-              <i class="mdi mdi-home-assistant card-icon"></i>
-              <span class="card-text">Broadlink Integration</span>
+              <div class="icon-text-group">
+                <i class="mdi mdi-home-assistant card-icon"></i>
+                <span class="card-text">Broadlink Integration</span>
+              </div>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
               <span class="radio-indicator">
                 <i class="mdi" :class="saveDestination === 'both' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
               </span>
-              <i class="mdi mdi-swap-horizontal card-icon"></i>
-              <span class="card-text">Both</span>
+              <div class="icon-text-group">
+                <i class="mdi mdi-swap-horizontal card-icon"></i>
+                <span class="card-text">Both</span>
+              </div>
             </label>
           </div>
           <div v-if="showSaveDestinationHelp" class="help-box">
@@ -1160,9 +1170,16 @@ const handleImportConfirm = async () => {
   transition: all 0.2s;
   flex: 1;
   min-width: 0;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 44px;
   box-sizing: border-box;
+}
+
+.radio-card .icon-text-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .radio-card:hover:not(.disabled) {

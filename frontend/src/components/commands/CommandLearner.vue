@@ -154,7 +154,8 @@
 
         <!-- Result Message (success only, warning removed) -->
         <!-- Test command success is shown inline on the command row -->
-        <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully')" class="result-message success">
+        <!-- Hide during learning to prevent showing old success message -->
+        <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully') && !learning" class="result-message success">
           <i class="mdi mdi-check-circle"></i>
           <p>{{ resultMessage }}</p>
         </div>

@@ -1219,9 +1219,6 @@ const handleImportConfirm = async () => {
   font-size: 18px;
   color: var(--ha-text-secondary-color);
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .radio-card.active .card-icon {

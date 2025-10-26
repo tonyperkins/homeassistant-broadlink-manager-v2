@@ -1120,6 +1120,10 @@ def learn_command_direct_stream():
 
     def generate():
         try:
+            from broadlink_learner import BroadlinkLearner
+            from broadlink_device_manager import BroadlinkDeviceManager
+            from device_manager import DeviceManager
+            
             yield f"data: {json.dumps({'status': 'starting', 'message': 'Initializing...'})}\n\n"
 
             if not all([device_id, entity_id, command_name]):

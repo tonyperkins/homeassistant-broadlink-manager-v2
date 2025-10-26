@@ -659,46 +659,26 @@ const closeGenerationResultDialog = () => {
 }
 
 const handleCommandLearned = async (eventData) => {
-  console.log('📥 DeviceList: Command learned/deleted:', eventData)
+  console.log('📥 DeviceList: Command learned/deleted/imported:', eventData)
   
-  if (!eventData || !eventData.deviceId || !selectedDevice.value) {
+  if (!eventData || !eventData.deviceId) {
     console.warn('⚠️ DeviceList: Missing required data in learned event')
     return
   }
   
-  const currentCommands = selectedDevice.value.commands || {}
-  let updatedCommands
-  
-  if (eventData.action === 'deleted') {
-    // OPTIMISTIC UPDATE: Remove command immediately from selectedDevice (for dialog)
-    updatedCommands = { ...currentCommands }
-    delete updatedCommands[eventData.commandName]
-    console.log(`🗑️ DeviceList: Optimistically removing command '${eventData.commandName}'`)
-    console.log(`🗑️ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
-  } else {
-    // OPTIMISTIC UPDATE: Add the new command immediately to selectedDevice (for dialog)
-    updatedCommands = {
-      ...currentCommands,
-      [eventData.commandName]: {
-        command_type: eventData.commandType,
-        type: eventData.commandType
-      }
-    }
-    console.log(`✅ DeviceList: Optimistically adding command '${eventData.commandName}'`)
-    console.log(`✅ DeviceList: Command count: ${Object.keys(currentCommands).length} -> ${Object.keys(updatedCommands).length}`)
-  }
-  
-  // Update selectedDevice (for dialog to show immediately)
-  selectedDevice.value = {
-    ...selectedDevice.value,
-    commands: updatedCommands
-  }
-  
-  // FORCE FULL STORE RELOAD: This is more reliable than trying to update individual devices
-  // The store reload will get fresh data from devices.json API endpoint
-  // We do this immediately because the API reads from devices.json which was just updated
+  // CRITICAL: Always reload from server to get actual state
+  // Don't do optimistic updates - they cause state sync issues
   console.log('🔄 DeviceList: Force reloading all devices from API')
   await deviceStore.loadDevices(true) // true = bust cache
+  
+  // Update selectedDevice with fresh data from store
+  if (selectedDevice.value) {
+    const freshDevice = deviceStore.devices.find(d => d.id === eventData.deviceId)
+    if (freshDevice) {
+      selectedDevice.value = { ...freshDevice }
+      console.log(`✅ DeviceList: Updated selectedDevice with fresh data (${Object.keys(freshDevice.commands || {}).length} commands)`)
+    }
+  }
   
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {

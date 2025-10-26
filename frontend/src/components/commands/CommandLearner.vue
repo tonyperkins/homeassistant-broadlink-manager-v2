@@ -408,6 +408,9 @@ onMounted(async () => {
   // Load commands from devices.json (no syncing from .storage files)
   await loadLearnedCommands()
   
+  // Load untracked commands from storage
+  await loadUntrackedCommands()
+  
   // Set custom validation messages
   if (commandSelect.value) {
     commandSelect.value.setCustomValidity('')
@@ -621,11 +624,6 @@ const startLearning = async () => {
       
       // Always reload untracked commands to get current state from server
       // This will show integration_only commands as untracked
-      // For integration_only, add a delay to allow storage file to update
-      if (saveDestination.value === 'integration_only') {
-        // Wait for HA to write to storage file (can take 10+ seconds in standalone mode)
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      }
       await loadUntrackedCommands()
       
       // Clear form for next command

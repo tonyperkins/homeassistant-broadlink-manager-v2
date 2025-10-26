@@ -98,25 +98,25 @@
             <label class="radio-card" :class="{ active: saveDestination === 'manager_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="manager_only" :disabled="learning" />
               <i class="mdi mdi-application"></i>
-              <span>Only Save to Broadlink Manager</span>
+              <span>Broadlink Manager</span>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'integration_only', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
               <i class="mdi mdi-home-assistant"></i>
-              <span>Only Save to Broadlink Integration</span>
+              <span>Broadlink Integration</span>
             </label>
             <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
               <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
               <i class="mdi mdi-swap-horizontal"></i>
-              <span>Save to Both</span>
+              <span>Both</span>
             </label>
           </div>
           <div v-if="showSaveDestinationHelp" class="help-box">
             <h4>Save Destination Options</h4>
             <ul>
-              <li><strong>Only Save to Broadlink Manager (Recommended):</strong> Commands are saved only in this app's database (devices.json). This gives you full control and makes commands portable. The Broadlink Integration won't see these commands.</li>
-              <li><strong>Only Save to Broadlink Integration:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
-              <li><strong>Save to Both:</strong> Commands are saved in both places. Use this if you want commands available in both this app and the Broadlink Integration.</li>
+              <li><strong>Broadlink Manager (Recommended):</strong> Commands are saved only in this app's database (devices.json). This gives you full control and makes commands portable. The Broadlink Integration won't see these commands.</li>
+              <li><strong>Broadlink Integration:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
+              <li><strong>Both:</strong> Commands are saved in both places. Use this if you want commands available in both this app and the Broadlink Integration.</li>
             </ul>
           </div>
         </div>
@@ -1142,7 +1142,9 @@ const handleImportConfirm = async () => {
   background: var(--ha-card-background);
   cursor: pointer;
   transition: all 0.2s;
-  min-width: 140px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
 }
 
 .radio-card:hover:not(.disabled) {

@@ -1,13 +1,14 @@
 <template>
-  <div v-if="hasUntrackedDevices" class="discovery-banner">
+  <!-- Discovery banner hidden - untracked count shown in section header instead -->
+  <div v-if="false" class="discovery-banner">
     <div class="banner-content">
       <div class="banner-icon">
         <i class="mdi mdi-radar"></i>
       </div>
-      <!-- <div class="banner-text">
+      <div class="banner-text">
         <h3>Untracked Devices Found</h3>
         <p>{{ untrackedDevices.length }} device{{ untrackedDevices.length > 1 ? 's' : '' }} with learned commands found in Broadlink storage. Use the settings menu (⚙️) to view and adopt them.</p>
-      </div> -->
+      </div>
     </div>
 
     <!-- Discovery Modal -->

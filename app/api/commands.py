@@ -671,11 +671,11 @@ def get_broadlink_commands(device_name):
 def get_untracked_commands():
     """Get commands that exist in Broadlink storage but not in metadata"""
     try:
-        storage = get_storage_manager()
         web_server = get_web_server()
+        device_manager = current_app.config.get("device_manager")
 
-        if not storage or not web_server:
-            return jsonify({"error": "Storage or web server not available"}), 500
+        if not device_manager or not web_server:
+            return jsonify({"error": "Device manager or web server not available"}), 500
 
         # Get all commands from Broadlink storage
         loop = asyncio.new_event_loop()
@@ -685,18 +685,27 @@ def get_untracked_commands():
         )
         loop.close()
 
-        # Get all tracked commands from metadata
-        entities = storage.get_all_entities()
+        # Get all tracked commands from devices.json
+        all_devices = device_manager.get_all_devices()
         tracked_commands = {}
 
-        # Build a map of device_name -> tracked Broadlink command names (the values, not keys)
-        for entity_id, entity_data in entities.items():
-            device_name = entity_data.get("device")
-            if device_name:
-                # Commands is a dict like {"turn_off": "living_room_stereo_turn_off"}
-                # We need to track the VALUES (actual Broadlink command names)
-                commands_dict = entity_data.get("commands", {})
-                tracked_commands[device_name] = set(commands_dict.values())
+        # Build a map of device_name -> tracked command names
+        for device_id, device_data in all_devices.items():
+            # For devices.json, the device name might be in broadlink_entity or we use device_id
+            broadlink_entity = device_data.get("broadlink_entity", "")
+            if broadlink_entity:
+                # Extract device name from entity_id (e.g., "remote.office_rm4_pro" -> "office_rm4_pro")
+                device_name = (
+                    broadlink_entity.split(".")[-1]
+                    if "." in broadlink_entity
+                    else device_id
+                )
+            else:
+                device_name = device_id
+
+            # Commands is a dict like {"turn_on": {"data": "...", "type": "rf"}}
+            commands_dict = device_data.get("commands", {})
+            tracked_commands[device_name] = set(commands_dict.keys())
 
         # Cleanup expired deletion cache entries
         web_server._cleanup_deletion_cache()
@@ -750,28 +759,17 @@ def import_commands():
                 400,
             )
 
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
 
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Try to get device from device_manager first (for managed devices)
-        entity_data = None
-        if device_manager:
-            entity_data = device_manager.get_device(device_id)
-
-        # If not found, try storage (for legacy devices)
-        if not entity_data:
-            entity_data = storage.get_entity(device_id)
+        # Get device from device_manager
+        entity_data = device_manager.get_device(device_id)
 
         if not entity_data:
             return (
-                jsonify(
-                    {
-                        "error": f"Device '{device_id}' not found in device manager or metadata"
-                    }
-                ),
+                jsonify({"error": f"Device '{device_id}' not found in device manager"}),
                 404,
             )
 
@@ -810,11 +808,10 @@ def sync_commands():
     """Sync all device commands with Broadlink storage"""
     try:
         logger.info("🔄 Starting command sync...")
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
         web_server = get_web_server()
 
-        if not all([storage, device_manager, web_server]):
+        if not all([device_manager, web_server]):
             logger.error("❌ Required services not available")
             return jsonify({"error": "Required services not available"}), 500
 
@@ -1123,7 +1120,7 @@ def learn_command_direct_stream():
             from broadlink_learner import BroadlinkLearner
             from broadlink_device_manager import BroadlinkDeviceManager
             from device_manager import DeviceManager
-            
+
             yield f"data: {json.dumps({'status': 'starting', 'message': 'Initializing...'})}\n\n"
 
             if not all([device_id, entity_id, command_name]):
@@ -1137,12 +1134,14 @@ def learn_command_direct_stream():
 
             # Get device connection info (try cache first)
             connection_info = web_server.get_cached_connection_info(entity_id)
-            
+
             if not connection_info:
                 yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
                 device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
-                connection_info = device_manager_bl.get_device_connection_info(entity_id)
-                
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
+
                 if connection_info:
                     # Cache for future use
                     web_server.cache_connection_info(entity_id, connection_info)
@@ -1319,11 +1318,11 @@ def learn_command_direct():
 
         # Get device connection info (try cache first)
         connection_info = web_server.get_cached_connection_info(entity_id)
-        
+
         if not connection_info:
             device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
             connection_info = device_manager_bl.get_device_connection_info(entity_id)
-            
+
             if connection_info:
                 # Cache for future use
                 web_server.cache_connection_info(entity_id, connection_info)
@@ -1493,7 +1492,7 @@ def test_command_direct():
 
         # Try cache first, then stored connection, then discovery
         connection_info = web_server.get_cached_connection_info(entity_id)
-        
+
         if not connection_info:
             # Check if device has stored connection info
             device_info = device_manager.get_device(device_id)
@@ -1504,7 +1503,9 @@ def test_command_direct():
                 logger.info(f"Using stored connection info for device {device_id}")
                 connection_info = {
                     "host": stored_connection["host"],
-                    "mac_bytes": bytes.fromhex(stored_connection["mac"].replace(":", "")),
+                    "mac_bytes": bytes.fromhex(
+                        stored_connection["mac"].replace(":", "")
+                    ),
                     "type": stored_connection.get("type", 0x2712),  # Default RM type
                 }
             else:
@@ -1513,8 +1514,10 @@ def test_command_direct():
                 device_manager_bl = BroadlinkDeviceManager(
                     web_server.ha_url, web_server.ha_token
                 )
-                connection_info = device_manager_bl.get_device_connection_info(entity_id)
-            
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
+
             if connection_info:
                 # Cache for future use
                 web_server.cache_connection_info(entity_id, connection_info)

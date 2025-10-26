@@ -701,21 +701,19 @@ def get_untracked_commands():
 
         # Build a map of device_name -> tracked command names
         for device_id, device_data in all_devices.items():
-            # For devices.json, the device name might be in broadlink_entity or we use device_id
-            broadlink_entity = device_data.get("broadlink_entity", "")
-            if broadlink_entity:
-                # Extract device name from entity_id (e.g., "remote.office_rm4_pro" -> "office_rm4_pro")
-                device_name = (
-                    broadlink_entity.split(".")[-1]
-                    if "." in broadlink_entity
-                    else device_id
-                )
-            else:
-                device_name = device_id
+            # Use the 'device' field which is the Broadlink storage key
+            # This is what's used when learning commands via HA API
+            device_name = device_data.get("device", device_id)
+
+            logger.debug(f"Mapping device {device_id} -> storage key {device_name}")
 
             # Commands is a dict like {"turn_on": {"data": "...", "type": "rf"}}
             commands_dict = device_data.get("commands", {})
             tracked_commands[device_name] = set(commands_dict.keys())
+
+            logger.debug(
+                f"  Tracked commands for {device_name}: {tracked_commands[device_name]}"
+            )
 
         # Cleanup expired deletion cache entries
         web_server._cleanup_deletion_cache()

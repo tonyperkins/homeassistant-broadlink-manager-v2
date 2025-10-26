@@ -164,8 +164,9 @@ def learn_command():
                 result["message"] = f"✅ Command '{command}' learned! Code will be updated automatically in background."
                 
                 # Schedule background task to poll for the actual code
+                # Pass entity_id so it can delete after fetching
                 logger.info(f"Scheduling background poll for command '{command}' on device '{device}'")
-                web_server.schedule_command_poll(device_id, device, command)
+                web_server.schedule_command_poll(device_id, device, command, entity_id if save_destination == "manager_only" else None)
 
             # Handle save destination logic
             if device_id:
@@ -203,41 +204,12 @@ def learn_command():
                         logger.error(f"❌ Error updating devices.json: {save_error}")
                         # Don't fail the request if devices.json update fails
 
-                # Delete from integration storage if manager_only
+                # For manager_only, deletion will happen in background AFTER fetching the code
+                # This is handled by the polling thread (see schedule_command_poll above)
                 if save_destination == "manager_only":
-                    try:
-                        logger.info(
-                            f"🗑️ Deleting command '{command}' from integration storage (save_destination=manager_only)"
-                        )
-
-                        # Add to deletion cache BEFORE deleting to prevent showing as untracked
-                        # during storage file update lag
-                        web_server._add_to_deletion_cache(device, command)
-                        logger.info(f"Added {device}/{command} to deletion cache")
-
-                        # Call the delete service to remove from integration storage
-                        delete_result = loop.run_until_complete(
-                            web_server._delete_command(
-                                {
-                                    "entity_id": entity_id,
-                                    "device": device,
-                                    "command": command,  # Pass as string, not list
-                                }
-                            )
-                        )
-                        if delete_result is not None:
-                            logger.info(
-                                f"✅ Command '{command}' deleted from integration storage"
-                            )
-                        else:
-                            logger.warning(
-                                f"⚠️ Failed to delete command '{command}' from integration storage"
-                            )
-                    except Exception as delete_error:
-                        logger.error(
-                            f"❌ Error deleting from integration storage: {delete_error}"
-                        )
-                        # Don't fail the request if deletion fails
+                    logger.info(
+                        f"ℹ️ Deletion of '{command}' from integration storage will happen after code is fetched"
+                    )
 
                 # Log if integration_only (no devices.json update)
                 if save_destination == "integration_only":

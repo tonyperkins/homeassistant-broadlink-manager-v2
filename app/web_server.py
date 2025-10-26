@@ -118,8 +118,9 @@ class BroadlinkWebServer:
         self._call_lock = threading.Lock()
 
         # Background polling for pending commands
-        # Format: [(device_id, device_name, command_name, start_time)]
-        self.pending_command_polls: list[tuple[str, str, str, float]] = []
+        # Format: [(device_id, device_name, command_name, start_time, entity_id_for_deletion)]
+        # entity_id_for_deletion is only set for manager_only commands that need deletion after fetch
+        self.pending_command_polls: list[tuple[str, str, str, float, Optional[str]]] = []
         self.poll_lock = threading.Lock()
         self.poll_thread = None
         self.poll_thread_running = False
@@ -1936,12 +1937,23 @@ class BroadlinkWebServer:
             self.storage_command_cache.clear()
             logger.debug("Cleared all storage cache")
 
-    def schedule_command_poll(self, device_id: str, device_name: str, command_name: str):
-        """Schedule background polling for a pending command"""
+    def schedule_command_poll(self, device_id: str, device_name: str, command_name: str, entity_id_for_deletion: Optional[str] = None):
+        """
+        Schedule background polling for a pending command.
+        
+        Args:
+            device_id: Device ID in devices.json
+            device_name: Device name for storage lookup
+            command_name: Command name
+            entity_id_for_deletion: If set, delete command from this entity after fetching (manager_only mode)
+        """
         with self.poll_lock:
-            # Add to poll list (device_id, device_name, command_name, start_time)
-            self.pending_command_polls.append((device_id, device_name, command_name, time.time()))
-            logger.info(f"📋 Scheduled poll for {device_name}/{command_name}")
+            # Add to poll list (device_id, device_name, command_name, start_time, entity_id_for_deletion)
+            self.pending_command_polls.append((device_id, device_name, command_name, time.time(), entity_id_for_deletion))
+            if entity_id_for_deletion:
+                logger.info(f"📋 Scheduled poll for {device_name}/{command_name} (will delete from {entity_id_for_deletion} after fetch)")
+            else:
+                logger.info(f"📋 Scheduled poll for {device_name}/{command_name}")
             
             # Start poll thread if not running
             if not self.poll_thread_running:
@@ -1975,7 +1987,7 @@ class BroadlinkWebServer:
                     
                     # Process each pending command
                     still_pending = []
-                    for device_id, device_name, command_name, start_time in self.pending_command_polls:
+                    for device_id, device_name, command_name, start_time, entity_id_for_deletion in self.pending_command_polls:
                         elapsed = current_time - start_time
                         
                         # Try to fetch the code
@@ -2006,6 +2018,28 @@ class BroadlinkWebServer:
                                 else:
                                     logger.warning(f"⚠️ Device {device_id} not found in device_manager")
                                 
+                                # If this was a manager_only command, delete from integration storage now
+                                if entity_id_for_deletion:
+                                    logger.info(f"🗑️ Now deleting {device_name}/{command_name} from integration storage (entity: {entity_id_for_deletion})")
+                                    try:
+                                        # Add to deletion cache first
+                                        self._add_to_deletion_cache(device_name, command_name)
+                                        
+                                        # Delete from integration storage
+                                        delete_result = loop.run_until_complete(
+                                            self._delete_command({
+                                                "entity_id": entity_id_for_deletion,
+                                                "device": device_name,
+                                                "command": command_name,
+                                            })
+                                        )
+                                        if delete_result:
+                                            logger.info(f"✅ Deleted {device_name}/{command_name} from integration storage")
+                                        else:
+                                            logger.warning(f"⚠️ Failed to delete {device_name}/{command_name} from integration storage")
+                                    except Exception as del_error:
+                                        logger.error(f"❌ Error deleting {device_name}/{command_name}: {del_error}")
+                                
                                 # Don't re-add to pending list (success!)
                             elif elapsed >= self.POLL_TIMEOUT:
                                 # Timeout reached, mark as error
@@ -2022,7 +2056,7 @@ class BroadlinkWebServer:
                             else:
                                 # Still pending, try again
                                 logger.debug(f"⏳ Code still pending for {device_name}/{command_name} ({elapsed:.1f}s elapsed)")
-                                still_pending.append((device_id, device_name, command_name, start_time))
+                                still_pending.append((device_id, device_name, command_name, start_time, entity_id_for_deletion))
                         finally:
                             loop.close()
                     

@@ -28,3 +28,5 @@ praw>=7.7.0
 
 # HTTP requests (for Discourse forum API)
 requests>=2.31.0
+
+watchdog>=3.0.0

@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
 import { useResponsive } from '@/composables/useResponsive'
@@ -493,6 +493,22 @@ const activeFilterCount = computed(() => {
   if (filters.value.entityType) count++
   if (filters.value.showSmartIROnly) count++
   return count
+})
+
+// Close settings menu when clicking outside
+const handleClickOutside = (event) => {
+  const settingsContainer = event.target.closest('.settings-container')
+  if (!settingsContainer) {
+    showSettingsMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 const clearFilters = () => {

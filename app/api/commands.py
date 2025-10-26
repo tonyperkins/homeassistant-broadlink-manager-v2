@@ -811,39 +811,80 @@ def import_commands():
     """Import untracked commands into a device's metadata"""
     try:
         data = request.json
+        logger.info(f"📥 Import request data: {data}")
+
         device_id = data.get("device_id")  # Target device to import into
         source_device = data.get("source_device")  # Broadlink device name
         commands = data.get("commands", [])  # List of command names to import
 
-        if not all([device_id, source_device, commands]):
+        logger.info(
+            f"📥 Parsed: device_id={device_id}, source_device={source_device}, commands={commands}"
+        )
+
+        if not device_id or not source_device or not commands:
+            error_msg = f"Missing required fields: device_id={device_id}, source_device={source_device}, commands={commands}"
+            logger.error(f"❌ {error_msg}")
             return (
                 jsonify(
                     {
                         "success": False,
-                        "error": "Missing required fields: device_id, source_device, commands",
+                        "error": error_msg,
                     }
                 ),
                 400,
             )
 
         device_manager = current_app.config.get("device_manager")
+        web_server = get_web_server()
 
-        if not device_manager:
-            return jsonify({"error": "Device manager not available"}), 500
+        if not device_manager or not web_server:
+            logger.error("❌ Device manager or web server not available")
+            return jsonify({"error": "Required services not available"}), 500
 
         # Get device from device_manager
         entity_data = device_manager.get_device(device_id)
 
         if not entity_data:
+            logger.error(f"❌ Device '{device_id}' not found")
             return (
                 jsonify({"error": f"Device '{device_id}' not found in device manager"}),
                 404,
             )
 
-        # Add commands to device metadata
+        # Get commands from Broadlink storage
+        logger.info(
+            f"📦 Fetching commands from Broadlink storage for device '{source_device}'..."
+        )
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
+        loop.close()
+
+        storage_commands = broadlink_commands.get(source_device, {})
+        logger.info(
+            f"📦 Found {len(storage_commands)} commands in storage for '{source_device}'"
+        )
+
+        # Add commands to device metadata with proper data
         device_commands = entity_data.get("commands", {})
+        imported_count = 0
+
         for cmd in commands:
-            device_commands[cmd] = cmd  # Simple mapping
+            if cmd in storage_commands:
+                cmd_data = storage_commands[cmd]
+                cmd_type = detect_command_type(cmd_data)
+                device_commands[cmd] = {
+                    "data": cmd_data,
+                    "type": cmd_type,
+                    "command_type": cmd_type,
+                    "name": cmd,
+                }
+                imported_count += 1
+                logger.info(f"  ✅ Imported '{cmd}' ({cmd_type})")
+            else:
+                logger.warning(f"  ⚠️ Command '{cmd}' not found in storage")
 
         entity_data["commands"] = device_commands
 
@@ -851,19 +892,19 @@ def import_commands():
         device_manager.update_device(device_id, entity_data)
 
         logger.info(
-            f"Imported {len(commands)} commands from '{source_device}' to device '{device_id}'"
+            f"✅ Imported {imported_count} commands from '{source_device}' to device '{device_id}'"
         )
 
         return jsonify(
             {
                 "success": True,
-                "message": f"Imported {len(commands)} commands successfully",
-                "imported_count": len(commands),
+                "message": f"Imported {imported_count} commands successfully",
+                "imported_count": imported_count,
             }
         )
 
     except Exception as e:
-        logger.error(f"Error importing commands: {e}")
+        logger.error(f"❌ Error importing commands: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
 

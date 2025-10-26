@@ -162,7 +162,7 @@ class BroadlinkLearner:
             # Step 1: Sweep frequency
             logger.info("Starting RF frequency sweep")
             if progress_callback:
-                progress_callback("Starting RF frequency sweep...", "sweep")
+                progress_callback("Ready! Press and HOLD your remote button now...", "sweep")
             self.device.sweep_frequency()
 
             start_time = time.time()
@@ -178,7 +178,7 @@ class BroadlinkLearner:
                     logger.info(f"RF frequency locked: {frequency} MHz")
                     if progress_callback:
                         progress_callback(
-                            f"Frequency locked: {frequency} MHz", "locked"
+                            f"Signal detected at {frequency} MHz! Keep holding...", "locked"
                         )
                     break
 
@@ -196,7 +196,7 @@ class BroadlinkLearner:
             logger.info("Capturing RF packet")
             if progress_callback:
                 progress_callback(
-                    "Capturing RF packet... (release button now)", "capture"
+                    "Capturing signal... You can RELEASE the button now", "capture"
                 )
             self.device.find_rf_packet()
 

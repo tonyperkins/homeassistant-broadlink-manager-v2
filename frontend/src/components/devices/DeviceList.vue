@@ -51,6 +51,10 @@
             <i class="mdi mdi-cog"></i>
           </button>
           <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="viewUntrackedDevices(); showSettingsMenu = false" class="menu-item">
+              <i class="mdi mdi-radar"></i>
+              <span>View Untracked Devices</span>
+            </button>
             <button @click="syncAllAreas(); showSettingsMenu = false" class="menu-item" :disabled="syncingAreas">
               <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
               <span>{{ syncingAreas ? 'Syncing Areas...' : 'Sync Areas' }}</span>
@@ -517,6 +521,13 @@ const clearFilters = () => {
   filters.value.area = ''
   filters.value.entityType = ''
   filters.value.showSmartIROnly = false
+}
+
+const viewUntrackedDevices = () => {
+  // Open the discovery modal by calling the child component's method
+  if (discoveryRef.value) {
+    discoveryRef.value.openDiscovery()
+  }
 }
 
 const loadBroadlinkDevices = async () => {

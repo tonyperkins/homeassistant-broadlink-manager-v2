@@ -6,12 +6,8 @@
       </div>
       <div class="banner-text">
         <h3>Untracked Devices Found</h3>
-        <p>{{ untrackedDevices.length }} device{{ untrackedDevices.length > 1 ? 's' : '' }} with learned commands found in Broadlink storage</p>
+        <p>{{ untrackedDevices.length }} device{{ untrackedDevices.length > 1 ? 's' : '' }} with learned commands found in Broadlink storage. Use the settings menu (⚙️) to view and adopt them.</p>
       </div>
-      <button @click="showDiscovery = true" class="btn btn-primary">
-        <i class="mdi mdi-eye"></i>
-        View Devices
-      </button>
     </div>
 
     <!-- Discovery Modal -->
@@ -131,6 +127,10 @@ const loadUntrackedDevices = async () => {
   }
 }
 
+const openDiscovery = () => {
+  showDiscovery.value = true
+}
+
 const adoptDevice = (device) => {
   showDiscovery.value = false
   emit('adopt', device)
@@ -178,9 +178,10 @@ const deleteDevice = async () => {
   }
 }
 
-// Expose method to refresh from parent
+// Expose methods to parent component
 defineExpose({
-  refresh: loadUntrackedDevices
+  refresh: loadUntrackedDevices,
+  openDiscovery
 })
 </script>
 

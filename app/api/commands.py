@@ -136,6 +136,12 @@ def learn_command():
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
+            # For integration_only, add placeholder to cache immediately
+            # This makes it appear as "untracked" right away
+            if save_destination in ["integration_only", "both"]:
+                web_server._add_to_storage_cache(device, command, "pending")
+                logger.info(f"Added {device}/{command} to storage cache with pending status")
+
             # Fetch the learned code from Broadlink storage immediately
             # The code is available right away, even though the file write may lag
             try:
@@ -153,17 +159,17 @@ def learn_command():
                 device_commands = all_commands.get(device, {})
                 learned_code = device_commands.get(command)
 
-                if learned_code:
+                if learned_code and learned_code != "pending":
                     logger.info(
                         f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
                     )
                     result["code"] = learned_code
                     result["message"] = f"✅ Command '{command}' learned successfully!"
                     
-                    # Add to storage cache for integration_only saves
+                    # Update cache with actual code
                     if save_destination in ["integration_only", "both"]:
                         web_server._add_to_storage_cache(device, command, learned_code)
-                        logger.info(f"Added {device}/{command} to storage cache")
+                        logger.info(f"Updated {device}/{command} in storage cache with actual code")
                 else:
                     logger.warning(
                         f"⚠️ Command learned but code not yet available in storage, using pending"

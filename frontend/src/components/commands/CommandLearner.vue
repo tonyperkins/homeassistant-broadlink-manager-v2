@@ -162,10 +162,14 @@
           </div>
         </div>
 
-        <!-- Result Message (success only for learning/deleting, errors use native validation) -->
+        <!-- Result Message (success/warning for learning/deleting, errors use native validation) -->
         <!-- Test command success is shown inline on the command row -->
         <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully')" class="result-message success">
           <i class="mdi mdi-check-circle"></i>
+          <p>{{ resultMessage }}</p>
+        </div>
+        <div v-if="resultMessage && resultType === 'warning'" class="result-message warning">
+          <i class="mdi mdi-alert"></i>
           <p>{{ resultMessage }}</p>
         </div>
         </form>

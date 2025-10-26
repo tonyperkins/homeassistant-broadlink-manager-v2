@@ -1979,8 +1979,11 @@ class BroadlinkWebServer:
                 current_time = time.time()
                 
                 with self.poll_lock:
+                    logger.debug(f"🔄 Polling cycle - current poll list size: {len(self.pending_command_polls)}")
+                    
                     if not self.pending_command_polls:
                         # Check if there are any pending commands in devices.json and add them
+                        logger.debug("📋 Poll list empty, scanning devices.json for pending commands...")
                         devices = self.device_manager.get_all_devices()
                         found_pending = False
                         
@@ -2000,6 +2003,8 @@ class BroadlinkWebServer:
                             self.poll_thread_running = False
                             logger.info("✅ No more pending commands, stopping poll thread")
                             break
+                        else:
+                            logger.info(f"📋 Added {len(self.pending_command_polls)} pending commands to poll list")
                     
                     # Process each pending command
                     still_pending = []

@@ -57,7 +57,8 @@
         </div>
 
         <div class="modal-footer">
-          <button @click="adoptAllDevices" class="btn btn-primary" :disabled="adoptingAll || untrackedDevices.length === 0">
+          <!-- Adopt All button hidden - users can adopt individually -->
+          <button v-if="false" @click="adoptAllDevices" class="btn btn-primary" :disabled="adoptingAll || untrackedDevices.length === 0">
             <i class="mdi" :class="adoptingAll ? 'mdi-loading mdi-spin' : 'mdi-plus-circle'"></i>
             {{ adoptingAll ? 'Adopting...' : 'Adopt All' }}
           </button>

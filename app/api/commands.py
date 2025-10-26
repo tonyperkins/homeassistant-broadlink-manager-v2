@@ -185,9 +185,11 @@ def learn_command():
                             if "commands" not in managed_device:
                                 managed_device["commands"] = {}
 
+                            # Store the learned code so we don't depend on .storage files
                             managed_device["commands"][command] = {
                                 "command_type": command_type,
                                 "type": command_type,
+                                "code": learned_code if learned_code else "pending",
                             }
 
                             # Save updated device
@@ -349,29 +351,26 @@ def test_command():
             logger.info(
                 f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
             )
+            commands_mapping = entity_data.get("commands", {})
 
-            # For Broadlink devices, just send the command name - HA will look it up
-            # For SmartIR devices, we need to extract the raw code
-            if not is_smartir:
-                logger.info(f"Broadlink device - sending command name: '{command}'")
+            # Look up the actual command code from the mapping
+            command_data = commands_mapping.get(command, command)
+
+            # If command_data is a dict (metadata), extract the actual code
+            if isinstance(command_data, dict):
+                # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
+                actual_command = command_data.get(
+                    "code", command_data.get("data", command)
+                )
+                logger.info(
+                    f"Command mapping: '{command}' -> extracted code from metadata"
+                )
             else:
-                # SmartIR device - need to extract raw code
-                commands_mapping = entity_data.get("commands", {})
-                command_data = commands_mapping.get(command, command)
+                # Command stored as string directly
+                actual_command = command_data
+                logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
 
-                # If command_data is a dict (metadata), extract the actual code
-                if isinstance(command_data, dict):
-                    actual_command = command_data.get(
-                        "code", command_data.get("data", command)
-                    )
-                    logger.info(
-                        f"Command mapping: '{command}' -> extracted code from metadata"
-                    )
-                else:
-                    actual_command = command_data
-                    logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
-
-                command = actual_command
+            command = actual_command
         else:
             logger.warning(f"Entity data not found for device_id: {device_id}")
 
@@ -554,14 +553,15 @@ def test_command():
                     500,
                 )
         else:
-            # Broadlink device - use command name with device parameter
-            command_list = [command] if isinstance(command, str) else command
+            # Broadlink device - send raw code with b64: prefix
+            # This allows us to control commands in devices.json without relying on .storage files
             service_payload = {
                 "entity_id": entity_id,
-                "device": device,
-                "command": command_list,
+                "command": f"b64:{command}",
             }
-            logger.info(f"Sending Broadlink payload to HA: {service_payload}")
+            logger.info(
+                f"Sending Broadlink raw code to HA (code length: {len(command)} chars)"
+            )
 
         result = loop.run_until_complete(
             web_server._make_ha_request(

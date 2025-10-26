@@ -174,7 +174,18 @@
 
         <!-- Learned Commands List -->
         <div v-else-if="learnedCommands.length > 0" class="learned-commands">
-          <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
+          <div class="commands-header">
+            <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
+            <button 
+              type="button" 
+              @click="loadLearnedCommands(true)" 
+              class="icon-btn refresh-btn" 
+              title="Refresh commands"
+              :disabled="loadingCommands"
+            >
+              <i class="mdi mdi-refresh" :class="{ 'mdi-spin': loadingCommands }"></i>
+            </button>
+          </div>
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item" :class="{ 'error-state': cmd.hasError, 'pending-state': cmd.isPending }">
               <div class="command-info">
@@ -1191,6 +1202,39 @@ const handleImportConfirm = async () => {
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid var(--ha-border-color);
+}
+
+.commands-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.commands-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.refresh-btn {
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--ha-text-primary-color);
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--ha-hover-background);
+  border-color: var(--ha-primary-color);
+  color: var(--ha-primary-color);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .learned-commands h3,

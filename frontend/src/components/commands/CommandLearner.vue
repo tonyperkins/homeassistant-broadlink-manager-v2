@@ -1134,9 +1134,10 @@ const handleImportConfirm = async () => {
 .radio-card {
   position: relative;
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   border: 2px solid var(--ha-border-color);
   border-radius: 8px;
   background: var(--ha-card-background);
@@ -1145,7 +1146,7 @@ const handleImportConfirm = async () => {
   flex: 1;
   min-width: 0;
   justify-content: center;
-  height: 48px;
+  min-height: 44px;
   box-sizing: border-box;
 }
 

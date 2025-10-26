@@ -11,6 +11,7 @@
         <h3>{{ isMobile ? 'Devices' : 'Managed Devices' }}</h3>
         <div class="header-badges">
           <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
+          <span v-if="untrackedCount > 0" class="header-info untracked-badge">{{ untrackedCount }} untracked</span>
         </div>
       </div>
       <div class="header-right">
@@ -303,6 +304,7 @@ const discoveryRef = ref(null)
 const isExpanded = ref(true)
 const generatingEntities = ref(false)
 const syncingAreas = ref(false)
+const untrackedCount = ref(0)
 
 // View mode (grid or list)
 // On mobile, always use grid view; on desktop, use saved preference
@@ -545,10 +547,21 @@ watch(viewMode, (newMode) => {
   localStorage.setItem('device_view_mode', newMode)
 })
 
+const updateUntrackedCount = async () => {
+  try {
+    const response = await api.get('/api/devices/discover')
+    untrackedCount.value = response.data.untracked_devices?.length || 0
+  } catch (error) {
+    console.error('Error loading untracked count:', error)
+    untrackedCount.value = 0
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     deviceStore.loadDevices(),
-    loadBroadlinkDevices()
+    loadBroadlinkDevices(),
+    updateUntrackedCount()
   ])
   
   // Note: Auto-sync removed to prevent UI flickering on page load
@@ -926,6 +939,9 @@ const adoptDevice = async (discoveredDevice) => {
     
     showCreateForm.value = true
     toast.success(`Imported ${Object.keys(transformedCommands).length} commands from Broadlink storage`)
+    
+    // Update untracked count after adoption
+    await updateUntrackedCount()
   } catch (error) {
     console.error('Error adopting device:', error)
     toast.error('Failed to adopt device: ' + (error.response?.data?.error || error.message))
@@ -1117,6 +1133,12 @@ const handleSendCommand = async ({ device, command }) => {
   padding: 4px 8px;
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-radius: 4px;
+}
+
+.header-info.untracked-badge {
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+  color: var(--ha-primary-color, #03a9f4);
+  font-weight: 500;
 }
 
 .header-right {

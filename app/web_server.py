@@ -1980,9 +1980,22 @@ class BroadlinkWebServer:
                 
                 with self.poll_lock:
                     if not self.pending_command_polls:
-                        # Check if there are any pending commands in devices.json
-                        has_pending = self._check_for_pending_commands()
-                        if not has_pending:
+                        # Check if there are any pending commands in devices.json and add them
+                        devices = self.device_manager.get_all_devices()
+                        found_pending = False
+                        
+                        for device_id, device in devices.items():
+                            commands = device.get("commands", {})
+                            device_name = device.get("device_id", device_id)
+                            
+                            for cmd_name, cmd_data in commands.items():
+                                if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
+                                    found_pending = True
+                                    # Add to poll list if not already there
+                                    logger.info(f"📋 Found untracked pending command: {device_name}/{cmd_name}, adding to poll list")
+                                    self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
+                        
+                        if not found_pending:
                             # No more pending commands anywhere, stop thread
                             self.poll_thread_running = False
                             logger.info("✅ No more pending commands, stopping poll thread")

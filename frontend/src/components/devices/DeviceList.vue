@@ -207,6 +207,7 @@
       v-else-if="viewMode === 'list' && filteredDevices.length > 0"
       :devices="filteredDevices"
       @send-command="handleSendCommand"
+      @open-commands="learnCommands"
       @edit-device="editDevice"
       @delete-device="confirmDelete"
     />

@@ -25,9 +25,10 @@
 
           <!-- Type -->
           <td class="device-type">
-            <span class="type-badge" :class="device.device_type || 'broadlink'">
-              {{ device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink' }}
-            </span>
+            <div class="type-icon" :title="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'">
+              <i v-if="device.device_type === 'smartir'" class="mdi mdi-star-four-points" style="color: #9c27b0;"></i>
+              <i v-else class="mdi mdi-remote" style="color: #2196f3;"></i>
+            </div>
           </td>
 
           <!-- Commands -->
@@ -53,6 +54,9 @@
 
           <!-- Actions -->
           <td class="device-actions">
+            <button class="action-btn commands" @click="openCommands(device)" title="Manage Commands">
+              <i class="mdi mdi-remote-tv"></i>
+            </button>
             <button class="action-btn edit" @click="editDevice(device)" title="Edit">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -107,6 +111,9 @@ export default {
     },
     sendCommand(device, command) {
       this.$emit('send-command', { device, command });
+    },
+    openCommands(device) {
+      this.$emit('open-commands', device);
     },
     editDevice(device) {
       this.$emit('edit-device', device);
@@ -206,6 +213,14 @@ export default {
   color: #7b1fa2;
 }
 
+.type-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: help;
+}
+
 /* Commands */
 .device-commands {
   min-width: 250px;
@@ -285,6 +300,15 @@ export default {
 
 .action-btn:hover {
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.action-btn.commands {
+  font-size: 18px;
+}
+
+.action-btn.commands:hover {
+  border-color: #17a2b8;
+  color: #17a2b8;
 }
 
 .action-btn.edit:hover {

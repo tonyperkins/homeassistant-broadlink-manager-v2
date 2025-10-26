@@ -26,8 +26,8 @@
           <!-- Type -->
           <td class="device-type">
             <div class="type-icon" :title="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'">
-              <i v-if="device.device_type === 'smartir'" class="mdi mdi-star-four-points" style="color: #9c27b0;"></i>
-              <i v-else class="mdi mdi-remote" style="color: #2196f3;"></i>
+              <i v-if="device.device_type === 'smartir'" class="mdi mdi-sparkles" style="color: #9c27b0;"></i>
+              <i v-else class="mdi mdi-view-grid" style="color: #2196f3;"></i>
             </div>
           </td>
 

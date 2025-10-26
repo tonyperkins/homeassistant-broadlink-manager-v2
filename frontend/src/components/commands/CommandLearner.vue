@@ -345,6 +345,20 @@ const suggestedCommands = computed(() => {
   return ENTITY_COMMANDS[entityType] || ENTITY_COMMANDS.switch
 })
 
+// Watch for device prop changes and reload commands
+watch(() => props.device, async (newDevice, oldDevice) => {
+  if (newDevice && oldDevice && newDevice.id === oldDevice.id) {
+    // Same device but commands may have changed
+    const newCommandCount = Object.keys(newDevice.commands || {}).length
+    const oldCommandCount = Object.keys(oldDevice.commands || {}).length
+    
+    if (newCommandCount !== oldCommandCount) {
+      console.log(`🔄 Device commands changed (${oldCommandCount} -> ${newCommandCount}), reloading...`)
+      await loadLearnedCommands(true) // Force reload
+    }
+  }
+}, { deep: true })
+
 onMounted(async () => {
   await loadBroadlinkDevices()
   

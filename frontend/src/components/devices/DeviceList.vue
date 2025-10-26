@@ -11,7 +11,13 @@
         <h3>{{ isMobile ? 'Devices' : 'Managed Devices' }}</h3>
         <div class="header-badges">
           <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
-          <span v-if="untrackedCount > 0" class="header-info untracked-badge">{{ untrackedCount }} untracked</span>
+          <span 
+            v-if="untrackedCount > 0" 
+            class="header-info untracked-badge"
+            :title="`${untrackedCount} device${untrackedCount > 1 ? 's' : ''} with learned commands found in Broadlink storage. Use the settings menu (⚙️) to view and adopt them.`"
+          >
+            {{ untrackedCount }} untracked
+          </span>
         </div>
       </div>
       <div class="header-right">
@@ -1139,6 +1145,7 @@ const handleSendCommand = async ({ device, command }) => {
   background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
   color: var(--ha-primary-color, #03a9f4);
   font-weight: 500;
+  cursor: help;
 }
 
 .header-right {

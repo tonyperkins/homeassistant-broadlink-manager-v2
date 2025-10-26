@@ -594,44 +594,27 @@ def test_command():
                     500,
                 )
         else:
-            # Broadlink device - send raw code with b64: prefix
+            # Broadlink device - send raw code with b64: prefix OR command name if pending
             # This allows us to control commands in devices.json without relying on .storage files
             
-            # If command is "pending", try to fetch from storage
-            if command == "pending":
-                logger.info(f"Command is 'pending' - attempting to fetch from storage")
-                try:
-                    all_commands = loop.run_until_complete(
-                        web_server._get_all_broadlink_commands()
-                    )
-                    device_commands = all_commands.get(device, {})
-                    stored_command = device_commands.get(data.get("command"))  # Use original command name
-                    
-                    if stored_command and stored_command != "pending":
-                        command = stored_command
-                        logger.info(f"✅ Found command in storage (length: {len(command)} chars)")
-                    else:
-                        logger.error(f"❌ Command not yet available in storage")
-                        loop.close()
-                        return jsonify({
-                            "success": False,
-                            "error": "Command is still being learned. Please wait a moment and try again."
-                        }), 400
-                except Exception as e:
-                    logger.error(f"Error fetching from storage: {e}")
-                    loop.close()
-                    return jsonify({
-                        "success": False,
-                        "error": "Command not yet available. Please wait a moment and try again."
-                    }), 400
-            
-            service_payload = {
-                "entity_id": entity_id,
-                "command": f"b64:{command}",
-            }
-            logger.info(
-                f"Sending Broadlink raw code to HA (code length: {len(command)} chars)"
-            )
+            # If command is "pending" or "error", send command name instead of raw code
+            if command in ["pending", "error"]:
+                logger.info(f"Command is '{command}' - sending command name to HA instead of raw code")
+                # Send the command name - HA will look it up from its storage
+                service_payload = {
+                    "entity_id": entity_id,
+                    "command": data.get("command"),  # Use original command name
+                }
+                logger.info(f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)")
+            else:
+                # Send raw code with b64: prefix
+                service_payload = {
+                    "entity_id": entity_id,
+                    "command": f"b64:{command}",
+                }
+                logger.info(
+                    f"Sending Broadlink raw code to HA (code length: {len(command)} chars)"
+                )
 
         result = loop.run_until_complete(
             web_server._make_ha_request(

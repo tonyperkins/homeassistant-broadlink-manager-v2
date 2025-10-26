@@ -118,11 +118,12 @@ class BroadlinkWebServer:
         self._call_lock = threading.Lock()
 
         # Background polling for pending commands
-        # Format: [(device_id, device_name, command_name, poll_count, max_polls)]
-        self.pending_command_polls: list[tuple[str, str, str, int, int]] = []
+        # Format: [(device_id, device_name, command_name, start_time)]
+        self.pending_command_polls: list[tuple[str, str, str, float]] = []
         self.poll_lock = threading.Lock()
         self.poll_thread = None
         self.poll_thread_running = False
+        self.POLL_TIMEOUT = 60  # Mark as error after 60 seconds
 
         # Initialize entity management components
         self.entity_detector = EntityDetector()
@@ -1938,8 +1939,8 @@ class BroadlinkWebServer:
     def schedule_command_poll(self, device_id: str, device_name: str, command_name: str):
         """Schedule background polling for a pending command"""
         with self.poll_lock:
-            # Add to poll list (device_id, device_name, command_name, poll_count, max_polls)
-            self.pending_command_polls.append((device_id, device_name, command_name, 0, 10))
+            # Add to poll list (device_id, device_name, command_name, start_time)
+            self.pending_command_polls.append((device_id, device_name, command_name, time.time()))
             logger.info(f"📋 Scheduled poll for {device_name}/{command_name}")
             
             # Start poll thread if not running
@@ -1950,24 +1951,32 @@ class BroadlinkWebServer:
                 logger.info("🔄 Started background polling thread")
     
     def _poll_pending_commands(self):
-        """Background thread that polls for pending commands"""
+        """
+        Background thread that continuously polls for pending commands.
+        Runs as long as there are ANY pending commands in devices.json.
+        Marks commands as 'error' after 60 seconds.
+        """
         logger.info("🔄 Background polling thread started")
         
         while True:
             try:
                 time.sleep(3)  # Poll every 3 seconds
+                current_time = time.time()
                 
                 with self.poll_lock:
                     if not self.pending_command_polls:
-                        # No more pending commands, stop thread
-                        self.poll_thread_running = False
-                        logger.info("✅ No more pending commands, stopping poll thread")
-                        break
+                        # Check if there are any pending commands in devices.json
+                        has_pending = self._check_for_pending_commands()
+                        if not has_pending:
+                            # No more pending commands anywhere, stop thread
+                            self.poll_thread_running = False
+                            logger.info("✅ No more pending commands, stopping poll thread")
+                            break
                     
                     # Process each pending command
                     still_pending = []
-                    for device_id, device_name, command_name, poll_count, max_polls in self.pending_command_polls:
-                        poll_count += 1
+                    for device_id, device_name, command_name, start_time in self.pending_command_polls:
+                        elapsed = current_time - start_time
                         
                         # Try to fetch the code
                         loop = asyncio.new_event_loop()
@@ -1977,9 +1986,9 @@ class BroadlinkWebServer:
                             device_commands = all_commands.get(device_name, {})
                             learned_code = device_commands.get(command_name)
                             
-                            if learned_code and learned_code != "pending":
+                            if learned_code and learned_code not in ["pending", "error"]:
                                 # Got the code! Update devices.json
-                                logger.info(f"✅ Poll #{poll_count}: Found code for {device_name}/{command_name} (length: {len(learned_code)} chars)")
+                                logger.info(f"✅ Found code for {device_name}/{command_name} after {elapsed:.1f}s (length: {len(learned_code)} chars)")
                                 
                                 # Update devices.json
                                 device = self.device_manager.get_device(device_id)
@@ -1998,13 +2007,22 @@ class BroadlinkWebServer:
                                     logger.warning(f"⚠️ Device {device_id} not found in device_manager")
                                 
                                 # Don't re-add to pending list (success!)
-                            elif poll_count >= max_polls:
-                                # Max polls reached, give up
-                                logger.warning(f"⚠️ Gave up polling for {device_name}/{command_name} after {poll_count} attempts")
+                            elif elapsed >= self.POLL_TIMEOUT:
+                                # Timeout reached, mark as error
+                                logger.error(f"❌ Timeout polling for {device_name}/{command_name} after {elapsed:.1f}s - marking as error")
+                                
+                                # Update devices.json with error status
+                                device = self.device_manager.get_device(device_id)
+                                if device and "commands" in device and command_name in device["commands"]:
+                                    device["commands"][command_name]["data"] = "error"
+                                    self.device_manager.update_device(device_id, device)
+                                    logger.error(f"❌ Marked {device_name}/{command_name} as error in devices.json")
+                                
+                                # Don't re-add to pending list (failed)
                             else:
                                 # Still pending, try again
-                                logger.debug(f"⏳ Poll #{poll_count}: Code still pending for {device_name}/{command_name}")
-                                still_pending.append((device_id, device_name, command_name, poll_count, max_polls))
+                                logger.debug(f"⏳ Code still pending for {device_name}/{command_name} ({elapsed:.1f}s elapsed)")
+                                still_pending.append((device_id, device_name, command_name, start_time))
                         finally:
                             loop.close()
                     
@@ -2014,6 +2032,20 @@ class BroadlinkWebServer:
             except Exception as e:
                 logger.error(f"Error in polling thread: {e}")
                 time.sleep(5)  # Wait a bit before retrying on error
+    
+    def _check_for_pending_commands(self) -> bool:
+        """Check if there are any pending commands in devices.json"""
+        try:
+            devices = self.device_manager.get_all_devices()
+            for device in devices.values():
+                commands = device.get("commands", {})
+                for cmd_data in commands.values():
+                    if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
+                        return True
+            return False
+        except Exception as e:
+            logger.error(f"Error checking for pending commands: {e}")
+            return False
 
     async def _find_broadlink_entity_for_device(self, device_name: str) -> str:
         """Find which Broadlink entity owns the commands for a given device name"""

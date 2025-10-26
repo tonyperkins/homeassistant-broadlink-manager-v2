@@ -1,5 +1,16 @@
 <template>
   <div class="device-list-view">
+    <!-- Command Type Legend -->
+    <div class="command-legend">
+      <span class="legend-label">COMMANDS</span>
+      <span class="legend-item">
+        <span class="legend-badge command-rf">RF</span>
+      </span>
+      <span class="legend-item">
+        <span class="legend-badge command-ir">IR</span>
+      </span>
+    </div>
+    
     <table class="device-table">
       <thead>
         <tr>
@@ -25,10 +36,12 @@
 
           <!-- Type -->
           <td class="device-type">
-            <div class="type-icon" :title="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'">
-              <i v-if="device.device_type === 'smartir'" class="mdi mdi-sparkles" style="color: #9c27b0;"></i>
-              <i v-else class="mdi mdi-view-grid" style="color: #2196f3;"></i>
-            </div>
+            <img 
+              :src="getDeviceSourceLogo(device)" 
+              :alt="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'"
+              :title="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'"
+              class="device-source-logo"
+            />
           </td>
 
           <!-- Commands -->
@@ -77,6 +90,9 @@
 </template>
 
 <script>
+import broadlinkLogo from '@/assets/images/broadlink-logo.png'
+import smartirLogo from '@/assets/images/smartir-logo.png'
+
 export default {
   name: 'DeviceListView',
   props: {
@@ -86,6 +102,10 @@ export default {
     }
   },
   methods: {
+    getDeviceSourceLogo(device) {
+      const deviceType = device.device_type || 'broadlink'
+      return deviceType === 'smartir' ? smartirLogo : broadlinkLogo
+    },
     getDeviceCommands(device) {
       // Get commands from device metadata
       // Commands are stored as an object with command names as keys
@@ -129,6 +149,46 @@ export default {
 .device-list-view {
   width: 100%;
   overflow-x: auto;
+}
+
+/* Command Legend */
+.command-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--ha-card-background, white);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--ha-border-color, #e9ecef);
+}
+
+.legend-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ha-text-secondary-color, #6c757d);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.legend-badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.legend-badge.command-rf {
+  background: #7b1fa2;
+}
+
+.legend-badge.command-ir {
+  background: #007bff;
 }
 
 .device-table {
@@ -213,11 +273,10 @@ export default {
   color: #7b1fa2;
 }
 
-.type-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
+.device-source-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
   cursor: help;
 }
 

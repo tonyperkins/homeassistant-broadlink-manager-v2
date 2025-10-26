@@ -167,6 +167,9 @@ class BroadlinkWebServer:
 
         # Automatic migration disabled - user preference
         # self._schedule_migration_check()
+        
+        # Check for pending commands on startup and start polling if needed
+        self._check_and_start_polling_on_startup()
 
     def _setup_routes(self):
         """Setup Flask routes"""
@@ -2080,6 +2083,34 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error checking for pending commands: {e}")
             return False
+    
+    def _check_and_start_polling_on_startup(self):
+        """Check for pending commands on startup and start polling thread if needed"""
+        try:
+            devices = self.device_manager.get_all_devices()
+            pending_found = False
+            
+            for device_id, device in devices.items():
+                commands = device.get("commands", {})
+                device_name = device.get("device_id", device_id)
+                entity_id = device.get("broadlink_entity")
+                
+                for cmd_name, cmd_data in commands.items():
+                    if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
+                        pending_found = True
+                        # Schedule polling for this command
+                        # We don't know if it needs deletion, so pass None for entity_id_for_deletion
+                        logger.info(f"📋 Found pending command on startup: {device_name}/{cmd_name}")
+                        with self.poll_lock:
+                            self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
+            
+            if pending_found and not self.poll_thread_running:
+                self.poll_thread_running = True
+                self.poll_thread = threading.Thread(target=self._poll_pending_commands, daemon=True)
+                self.poll_thread.start()
+                logger.info("🔄 Started background polling thread for existing pending commands")
+        except Exception as e:
+            logger.error(f"Error checking for pending commands on startup: {e}")
 
     async def _find_broadlink_entity_for_device(self, device_name: str) -> str:
         """Find which Broadlink entity owns the commands for a given device name"""

@@ -6,7 +6,10 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || './',
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   }
 })
 

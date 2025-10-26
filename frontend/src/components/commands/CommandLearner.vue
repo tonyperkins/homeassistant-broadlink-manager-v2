@@ -84,6 +84,38 @@
           </div>
         </div>
 
+        <!-- Save Destination -->
+        <div class="form-group">
+          <label>
+            Save Destination
+            <button type="button" class="help-btn" @click="showSaveDestinationHelp = !showSaveDestinationHelp" title="Learn more">
+              <i class="mdi mdi-help-circle-outline"></i>
+            </button>
+          </label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" v-model="saveDestination" value="manager_only" :disabled="learning" />
+              <span>Only Save to Broadlink Manager</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
+              <span>Only Save to Broadlink Integration</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
+              <span>Save to Both</span>
+            </label>
+          </div>
+          <div v-if="showSaveDestinationHelp" class="help-box">
+            <h4>Save Destination Options</h4>
+            <ul>
+              <li><strong>Only Save to Broadlink Manager (Recommended):</strong> Commands are saved only in this app's database (devices.json). This gives you full control and makes commands portable. The Broadlink Integration won't see these commands.</li>
+              <li><strong>Only Save to Broadlink Integration:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
+              <li><strong>Save to Both:</strong> Commands are saved in both places. Use this if you want commands available in both this app and the Broadlink Integration.</li>
+            </ul>
+          </div>
+        </div>
+
         <!-- Learn Button (inline with inputs) -->
         <div class="learn-action">
           <button 
@@ -258,6 +290,8 @@ const selectedBroadlink = ref('')
 const commandName = ref('')
 const customCommandName = ref('')
 const commandType = ref('ir')
+const saveDestination = ref('manager_only') // manager_only, integration_only, both
+const showSaveDestinationHelp = ref(false)
 const learning = ref(false)
 const learningPhase = ref('') // 'preparing', 'ready', 'learning', 'captured', or ''
 const learningStatusMessage = ref('') // Real-time status message from backend
@@ -565,7 +599,8 @@ const startLearning = async () => {
       entity_id: selectedBroadlink.value || props.device.broadlink_entity,
       device: props.device.device || props.device.id,
       command: actualCommand.trim(),
-      command_type: commandType.value
+      command_type: commandType.value,
+      save_destination: saveDestination.value
     })
     
     // Handle simple response (no SSE streaming)
@@ -1432,5 +1467,56 @@ const handleImportConfirm = async () => {
   .smartir-info p {
     font-size: 13px;
   }
+}
+
+/* Help button and box */
+.help-btn {
+  background: none;
+  border: none;
+  color: var(--ha-primary-color, #03a9f4);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  font-size: 18px;
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.help-btn:hover {
+  opacity: 1;
+}
+
+.help-box {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--ha-card-background, #1c1c1c);
+  border: 1px solid var(--ha-divider-color, #2c2c2c);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.help-box h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: var(--ha-primary-color, #03a9f4);
+}
+
+.help-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.help-box li {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.help-box li:last-child {
+  margin-bottom: 0;
+}
+
+.help-box strong {
+  color: var(--ha-primary-text-color, #e1e1e1);
 }
 </style>

@@ -87,9 +87,12 @@ def learn_command():
         command = data.get("command")
         command_type = data.get("command_type", "ir")
         device_id = data.get("device_id")  # For managed devices
+        save_destination = data.get(
+            "save_destination", "manager_only"
+        )  # manager_only, integration_only, both
 
         logger.info(
-            f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}"
+            f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}, save_destination={save_destination}"
         )
 
         # If device is not provided, try to derive it from device_id
@@ -174,8 +177,8 @@ def learn_command():
             finally:
                 loop.close()
 
-            # Update devices.json if this is a managed device
-            if device_id:
+            # Update devices.json if this is a managed device and save_destination allows it
+            if device_id and save_destination in ["manager_only", "both"]:
                 try:
                     device_manager = current_app.config.get("device_manager")
                     if device_manager:
@@ -195,7 +198,7 @@ def learn_command():
                             # Save updated device
                             device_manager.update_device(device_id, managed_device)
                             logger.info(
-                                f"✅ Updated devices.json for {device_id} with new command '{command}'"
+                                f"✅ Updated devices.json for {device_id} with new command '{command}' (save_destination={save_destination})"
                             )
                         else:
                             logger.warning(
@@ -206,6 +209,10 @@ def learn_command():
                 except Exception as save_error:
                     logger.error(f"❌ Error updating devices.json: {save_error}")
                     # Don't fail the request if devices.json update fails
+            elif device_id and save_destination == "integration_only":
+                logger.info(
+                    f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
+                )
 
             return jsonify(result)
         else:

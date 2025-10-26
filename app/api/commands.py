@@ -1135,11 +1135,19 @@ def learn_command_direct_stream():
             ha_url = web_server.ha_url
             ha_token = web_server.ha_token
 
-            # Get device connection info
-            yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
-
-            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
-            connection_info = device_manager_bl.get_device_connection_info(entity_id)
+            # Get device connection info (try cache first)
+            connection_info = web_server.get_cached_connection_info(entity_id)
+            
+            if not connection_info:
+                yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
+                device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+                connection_info = device_manager_bl.get_device_connection_info(entity_id)
+                
+                if connection_info:
+                    # Cache for future use
+                    web_server.cache_connection_info(entity_id, connection_info)
+            else:
+                yield f"data: {json.dumps({'status': 'connecting', 'message': 'Using cached connection...'})}\n\n"
 
             if not connection_info:
                 yield f"data: {json.dumps({'status': 'error', 'message': 'Could not get connection info'})}\n\n"
@@ -1309,9 +1317,16 @@ def learn_command_direct():
         ha_url = web_server.ha_url
         ha_token = web_server.ha_token
 
-        # Get device connection info
-        device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
-        connection_info = device_manager_bl.get_device_connection_info(entity_id)
+        # Get device connection info (try cache first)
+        connection_info = web_server.get_cached_connection_info(entity_id)
+        
+        if not connection_info:
+            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+            connection_info = device_manager_bl.get_device_connection_info(entity_id)
+            
+            if connection_info:
+                # Cache for future use
+                web_server.cache_connection_info(entity_id, connection_info)
 
         if not connection_info:
             return (
@@ -1476,25 +1491,33 @@ def test_command_direct():
                 404,
             )
 
-        # Check if device has stored connection info
-        device_info = device_manager.get_device(device_id)
-        stored_connection = device_info.get("connection") if device_info else None
+        # Try cache first, then stored connection, then discovery
+        connection_info = web_server.get_cached_connection_info(entity_id)
+        
+        if not connection_info:
+            # Check if device has stored connection info
+            device_info = device_manager.get_device(device_id)
+            stored_connection = device_info.get("connection") if device_info else None
 
-        if stored_connection and stored_connection.get("host"):
-            # Use stored connection info
-            logger.info(f"Using stored connection info for device {device_id}")
-            connection_info = {
-                "host": stored_connection["host"],
-                "mac_bytes": bytes.fromhex(stored_connection["mac"].replace(":", "")),
-                "type": stored_connection.get("type", 0x2712),  # Default RM type
-            }
-        else:
-            # Fall back to discovery
-            logger.info(f"No stored connection, discovering device for {entity_id}")
-            device_manager_bl = BroadlinkDeviceManager(
-                web_server.ha_url, web_server.ha_token
-            )
-            connection_info = device_manager_bl.get_device_connection_info(entity_id)
+            if stored_connection and stored_connection.get("host"):
+                # Use stored connection info
+                logger.info(f"Using stored connection info for device {device_id}")
+                connection_info = {
+                    "host": stored_connection["host"],
+                    "mac_bytes": bytes.fromhex(stored_connection["mac"].replace(":", "")),
+                    "type": stored_connection.get("type", 0x2712),  # Default RM type
+                }
+            else:
+                # Fall back to discovery
+                logger.info(f"No stored connection, discovering device for {entity_id}")
+                device_manager_bl = BroadlinkDeviceManager(
+                    web_server.ha_url, web_server.ha_token
+                )
+                connection_info = device_manager_bl.get_device_connection_info(entity_id)
+            
+            if connection_info:
+                # Cache for future use
+                web_server.cache_connection_info(entity_id, connection_info)
 
         if not connection_info:
             return (

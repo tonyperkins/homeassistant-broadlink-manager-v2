@@ -99,6 +99,11 @@ class BroadlinkWebServer:
         self.recently_deleted_commands: dict[str, dict[str, int]] = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
 
+        # Device connection info cache to speed up learning/testing
+        # Format: {entity_id: {host, mac, type, type_hex, model, mac_bytes, cached_at}}
+        self.device_connection_cache: dict[str, dict] = {}
+        self.CONNECTION_CACHE_TTL = 300  # Cache for 5 minutes
+
         # Call tracking for logging context
         self._call_counter = 0
         self._call_lock = threading.Lock()
@@ -2689,6 +2694,44 @@ class BroadlinkWebServer:
 
         migration_thread = threading.Thread(target=run_migration_check, daemon=True)
         migration_thread.start()
+
+    def get_cached_connection_info(self, entity_id: str):
+        """Get cached device connection info if available and not expired"""
+        import time
+        
+        if entity_id not in self.device_connection_cache:
+            return None
+        
+        cached = self.device_connection_cache[entity_id]
+        cached_at = cached.get("cached_at", 0)
+        
+        # Check if cache is expired
+        if time.time() - cached_at > self.CONNECTION_CACHE_TTL:
+            logger.debug(f"Cache expired for {entity_id}")
+            del self.device_connection_cache[entity_id]
+            return None
+        
+        logger.debug(f"Using cached connection info for {entity_id}")
+        return cached
+    
+    def cache_connection_info(self, entity_id: str, connection_info: dict):
+        """Cache device connection info"""
+        import time
+        
+        if connection_info:
+            connection_info["cached_at"] = time.time()
+            self.device_connection_cache[entity_id] = connection_info
+            logger.debug(f"Cached connection info for {entity_id}")
+    
+    def invalidate_connection_cache(self, entity_id: str = None):
+        """Invalidate connection cache for specific device or all devices"""
+        if entity_id:
+            if entity_id in self.device_connection_cache:
+                del self.device_connection_cache[entity_id]
+                logger.debug(f"Invalidated cache for {entity_id}")
+        else:
+            self.device_connection_cache.clear()
+            logger.debug("Cleared all connection cache")
 
     def run(self):
         """Run the Flask web server"""

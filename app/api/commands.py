@@ -225,14 +225,12 @@ def learn_command():
 
                         # Call the delete service to remove from integration storage
                         delete_result = loop.run_until_complete(
-                            web_server._call_ha_service(
-                                "remote",
-                                "delete_command",
+                            web_server._delete_command(
                                 {
                                     "entity_id": entity_id,
                                     "device": device,
                                     "command": [command],
-                                },
+                                }
                             )
                         )
                         if delete_result is not None:

@@ -349,26 +349,29 @@ def test_command():
             logger.info(
                 f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
             )
-            commands_mapping = entity_data.get("commands", {})
 
-            # Look up the actual command code from the mapping
-            command_data = commands_mapping.get(command, command)
-
-            # If command_data is a dict (metadata), extract the actual code
-            if isinstance(command_data, dict):
-                # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
-                actual_command = command_data.get(
-                    "code", command_data.get("data", command)
-                )
-                logger.info(
-                    f"Command mapping: '{command}' -> extracted code from metadata"
-                )
+            # For Broadlink devices, just send the command name - HA will look it up
+            # For SmartIR devices, we need to extract the raw code
+            if not is_smartir:
+                logger.info(f"Broadlink device - sending command name: '{command}'")
             else:
-                # Command stored as string directly
-                actual_command = command_data
-                logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
+                # SmartIR device - need to extract raw code
+                commands_mapping = entity_data.get("commands", {})
+                command_data = commands_mapping.get(command, command)
 
-            command = actual_command
+                # If command_data is a dict (metadata), extract the actual code
+                if isinstance(command_data, dict):
+                    actual_command = command_data.get(
+                        "code", command_data.get("data", command)
+                    )
+                    logger.info(
+                        f"Command mapping: '{command}' -> extracted code from metadata"
+                    )
+                else:
+                    actual_command = command_data
+                    logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
+
+                command = actual_command
         else:
             logger.warning(f"Entity data not found for device_id: {device_id}")
 

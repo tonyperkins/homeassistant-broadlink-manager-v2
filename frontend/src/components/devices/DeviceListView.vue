@@ -1,23 +1,20 @@
 <template>
   <div class="device-list-view">
-    <!-- Command Type Legend -->
-    <div class="command-legend">
-      <span class="legend-label">COMMANDS</span>
-      <span class="legend-item">
-        <span class="legend-badge command-rf">RF</span>
-      </span>
-      <span class="legend-item">
-        <span class="legend-badge command-ir">IR</span>
-      </span>
-    </div>
-    
     <table class="device-table">
       <thead>
         <tr>
           <th>Device</th>
           <th>Room/Area</th>
           <th>Type</th>
-          <th>Commands</th>
+          <th>
+            <div class="commands-header">
+              <span>Commands</span>
+              <div class="command-legend">
+                <span class="legend-badge command-rf">RF</span>
+                <span class="legend-badge command-ir">IR</span>
+              </div>
+            </div>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -151,36 +148,26 @@ export default {
   overflow-x: auto;
 }
 
-/* Command Legend */
-.command-legend {
+/* Commands Header with Legend */
+.commands-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--ha-card-background, white);
-  border-radius: 8px 8px 0 0;
-  border-bottom: 1px solid var(--ha-border-color, #e9ecef);
 }
 
-.legend-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ha-text-secondary-color, #6c757d);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.legend-item {
+.command-legend {
   display: flex;
   align-items: center;
+  gap: 6px;
 }
 
 .legend-badge {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
   font-weight: 600;
   color: white;
+  text-transform: uppercase;
 }
 
 .legend-badge.command-rf {

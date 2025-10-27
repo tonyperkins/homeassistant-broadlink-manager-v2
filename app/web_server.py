@@ -53,9 +53,10 @@ class DevicesJsonWatcher(FileSystemEventHandler):
             return False
 
     def _handle_change(self, event, action_label: str):
-        # Debounce - only process if more than 1 second since last modification
+        # Debounce - only process if more than 0.1 second since last modification
+        # (reduced from 1 second to handle rapid command learning)
         current_time = time.time()
-        if current_time - self.last_modified < 1:
+        if current_time - self.last_modified < 0.1:
             return
         self.last_modified = current_time
 

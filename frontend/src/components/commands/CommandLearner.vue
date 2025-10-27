@@ -478,6 +478,16 @@ const loadBroadlinkDevices = async () => {
 const loadLearnedCommands = async (forceReload = false) => {
   loadingCommands.value = true
   try {
+    // If force reload, trigger backend polling check for pending commands
+    if (forceReload && !isSmartIR.value) {
+      try {
+        await api.post('/api/commands/check-pending')
+        console.log('🔄 Triggered backend polling check')
+      } catch (error) {
+        console.warn('⚠️ Could not trigger polling check:', error)
+      }
+    }
+    
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
       const response = await api.get('/api/smartir/codes/code', {

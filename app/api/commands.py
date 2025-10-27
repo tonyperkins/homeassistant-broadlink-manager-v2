@@ -1212,6 +1212,23 @@ def detect_command_type(command_data):
     return "ir"  # Default to IR if we can't determine
 
 
+@api_bp.route("/commands/check-pending", methods=["POST"])
+def check_pending_commands():
+    """Manually trigger a check for pending commands and start polling if needed"""
+    try:
+        web_server = get_web_server()
+        if not web_server:
+            return jsonify({"success": False, "error": "Web server not available"}), 500
+        
+        # Trigger the file watcher's check method
+        web_server._check_and_start_polling_for_pending()
+        
+        return jsonify({"success": True, "message": "Polling check triggered"})
+    except Exception as e:
+        logger.error(f"Error checking pending commands: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # Direct Learning Endpoints (New Hybrid Approach)
 
 

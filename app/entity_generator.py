@@ -264,12 +264,19 @@ class EntityGenerator:
             light_config["icon_template"] = entity_data["icon"]
 
         if has_on_off:
-            # Separate on/off commands
+            # Separate on/off commands - use raw base64 data
+            turn_on_cmd = broadlink_commands.get(device, {}).get(
+                commands["turn_on"], ""
+            )
+            turn_off_cmd = broadlink_commands.get(device, {}).get(
+                commands["turn_off"], ""
+            )
+
             light_config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_on"]},
+                    "data": {"command": f"b64:{turn_on_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -281,7 +288,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_off"]},
+                    "data": {"command": f"b64:{turn_off_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_off",
@@ -289,12 +296,14 @@ class EntityGenerator:
                 },
             ]
         else:
-            # Toggle command
+            # Toggle command - use raw base64 data
+            toggle_cmd = broadlink_commands.get(device, {}).get(commands["toggle"], "")
+
             light_config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["toggle"]},
+                    "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -306,7 +315,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["toggle"]},
+                    "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_off",
@@ -399,18 +408,20 @@ class EntityGenerator:
             f"  0\n" + "\n".join(percentage_conditions) + f"\n{{%- endif -%}}"
         )
 
-        # Turn on (default to medium speed)
+        # Turn on (default to medium speed) - use raw base64 data
         default_speed = (speed_count + 1) // 2
+        default_speed_cmd_name = speed_commands.get(
+            f"speed_{default_speed}", list(speed_commands.values())[0]
+        )
+        default_speed_cmd = broadlink_commands.get(device, {}).get(
+            default_speed_cmd_name, ""
+        )
+
         fan_config["turn_on"] = [
             {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
-                "data": {
-                    "device": device,
-                    "command": speed_commands.get(
-                        f"speed_{default_speed}", list(speed_commands.values())[0]
-                    ),
-                },
+                "data": {"command": f"b64:{default_speed_cmd}"},
             },
             {
                 "service": "input_boolean.turn_on",
@@ -423,16 +434,18 @@ class EntityGenerator:
             },
         ]
 
-        # Turn off (required for fan entities)
+        # Turn off (required for fan entities) - use raw base64 data
         # Prefer fan_off, then turn_off, then fallback to lowest speed
-        turn_off_command = commands.get("fan_off") or commands.get(
+        turn_off_command_name = commands.get("fan_off") or commands.get(
             "turn_off", speed_commands.get("speed_1", list(speed_commands.values())[0])
         )
+        turn_off_cmd = broadlink_commands.get(device, {}).get(turn_off_command_name, "")
+
         fan_config["turn_off"] = [
             {
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": turn_off_command},
+                "data": {"command": f"b64:{turn_off_cmd}"},
             },
             {
                 "service": "input_boolean.turn_off",
@@ -445,9 +458,9 @@ class EntityGenerator:
             },
         ]
 
-        # Set percentage
+        # Set percentage - use raw base64 commands
         set_percentage_option_conditions = []  # For input_select (speed numbers)
-        set_percentage_command_conditions = []  # For remote commands
+        set_percentage_command_conditions = []  # For remote commands (base64)
 
         for i in range(1, speed_count + 1):
             percentage = int((i / speed_count) * 100)
@@ -457,11 +470,18 @@ class EntityGenerator:
                 f"{{%- elif percentage <= {percentage} -%}}\n" f"  {i}"
             )
 
-            # Template for remote command (the actual command name)
+            # Template for remote command (base64 data)
+            speed_cmd_name = speed_commands.get(f"speed_{i}", "")
+            speed_cmd_data = broadlink_commands.get(device, {}).get(speed_cmd_name, "")
             set_percentage_command_conditions.append(
-                f"{{%- elif percentage <= {percentage} -%}}\n"
-                f"  {speed_commands.get(f'speed_{i}', '')}"
+                f"{{%- elif percentage <= {percentage} -%}}\n" f"  b64:{speed_cmd_data}"
             )
+
+        # Get turn off command base64
+        turn_off_cmd_name = commands.get("fan_off") or commands.get("turn_off", "")
+        turn_off_cmd_data = broadlink_commands.get(device, {}).get(
+            turn_off_cmd_name, ""
+        )
 
         fan_config["set_percentage"] = [
             {
@@ -480,10 +500,9 @@ class EntityGenerator:
                 "service": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {
-                    "device": device,
                     "command": (
                         "{% if percentage == 0 %}\n"
-                        f"  {commands.get('fan_off') or commands.get('turn_off', '')}\n"
+                        f"  b64:{turn_off_cmd_data}\n"
                         + "\n".join(set_percentage_command_conditions)
                         + "\n{% endif %}"
                     ),
@@ -498,8 +517,8 @@ class EntityGenerator:
                 f"{{{{ states('input_select.{entity_id}_direction') }}}}"
             )
 
-            # Set direction action
-            direction_command = (
+            # Set direction action - use raw base64 data
+            direction_command_name = (
                 commands.get("reverse")
                 or commands.get("direction")
                 or commands.get("fan_reverse")
@@ -509,12 +528,15 @@ class EntityGenerator:
             set_direction_actions = []
 
             # Only send remote command if direction command exists
-            if direction_command:
+            if direction_command_name:
+                direction_cmd_data = broadlink_commands.get(device, {}).get(
+                    direction_command_name, ""
+                )
                 set_direction_actions.append(
                     {
                         "service": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
-                        "data": {"device": device, "command": direction_command},
+                        "data": {"command": f"b64:{direction_cmd_data}"},
                     }
                 )
 
@@ -586,12 +608,19 @@ class EntityGenerator:
             switch_config["icon_template"] = entity_data["icon"]
 
         if has_on_off:
-            # Separate on/off commands
+            # Separate on/off commands - use raw base64 data
+            turn_on_cmd = broadlink_commands.get(device, {}).get(
+                commands["turn_on"], ""
+            )
+            turn_off_cmd = broadlink_commands.get(device, {}).get(
+                commands["turn_off"], ""
+            )
+
             switch_config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_on"]},
+                    "data": {"command": f"b64:{turn_on_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -603,7 +632,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_off"]},
+                    "data": {"command": f"b64:{turn_off_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_off",
@@ -611,12 +640,14 @@ class EntityGenerator:
                 },
             ]
         else:
-            # Toggle command
+            # Toggle command - use raw base64 data
+            toggle_cmd = broadlink_commands.get(device, {}).get(commands["toggle"], "")
+
             switch_config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["toggle"]},
+                    "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -628,7 +659,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["toggle"]},
+                    "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
                     "service": "input_boolean.turn_off",

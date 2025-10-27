@@ -26,22 +26,18 @@ class TestDiagnosticsCollectorInitialization:
         collector = DiagnosticsCollector("/tmp/storage")
         assert collector.storage_path == Path("/tmp/storage")
         assert collector.device_manager is None
-        assert collector.storage_manager is None
 
     def test_init_with_managers(self):
-        """Test initialization with device and storage managers"""
+        """Test initialization with device manager"""
         mock_device_mgr = Mock()
-        mock_storage_mgr = Mock()
         
         collector = DiagnosticsCollector(
             "/tmp/storage",
-            device_manager=mock_device_mgr,
-            storage_manager=mock_storage_mgr
+            device_manager=mock_device_mgr
         )
         
         assert collector.storage_path == Path("/tmp/storage")
         assert collector.device_manager == mock_device_mgr
-        assert collector.storage_manager == mock_storage_mgr
 
 
 class TestSystemInfoCollection:
@@ -195,8 +191,11 @@ class TestIntegrationStatusCollection:
         status = collector._collect_integration_status()
         
         assert "smartir" in status
-        assert "broadlink_devices" in status
+        assert "broadlink_integration" in status
         assert "error" not in status
+        assert isinstance(status["smartir"], dict)
+        assert "enabled" in status["smartir"]
+        assert "installed" in status["smartir"]
 
 
 class TestStorageInfoCollection:
@@ -216,7 +215,6 @@ class TestStorageInfoCollection:
             
             # Create test files
             (storage_path / "devices.json").write_text('{"test": "data"}')
-            (storage_path / "metadata.json").write_text('{"test": "data"}')
             (storage_path / "entities.yaml").write_text("test: data")
             
             collector = DiagnosticsCollector(str(storage_path))
@@ -226,7 +224,6 @@ class TestStorageInfoCollection:
             assert info["files"]["devices.json"]["exists"] is True
             assert info["files"]["devices.json"]["size"] > 0
             assert "modified" in info["files"]["devices.json"]
-            assert info["files"]["metadata.json"]["exists"] is True
             assert info["files"]["entities.yaml"]["exists"] is True
 
     def test_collect_storage_info_with_command_files(self):
@@ -428,9 +425,6 @@ class TestMarkdownReportGeneration:
                     "devices.json": {
                         "exists": True,
                         "size": 1024
-                    },
-                    "metadata.json": {
-                        "exists": False
                     }
                 }
             },
@@ -454,7 +448,6 @@ class TestMarkdownReportGeneration:
         assert "SmartIR Devices:** 2" in report
         assert "light:** 2" in report
         assert "devices.json:** 1024 bytes" in report
-        assert "metadata.json:** ❌ Missing" in report
         assert "device1:** 5 commands" in report
         assert "Total Commands:** 8" in report
 

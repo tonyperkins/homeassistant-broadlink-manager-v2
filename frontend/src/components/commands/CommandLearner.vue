@@ -72,15 +72,57 @@
         <!-- Command Type -->
         <div class="form-group">
           <label>Command Type</label>
-          <div class="radio-group">
-            <label class="radio-label">
+          <div class="radio-card-group">
+            <label class="radio-card" :class="{ active: commandType === 'ir', disabled: learning }">
               <input type="radio" v-model="commandType" value="ir" :disabled="learning" />
-              <span>IR (Infrared)</span>
+              <i class="mdi radio-indicator" :class="commandType === 'ir' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-remote card-icon"></i>
+              <span class="card-text">IR (Infrared)</span>
             </label>
-            <label class="radio-label">
+            <label class="radio-card" :class="{ active: commandType === 'rf', disabled: learning }">
               <input type="radio" v-model="commandType" value="rf" :disabled="learning" />
-              <span>RF (Radio Frequency)</span>
+              <i class="mdi radio-indicator" :class="commandType === 'rf' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-radio-tower card-icon"></i>
+              <span class="card-text">RF (Radio Frequency)</span>
             </label>
+          </div>
+        </div>
+
+        <!-- Save Destination -->
+        <div class="form-group">
+          <label>
+            Save Destination
+            <button type="button" class="help-btn" @click="showSaveDestinationHelp = !showSaveDestinationHelp" title="Learn more">
+              <i class="mdi mdi-help-circle-outline"></i>
+            </button>
+          </label>
+          <div class="radio-card-group">
+            <label class="radio-card" :class="{ active: saveDestination === 'manager_only', disabled: learning }">
+              <input type="radio" v-model="saveDestination" value="manager_only" :disabled="learning" />
+              <i class="mdi radio-indicator" :class="saveDestination === 'manager_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-application card-icon"></i>
+              <span class="card-text">Broadlink Manager</span>
+            </label>
+            <label class="radio-card" :class="{ active: saveDestination === 'integration_only', disabled: learning }">
+              <input type="radio" v-model="saveDestination" value="integration_only" :disabled="learning" />
+              <i class="mdi radio-indicator" :class="saveDestination === 'integration_only' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-home-assistant card-icon"></i>
+              <span class="card-text">HA Broadlink</span>
+            </label>
+            <label class="radio-card" :class="{ active: saveDestination === 'both', disabled: learning }">
+              <input type="radio" v-model="saveDestination" value="both" :disabled="learning" />
+              <i class="mdi radio-indicator" :class="saveDestination === 'both' ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-swap-horizontal card-icon"></i>
+              <span class="card-text">Both</span>
+            </label>
+          </div>
+          <div v-if="showSaveDestinationHelp" class="help-box">
+            <h4>Save Destination Options</h4>
+            <ul>
+              <li><strong>Broadlink Manager (Recommended):</strong> Commands are saved only in this app's database (devices.json). This gives you full control and makes commands portable. The Broadlink Integration won't see these commands.</li>
+              <li><strong>HA Broadlink:</strong> Commands are saved only in Home Assistant's Broadlink Integration storage. This app won't track these commands, but they'll be available to the Broadlink Integration's remote.send_command service.</li>
+              <li><strong>Both:</strong> Commands are saved in both places. Use this if you want commands available in both this app and the Broadlink Integration.</li>
+            </ul>
           </div>
         </div>
 
@@ -101,29 +143,29 @@
         <div v-if="learning" class="learning-status">
           <i class="mdi mdi-loading mdi-spin"></i>
           
+          <!-- Preparing Phase -->
+          <div v-if="learningPhase === 'preparing'">
+            <p><strong>Preparing device...</strong></p>
+            <small>Connecting and authenticating with Broadlink device (this takes a few seconds)</small>
+          </div>
+          
           <!-- IR Learning Instructions -->
-          <div v-if="commandType === 'ir'">
-            <p>Point your remote at the Broadlink device and press the button...</p>
+          <div v-else-if="commandType === 'ir'">
+            <p><strong>Ready!</strong> Point your remote at the Broadlink device and press the button...</p>
             <small>This may take up to 30 seconds</small>
           </div>
           
           <!-- RF Learning Instructions -->
-          <div v-else-if="commandType === 'rf'" class="rf-instructions">
-            <p><strong>Learning request sent to device.</strong></p>
-            <p>RF learning is a two-step process:</p>
-            <ol>
-              <li><strong>Step 1 - Frequency Sweep (~10-15 seconds):</strong> Press and hold the button on your remote until the notification updates.</li>
-              <li><strong>Step 2 - Learn Signal:</strong> Press and release the button once.</li>
-            </ol>
-            <p class="ha-note">
-              Follow the Home Assistant notifications (<i class="mdi mdi-bell"></i>) for real-time instructions.
-            </p>
+          <div v-else-if="commandType === 'rf'">
+            <p><strong>Learning RF command...</strong></p>
+            <small>Check Home Assistant notifications (🔔) for instructions</small>
           </div>
         </div>
 
-        <!-- Result Message (success only for learning/deleting, errors use native validation) -->
+        <!-- Result Message (success only, warning removed) -->
         <!-- Test command success is shown inline on the command row -->
-        <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully')" class="result-message success">
+        <!-- Hide during learning to prevent showing old success message -->
+        <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully') && !learning" class="result-message success">
           <i class="mdi mdi-check-circle"></i>
           <p>{{ resultMessage }}</p>
         </div>
@@ -142,17 +184,39 @@
 
         <!-- Learned Commands List -->
         <div v-else-if="learnedCommands.length > 0" class="learned-commands">
-          <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
+          <div class="commands-header">
+            <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
+            <button 
+              type="button" 
+              @click="loadLearnedCommands(true)" 
+              class="icon-btn refresh-btn" 
+              title="Refresh commands"
+              :disabled="loadingCommands"
+            >
+              <i class="mdi mdi-refresh" :class="{ 'mdi-spin': loadingCommands }"></i>
+            </button>
+          </div>
           <div class="command-list">
-            <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item">
+            <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item" :class="{ 'error-state': cmd.hasError, 'pending-state': cmd.isPending }">
               <div class="command-info">
                 <span class="command-name">{{ cmd.label || cmd.name }}</span>
               </div>
               
               <!-- Right-aligned icons and buttons -->
               <div class="command-right">
-                <!-- Learned status - just checkmark with tooltip -->
+                <!-- Status icon - checkmark, error, or pending -->
                 <i 
+                  v-if="cmd.hasError"
+                  class="mdi mdi-alert-circle error-icon" 
+                  title="Error: Command failed to learn. Delete and try again."
+                ></i>
+                <i 
+                  v-else-if="cmd.isPending"
+                  class="mdi mdi-clock-outline pending-icon" 
+                  title="Pending: Waiting for code from storage..."
+                ></i>
+                <i 
+                  v-else
                   class="mdi mdi-check-circle learned-icon" 
                   :title="`Learned (${(cmd.type || 'ir').toUpperCase()})`"
                 ></i>
@@ -164,10 +228,16 @@
                 
                 <!-- Action buttons -->
                 <div class="command-actions">
-                  <button type="button" @click="testCommand(cmd.name)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.name">
+                  <button 
+                    type="button" 
+                    @click="testCommand(cmd.name)" 
+                    class="icon-btn" 
+                    :title="cmd.hasError ? 'Cannot test - command failed to learn' : cmd.isPending ? 'Cannot test - waiting for code' : 'Test command'" 
+                    :disabled="testingCommand === cmd.name || cmd.hasError || cmd.isPending"
+                  >
                     <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
                   </button>
-                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" title="Delete and re-learn">
+                  <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" :title="cmd.hasError ? 'Delete and re-learn' : 'Delete command'">
                     <i class="mdi mdi-delete"></i>
                   </button>
                 </div>
@@ -188,9 +258,16 @@
           <div class="command-list">
             <div v-for="cmd in untrackedCommands" :key="cmd" class="command-item untracked">
               <span class="command-name">{{ cmd }}</span>
-              <span class="untracked-badge">Not tracked</span>
+              <button 
+                type="button" 
+                @click="importSingleCommand(cmd)" 
+                class="btn-icon" 
+                title="Import this command"
+              >
+                <i class="mdi mdi-import"></i>
+              </button>
             </div>
-          </div>
+          </div><br></br>
           <button type="button" @click="importUntrackedCommands" class="btn btn-secondary">
             <i class="mdi mdi-import"></i>
             Import All Untracked Commands
@@ -209,7 +286,8 @@
     <ConfirmDialog
       :isOpen="showDeleteConfirm"
       :title="'Delete Command?'"
-      :message="`Delete command '${commandToDelete}'? This will remove it from Broadlink storage.`"
+      :message="`Delete command '${commandToDelete}' from Broadlink Manager?`"
+      checkboxLabel="Also delete from Broadlink Integration storage"
       confirmText="Delete"
       cancelText="Cancel"
       :dangerMode="true"
@@ -249,7 +327,11 @@ const selectedBroadlink = ref('')
 const commandName = ref('')
 const customCommandName = ref('')
 const commandType = ref('ir')
+const saveDestination = ref('manager_only') // manager_only, integration_only, both
+const showSaveDestinationHelp = ref(false)
 const learning = ref(false)
+const learningPhase = ref('') // 'preparing', 'ready', 'learning', 'captured', or ''
+const learningStatusMessage = ref('') // Real-time status message from backend
 const resultMessage = ref('')
 const resultType = ref('success')
 const learnedCommands = ref([])
@@ -334,27 +416,28 @@ const suggestedCommands = computed(() => {
   return ENTITY_COMMANDS[entityType] || ENTITY_COMMANDS.switch
 })
 
+// Watch for device prop changes and reload commands
+watch(() => props.device, async (newDevice, oldDevice) => {
+  if (newDevice && oldDevice && newDevice.id === oldDevice.id) {
+    // Same device but commands may have changed
+    const newCommandCount = Object.keys(newDevice.commands || {}).length
+    const oldCommandCount = Object.keys(oldDevice.commands || {}).length
+    
+    if (newCommandCount !== oldCommandCount) {
+      console.log(`🔄 Device commands changed (${oldCommandCount} -> ${newCommandCount}), reloading...`)
+      await loadLearnedCommands(true) // Force reload
+    }
+  }
+}, { deep: true })
+
 onMounted(async () => {
   await loadBroadlinkDevices()
   
-  // Sync command types on mount (fixes RF/IR detection for adopted devices)
-  // Do this BEFORE loading commands so we get the updated types
-  try {
-    console.log('🔄 Syncing command types...')
-    const syncResponse = await api.post('/api/commands/sync')
-    console.log('✅ Command types synced:', syncResponse.data)
-  } catch (error) {
-    console.error('⚠️ Failed to sync command types:', error)
-  }
+  // Load commands from devices.json (no syncing from .storage files)
+  await loadLearnedCommands()
   
-  // Always force reload from API for non-SmartIR devices to get fresh command types
-  // This ensures we get the updated RF/IR types after sync
-  const shouldForceReload = !isSmartIR.value
-  console.log(`📋 Will ${shouldForceReload ? 'FORCE RELOAD' : 'use cached'} commands`)
-  
-  // Load commands AFTER sync completes
-  await loadLearnedCommands(shouldForceReload)
-  // Note: Untracked commands are now synced via the sync button, not auto-imported
+  // Load untracked commands from storage
+  await loadUntrackedCommands()
   
   // Set custom validation messages
   if (commandSelect.value) {
@@ -395,6 +478,16 @@ const loadBroadlinkDevices = async () => {
 const loadLearnedCommands = async (forceReload = false) => {
   loadingCommands.value = true
   try {
+    // If force reload, trigger backend polling check for pending commands
+    if (forceReload && !isSmartIR.value) {
+      try {
+        await api.post('/api/commands/check-pending')
+        console.log('🔄 Triggered backend polling check')
+      } catch (error) {
+        console.warn('⚠️ Could not trigger polling check:', error)
+      }
+    }
+    
     if (isSmartIR.value) {
       // For SmartIR devices, load commands from the code file
       const response = await api.get('/api/smartir/codes/code', {
@@ -460,9 +553,13 @@ const loadLearnedCommands = async (forceReload = false) => {
             const cmdType = typeof data === 'object' && data !== null 
               ? (data.command_type || data.type || 'ir')
               : 'ir'
+            const cmdData = typeof data === 'object' && data !== null ? data.data : data
             return {
               name,
-              type: cmdType
+              type: cmdType,
+              data: cmdData,
+              hasError: cmdData === 'error',
+              isPending: cmdData === 'pending'
             }
           })
           console.log('📋 Reloaded commands:', learnedCommands.value)
@@ -477,10 +574,16 @@ const loadLearnedCommands = async (forceReload = false) => {
         }
       } else if (props.device.commands && Object.keys(props.device.commands).length > 0) {
         console.log('✅ Using commands from device object')
-        learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => ({
-          name,
-          type: data.command_type || data.type || 'ir'
-        }))
+        learnedCommands.value = Object.entries(props.device.commands).map(([name, data]) => {
+          const cmdData = data.data || data
+          return {
+            name,
+            type: data.command_type || data.type || 'ir',
+            data: cmdData,
+            hasError: cmdData === 'error',
+            isPending: cmdData === 'pending'
+          }
+        })
       } else if (props.device.commands !== undefined) {
         // Device has commands property but it's empty - no need to fetch
         console.log('ℹ️ Device has empty commands object - skipping API call')
@@ -521,74 +624,90 @@ const startLearning = async () => {
   // Clear previous success messages
   resultMessage.value = ''
   resultType.value = ''
+  learningStatusMessage.value = ''
   
   learning.value = true
+  learningPhase.value = 'preparing'
   
   try {
-    // Extract device name - try multiple sources
-    let deviceName = props.device.id.split('.')[1] // Default: from entity_id
-    
-    // If device has a 'device' field, use that instead
-    if (props.device.device) {
-      deviceName = props.device.device
-    }
-    
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
     
+    // For RF commands, show instructional message immediately
+    if (commandType.value === 'rf') {
+      learningPhase.value = 'learning'
+      resultMessage.value = '⚠️ Learning request sent to device. Check Home Assistant notifications (🔔) for instructions. Note: If the device is offline or times out, you will see a notification but this dialog will still show success.'
+      resultType.value = 'warning'
+      
+      // Force Vue to update the DOM before making the API call
+      await new Promise(resolve => setTimeout(resolve, 50))
+    } else {
+      learningPhase.value = 'learning'
+    }
+    
+    // Use HA API method (works in both standalone and add-on modes)
+    // Note: Direct learning endpoint (/commands/learn/direct/stream) is kept in backend
+    // but not used to avoid network isolation issues in add-on mode
+    
     const response = await api.post('/api/commands/learn', {
-      entity_id: selectedBroadlink.value,
-      device: deviceName,
-      device_id: props.device.id,  // Send device_id for managed devices
+      device_id: props.device.id,
+      entity_id: selectedBroadlink.value || props.device.broadlink_entity,
+      device: props.device.device || props.device.id,
       command: actualCommand.trim(),
-      command_type: commandType.value
+      command_type: commandType.value,
+      save_destination: saveDestination.value
     })
     
+    // Handle simple response (no SSE streaming)
     if (response.data.success) {
-      resultMessage.value = `Command "${actualCommand}" learned successfully!`
-      resultType.value = 'success'
+      learningPhase.value = 'complete'
+      // Don't show success message - command will appear in list automatically
+      resultMessage.value = ''
+      resultType.value = ''
       
-      // Immediately add to learned commands list (optimistic update)
-      const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
-      if (!existingCommand) {
-        learnedCommands.value.push({
-          name: actualCommand,
-          type: commandType.value
-        })
+      // Only add to learned commands if saved to manager (manager_only or both)
+      if (saveDestination.value === 'manager_only' || saveDestination.value === 'both') {
+        const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+        if (!existingCommand) {
+          learnedCommands.value.push({
+            name: actualCommand,
+            type: commandType.value
+          })
+        }
+        
+        // Remove from untracked if it was there (since it's now tracked)
+        const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
+        if (untrackedIndex > -1) {
+          untrackedCommands.value.splice(untrackedIndex, 1)
+        }
       }
       
-      // Remove from untracked if it was there
-      const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
-      if (untrackedIndex > -1) {
-        untrackedCommands.value.splice(untrackedIndex, 1)
-      }
-      
-      // Optimistically update the device's command count in the store
-      // This prevents the UI from showing stale data while waiting for storage file updates
-      const updatedCommands = { ...props.device.commands }
-      updatedCommands[actualCommand] = {
-        command_type: commandType.value,
-        type: commandType.value
-      }
-      
-      // Reload untracked commands to remove the newly learned one
+      // Always reload untracked commands to get current state from server
+      // This will show integration_only commands as untracked
       await loadUntrackedCommands()
       
       // Clear form for next command
       commandName.value = ''
       customCommandName.value = ''
       
-      // Notify parent component with updated command data
-      emit('learned', { commands: updatedCommands, commandName: actualCommand })
+      // Notify parent
+      emit('learned', { 
+        deviceId: props.device.id,
+        commandName: actualCommand,
+        commandType: commandType.value
+      })
+      
+      learning.value = false
+      learningPhase.value = ''
     } else {
-      resultMessage.value = response.data.error || 'Failed to learn command'
-      resultType.value = 'error'
+      throw new Error(response.data.error || 'Failed to learn command')
     }
   } catch (error) {
-    resultMessage.value = error.response?.data?.error || 'Error learning command'
+    console.error('Learning error:', error)
+    resultMessage.value = error.message || 'Error learning command'
     resultType.value = 'error'
-  } finally {
     learning.value = false
+    learningPhase.value = ''
   }
 }
 
@@ -625,14 +744,15 @@ const testCommand = async (command) => {
     }
     
     const requestData = {
+      device_id: props.device.id,
       entity_id: entityId,
-      device: deviceName,
       command: command,
-      device_id: props.device.id
+      device: props.device.device || props.device.id
     }
     
     console.log('🧪 Testing command:', requestData)
     
+    // Use HA API test endpoint (works in add-on mode)
     const response = await api.post('/api/commands/test', requestData)
     
     if (response.data.success) {
@@ -666,28 +786,52 @@ const cancelDeleteCommand = () => {
   commandToDelete.value = ''
 }
 
-const handleDeleteConfirm = async () => {
+const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {
   const command = commandToDelete.value
   showDeleteConfirm.value = false
   
   try {
-    console.log(`🗑️ Deleting command: ${command}`)
+    console.log(`🗑️ Deleting command: ${command}, alsoDeleteFromIntegration: ${alsoDeleteFromIntegration}`)
+    
+    // Delete from Broadlink Manager (devices.json)
     await api.delete(`/api/commands/${props.device.id}/${command}`)
     
-    // Remove from local list immediately (optimistic update)
-    learnedCommands.value = learnedCommands.value.filter(cmd => cmd.name !== command)
+    // If checkbox was checked, also delete from Broadlink Integration storage
+    if (alsoDeleteFromIntegration) {
+      try {
+        const deviceName = props.device.device || props.device.id
+        await api.post('/api/commands/delete-from-storage', {
+          device: deviceName,
+          command: command
+        })
+        console.log(`✅ Also deleted from Broadlink Integration storage`)
+      } catch (storageError) {
+        console.warn(`⚠️ Failed to delete from Broadlink Integration storage:`, storageError)
+        // Don't fail the whole operation if storage deletion fails
+      }
+    }
     
-    // Reload from server to sync
-    await loadLearnedCommands()
+    // Reload commands from server to get actual state
+    await loadLearnedCommands(true)
+    
+    // Refresh untracked commands (in case it becomes untracked)
     await loadUntrackedCommands()
     
     resultMessage.value = `Command "${command}" deleted`
     resultType.value = 'success'
-    emit('learned')
+    
+    // Emit event to parent to refresh device list and update command count
+    emit('learned', {
+      deviceId: props.device.id,
+      commandName: command,
+      action: 'deleted'
+    })
   } catch (error) {
     console.error('❌ Delete error:', error)
     resultMessage.value = `Failed to delete command: ${error.message}`
     resultType.value = 'error'
+    // On error, reload to get accurate state
+    await loadLearnedCommands(true)
   } finally {
     commandToDelete.value = ''
   }
@@ -730,28 +874,100 @@ const importUntrackedCommands = () => {
   showImportConfirm.value = true
 }
 
+const importSingleCommand = async (commandName) => {
+  console.log('🔵 [IMPORT SINGLE] Importing command:', commandName)
+  
+  try {
+    // Get the device name (storage key)
+    const deviceName = props.device.device || props.device.id || (props.device.id?.includes('.') ? props.device.id.split('.')[1] : null)
+    
+    if (!deviceName) {
+      throw new Error('Could not determine device name for import')
+    }
+    
+    console.log('🔵 [IMPORT SINGLE] Calling API to import command...')
+    const response = await api.post('/api/commands/import', {
+      device_id: props.device.id,
+      source_device: deviceName,
+      commands: [commandName]  // Import just this one command
+    })
+    
+    console.log('🔵 [IMPORT SINGLE] API response:', response.data)
+    
+    if (response.data.success) {
+      resultMessage.value = `Imported command '${commandName}' successfully!`
+      resultType.value = 'success'
+      
+      // Reload commands to reflect the import
+      await loadLearnedCommands(true)
+      await loadUntrackedCommands()
+    } else {
+      resultMessage.value = response.data.error || 'Failed to import command'
+      resultType.value = 'error'
+    }
+  } catch (error) {
+    console.error('🔴 [IMPORT SINGLE] Error:', error)
+    resultMessage.value = error.response?.data?.error || error.message || 'Failed to import command'
+    resultType.value = 'error'
+  }
+}
+
 const handleImportConfirm = async () => {
+  console.log('🔵 [IMPORT] Starting import process...')
+  console.log('🔵 [IMPORT] Current learned commands:', learnedCommands.value.length)
+  console.log('🔵 [IMPORT] Current untracked commands:', untrackedCommands.value.length)
+  
   showImportConfirm.value = false
   
   try {
-    const deviceName = props.device.device || props.device.id.split('.')[1]
+    // Get the device name (storage key) - this is what's used in Broadlink storage files
+    // Try: device.device field, or device.id (if it's already the storage name), or extract from entity ID
+    const deviceName = props.device.device || props.device.id || (props.device.id?.includes('.') ? props.device.id.split('.')[1] : null)
     
+    console.log('🔵 [IMPORT] Device object:', props.device)
+    console.log('🔵 [IMPORT] Extracted device name:', deviceName)
+    
+    if (!deviceName) {
+      throw new Error('Could not determine device name for import')
+    }
+    
+    console.log('🔵 [IMPORT] Calling API to import commands...')
     const response = await api.post('/api/commands/import', {
       device_id: props.device.id,
       source_device: deviceName,
       commands: untrackedCommands.value
     })
     
+    console.log('🔵 [IMPORT] API response:', response.data)
+    
     if (response.data.success) {
       resultMessage.value = `Imported ${response.data.imported_count} commands successfully!`
       resultType.value = 'success'
       
-      // Reload commands
-      await loadLearnedCommands()
+      console.log('🔵 [IMPORT] Import successful, now reloading commands...')
+      console.log('🔵 [IMPORT] BEFORE reload - learned:', learnedCommands.value.length, 'untracked:', untrackedCommands.value.length)
+      
+      // CRITICAL: Force reload from server to get actual state
+      await loadLearnedCommands(true)  // ← Added forceReload=true
+      
+      console.log('🔵 [IMPORT] AFTER loadLearnedCommands - learned:', learnedCommands.value.length)
+      
       await loadUntrackedCommands()
-      emit('learned')
+      
+      console.log('🔵 [IMPORT] AFTER loadUntrackedCommands - untracked:', untrackedCommands.value.length)
+      console.log('🔵 [IMPORT] Final state - learned:', learnedCommands.value, 'untracked:', untrackedCommands.value)
+      
+      // Emit event to parent to refresh device list and update command count
+      console.log('🔵 [IMPORT] Emitting learned event to parent...')
+      emit('learned', {
+        deviceId: props.device.id,
+        action: 'imported',
+        count: response.data.imported_count
+      })
+      console.log('🔵 [IMPORT] ✅ Import process complete!')
     }
   } catch (error) {
+    console.error('🔵 [IMPORT] ❌ Import failed:', error)
     resultMessage.value = `Failed to import commands: ${error.message}`
     resultType.value = 'error'
   }
@@ -922,6 +1138,102 @@ const handleImportConfirm = async () => {
   cursor: pointer;
 }
 
+/* Radio Card Styling (like checkbox cards) */
+.radio-card-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (min-width: 768px) {
+  .radio-card-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.radio-card {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--ha-border-color);
+  border-radius: 8px;
+  background: var(--ha-card-background);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .radio-card {
+    flex: 1;
+    width: auto;
+  }
+}
+
+.radio-card:hover:not(.disabled) {
+  border-color: var(--ha-primary-color);
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.05);
+}
+
+.radio-card.active {
+  border-color: var(--ha-primary-color);
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+}
+
+.radio-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-indicator {
+  font-size: 18px;
+  color: var(--ha-text-secondary-color);
+  flex-shrink: 0;
+  margin-right: 10px; /* extra space between radio and icon */
+}
+
+.radio-card.active .radio-indicator {
+  color: var(--ha-primary-color);
+}
+
+.radio-card .card-icon {
+  font-size: 18px;
+  color: var(--ha-text-secondary-color);
+  flex-shrink: 0;
+  margin-right: 8px; /* space between icon and text */
+}
+
+.radio-card.active .card-icon {
+  color: var(--ha-primary-color);
+}
+
+.radio-card .card-text {
+  font-size: 14px;
+  color: var(--ha-text-primary-color);
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.radio-card.active .card-text {
+  color: var(--ha-primary-color);
+}
+
 .learning-status {
   background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
   border: 1px solid var(--ha-primary-color);
@@ -1008,6 +1320,39 @@ const handleImportConfirm = async () => {
   border-top: 1px solid var(--ha-border-color);
 }
 
+.commands-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.commands-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.refresh-btn {
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--ha-text-primary-color);
+  transition: all 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--ha-hover-background);
+  border-color: var(--ha-primary-color);
+  color: var(--ha-primary-color);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .learned-commands h3,
 .untracked-commands h3 {
   margin: 0 0 16px 0;
@@ -1075,6 +1420,36 @@ const handleImportConfirm = async () => {
 .command-item.untracked {
   background: rgba(var(--ha-warning-rgb, 255, 152, 0), 0.05);
   border-color: var(--ha-warning-color, #ff9800);
+}
+
+.command-item.error-state {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+  border-width: 3px;
+}
+
+.command-item.pending-state {
+  background: rgba(255, 152, 0, 0.05);
+  border-color: #ff9800;
+  border-style: dashed;
+}
+
+.error-icon {
+  font-size: 20px;
+  color: #f44336;
+  cursor: help;
+}
+
+.pending-icon {
+  font-size: 18px;
+  color: #ff9800;
+  cursor: help;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .command-right {
@@ -1270,6 +1645,36 @@ const handleImportConfirm = async () => {
   color: #ffc107;
 }
 
+.rf-instructions .rf-action {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid #4caf50;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rf-instructions .rf-note {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 3px solid #2196f3;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rf-instructions .rf-note i {
+  color: #2196f3;
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .modal-footer {
   display: flex;
   gap: 12px;
@@ -1369,5 +1774,56 @@ const handleImportConfirm = async () => {
   .smartir-info p {
     font-size: 13px;
   }
+}
+
+/* Help button and box */
+.help-btn {
+  background: none;
+  border: none;
+  color: var(--ha-primary-color, #03a9f4);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  font-size: 18px;
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.help-btn:hover {
+  opacity: 1;
+}
+
+.help-box {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--ha-card-background, #1c1c1c);
+  border: 1px solid var(--ha-divider-color, #2c2c2c);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.help-box h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: var(--ha-primary-color, #03a9f4);
+}
+
+.help-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.help-box li {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.help-box li:last-child {
+  margin-bottom: 0;
+}
+
+.help-box strong {
+  color: var(--ha-primary-text-color, #e1e1e1);
 }
 </style>

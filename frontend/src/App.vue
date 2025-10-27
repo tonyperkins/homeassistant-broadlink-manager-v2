@@ -263,6 +263,20 @@ const downloadDiagnostics = async () => {
 }
 
 // Close settings menu when clicking outside
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.settings-menu-container')) {
+    showSettingsMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 const toggleSmartIR = () => {
   // Don't allow toggling if SmartIR is not installed
   if (!smartirInstalled.value) {
@@ -297,12 +311,6 @@ const updateSmartIRIndex = async () => {
     toastRef.value?.error('Failed to update device index', '❌ Update Error')
   } finally {
     updatingIndex.value = false
-    showSettingsMenu.value = false
-  }
-}
-
-const handleClickOutside = (event) => {
-  if (!event.target.closest('.settings-menu-container')) {
     showSettingsMenu.value = false
   }
 }

@@ -144,6 +144,24 @@ export const useDeviceStore = defineStore('devices', {
       this.error = null
     },
     
+    updateDeviceCommands(deviceId, commands) {
+      // Optimistically update device commands in the store
+      // This prevents UI lag while waiting for storage file updates (10+ seconds in standalone mode)
+      const deviceIndex = this.devices.findIndex(d => d.id === deviceId)
+      if (deviceIndex !== -1) {
+        // Replace the entire device object to trigger reactivity
+        // Vue 3 can track this because we're replacing an array element
+        const updatedDevice = {
+          ...this.devices[deviceIndex],
+          commands: commands
+        }
+        this.devices.splice(deviceIndex, 1, updatedDevice)
+        console.log(`✅ Store: Updated commands for ${deviceId}, count: ${Object.keys(commands).length}`)
+      } else {
+        console.warn(`⚠️ Store: Device ${deviceId} not found for command update`)
+      }
+    },
+    
     async syncAllAreas() {
       // Sync areas from Home Assistant for all devices
       if (!this.devices || this.devices.length === 0) {

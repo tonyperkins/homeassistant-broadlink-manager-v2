@@ -328,17 +328,75 @@ def find_broadlink_owner():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/devices/discover/debug", methods=["GET"])
+def debug_discovery():
+    """Debug endpoint to check paths and discovery logic"""
+    try:
+        import asyncio
+        import time
+
+        web_server = current_app.config.get("web_server")
+        storage = get_storage_manager()
+        device_manager = get_device_manager()
+
+        debug_info = {
+            "storage_path": str(web_server.storage_path) if web_server else "N/A",
+            "storage_path_exists": (
+                web_server.storage_path.exists() if web_server else False
+            ),
+        }
+
+        # Get broadlink commands
+        if web_server:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            broadlink_commands = loop.run_until_complete(
+                web_server._get_all_broadlink_commands()
+            )
+            loop.close()
+            debug_info["broadlink_devices"] = list(broadlink_commands.keys())
+            debug_info["broadlink_device_count"] = len(broadlink_commands)
+
+            # Check deletion cache
+            deletion_cache = {}
+            current_time = time.time()
+            for device_name, commands in web_server.recently_deleted_commands.items():
+                deletion_cache[device_name] = {}
+                for cmd_name, deletion_time in commands.items():
+                    age = current_time - deletion_time
+                    deletion_cache[device_name][cmd_name] = {
+                        "age_seconds": round(age, 1),
+                        "expires_in": round(web_server.DELETION_CACHE_TTL - age, 1),
+                    }
+            debug_info["deletion_cache"] = deletion_cache
+
+        # Get tracked devices
+        tracked = set()
+        if device_manager:
+            devices = device_manager.get_all_devices()
+            for device_id, device_data in devices.items():
+                if device_data.get("device_type") == "broadlink":
+                    tracked.add(device_id)
+        debug_info["tracked_devices"] = list(tracked)
+        debug_info["tracked_device_count"] = len(tracked)
+
+        return jsonify(debug_info)
+    except Exception as e:
+        logger.error(f"Debug error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/devices/discover", methods=["GET"])
 def discover_untracked_devices():
-    """Discover devices that exist in Broadlink storage but are not tracked in metadata"""
+    """Discover devices that exist in Broadlink storage but are not tracked"""
     try:
         import asyncio
 
         web_server = current_app.config.get("web_server")
-        storage = get_storage_manager()
+        device_manager = get_device_manager()
 
-        if not storage or not web_server:
-            return jsonify({"error": "Storage or web server not available"}), 500
+        if not device_manager or not web_server:
+            return jsonify({"error": "Device manager or web server not available"}), 500
 
         # Get all commands from Broadlink storage
         loop = asyncio.new_event_loop()
@@ -348,25 +406,13 @@ def discover_untracked_devices():
         )
         loop.close()
 
-        # Get all tracked devices from device manager AND old metadata
-        device_manager = get_device_manager()
+        # Get all tracked devices from device manager
         tracked_device_names = set()
-
-        # Get devices from new device manager
-        if device_manager:
-            devices = device_manager.get_all_devices()
-            for device_id, device_data in devices.items():
-                # For Broadlink devices, the device_id IS the storage name (e.g., "samsung_model1")
-                # For devices with area prefix, we need to extract just the device part
-                if device_data.get("device_type") == "broadlink":
-                    tracked_device_names.add(device_id)
-
-        # Also check old metadata for backward compatibility
-        entities = storage.get_all_entities()
-        for entity_id, entity_data in entities.items():
-            device_name = entity_data.get("device")
-            if device_name:
-                tracked_device_names.add(device_name)
+        devices = device_manager.get_all_devices()
+        for device_id, device_data in devices.items():
+            # For Broadlink devices, the device_id IS the storage name
+            if device_data.get("device_type") == "broadlink":
+                tracked_device_names.add(device_id)
 
         # Cleanup expired deletion cache entries
         web_server._cleanup_deletion_cache()
@@ -382,6 +428,13 @@ def discover_untracked_devices():
                     if not web_server._is_recently_deleted(device_name, cmd)
                 ]
 
+                # Debug logging
+                if len(remaining_commands) != len(commands):
+                    logger.info(
+                        f"Device '{device_name}': {len(commands)} total commands, "
+                        f"{len(remaining_commands)} after filtering deleted commands"
+                    )
+
                 # Only include device if it has commands that aren't recently deleted
                 if remaining_commands:
                     untracked_devices.append(
@@ -390,6 +443,10 @@ def discover_untracked_devices():
                             "command_count": len(remaining_commands),
                             "commands": remaining_commands,
                         }
+                    )
+                else:
+                    logger.info(
+                        f"Device '{device_name}' excluded: all {len(commands)} commands recently deleted"
                     )
 
         return jsonify(
@@ -457,6 +514,9 @@ def delete_untracked_device(device_name):
 
             if result.get("success"):
                 deleted_count += 1
+                # Add to deletion cache to prevent re-discovery during storage lag
+                web_server._add_to_deletion_cache(device_name, command_name)
+                logger.info(f"Added {device_name}/{command_name} to deletion cache")
             else:
                 failed_commands.append(command_name)
 
@@ -831,11 +891,16 @@ def sync_device_area(device_id):
             logger.warning(f"Device '{device_id}' not found in either manager")
             return jsonify({"error": "Device not found"}), 404
 
-        # Build full entity_id
-        entity_type = device_data.get("entity_type", "switch")
-        full_entity_id = f"{entity_type}.{device_id}"
-
-        logger.info(f"Syncing area for entity: {full_entity_id}")
+        # Build full entity_id - check if device_id already includes entity type
+        if "." in device_id:
+            # Already a full entity ID (e.g., "light.testrf")
+            full_entity_id = device_id
+            logger.info(f"Using provided entity_id: {full_entity_id}")
+        else:
+            # Just the device ID, need to add entity type
+            entity_type = device_data.get("entity_type", "switch")
+            full_entity_id = f"{entity_type}.{device_id}"
+            logger.info(f"Built entity_id: {full_entity_id}")
 
         # Get entity details from HA (includes area_id)
         loop = asyncio.new_event_loop()

@@ -277,7 +277,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { smartirService } from '../../services/smartir'
 import { useResponsive } from '@/composables/useResponsive'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
@@ -567,6 +567,22 @@ async function downloadProfile(platform, profile) {
     toastRef.value?.error('Failed to download profile', '❌ Download Error')
   }
 }
+
+// Close settings menu when clicking outside
+const handleClickOutside = (event) => {
+  const settingsContainer = event.target.closest('.settings-container')
+  if (!settingsContainer) {
+    showSettingsMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 async function deleteProfile(platform, profile) {
   const toastRef = inject('toast')

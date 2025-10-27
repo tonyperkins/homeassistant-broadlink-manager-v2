@@ -1,17 +1,16 @@
 <template>
-  <div v-if="hasUntrackedDevices" class="discovery-banner">
-    <div class="banner-content">
-      <div class="banner-icon">
-        <i class="mdi mdi-radar"></i>
+  <div>
+    <!-- Discovery banner hidden - untracked count shown in section header instead -->
+    <div v-if="false" class="discovery-banner">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <i class="mdi mdi-radar"></i>
+        </div>
+        <div class="banner-text">
+          <h3>Untracked Devices Found</h3>
+          <p>{{ untrackedDevices.length }} device{{ untrackedDevices.length > 1 ? 's' : '' }} with learned commands found in Broadlink storage. Use the settings menu (⚙️) to view and adopt them.</p>
+        </div>
       </div>
-      <div class="banner-text">
-        <h3>Untracked Devices Found</h3>
-        <p>{{ untrackedDevices.length }} device{{ untrackedDevices.length > 1 ? 's' : '' }} with learned commands found in Broadlink storage</p>
-      </div>
-      <button @click="showDiscovery = true" class="btn btn-primary">
-        <i class="mdi mdi-eye"></i>
-        View Devices
-      </button>
     </div>
 
     <!-- Discovery Modal -->
@@ -58,6 +57,11 @@
         </div>
 
         <div class="modal-footer">
+          <!-- Adopt All button hidden - users can adopt individually -->
+          <button v-if="false" @click="adoptAllDevices" class="btn btn-primary" :disabled="adoptingAll || untrackedDevices.length === 0">
+            <i class="mdi" :class="adoptingAll ? 'mdi-loading mdi-spin' : 'mdi-plus-circle'"></i>
+            {{ adoptingAll ? 'Adopting...' : 'Adopt All' }}
+          </button>
           <button @click="showDiscovery = false" class="btn btn-secondary">
             Close
           </button>
@@ -114,6 +118,7 @@ const showDiscovery = ref(false)
 const showDeleteConfirm = ref(false)
 const deviceToDelete = ref(null)
 const deleting = ref(false)
+const adoptingAll = ref(false)
 
 const hasUntrackedDevices = computed(() => untrackedDevices.value.length > 0)
 
@@ -131,9 +136,42 @@ const loadUntrackedDevices = async () => {
   }
 }
 
+const openDiscovery = () => {
+  showDiscovery.value = true
+}
+
 const adoptDevice = (device) => {
   showDiscovery.value = false
   emit('adopt', device)
+}
+
+const adoptAllDevices = async () => {
+  if (untrackedDevices.value.length === 0) return
+  
+  adoptingAll.value = true
+  const count = untrackedDevices.value.length
+  
+  try {
+    // Adopt each device sequentially
+    for (const device of untrackedDevices.value) {
+      await new Promise(resolve => {
+        emit('adopt', device)
+        // Small delay to let the adoption process complete
+        setTimeout(resolve, 100)
+      })
+    }
+    
+    toast.success(`Successfully adopted ${count} device${count > 1 ? 's' : ''}!`)
+    showDiscovery.value = false
+    
+    // Reload untracked devices to update the list
+    await loadUntrackedDevices()
+  } catch (error) {
+    console.error('Error adopting all devices:', error)
+    toast.error('Failed to adopt all devices')
+  } finally {
+    adoptingAll.value = false
+  }
 }
 
 const confirmDeleteDevice = (device) => {
@@ -144,23 +182,29 @@ const confirmDeleteDevice = (device) => {
 const deleteDevice = async () => {
   if (!deviceToDelete.value) return
   
+  const deviceName = deviceToDelete.value.device_name
   deleting.value = true
   
   try {
-    const response = await api.delete(`/api/devices/untracked/${encodeURIComponent(deviceToDelete.value.device_name)}`)
+    const response = await api.delete(`/api/devices/untracked/${encodeURIComponent(deviceName)}`)
     
     if (response.data.success) {
-      // Remove from list
+      // Optimistically remove from list immediately (don't wait for storage)
       untrackedDevices.value = untrackedDevices.value.filter(
-        d => d.device_name !== deviceToDelete.value.device_name
+        d => d.device_name !== deviceName
       )
       
-      // Close modals
+      // Close delete confirmation modal
       showDeleteConfirm.value = false
       deviceToDelete.value = null
       
-      // Show success message (you can add a toast notification here)
-      console.log('Device deleted successfully')
+      // If no more devices, close the discovery modal too
+      if (untrackedDevices.value.length === 0) {
+        showDiscovery.value = false
+      }
+      
+      // Show success message
+      toast.success(`Deleted all commands for '${deviceName}'`)
     } else {
       throw new Error(response.data.error || 'Failed to delete device')
     }
@@ -172,9 +216,10 @@ const deleteDevice = async () => {
   }
 }
 
-// Expose method to refresh from parent
+// Expose methods to parent component
 defineExpose({
-  refresh: loadUntrackedDevices
+  refresh: loadUntrackedDevices,
+  openDiscovery
 })
 </script>
 

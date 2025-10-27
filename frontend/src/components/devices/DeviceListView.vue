@@ -6,7 +6,15 @@
           <th>Device</th>
           <th>Room/Area</th>
           <th>Type</th>
-          <th>Commands</th>
+          <th>
+            <div class="commands-header">
+              <span>Commands</span>
+              <div class="command-legend">
+                <span class="legend-badge command-rf">RF</span>
+                <span class="legend-badge command-ir">IR</span>
+              </div>
+            </div>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -25,9 +33,12 @@
 
           <!-- Type -->
           <td class="device-type">
-            <span class="type-badge" :class="device.device_type || 'broadlink'">
-              {{ device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink' }}
-            </span>
+            <img 
+              :src="getDeviceSourceLogo(device)" 
+              :alt="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'"
+              :title="device.device_type === 'smartir' ? 'SmartIR' : 'Broadlink'"
+              class="device-source-logo"
+            />
           </td>
 
           <!-- Commands -->
@@ -36,8 +47,9 @@
               <button 
                 v-for="cmd in getDeviceCommands(device)" 
                 :key="cmd"
-                class="command-btn"
+                :class="['command-btn', getCommandTypeClass(device, cmd)]"
                 @click="sendCommand(device, cmd)"
+                :title="getCommandTypeLabel(device, cmd)"
               >
                 {{ cmd }}
               </button>
@@ -52,6 +64,9 @@
 
           <!-- Actions -->
           <td class="device-actions">
+            <button class="action-btn commands" @click="openCommands(device)" title="Manage Commands">
+              <i class="mdi mdi-remote-tv"></i>
+            </button>
             <button class="action-btn edit" @click="editDevice(device)" title="Edit">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -72,6 +87,9 @@
 </template>
 
 <script>
+import broadlinkLogo from '@/assets/images/broadlink-logo.png'
+import smartirLogo from '@/assets/images/smartir-logo.png'
+
 export default {
   name: 'DeviceListView',
   props: {
@@ -81,6 +99,10 @@ export default {
     }
   },
   methods: {
+    getDeviceSourceLogo(device) {
+      const deviceType = device.device_type || 'broadlink'
+      return deviceType === 'smartir' ? smartirLogo : broadlinkLogo
+    },
     getDeviceCommands(device) {
       // Get commands from device metadata
       // Commands are stored as an object with command names as keys
@@ -89,8 +111,26 @@ export default {
       }
       return [];
     },
+    getCommandType(device, commandName) {
+      if (device.commands && device.commands[commandName]) {
+        const cmd = device.commands[commandName];
+        return cmd.type || 'ir'; // Default to IR
+      }
+      return 'ir';
+    },
+    getCommandTypeClass(device, commandName) {
+      const type = this.getCommandType(device, commandName);
+      return type === 'rf' ? 'command-rf' : 'command-ir';
+    },
+    getCommandTypeLabel(device, commandName) {
+      const type = this.getCommandType(device, commandName);
+      return type === 'rf' ? 'RF Command' : 'IR Command';
+    },
     sendCommand(device, command) {
       this.$emit('send-command', { device, command });
+    },
+    openCommands(device) {
+      this.$emit('open-commands', device);
     },
     editDevice(device) {
       this.$emit('edit-device', device);
@@ -106,6 +146,36 @@ export default {
 .device-list-view {
   width: 100%;
   overflow-x: auto;
+}
+
+/* Commands Header with Legend */
+.commands-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.command-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-badge {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+}
+
+.legend-badge.command-rf {
+  background: #7b1fa2;
+}
+
+.legend-badge.command-ir {
+  background: #007bff;
 }
 
 .device-table {
@@ -190,6 +260,13 @@ export default {
   color: #7b1fa2;
 }
 
+.device-source-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  cursor: help;
+}
+
 /* Commands */
 .device-commands {
   min-width: 250px;
@@ -203,7 +280,6 @@ export default {
 
 .command-btn {
   padding: 4px 10px;
-  background: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -212,8 +288,22 @@ export default {
   transition: background-color 0.2s;
 }
 
-.command-btn:hover {
+/* IR Commands - Blue */
+.command-btn.command-ir {
+  background: #007bff;
+}
+
+.command-btn.command-ir:hover {
   background: #0056b3;
+}
+
+/* RF Commands - Purple */
+.command-btn.command-rf {
+  background: #7b1fa2;
+}
+
+.command-btn.command-rf:hover {
+  background: #6a1b9a;
 }
 
 .no-commands {
@@ -256,6 +346,15 @@ export default {
 
 .action-btn:hover {
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.05));
+}
+
+.action-btn.commands {
+  font-size: 18px;
+}
+
+.action-btn.commands:hover {
+  border-color: #17a2b8;
+  color: #17a2b8;
 }
 
 .action-btn.edit:hover {

@@ -11,6 +11,13 @@
         <h3>{{ isMobile ? 'Devices' : 'Managed Devices' }}</h3>
         <div class="header-badges">
           <span class="header-info">{{ deviceStore.deviceCount }} devices</span>
+          <span 
+            v-if="untrackedCount > 0" 
+            class="header-info untracked-badge"
+            :title="`${untrackedCount} device${untrackedCount > 1 ? 's' : ''} with learned commands found in Broadlink storage. Use the settings menu (⚙️) to view and adopt them.`"
+          >
+            {{ untrackedCount }} untracked
+          </span>
         </div>
       </div>
       <div class="header-right">
@@ -51,6 +58,10 @@
             <i class="mdi mdi-cog"></i>
           </button>
           <div v-if="showSettingsMenu" class="settings-dropdown" @click.stop>
+            <button @click="viewUntrackedDevices(); showSettingsMenu = false" class="menu-item">
+              <i class="mdi mdi-radar"></i>
+              <span>Untracked Devices</span>
+            </button>
             <button @click="syncAllAreas(); showSettingsMenu = false" class="menu-item" :disabled="syncingAreas">
               <i class="mdi" :class="syncingAreas ? 'mdi-loading mdi-spin' : 'mdi-refresh'"></i>
               <span>{{ syncingAreas ? 'Syncing Areas...' : 'Sync Areas' }}</span>
@@ -207,6 +218,7 @@
       v-else-if="viewMode === 'list' && filteredDevices.length > 0"
       :devices="filteredDevices"
       @send-command="handleSendCommand"
+      @open-commands="learnCommands"
       @edit-device="editDevice"
       @delete-device="confirmDelete"
     />
@@ -272,7 +284,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useDeviceStore } from '@/stores/devices'
 import { useToast } from '@/composables/useToast'
 import { useResponsive } from '@/composables/useResponsive'
@@ -298,6 +310,7 @@ const discoveryRef = ref(null)
 const isExpanded = ref(true)
 const generatingEntities = ref(false)
 const syncingAreas = ref(false)
+const untrackedCount = ref(0)
 
 // View mode (grid or list)
 // On mobile, always use grid view; on desktop, use saved preference
@@ -494,12 +507,35 @@ const activeFilterCount = computed(() => {
   return count
 })
 
+// Close settings menu when clicking outside
+const handleClickOutside = (event) => {
+  const settingsContainer = event.target.closest('.settings-container')
+  if (!settingsContainer) {
+    showSettingsMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 const clearFilters = () => {
   filters.value.search = ''
   filters.value.broadlinkDevice = ''
   filters.value.area = ''
   filters.value.entityType = ''
   filters.value.showSmartIROnly = false
+}
+
+const viewUntrackedDevices = () => {
+  // Open the discovery modal by calling the child component's method
+  if (discoveryRef.value) {
+    discoveryRef.value.openDiscovery()
+  }
 }
 
 const loadBroadlinkDevices = async () => {
@@ -517,10 +553,21 @@ watch(viewMode, (newMode) => {
   localStorage.setItem('device_view_mode', newMode)
 })
 
+const updateUntrackedCount = async () => {
+  try {
+    const response = await api.get('/api/devices/discover')
+    untrackedCount.value = response.data.untracked_devices?.length || 0
+  } catch (error) {
+    console.error('Error loading untracked count:', error)
+    untrackedCount.value = 0
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     deviceStore.loadDevices(),
-    loadBroadlinkDevices()
+    loadBroadlinkDevices(),
+    updateUntrackedCount()
   ])
   
   // Note: Auto-sync removed to prevent UI flickering on page load
@@ -657,26 +704,44 @@ const closeGenerationResultDialog = () => {
   showGenerationResultDialog.value = false
 }
 
-const handleCommandLearned = async (updateData) => {
-  // Optimistically update the device in the store immediately
-  // This prevents UI lag while waiting for storage file updates (which can take 10+ seconds in standalone mode)
-  if (updateData && updateData.commands && selectedDevice.value) {
-    const deviceIndex = deviceStore.devices.findIndex(d => d.id === selectedDevice.value.id)
-    if (deviceIndex !== -1) {
-      // Update the device's commands in the store
-      deviceStore.devices[deviceIndex].commands = updateData.commands
-      console.log(`Optimistically updated device ${selectedDevice.value.id} with new command: ${updateData.commandName}`)
+const handleCommandLearned = async (eventData) => {
+  console.log('🟢 [PARENT] Received learned event:', eventData)
+  
+  if (!eventData || !eventData.deviceId) {
+    console.warn('⚠️ [PARENT] Missing required data in learned event')
+    return
+  }
+  
+  console.log('🟢 [PARENT] Current selectedDevice commands:', Object.keys(selectedDevice.value?.commands || {}).length)
+  console.log('🟢 [PARENT] Current store device count:', deviceStore.devices.length)
+  
+  // CRITICAL: Always reload from server to get actual state
+  // Don't do optimistic updates - they cause state sync issues
+  console.log('🟢 [PARENT] Force reloading all devices from API with cache bust...')
+  await deviceStore.loadDevices(true) // true = bust cache
+  
+  console.log('🟢 [PARENT] After reload - store device count:', deviceStore.devices.length)
+  
+  // Update selectedDevice with fresh data from store
+  if (selectedDevice.value) {
+    console.log('🟢 [PARENT] Looking for device:', eventData.deviceId)
+    const freshDevice = deviceStore.devices.find(d => d.id === eventData.deviceId)
+    if (freshDevice) {
+      console.log('🟢 [PARENT] Found fresh device with', Object.keys(freshDevice.commands || {}).length, 'commands')
+      selectedDevice.value = { ...freshDevice }
+      console.log('🟢 [PARENT] ✅ Updated selectedDevice - now has', Object.keys(selectedDevice.value.commands || {}).length, 'commands')
+    } else {
+      console.error('🟢 [PARENT] ❌ Device not found in store after reload!')
     }
   }
   
-  // Still reload devices in the background to sync with storage
-  // But don't await it - let it happen asynchronously
-  deviceStore.loadDevices()
-  
   // Refresh discovery to update untracked devices
   if (discoveryRef.value) {
+    console.log('🟢 [PARENT] Refreshing discovery...')
     discoveryRef.value.refresh()
   }
+  
+  console.log('🟢 [PARENT] ✅ handleCommandLearned complete!')
 }
 
 const convertStorageNameToDisplay = (storageName) => {
@@ -817,51 +882,76 @@ const isDeviceType = (word) => {
 }
 
 const adoptDevice = async (discoveredDevice) => {
-  // Convert storage name to display name
-  const displayName = convertStorageNameToDisplay(discoveredDevice.device_name)
-  
-  // Try to detect area from device name
-  const detectedArea = detectAreaFromName(discoveredDevice.device_name)
-  
-  // Detect entity type and icon from device name and commands
-  const detectedType = detectEntityType(discoveredDevice.device_name, discoveredDevice.commands)
-  const detectedIcon = detectIcon(discoveredDevice.device_name, detectedType)
-  
-  // Find which Broadlink device owns these commands
-  let broadlinkEntity = ''
   try {
-    console.log('Finding Broadlink owner for:', discoveredDevice.device_name)
-    const response = await api.post('/api/devices/find-broadlink-owner', {
-      device_name: discoveredDevice.device_name
-    })
-    console.log('Broadlink owner response:', response.data)
-    broadlinkEntity = response.data.broadlink_entity || ''
-    console.log('Detected Broadlink entity:', broadlinkEntity)
+    // Convert storage name to display name
+    const displayName = convertStorageNameToDisplay(discoveredDevice.device_name)
+    
+    // Try to detect area from device name
+    const detectedArea = detectAreaFromName(discoveredDevice.device_name)
+    
+    // Detect entity type and icon from device name and commands
+    const detectedType = detectEntityType(discoveredDevice.device_name, discoveredDevice.commands)
+    const detectedIcon = detectIcon(discoveredDevice.device_name, detectedType)
+    
+    // Find which Broadlink device owns these commands
+    let broadlinkEntity = ''
+    try {
+      console.log('Finding Broadlink owner for:', discoveredDevice.device_name)
+      const response = await api.post('/api/devices/find-broadlink-owner', {
+        device_name: discoveredDevice.device_name
+      })
+      console.log('Broadlink owner response:', response.data)
+      broadlinkEntity = response.data.broadlink_entity || ''
+      console.log('Detected Broadlink entity:', broadlinkEntity)
+    } catch (error) {
+      console.error('Error finding Broadlink owner:', error)
+    }
+    
+    // Fetch actual command data from Broadlink storage
+    console.log('Fetching command data from Broadlink storage...')
+    const commandsResponse = await api.get(`/api/commands/broadlink/${discoveredDevice.device_name}`)
+    const commandData = commandsResponse.data.commands || {}
+    
+    console.log('Fetched command data:', commandData)
+    
+    // Transform command data to new format with metadata
+    const transformedCommands = {}
+    for (const [cmdName, cmdValue] of Object.entries(commandData)) {
+      // Detect command type from data
+      const isRF = typeof cmdValue === 'string' && cmdValue.length > 200
+      
+      transformedCommands[cmdName] = {
+        data: cmdValue,
+        type: isRF ? 'rf' : 'ir',
+        name: cmdName,
+        learned_at: new Date().toISOString()
+      }
+    }
+    
+    console.log('Transformed commands:', transformedCommands)
+    
+    // Pre-populate form with discovered device data
+    selectedDevice.value = {
+      id: null, // New device
+      device: discoveredDevice.device_name, // Keep original storage name
+      name: displayName, // Display name for user
+      entity_type: detectedType, // Auto-detected type
+      commands: transformedCommands, // Import actual command data
+      area: detectedArea, // Pre-select detected area
+      icon: detectedIcon, // Auto-detected icon
+      broadlink_entity: broadlinkEntity, // Auto-detected Broadlink device
+      enabled: true
+    }
+    
+    showCreateForm.value = true
+    toast.success(`Imported ${Object.keys(transformedCommands).length} commands from Broadlink storage`)
+    
+    // Update untracked count after adoption
+    await updateUntrackedCount()
   } catch (error) {
-    console.error('Error finding Broadlink owner:', error)
+    console.error('Error adopting device:', error)
+    toast.error('Failed to adopt device: ' + (error.response?.data?.error || error.message))
   }
-  
-  // Pre-populate form with discovered device data
-  selectedDevice.value = {
-    id: null, // New device
-    device: discoveredDevice.device_name, // Keep original storage name
-    name: displayName, // Display name for user
-    entity_type: detectedType, // Auto-detected type
-    commands: {},
-    area: detectedArea, // Pre-select detected area
-    icon: detectedIcon, // Auto-detected icon
-    broadlink_entity: broadlinkEntity, // Auto-detected Broadlink device
-    enabled: true
-  }
-  
-  // Import commands automatically
-  const commandMapping = {}
-  discoveredDevice.commands.forEach(cmd => {
-    commandMapping[cmd] = cmd
-  })
-  selectedDevice.value.commands = commandMapping
-  
-  showCreateForm.value = true
 }
 
 const syncAllAreas = async () => {
@@ -969,8 +1059,8 @@ const handleSendCommand = async ({ device, command }) => {
     const payload = {
       device_id: device.id,
       command: command,
-      entity_id: device.broadlink_entity,
-      device: device.device
+      device: device.device || device.id,
+      entity_id: device.broadlink_entity || device.controller_device
     }
     await api.post('/api/commands/test', payload)
     toast.success(`Sent ${command} to ${device.name}`)
@@ -1049,6 +1139,13 @@ const handleSendCommand = async ({ device, command }) => {
   padding: 4px 8px;
   background: var(--ha-hover-background, rgba(0, 0, 0, 0.03));
   border-radius: 4px;
+}
+
+.header-info.untracked-badge {
+  background: rgba(var(--ha-primary-rgb, 3, 169, 244), 0.1);
+  color: var(--ha-primary-color, #03a9f4);
+  font-weight: 500;
+  cursor: help;
 }
 
 .header-right {

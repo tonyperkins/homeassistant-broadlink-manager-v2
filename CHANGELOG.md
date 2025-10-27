@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.4] - 2025-10-26
+
+### Fixed
+- **CRITICAL**: Fixed command learning polling system not detecting learned commands
+  - Device IDs no longer include area prefix (area is metadata only)
+  - Added `device` field to Broadlink devices for proper storage lookups
+  - Fixed polling to use correct device name when checking Broadlink storage
+  - Added automatic migration on startup to populate `device` field for existing devices
+  - Commands now properly detected and updated from "pending" to actual code data
+
+### Changed
+- Device ID generation simplified - now uses only normalized device name
+- Area field is now purely metadata and doesn't affect device identification
+- Broadlink storage lookups use new `device` field instead of device_id
+
 ## [0.3.0-alpha.3] - 2025-10-26
 
 ### ⚠️ BREAKING CHANGES

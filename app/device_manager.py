@@ -408,17 +408,17 @@ class DeviceManager:
 
     def generate_device_id(self, area_id: str, device_name: str) -> str:
         """
-        Generate a device ID from area and device name
-
-        Uses <area>_<device> format for new devices created via UI/API.
-        This makes device IDs intuitive and human-readable.
+        Generate a device ID from device name only.
+        
+        NOTE: area_id parameter is kept for backward compatibility but is NOT used.
+        Area is stored as metadata only and does not affect the device ID.
 
         Args:
-            area_id: Area identifier (e.g., "master_bedroom" or "" for no area)
-            device_name: Device name (e.g., "Stereo")
+            area_id: Area identifier (IGNORED - kept for compatibility)
+            device_name: Device name (e.g., "Ceiling Fan Light")
 
         Returns:
-            Device ID (e.g., "master_bedroom_stereo" or "stereo" if no area)
+            Device ID (e.g., "ceiling_fan_light")
         """
         # Convert to lowercase and replace spaces/special chars with underscores
         clean_name = device_name.lower().replace(" ", "_")
@@ -427,10 +427,7 @@ class DeviceManager:
             filter(None, clean_name.split("_"))
         )  # Remove multiple underscores
 
-        # If area is provided and not empty, use area_device format
-        # Otherwise just use device name (for adopted devices or no-area devices)
-        if area_id and area_id.strip():
-            return f"{area_id}_{clean_name}"
+        # Return just the normalized device name - area is NOT part of device ID
         return clean_name
 
     def get_devices_by_type(self, device_type: str) -> Dict[str, Any]:
@@ -645,3 +642,43 @@ class DeviceManager:
         except Exception as e:
             logger.error(f"Error updating connection info: {e}")
             return False
+    
+    def migrate_device_field(self) -> int:
+        """
+        Migrate existing Broadlink devices to add 'device' field if missing.
+        The 'device' field stores the normalized device name for Broadlink storage lookups.
+        
+        Since device IDs should already be normalized device names (without area),
+        the 'device' field should just match the device_id.
+        
+        Returns:
+            Number of devices migrated
+        """
+        try:
+            devices = self._load_devices()
+            migrated_count = 0
+            
+            for device_id, device_data in devices.items():
+                # Only migrate Broadlink devices that don't have the 'device' field
+                device_type = device_data.get("device_type", "broadlink")
+                if device_type == "broadlink" and "device" not in device_data:
+                    # For Broadlink devices, the 'device' field should match device_id
+                    # since device IDs are normalized device names (area is metadata only)
+                    device_data["device"] = device_id
+                    migrated_count += 1
+                    logger.info(f"Migrated device '{device_id}': added device field = '{device_id}'")
+            
+            if migrated_count > 0:
+                if self._save_devices(devices):
+                    logger.info(f"Successfully migrated {migrated_count} device(s)")
+                    return migrated_count
+                else:
+                    logger.error("Failed to save migrated devices")
+                    return 0
+            else:
+                logger.debug("No devices needed migration")
+                return 0
+                
+        except Exception as e:
+            logger.error(f"Error during device migration: {e}")
+            return 0

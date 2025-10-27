@@ -211,6 +211,11 @@ class BroadlinkWebServer:
         # Automatic migration disabled - user preference
         # self._schedule_migration_check()
         
+        # Migrate existing devices to add 'device' field if needed
+        migrated = self.device_manager.migrate_device_field()
+        if migrated > 0:
+            logger.info(f"Migrated {migrated} device(s) to add 'device' field for Broadlink storage lookups")
+        
         # Check for pending commands on startup and start polling if needed
         self._check_and_start_polling_on_startup()
         
@@ -2035,7 +2040,9 @@ class BroadlinkWebServer:
                         
                         for device_id, device in devices.items():
                             commands = device.get("commands", {})
-                            device_name = device.get("device_id", device_id)
+                            # Use 'device' field for Broadlink storage lookups (normalized name without area)
+                            # Fallback to device_id for backward compatibility
+                            device_name = device.get("device", device_id)
                             
                             for cmd_name, cmd_data in commands.items():
                                 if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
@@ -2170,7 +2177,9 @@ class BroadlinkWebServer:
             
             for device_id, device in devices.items():
                 commands = device.get("commands", {})
-                device_name = device.get("device_id", device_id)
+                # Use 'device' field for Broadlink storage lookups (normalized name without area)
+                # Fallback to device_id for backward compatibility
+                device_name = device.get("device", device_id)
                 
                 for cmd_name, cmd_data in commands.items():
                     if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
@@ -2199,7 +2208,9 @@ class BroadlinkWebServer:
             
             for device_id, device in devices.items():
                 commands = device.get("commands", {})
-                device_name = device.get("device_id", device_id)
+                # Use 'device' field for Broadlink storage lookups (normalized name without area)
+                # Fallback to device_id for backward compatibility
+                device_name = device.get("device", device_id)
                 entity_id = device.get("broadlink_entity")
                 
                 for cmd_name, cmd_data in commands.items():

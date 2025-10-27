@@ -650,6 +650,15 @@ def create_managed_device():
                 )
 
             device_data["broadlink_entity"] = broadlink_entity
+            
+            # Store the Broadlink storage device name (normalized name without area)
+            # This is used for looking up commands in Broadlink storage files
+            if storage_name:
+                # Adopted device - use the storage name as-is
+                device_data["device"] = storage_name
+            else:
+                # New device - use normalized name without area
+                device_data["device"] = normalize_device_name(name)
 
             # Include commands if provided (for adopted devices)
             commands = data.get("commands", {})

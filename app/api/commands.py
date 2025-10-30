@@ -142,31 +142,49 @@ def learn_command():
             # For RF commands, keep the original notification message
             if command_type == "rf":
                 # Use the message from _learn_command which tells user to check HA notifications
-                logger.info(f"RF command - using notification message from _learn_command")
+                logger.info(
+                    f"RF command - using notification message from _learn_command"
+                )
                 # RF commands are always "pending" since they require multi-step process
                 learned_code = "pending"
-                # Add to cache for integration_only/both
-                if save_destination in ["integration_only", "both"]:
+                # Add to cache only for integration_only (not both, since HA will save to storage)
+                if save_destination == "integration_only":
                     web_server._add_to_storage_cache(device, command, "pending")
                     logger.info(f"✅ Added {device}/{command} to storage cache")
-            # For IR commands with integration_only/both: Add to cache immediately and trust it
-            elif save_destination in ["integration_only", "both"]:
+            # For IR commands with integration_only: Add to cache immediately and trust it
+            elif save_destination == "integration_only":
                 web_server._add_to_storage_cache(device, command, "pending")
-                logger.info(f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately")
+                logger.info(
+                    f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately"
+                )
                 learned_code = "pending"
                 result["code"] = "pending"
-                result["message"] = f"✅ Command '{command}' learned and added to storage!"
+                result["message"] = (
+                    f"✅ Command '{command}' learned and added to storage!"
+                )
             else:
                 # For manager_only: Save as pending and schedule background update
                 # Don't block the user waiting for storage file to be written
                 learned_code = "pending"
                 result["code"] = "pending"
-                result["message"] = f"✅ Command '{command}' learned! Code will be updated automatically in background."
-                
+                result["message"] = (
+                    f"✅ Command '{command}' learned! Code will be updated automatically in background."
+                )
+
                 # Schedule background task to poll for the actual code
                 # Pass entity_id so it can delete after fetching
-                logger.info(f"Scheduling background poll for command '{command}' on device '{device}'")
-                web_server.schedule_command_poll(device_id, device, command, entity_id if save_destination == "manager_only" else None)
+                logger.info(
+                    f"Scheduling background poll for command '{command}' on device '{device}'"
+                )
+                web_server.schedule_command_poll(
+                    device_id,
+                    device,
+                    command,
+                    entity_id if save_destination == "manager_only" else None,
+                )
+
+                # NOTE: We DON'T add to storage cache for manager_only commands
+                # because we want to fetch the actual code from storage files
 
             # Handle save destination logic
             if device_id:
@@ -568,16 +586,20 @@ def test_command():
         else:
             # Broadlink device - send raw code with b64: prefix OR command name if pending
             # This allows us to control commands in devices.json without relying on .storage files
-            
+
             # If command is "pending" or "error", send command name instead of raw code
             if command in ["pending", "error"]:
-                logger.info(f"Command is '{command}' - sending command name to HA instead of raw code")
+                logger.info(
+                    f"Command is '{command}' - sending command name to HA instead of raw code"
+                )
                 # Send the command name - HA will look it up from its storage
                 service_payload = {
                     "entity_id": entity_id,
                     "command": data.get("command"),  # Use original command name
                 }
-                logger.info(f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)")
+                logger.info(
+                    f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)"
+                )
             else:
                 # Send raw code with b64: prefix
                 service_payload = {
@@ -730,7 +752,7 @@ def delete_command_from_storage():
             # This prevents the command from showing as "untracked" during storage file update lag
             web_server._add_to_deletion_cache(device, command)
             logger.info(f"Added {device}/{command} to deletion cache for optimistic UI")
-            
+
             # Also remove from storage cache immediately
             web_server._remove_from_storage_cache(device, command)
             logger.info(f"Removed {device}/{command} from storage cache")
@@ -1219,10 +1241,10 @@ def check_pending_commands():
         web_server = get_web_server()
         if not web_server:
             return jsonify({"success": False, "error": "Web server not available"}), 500
-        
+
         # Trigger the file watcher's check method
         web_server._check_and_start_polling_for_pending()
-        
+
         return jsonify({"success": True, "message": "Polling check triggered"})
     except Exception as e:
         logger.error(f"Error checking pending commands: {e}")

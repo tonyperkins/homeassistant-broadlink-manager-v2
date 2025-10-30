@@ -66,7 +66,13 @@
             class="custom-command-input"
             @input="clearCustomCommandValidation"
           />
-          <small>Select a suggested command for {{ device.entity_type || 'this device' }}, or enter a custom one.</small>
+          <small v-if="(device.entity_type || '') === 'light'">
+            Includes color temperature commands (cooler/warmer) and white presets
+            (warm_white, neutral_white, cool_white).
+          </small>
+          <small v-else>
+            Select a suggested command for {{ device.entity_type || 'this device' }}, or enter a custom one.
+          </small>
         </div>
 
         <!-- Command Type -->
@@ -298,7 +304,11 @@ const ENTITY_COMMANDS = {
   light: [
     'turn_on', 'turn_off', 'toggle',
     'brightness_up', 'brightness_down',
-    'dim', 'bright'
+    'dim', 'bright',
+    // color temperature adjustments
+    'cooler', 'warmer',
+    // common white presets
+    'warm_white', 'neutral_white', 'cool_white'
   ],
   fan: [
     'turn_on', 'turn_off', 'toggle',

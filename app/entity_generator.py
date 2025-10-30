@@ -5,12 +5,35 @@ Generates Home Assistant YAML entity configurations
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 import yaml
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_slug(name: str) -> str:
+    """
+    Sanitize a name to create a valid Home Assistant slug.
+    Converts to lowercase, replaces spaces and invalid chars with underscores.
+    
+    Args:
+        name: The name to sanitize
+        
+    Returns:
+        A valid slug (lowercase, underscores only)
+    """
+    # Convert to lowercase
+    slug = name.lower()
+    # Replace spaces, hyphens, and other invalid chars with underscores
+    slug = re.sub(r'[^a-z0-9_]', '_', slug)
+    # Remove consecutive underscores
+    slug = re.sub(r'_+', '_', slug)
+    # Remove leading/trailing underscores
+    slug = slug.strip('_')
+    return slug
 
 
 class EntityGenerator:
@@ -227,6 +250,9 @@ class EntityGenerator:
         device = entity_data["device"]
         commands = entity_data["commands"]
 
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
+
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
@@ -252,7 +278,7 @@ class EntityGenerator:
                     or entity_data.get(
                         "friendly_name", entity_id.replace("_", " ").title()
                     ),
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                 }
             },
         }
@@ -280,7 +306,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -292,7 +318,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
         else:
@@ -307,7 +333,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -319,7 +345,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -334,6 +360,9 @@ class EntityGenerator:
         """Generate template fan configuration"""
         device = entity_data["device"]
         commands = entity_data["commands"]
+
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
 
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
@@ -383,7 +412,7 @@ class EntityGenerator:
                     or entity_data.get(
                         "friendly_name", entity_id.replace("_", " ").title()
                     ),
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                     "speed_count": speed_count,
                 }
             },
@@ -399,12 +428,12 @@ class EntityGenerator:
         for i in range(1, speed_count + 1):
             percentage = int((i / speed_count) * 100)
             percentage_conditions.append(
-                f"{{%- elif is_state('input_select.{entity_id}_speed', '{i}') -%}}"
+                f"{{%- elif is_state('input_select.{sanitized_id}_speed', '{i}') -%}}"
             )
             percentage_conditions.append(f"  {percentage}")
 
         fan_config["percentage_template"] = (
-            f"{{%- if is_state('input_select.{entity_id}_speed', 'off') -%}}\n"
+            f"{{%- if is_state('input_select.{sanitized_id}_speed', 'off') -%}}\n"
             f"  0\n" + "\n".join(percentage_conditions) + f"\n{{%- endif -%}}"
         )
 
@@ -425,11 +454,11 @@ class EntityGenerator:
             },
             {
                 "service": "input_boolean.turn_on",
-                "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
             },
             {
                 "service": "input_select.select_option",
-                "target": {"entity_id": f"input_select.{entity_id}_speed"},
+                "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {"option": str(default_speed)},
             },
         ]
@@ -449,11 +478,11 @@ class EntityGenerator:
             },
             {
                 "service": "input_boolean.turn_off",
-                "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
             },
             {
                 "service": "input_select.select_option",
-                "target": {"entity_id": f"input_select.{entity_id}_speed"},
+                "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {"option": "off"},
             },
         ]
@@ -486,7 +515,7 @@ class EntityGenerator:
         fan_config["set_percentage"] = [
             {
                 "service": "input_select.select_option",
-                "target": {"entity_id": f"input_select.{entity_id}_speed"},
+                "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {
                     "option": (
                         "{% if percentage == 0 %}\n"
@@ -514,7 +543,7 @@ class EntityGenerator:
         if has_direction:
             # Direction template
             fan_config["direction_template"] = (
-                f"{{{{ states('input_select.{entity_id}_direction') }}}}"
+                f"{{{{ states('input_select.{sanitized_id}_direction') }}}}"
             )
 
             # Set direction action - use raw base64 data
@@ -544,7 +573,7 @@ class EntityGenerator:
             set_direction_actions.append(
                 {
                     "service": "input_select.select_option",
-                    "target": {"entity_id": f"input_select.{entity_id}_direction"},
+                    "target": {"entity_id": f"input_select.{sanitized_id}_direction"},
                     "data": {
                         "option": (
                             "{% if direction == 'forward' %}\n"
@@ -571,6 +600,9 @@ class EntityGenerator:
         device = entity_data["device"]
         commands = entity_data["commands"]
 
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
+
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
@@ -596,7 +628,7 @@ class EntityGenerator:
                     or entity_data.get(
                         "friendly_name", entity_id.replace("_", " ").title()
                     ),
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                 }
             },
         }
@@ -624,7 +656,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -636,7 +668,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
         else:
@@ -651,7 +683,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -663,7 +695,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -844,6 +876,9 @@ class EntityGenerator:
         device = entity_data["device"]
         commands = entity_data["commands"]
 
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
+
         # Get the Broadlink entity to use
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
@@ -869,7 +904,7 @@ class EntityGenerator:
                 switch_entity_id: {
                     "unique_id": switch_entity_id,
                     "friendly_name": f"{friendly_name} Power",
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                     "turn_on": [
                         {
                             "service": "remote.send_command",
@@ -878,7 +913,7 @@ class EntityGenerator:
                         },
                         {
                             "service": "input_boolean.turn_on",
-                            "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                            "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                         },
                     ],
                     "turn_off": [
@@ -889,7 +924,7 @@ class EntityGenerator:
                         },
                         {
                             "service": "input_boolean.turn_off",
-                            "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                            "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                         },
                     ],
                 }
@@ -908,6 +943,9 @@ class EntityGenerator:
         """Generate template climate configuration for IR/RF AC units"""
         device = entity_data["device"]
         commands = entity_data["commands"]
+
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
 
         # Get the Broadlink entity to use (from entity data or default)
         broadlink_entity = self._get_broadlink_entity(entity_data)
@@ -935,7 +973,7 @@ class EntityGenerator:
                     or entity_data.get(
                         "friendly_name", entity_id.replace("_", " ").title()
                     ),
-                    "value_template": f"{{{{ is_state('input_boolean.{entity_id}_state', 'on') }}}}",
+                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                     "current_temperature_template": "{{ 22 }}",  # Static temperature since IR/RF has no feedback
                     "target_temperature_template": "{{ states('input_number.{}_target_temp'.format('"
                     + entity_id
@@ -962,7 +1000,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -976,7 +1014,7 @@ class EntityGenerator:
                 },
                 {
                     "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{entity_id}_state"},
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
@@ -1162,7 +1200,9 @@ class EntityGenerator:
             )
 
             # All entities need a state tracker
-            helpers["input_boolean"][f"{entity_id}_state"] = {
+            # Sanitize entity_id to ensure valid slug
+            sanitized_id = sanitize_slug(entity_id)
+            helpers["input_boolean"][f"{sanitized_id}_state"] = {
                 "name": f"{display_name} State",
                 "initial": False,
             }
@@ -1184,7 +1224,7 @@ class EntityGenerator:
 
                 options = ["off"] + [str(i) for i in range(1, speed_count + 1)]
 
-                helpers["input_select"][f"{entity_id}_speed"] = {
+                helpers["input_select"][f"{sanitized_id}_speed"] = {
                     "name": f"{display_name} Speed",
                     "options": options,
                     "initial": "off",
@@ -1192,7 +1232,7 @@ class EntityGenerator:
 
                 # Always add direction selector for fans (matches fan generator behavior)
                 # Even if no reverse command exists, the UI can still show direction controls
-                helpers["input_select"][f"{entity_id}_direction"] = {
+                helpers["input_select"][f"{sanitized_id}_direction"] = {
                     "name": f"{display_name} Direction",
                     "options": ["forward", "reverse"],
                     "initial": "forward",
@@ -1218,7 +1258,7 @@ class EntityGenerator:
                         k.replace("source_", "").upper() for k in source_commands.keys()
                     ]
 
-                    helpers["input_select"][f"{entity_id}_source"] = {
+                    helpers["input_select"][f"{sanitized_id}_source"] = {
                         "name": f"{display_name} Source",
                         "options": sources,
                         "initial": sources[0] if sources else "HDMI1",
@@ -1229,7 +1269,7 @@ class EntityGenerator:
                 commands = entity_data.get("commands", {})
 
                 # Add position selector
-                helpers["input_select"][f"{entity_id}_position"] = {
+                helpers["input_select"][f"{sanitized_id}_position"] = {
                     "name": f"{display_name} Position",
                     "options": ["open", "closed", "partial"],
                     "initial": "closed",
@@ -1241,7 +1281,7 @@ class EntityGenerator:
                 }
                 if position_commands:
                     helpers["input_number"] = helpers.get("input_number", {})
-                    helpers["input_number"][f"{entity_id}_position"] = {
+                    helpers["input_number"][f"{sanitized_id}_position"] = {
                         "name": f"{display_name} Position",
                         "min": 0,
                         "max": 100,

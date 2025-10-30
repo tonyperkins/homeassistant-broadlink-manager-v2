@@ -52,12 +52,34 @@ class DeviceManager:
 
     def _load_devices(self) -> Dict[str, Any]:
         """Load devices from storage"""
-        try:
-            with open(self.devices_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading devices: {e}")
-            return {}
+        # On Windows, editors often replace files atomically which can briefly
+        # lock the target or leave a partially-written file. Retry a few times
+        # on PermissionError or JSONDecodeError before giving up.
+        import time
+        from json import JSONDecodeError
+
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                with open(self.devices_file, "r") as f:
+                    return json.load(f)
+            except (PermissionError, JSONDecodeError) as e:
+                if attempt < max_retries - 1:
+                    backoff = 0.05 * (attempt + 1)
+                    logger.debug(
+                        f"Load devices retry due to {type(e).__name__}: waiting {backoff:.2f}s (attempt {attempt+1}/{max_retries})"
+                    )
+                    time.sleep(backoff)
+                    continue
+                logger.error(f"Error loading devices after retries: {e}")
+                return {}
+            except FileNotFoundError:
+                # If file truly doesn't exist yet, return empty
+                logger.warning("devices.json not found when loading; returning empty set")
+                return {}
+            except Exception as e:
+                logger.error(f"Unexpected error loading devices: {e}")
+                return {}
 
     def _save_devices(self, devices: Dict[str, Any]) -> bool:
         """
@@ -316,6 +338,7 @@ class DeviceManager:
 
             if device_id not in devices:
                 logger.warning(f"Device {device_id} not found")
+                logger.debug(f"Available devices: {list(devices.keys())}")
                 return False
 
             if "commands" not in devices[device_id]:
@@ -480,3 +503,145 @@ class DeviceManager:
             return False, "device_code must be a valid number"
 
         return True, None
+
+    # Enhanced command management for direct learning
+
+    def add_learned_command(
+        self,
+        device_id: str,
+        command_name: str,
+        command_data: str,
+        command_type: str,
+        frequency: Optional[float] = None,
+    ) -> bool:
+        """
+        Add a learned command with base64 data
+
+        Args:
+            device_id: Device identifier
+            command_name: Command name (e.g., "power")
+            command_data: Base64 encoded command data
+            command_type: "ir" or "rf"
+            frequency: RF frequency in MHz (for RF commands only)
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            command_dict = {
+                "name": command_name,
+                "type": command_type,
+                "data": command_data,
+                "learned_at": datetime.now().isoformat(),
+                "tested": False,
+                "test_method": None,
+            }
+
+            if command_type == "rf" and frequency:
+                command_dict["frequency"] = frequency
+
+            return self.add_command(device_id, command_name, command_dict)
+
+        except Exception as e:
+            logger.error(f"Error adding learned command: {e}")
+            return False
+
+    def update_command_test_status(
+        self, device_id: str, command_name: str, test_method: str
+    ) -> bool:
+        """
+        Update command test status
+
+        Args:
+            device_id: Device identifier
+            command_name: Command name
+            test_method: "direct" or "ha"
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            devices = self._load_devices()
+
+            if device_id not in devices:
+                logger.warning(f"Device {device_id} not found")
+                return False
+
+            commands = devices[device_id].get("commands", {})
+            if command_name not in commands:
+                logger.warning(
+                    f"Command {command_name} not found in device {device_id}"
+                )
+                return False
+
+            commands[command_name]["tested"] = True
+            commands[command_name]["test_method"] = test_method
+            commands[command_name]["tested_at"] = datetime.now().isoformat()
+
+            devices[device_id]["updated_at"] = datetime.now().isoformat()
+
+            if self._save_devices(devices):
+                logger.info(f"Updated test status for command {command_name}")
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error updating command test status: {e}")
+            return False
+
+    def get_command_data(self, device_id: str, command_name: str) -> Optional[str]:
+        """
+        Get base64 command data
+
+        Args:
+            device_id: Device identifier
+            command_name: Command name
+
+        Returns:
+            Base64 command data, or None if not found
+        """
+        device = self.get_device(device_id)
+        if not device:
+            return None
+
+        commands = device.get("commands", {})
+        command = commands.get(command_name)
+
+        if command:
+            return command.get("data")
+
+        return None
+
+    def update_device_connection_info(
+        self, device_id: str, connection_info: Dict[str, Any]
+    ) -> bool:
+        """
+        Update device connection info for direct learning
+
+        Args:
+            device_id: Device identifier
+            connection_info: Dict with host, mac, type, model
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            devices = self._load_devices()
+
+            if device_id not in devices:
+                logger.warning(f"Device {device_id} not found")
+                return False
+
+            devices[device_id]["connection"] = connection_info
+            devices[device_id]["updated_at"] = datetime.now().isoformat()
+
+            if self._save_devices(devices):
+                logger.info(f"Updated connection info for device {device_id}")
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error updating connection info: {e}")
+            return False

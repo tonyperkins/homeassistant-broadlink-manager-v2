@@ -5,16 +5,12 @@ Command API endpoints
 import logging
 import asyncio
 import json
+import time
 from pathlib import Path
 from flask import jsonify, request, current_app
 from . import api_bp
 
 logger = logging.getLogger(__name__)
-
-
-def get_storage_manager():
-    """Get storage manager from Flask app context"""
-    return current_app.config.get("storage_manager")
 
 
 def get_web_server():
@@ -91,9 +87,12 @@ def learn_command():
         command = data.get("command")
         command_type = data.get("command_type", "ir")
         device_id = data.get("device_id")  # For managed devices
+        save_destination = data.get(
+            "save_destination", "manager_only"
+        )  # manager_only, integration_only, both
 
         logger.info(
-            f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}"
+            f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}, save_destination={save_destination}"
         )
 
         # If device is not provided, try to derive it from device_id
@@ -131,79 +130,95 @@ def learn_command():
         asyncio.set_event_loop(loop)
         result = loop.run_until_complete(web_server._learn_command(data))
 
-        # If HA API returned success, fetch the learned code immediately
+        # If HA API returned success, handle based on save destination
         if result.get("success"):
             logger.info(
                 f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
             )
 
-            # Fetch the learned code from Broadlink storage immediately
-            # The code is available right away, even though the file write may lag
-            try:
-                import time
+            # Initialize learned_code variable
+            learned_code = None
 
-                # Give HA a moment to process (usually instant, but be safe)
-                time.sleep(0.5)
-
-                # Fetch all commands from storage
-                all_commands = loop.run_until_complete(
-                    web_server._get_all_broadlink_commands()
-                )
-
-                # Get the specific command we just learned
-                device_commands = all_commands.get(device, {})
-                learned_code = device_commands.get(command)
-
-                if learned_code:
-                    logger.info(
-                        f"✅ Successfully fetched learned code for '{command}' (length: {len(learned_code)} chars)"
-                    )
-                    result["code"] = learned_code
-                    result["message"] = f"✅ Command '{command}' learned successfully!"
-                else:
-                    logger.warning(
-                        f"⚠️ Command learned but code not yet available in storage, using pending"
-                    )
-                    result["code"] = "pending"
-                    result["message"] = (
-                        f"✅ Command '{command}' learned! Code will be available shortly."
-                    )
-
-            except Exception as fetch_error:
-                logger.error(f"Error fetching learned code: {fetch_error}")
+            # For RF commands, keep the original notification message
+            if command_type == "rf":
+                # Use the message from _learn_command which tells user to check HA notifications
+                logger.info(f"RF command - using notification message from _learn_command")
+                # RF commands are always "pending" since they require multi-step process
+                learned_code = "pending"
+                # Add to cache for integration_only/both
+                if save_destination in ["integration_only", "both"]:
+                    web_server._add_to_storage_cache(device, command, "pending")
+                    logger.info(f"✅ Added {device}/{command} to storage cache")
+            # For IR commands with integration_only/both: Add to cache immediately and trust it
+            elif save_destination in ["integration_only", "both"]:
+                web_server._add_to_storage_cache(device, command, "pending")
+                logger.info(f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately")
+                learned_code = "pending"
                 result["code"] = "pending"
-                result["message"] = (
-                    f"✅ Command '{command}' learned! Code will be available shortly."
-                )
-            finally:
-                loop.close()
+                result["message"] = f"✅ Command '{command}' learned and added to storage!"
+            else:
+                # For manager_only: Save as pending and schedule background update
+                # Don't block the user waiting for storage file to be written
+                learned_code = "pending"
+                result["code"] = "pending"
+                result["message"] = f"✅ Command '{command}' learned! Code will be updated automatically in background."
+                
+                # Schedule background task to poll for the actual code
+                # Pass entity_id so it can delete after fetching
+                logger.info(f"Scheduling background poll for command '{command}' on device '{device}'")
+                web_server.schedule_command_poll(device_id, device, command, entity_id if save_destination == "manager_only" else None)
 
-            # Update devices.json if this is a managed device
+            # Handle save destination logic
             if device_id:
-                try:
-                    device_manager = get_device_manager()
-                    if device_manager:
-                        managed_device = device_manager.get_device(device_id)
-                        if managed_device:
-                            # Add the new command to the device's commands
-                            if "commands" not in managed_device:
-                                managed_device["commands"] = {}
-                            
-                            managed_device["commands"][command] = {
-                                "command_type": command_type,
-                                "type": command_type
-                            }
-                            
-                            # Save updated device
-                            device_manager.update_device(device_id, managed_device)
-                            logger.info(f"✅ Updated devices.json for {device_id} with new command '{command}'")
+                device_manager = current_app.config.get("device_manager")
+
+                # Save to devices.json if destination allows it
+                if save_destination in ["manager_only", "both"]:
+                    try:
+                        if device_manager:
+                            managed_device = device_manager.get_device(device_id)
+                            if managed_device:
+                                # Add the new command to the device's commands
+                                if "commands" not in managed_device:
+                                    managed_device["commands"] = {}
+
+                                # Store the learned code so we don't depend on .storage files
+                                managed_device["commands"][command] = {
+                                    "data": learned_code if learned_code else "pending",
+                                    "type": command_type,
+                                    "name": command,
+                                }
+
+                                # Save updated device
+                                device_manager.update_device(device_id, managed_device)
+                                logger.info(
+                                    f"✅ Updated devices.json for {device_id} with new command '{command}' (save_destination={save_destination})"
+                                )
+                            else:
+                                logger.warning(
+                                    f"⚠️ Device {device_id} not found in device manager"
+                                )
                         else:
-                            logger.warning(f"⚠️ Device {device_id} not found in device manager")
-                    else:
-                        logger.warning("⚠️ Device manager not available")
-                except Exception as save_error:
-                    logger.error(f"❌ Error updating devices.json: {save_error}")
-                    # Don't fail the request if devices.json update fails
+                            logger.warning("⚠️ Device manager not available")
+                    except Exception as save_error:
+                        logger.error(f"❌ Error updating devices.json: {save_error}")
+                        # Don't fail the request if devices.json update fails
+
+                # For manager_only, deletion will happen in background AFTER fetching the code
+                # This is handled by the polling thread (see schedule_command_poll above)
+                if save_destination == "manager_only":
+                    logger.info(
+                        f"ℹ️ Deletion of '{command}' from integration storage will happen after code is fetched"
+                    )
+
+                # Log if integration_only (no devices.json update)
+                if save_destination == "integration_only":
+                    logger.info(
+                        f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
+                    )
+
+            # Close the event loop
+            loop.close()
 
             return jsonify(result)
         else:
@@ -334,65 +349,43 @@ def test_command():
             logger.error(f"{error_msg}. Received data: {data}")
             return jsonify({"success": False, "error": error_msg}), 400
 
-        # Get device manager and storage to look up command mapping and device type
+        # Get device manager to look up command mapping and device type
         device_manager = current_app.config.get("device_manager")
-        storage = get_storage_manager()
         is_smartir = False
         entity_data = None
 
-        if device_id:
-            # First try device_manager (for managed devices including SmartIR)
-            if device_manager:
-                entity_data = device_manager.get_device(device_id)
-                if entity_data:
-                    logger.info(f"Found device in device_manager: {device_id}")
-
-            # If not found, try storage_manager (for legacy/adopted devices)
-            if not entity_data and storage:
-                entity_data = storage.get_entity(device_id)
-
-                # If not found and device_id doesn't have a dot, try to find it in all entities
-                if not entity_data and "." not in device_id:
-                    logger.info(
-                        f"Device ID '{device_id}' not found, searching all entities..."
-                    )
-                    all_entities = storage.get_all_entities()
-                    for stored_entity_id, data in all_entities.items():
-                        if (
-                            stored_entity_id.endswith(f".{device_id}")
-                            or stored_entity_id == device_id
-                        ):
-                            entity_data = data
-                            logger.info(f"Found entity: {stored_entity_id}")
-                            break
-
+        if device_id and device_manager:
+            entity_data = device_manager.get_device(device_id)
             if entity_data:
-                is_smartir = entity_data.get("device_type") == "smartir"
-                logger.info(
-                    f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
+                logger.info(f"Found device in device_manager: {device_id}")
+
+        if entity_data:
+            is_smartir = entity_data.get("device_type") == "smartir"
+            logger.info(
+                f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
+            )
+            commands_mapping = entity_data.get("commands", {})
+
+            # Look up the actual command code from the mapping
+            command_data = commands_mapping.get(command, command)
+
+            # If command_data is a dict (metadata), extract the actual code
+            if isinstance(command_data, dict):
+                # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
+                actual_command = command_data.get(
+                    "code", command_data.get("data", command)
                 )
-                commands_mapping = entity_data.get("commands", {})
-
-                # Look up the actual command code from the mapping
-                command_data = commands_mapping.get(command, command)
-
-                # If command_data is a dict (metadata), extract the actual code
-                if isinstance(command_data, dict):
-                    # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
-                    actual_command = command_data.get(
-                        "code", command_data.get("data", command)
-                    )
-                    logger.info(
-                        f"Command mapping: '{command}' -> extracted code from metadata"
-                    )
-                else:
-                    # Command stored as string directly
-                    actual_command = command_data
-                    logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
-
-                command = actual_command
+                logger.info(
+                    f"Command mapping: '{command}' -> extracted code from metadata"
+                )
             else:
-                logger.warning(f"Entity data not found for device_id: {device_id}")
+                # Command stored as string directly
+                actual_command = command_data
+                logger.info(f"Command mapping: '{command}' -> '{actual_command}'")
+
+            command = actual_command
+        else:
+            logger.warning(f"Entity data not found for device_id: {device_id}")
 
         # Get web server instance
         web_server = get_web_server()
@@ -573,14 +566,27 @@ def test_command():
                     500,
                 )
         else:
-            # Broadlink device - use command name with device parameter
-            command_list = [command] if isinstance(command, str) else command
-            service_payload = {
-                "entity_id": entity_id,
-                "device": device,
-                "command": command_list,
-            }
-            logger.info(f"Sending Broadlink payload to HA: {service_payload}")
+            # Broadlink device - send raw code with b64: prefix OR command name if pending
+            # This allows us to control commands in devices.json without relying on .storage files
+            
+            # If command is "pending" or "error", send command name instead of raw code
+            if command in ["pending", "error"]:
+                logger.info(f"Command is '{command}' - sending command name to HA instead of raw code")
+                # Send the command name - HA will look it up from its storage
+                service_payload = {
+                    "entity_id": entity_id,
+                    "command": data.get("command"),  # Use original command name
+                }
+                logger.info(f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)")
+            else:
+                # Send raw code with b64: prefix
+                service_payload = {
+                    "entity_id": entity_id,
+                    "command": f"b64:{command}",
+                }
+                logger.info(
+                    f"Sending Broadlink raw code to HA (code length: {len(command)} chars)"
+                )
 
         result = loop.run_until_complete(
             web_server._make_ha_request(
@@ -605,106 +611,29 @@ def test_command():
 
 @api_bp.route("/commands/<device_id>/<command_name>", methods=["DELETE"])
 def delete_command(device_id, command_name):
-    """Delete a command from a device via HA API"""
+    """Delete a command from a device"""
     try:
-        storage = get_storage_manager()
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        # Get device entity
-        entity_data = storage.get_entity(device_id)
-        if not entity_data:
+        # Get device
+        device = device_manager.get_device(device_id)
+        if not device:
             return jsonify({"error": "Device not found"}), 404
 
         # Check command exists
-        commands = entity_data.get("commands", {})
+        commands = device.get("commands", {})
         if command_name not in commands:
             return jsonify({"error": "Command not found"}), 404
 
-        # Get the actual Broadlink command name (might be mapped)
-        # commands is like {"turn_off": "living_room_stereo_turn_off"}
-        broadlink_command_name = commands[command_name]
-
-        # Get the broadlink entity and device name
-        broadlink_entity = entity_data.get("broadlink_entity", "")
-        device_name = entity_data.get("device")
-        if not device_name:
-            # Fallback: extract from device_id
-            device_name = device_id.split(".")[1] if "." in device_id else device_id
-
         logger.info(f"Delete command request:")
         logger.info(f"  device_id: {device_id}")
-        logger.info(f"  command_name (key): {command_name}")
-        logger.info(f"  broadlink_command_name (value): {broadlink_command_name}")
-        logger.info(f"  device_name: {device_name}")
-        logger.info(f"  broadlink_entity: '{broadlink_entity}'")
-        logger.info(f"  entity_data keys: {list(entity_data.keys())}")
+        logger.info(f"  command_name: {command_name}")
 
-        # If no broadlink_entity specified, find which Broadlink device owns this device's commands
-        if not broadlink_entity:
-            web_server = get_web_server()
-            if web_server:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                # Use the new method to find the correct Broadlink entity
-                broadlink_entity = loop.run_until_complete(
-                    web_server._find_broadlink_entity_for_device(device_name)
-                )
-                loop.close()
-
-                if broadlink_entity:
-                    logger.info(
-                        f"Found Broadlink entity for device '{device_name}': {broadlink_entity}"
-                    )
-
-        if not broadlink_entity:
-            logger.error(
-                f"No broadlink_entity configured and could not auto-detect for device {device_id}"
-            )
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": (
-                            "No Broadlink device configured for this device. "
-                            "Please edit the device and select a Broadlink device."
-                        ),
-                    }
-                ),
-                400,
-            )
-
-        logger.info(
-            f"Deleting command '{broadlink_command_name}' from device '{device_name}' "
-            f"using Broadlink entity '{broadlink_entity}'"
-        )
-
-        # Call HA API to delete the command from Broadlink storage
-        web_server = get_web_server()
-        if not web_server:
-            return jsonify({"error": "Web server not available"}), 500
-
-        delete_data = {
-            "entity_id": broadlink_entity,
-            "device": device_name,
-            "command": broadlink_command_name,  # Use the actual Broadlink command name
-        }
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(web_server._delete_command(delete_data))
-        loop.close()
-
-        if result.get("success"):
-            # Add to deletion cache to handle storage lag
-            web_server._add_to_deletion_cache(device_name, broadlink_command_name)
-
-            # Remove from metadata (trust that HA deleted it from Broadlink storage)
-            del commands[command_name]
-            entity_data["commands"] = commands
-            storage.save_entity(device_id, entity_data)
-            logger.info(f"✅ Command '{command_name}' deleted from metadata")
-
+        # Delete from devices.json
+        if device_manager.delete_command(device_id, command_name):
+            logger.info(f"✅ Command '{command_name}' deleted successfully")
             return jsonify(
                 {
                     "success": True,
@@ -712,59 +641,133 @@ def delete_command(device_id, command_name):
                 }
             )
         else:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": result.get("error", "Failed to delete command"),
-                    }
-                ),
-                400,
-            )
+            return jsonify({"success": False, "error": "Failed to delete command"}), 500
 
     except Exception as e:
         logger.error(f"Error deleting command: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@api_bp.route("/commands/delete-from-storage", methods=["POST"])
+def delete_command_from_storage():
+    """Delete a command from Broadlink Integration storage (.storage files)"""
+    try:
+        data = request.json
+        logger.info(f"🗑️ Delete from storage request: {data}")
+
+        device = data.get("device")
+        command = data.get("command")
+
+        if not device or not command:
+            error_msg = f"Missing device or command parameter: device={device}, command={command}"
+            logger.error(f"❌ {error_msg}")
+            return (
+                jsonify({"success": False, "error": error_msg}),
+                400,
+            )
+
+        logger.info(
+            f"🗑️ Deleting command '{command}' from Broadlink storage for device '{device}'"
+        )
+
+        # Get web server instance
+        web_server = get_web_server()
+        if not web_server:
+            logger.error("❌ Web server not available")
+            return jsonify({"success": False, "error": "Web server not available"}), 500
+
+        # Call HA API to delete the command
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Use HA's remote.delete_command service
+        # The device parameter should be the storage key (e.g., "tony_s_office_workbench_lamp")
+        # We need to find the corresponding entity_id
+        device_manager = current_app.config.get("device_manager")
+        entity_id = None
+
+        if device_manager:
+            # Try to find the device by its storage name
+            all_devices = device_manager.get_all_devices()
+            for dev_id, dev_data in all_devices.items():
+                # Check if device field matches, or if device_id matches (when device field is missing)
+                storage_key = dev_data.get("device") or dev_id
+                if storage_key == device:
+                    entity_id = dev_data.get("broadlink_entity")
+                    logger.info(
+                        f"🔍 Found entity_id '{entity_id}' for storage key '{device}' (device_id: {dev_id})"
+                    )
+                    break
+
+        if not entity_id:
+            # Fallback: assume device is already the entity name part
+            entity_id = f"remote.{device}"
+            logger.warning(f"⚠️ Could not find entity_id, using fallback: {entity_id}")
+
+        # HA's remote.delete_command requires: entity_id, device (storage key), and command (list)
+        service_payload = {
+            "entity_id": entity_id,
+            "device": device,  # The storage key (e.g., "tony_s_office_workbench_lamp")
+            "command": [command],  # Must be a list
+        }
+        logger.info(f"🔧 Calling HA service with payload: {service_payload}")
+
+        result = loop.run_until_complete(
+            web_server._make_ha_request(
+                "POST", "services/remote/delete_command", service_payload
+            )
+        )
+        loop.close()
+
+        logger.info(f"📥 HA API response: {result}")
+
+        if result is not None:
+            logger.info(
+                f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}"
+            )
+
+            # Add to deletion cache for optimistic UI update
+            # This prevents the command from showing as "untracked" during storage file update lag
+            web_server._add_to_deletion_cache(device, command)
+            logger.info(f"Added {device}/{command} to deletion cache for optimistic UI")
+            
+            # Also remove from storage cache immediately
+            web_server._remove_from_storage_cache(device, command)
+            logger.info(f"Removed {device}/{command} from storage cache")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": f"Command '{command}' deleted from Broadlink storage",
+                }
+            )
+        else:
+            logger.error("❌ HA API returned None - delete failed")
+            return (
+                jsonify({"success": False, "error": "Failed to delete from storage"}),
+                400,
+            )
+
+    except Exception as e:
+        logger.error(f"Error deleting command from storage: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @api_bp.route("/commands/<device_id>", methods=["GET"])
 def get_device_commands(device_id):
-    """Get all commands for a device (managed or adopted)"""
+    """Get all commands for a device"""
     try:
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
 
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
-
-        # Try device_manager first (for managed devices)
-        entity_data = None
-        if device_manager:
-            entity_data = device_manager.get_device(device_id)
-            if entity_data:
-                logger.info(f"Found device '{device_id}' in device_manager")
-
-        # If not found, try storage_manager (for adopted devices)
-        if not entity_data:
-            entity_data = storage.get_entity(device_id)
-            if entity_data:
-                logger.info(f"Found device '{device_id}' in storage_manager")
-
-        if not entity_data:
-            logger.warning(
-                f"Device '{device_id}' not found in device_manager or storage_manager"
-            )
+        device = device_manager.get_device(device_id)
+        if not device:
+            logger.warning(f"Device '{device_id}' not found")
             return jsonify({"error": "Device not found"}), 404
 
-        commands = entity_data.get("commands", {})
+        commands = device.get("commands", {})
         logger.info(f"Returning {len(commands)} commands for device '{device_id}'")
-
-        # Log command format for debugging
-        if commands:
-            first_cmd = next(iter(commands.items()))
-            logger.info(
-                f"Sample command format: {first_cmd[0]} = {first_cmd[1]} (type: {type(first_cmd[1])})"
-            )
 
         return jsonify({"commands": commands, "device_id": device_id})
 
@@ -801,11 +804,11 @@ def get_broadlink_commands(device_name):
 def get_untracked_commands():
     """Get commands that exist in Broadlink storage but not in metadata"""
     try:
-        storage = get_storage_manager()
         web_server = get_web_server()
+        device_manager = current_app.config.get("device_manager")
 
-        if not storage or not web_server:
-            return jsonify({"error": "Storage or web server not available"}), 500
+        if not device_manager or not web_server:
+            return jsonify({"error": "Device manager or web server not available"}), 500
 
         # Get all commands from Broadlink storage
         loop = asyncio.new_event_loop()
@@ -815,32 +818,54 @@ def get_untracked_commands():
         )
         loop.close()
 
-        # Get all tracked commands from metadata
-        entities = storage.get_all_entities()
+        # Get all tracked commands from devices.json
+        all_devices = device_manager.get_all_devices()
         tracked_commands = {}
 
-        # Build a map of device_name -> tracked Broadlink command names (the values, not keys)
-        for entity_id, entity_data in entities.items():
-            device_name = entity_data.get("device")
-            if device_name:
-                # Commands is a dict like {"turn_off": "living_room_stereo_turn_off"}
-                # We need to track the VALUES (actual Broadlink command names)
-                commands_dict = entity_data.get("commands", {})
-                tracked_commands[device_name] = set(commands_dict.values())
+        # Build a map of device_name -> tracked command names
+        for device_id, device_data in all_devices.items():
+            # Use the 'device' field which is the Broadlink storage key
+            # This is what's used when learning commands via HA API
+            device_name = device_data.get("device", device_id)
+
+            logger.debug(f"Mapping device {device_id} -> storage key {device_name}")
+
+            # Commands is a dict like {"turn_on": {"data": "...", "type": "rf"}}
+            commands_dict = device_data.get("commands", {})
+            tracked_commands[device_name] = set(commands_dict.keys())
+
+            logger.debug(
+                f"  Tracked commands for {device_name}: {tracked_commands[device_name]}"
+            )
 
         # Cleanup expired deletion cache entries
         web_server._cleanup_deletion_cache()
 
         # Find untracked commands (excluding recently deleted ones)
         untracked = {}
+        logger.info(f"🔍 Checking for untracked commands...")
+        logger.info(f"📦 Broadlink storage devices: {list(broadlink_commands.keys())}")
+        logger.info(f"📋 Tracked devices: {list(tracked_commands.keys())}")
+
         for device_name, commands in broadlink_commands.items():
             tracked = tracked_commands.get(device_name, set())
+            logger.info(f"🔍 Device '{device_name}':")
+            logger.info(f"  Storage commands: {list(commands.keys())}")
+            logger.info(f"  Tracked commands: {list(tracked)}")
+
             untracked_for_device = {
                 cmd: data
                 for cmd, data in commands.items()
                 if cmd not in tracked
                 and not web_server._is_recently_deleted(device_name, cmd)
             }
+
+            if untracked_for_device:
+                logger.info(
+                    f"  ⚠️ Untracked commands: {list(untracked_for_device.keys())}"
+                )
+            else:
+                logger.info(f"  ✅ All commands tracked")
 
             if untracked_for_device:
                 untracked[device_name] = {
@@ -865,73 +890,100 @@ def import_commands():
     """Import untracked commands into a device's metadata"""
     try:
         data = request.json
+        logger.info(f"📥 Import request data: {data}")
+
         device_id = data.get("device_id")  # Target device to import into
         source_device = data.get("source_device")  # Broadlink device name
         commands = data.get("commands", [])  # List of command names to import
 
-        if not all([device_id, source_device, commands]):
+        logger.info(
+            f"📥 Parsed: device_id={device_id}, source_device={source_device}, commands={commands}"
+        )
+
+        if not device_id or not source_device or not commands:
+            error_msg = f"Missing required fields: device_id={device_id}, source_device={source_device}, commands={commands}"
+            logger.error(f"❌ {error_msg}")
             return (
                 jsonify(
                     {
                         "success": False,
-                        "error": "Missing required fields: device_id, source_device, commands",
+                        "error": error_msg,
                     }
                 ),
                 400,
             )
 
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
+        web_server = get_web_server()
 
-        if not storage:
-            return jsonify({"error": "Storage manager not available"}), 500
+        if not device_manager or not web_server:
+            logger.error("❌ Device manager or web server not available")
+            return jsonify({"error": "Required services not available"}), 500
 
-        # Try to get device from device_manager first (for managed devices)
-        entity_data = None
-        if device_manager:
-            entity_data = device_manager.get_device(device_id)
-
-        # If not found, try storage (for legacy devices)
-        if not entity_data:
-            entity_data = storage.get_entity(device_id)
+        # Get device from device_manager
+        entity_data = device_manager.get_device(device_id)
 
         if not entity_data:
+            logger.error(f"❌ Device '{device_id}' not found")
             return (
-                jsonify(
-                    {
-                        "error": f"Device '{device_id}' not found in device manager or metadata"
-                    }
-                ),
+                jsonify({"error": f"Device '{device_id}' not found in device manager"}),
                 404,
             )
 
-        # Add commands to device metadata
+        # Get commands from Broadlink storage
+        logger.info(
+            f"📦 Fetching commands from Broadlink storage for device '{source_device}'..."
+        )
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
+        loop.close()
+
+        storage_commands = broadlink_commands.get(source_device, {})
+        logger.info(
+            f"📦 Found {len(storage_commands)} commands in storage for '{source_device}'"
+        )
+
+        # Add commands to device metadata with proper data
         device_commands = entity_data.get("commands", {})
+        imported_count = 0
+
         for cmd in commands:
-            device_commands[cmd] = cmd  # Simple mapping
+            if cmd in storage_commands:
+                cmd_data = storage_commands[cmd]
+                cmd_type = detect_command_type(cmd_data)
+                device_commands[cmd] = {
+                    "data": cmd_data,
+                    "type": cmd_type,
+                    "command_type": cmd_type,
+                    "name": cmd,
+                }
+                imported_count += 1
+                logger.info(f"  ✅ Imported '{cmd}' ({cmd_type})")
+            else:
+                logger.warning(f"  ⚠️ Command '{cmd}' not found in storage")
 
         entity_data["commands"] = device_commands
 
-        # Save back to the appropriate store
-        if device_manager and device_manager.get_device(device_id):
-            device_manager.update_device(device_id, entity_data)
-        else:
-            storage.save_entity(device_id, entity_data)
+        # Save to device_manager
+        device_manager.update_device(device_id, entity_data)
 
         logger.info(
-            f"Imported {len(commands)} commands from '{source_device}' to device '{device_id}'"
+            f"✅ Imported {imported_count} commands from '{source_device}' to device '{device_id}'"
         )
 
         return jsonify(
             {
                 "success": True,
-                "message": f"Imported {len(commands)} commands successfully",
-                "imported_count": len(commands),
+                "message": f"Imported {imported_count} commands successfully",
+                "imported_count": imported_count,
             }
         )
 
     except Exception as e:
-        logger.error(f"Error importing commands: {e}")
+        logger.error(f"❌ Error importing commands: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -940,11 +992,10 @@ def sync_commands():
     """Sync all device commands with Broadlink storage"""
     try:
         logger.info("🔄 Starting command sync...")
-        storage = get_storage_manager()
         device_manager = current_app.config.get("device_manager")
         web_server = get_web_server()
 
-        if not all([storage, device_manager, web_server]):
+        if not all([device_manager, web_server]):
             logger.error("❌ Required services not available")
             return jsonify({"error": "Required services not available"}), 500
 
@@ -982,7 +1033,17 @@ def sync_commands():
             commands_to_add = {}
             commands_to_update = {}
 
+            # Get recently deleted commands for this device to skip during sync
+            recently_deleted = web_server.recently_deleted_commands.get(device_name, {})
+
             for cmd_name, cmd_data in storage_commands.items():
+                # Skip commands that were recently deleted (optimistic UI)
+                if cmd_name in recently_deleted:
+                    logger.debug(
+                        f"  ⏭️ Skipping recently deleted command '{cmd_name}' during sync"
+                    )
+                    continue
+
                 cmd_type = detect_command_type(cmd_data)
 
                 if cmd_name not in tracked_commands:
@@ -1038,88 +1099,6 @@ def sync_commands():
                 synced_devices.append(
                     {
                         "device_id": device_id,
-                        "device_name": device_name,
-                        "added": len(commands_to_add),
-                        "updated": len(commands_to_update),
-                        "removed": len(commands_to_remove),
-                    }
-                )
-
-        # Sync adopted devices (from storage_manager - metadata.json)
-        adopted_entities = storage.get_all_entities()
-        logger.info(f"📋 Found {len(adopted_entities)} adopted entities")
-
-        for entity_id, entity_data in adopted_entities.items():
-            device_name = entity_data.get("device")
-            if not device_name:
-                continue
-
-            logger.info(
-                f"🔍 Checking adopted device '{entity_id}' (storage name: '{device_name}')"
-            )
-
-            storage_commands = broadlink_commands.get(device_name, {})
-            tracked_commands = entity_data.get("commands", {})
-
-            commands_to_add = {}
-            commands_to_update = {}
-
-            for cmd_name, cmd_data in storage_commands.items():
-                cmd_type = detect_command_type(cmd_data)
-
-                if cmd_name not in tracked_commands:
-                    # New command - add it
-                    commands_to_add[cmd_name] = {
-                        "command_type": cmd_type,
-                        "type": cmd_type,
-                    }
-                else:
-                    # Existing command - check if type needs updating
-                    existing_cmd = tracked_commands[cmd_name]
-                    if isinstance(existing_cmd, dict):
-                        existing_type = existing_cmd.get(
-                            "command_type"
-                        ) or existing_cmd.get("type")
-                    else:
-                        existing_type = None
-
-                    if existing_type != cmd_type:
-                        # Type mismatch - update it
-                        commands_to_update[cmd_name] = {
-                            "command_type": cmd_type,
-                            "type": cmd_type,
-                        }
-
-            commands_to_remove = [
-                cmd_name
-                for cmd_name in tracked_commands.keys()
-                if cmd_name not in storage_commands
-            ]
-
-            if commands_to_add or commands_to_remove or commands_to_update:
-                updated_commands = {**tracked_commands}
-
-                for cmd_name, cmd_data in commands_to_add.items():
-                    updated_commands[cmd_name] = cmd_data
-                    total_added += 1
-
-                for cmd_name, cmd_data in commands_to_update.items():
-                    updated_commands[cmd_name] = cmd_data
-                    total_updated += 1
-                    logger.info(
-                        f"  ✏️ Updated type for '{cmd_name}' to {cmd_data['type']}"
-                    )
-
-                for cmd_name in commands_to_remove:
-                    del updated_commands[cmd_name]
-                    total_removed += 1
-
-                entity_data["commands"] = updated_commands
-                storage.save_entity(entity_id, entity_data)
-
-                synced_devices.append(
-                    {
-                        "device_id": entity_id,
                         "device_name": device_name,
                         "added": len(commands_to_add),
                         "updated": len(commands_to_update),
@@ -1231,3 +1210,580 @@ def detect_command_type(command_data):
                 return "rf"
 
     return "ir"  # Default to IR if we can't determine
+
+
+@api_bp.route("/commands/check-pending", methods=["POST"])
+def check_pending_commands():
+    """Manually trigger a check for pending commands and start polling if needed"""
+    try:
+        web_server = get_web_server()
+        if not web_server:
+            return jsonify({"success": False, "error": "Web server not available"}), 500
+        
+        # Trigger the file watcher's check method
+        web_server._check_and_start_polling_for_pending()
+        
+        return jsonify({"success": True, "message": "Polling check triggered"})
+    except Exception as e:
+        logger.error(f"Error checking pending commands: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Direct Learning Endpoints (New Hybrid Approach)
+
+
+@api_bp.route("/commands/learn/direct/stream", methods=["POST"])
+def learn_command_direct_stream():
+    """Learn a command with SSE progress updates"""
+    from flask import Response, stream_with_context
+
+    data = request.json
+    device_id = data.get("device_id")
+    entity_id = data.get("entity_id")
+    command_name = data.get("command_name")
+    command_type = data.get("command_type", "ir")
+
+    def generate():
+        try:
+            from broadlink_learner import BroadlinkLearner
+            from broadlink_device_manager import BroadlinkDeviceManager
+            from device_manager import DeviceManager
+
+            yield f"data: {json.dumps({'status': 'starting', 'message': 'Initializing...'})}\n\n"
+
+            if not all([device_id, entity_id, command_name]):
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Missing required fields'})}\n\n"
+                return
+
+            # Get HA config
+            web_server = get_web_server()
+            ha_url = web_server.ha_url
+            ha_token = web_server.ha_token
+
+            # Get device connection info (try cache first)
+            connection_info = web_server.get_cached_connection_info(entity_id)
+
+            if not connection_info:
+                yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
+                device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
+
+                if connection_info:
+                    # Cache for future use
+                    web_server.cache_connection_info(entity_id, connection_info)
+            else:
+                yield f"data: {json.dumps({'status': 'connecting', 'message': 'Using cached connection...'})}\n\n"
+
+            if not connection_info:
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Could not get connection info'})}\n\n"
+                return
+
+            # Create learner
+            learner = BroadlinkLearner(
+                host=connection_info["host"],
+                mac=connection_info["mac_bytes"],
+                device_type=connection_info["type"],
+            )
+
+            # Authenticate
+            if not learner.authenticate():
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Failed to authenticate'})}\n\n"
+                return
+
+            yield f"data: {json.dumps({'status': 'ready', 'message': f'Ready to learn {command_type.upper()} command'})}\n\n"
+
+            # Learn command with progress
+            if command_type == "rf":
+                # Create a list to capture progress messages
+                progress_messages = []
+
+                def progress_handler(message, step):
+                    progress_messages.append((message, step))
+
+                # Start RF learning in a thread so we can yield progress
+                import threading
+
+                result_container = [None]
+
+                def learn_thread():
+                    result_container[0] = learner.learn_rf_command_with_progress(
+                        timeout=30, progress_callback=progress_handler
+                    )
+
+                thread = threading.Thread(target=learn_thread)
+                thread.start()
+
+                # Poll for progress updates
+                last_message_count = 0
+                while thread.is_alive():
+                    time.sleep(0.5)
+                    if len(progress_messages) > last_message_count:
+                        for msg, step in progress_messages[last_message_count:]:
+                            yield f"data: {json.dumps({'status': 'learning', 'message': msg, 'step': step})}\n\n"
+                        last_message_count = len(progress_messages)
+
+                thread.join()
+                result = result_container[0]
+
+                if result:
+                    base64_data, frequency = result
+                    yield f"data: {json.dumps({'status': 'captured', 'message': f'RF command captured at {frequency} MHz', 'frequency': frequency})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no RF signal detected'})}\n\n"
+                    return
+            else:
+                yield f"data: {json.dumps({'status': 'learning', 'message': 'Waiting for IR signal...', 'step': 'capture'})}\n\n"
+                result = learner.learn_ir_command(timeout=30)
+                if result:
+                    base64_data = result
+                    frequency = None
+                    yield f"data: {json.dumps({'status': 'captured', 'message': 'IR command captured'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no IR signal detected'})}\n\n"
+                    return
+
+            # Save command
+            yield f"data: {json.dumps({'status': 'saving', 'message': 'Saving command...'})}\n\n"
+
+            device_manager = DeviceManager(
+                storage_path=str(web_server.broadlink_manager_path)
+            )
+            success = device_manager.add_learned_command(
+                device_id=device_id,
+                command_name=command_name,
+                command_data=base64_data,
+                command_type=command_type,
+                frequency=frequency,
+            )
+
+            if not success:
+                yield f"data: {json.dumps({'status': 'error', 'message': 'Failed to save command'})}\n\n"
+                return
+
+            # Update connection info
+            device_manager.update_device_connection_info(
+                device_id,
+                {
+                    "host": connection_info["host"],
+                    "mac": connection_info["mac"],
+                    "type": connection_info["type"],
+                    "type_hex": connection_info["type_hex"],
+                    "model": connection_info["model"],
+                },
+            )
+
+            yield f"data: {json.dumps({'status': 'complete', 'message': 'Command learned successfully!', 'command_name': command_name})}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in SSE learning: {e}", exc_info=True)
+            yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
+
+@api_bp.route("/commands/learn/direct", methods=["POST"])
+def learn_command_direct():
+    """
+    Learn a command directly from Broadlink device
+
+    Request body:
+    {
+        "device_id": "living_room_tv",
+        "entity_id": "remote.living_room_rm4_pro",
+        "command_name": "power",
+        "command_type": "ir"  // or "rf"
+    }
+
+    Returns:
+    {
+        "success": true,
+        "command_name": "power",
+        "command_type": "ir",
+        "data": "scBIAdieBgALFgsXFwsXDAoXFwsXCwoXGAoL...",
+        "data_length": 444,
+        "frequency": 433.92  // RF only
+    }
+    """
+    try:
+        from broadlink_learner import BroadlinkLearner
+        from broadlink_device_manager import BroadlinkDeviceManager
+        from device_manager import DeviceManager
+
+        data = request.get_json()
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+        command_type = data.get("command_type", "ir")
+
+        if not all([device_id, entity_id, command_name]):
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Missing required fields: device_id, entity_id, command_name",
+                    }
+                ),
+                400,
+            )
+
+        if command_type not in ["ir", "rf"]:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": 'Invalid command_type. Must be "ir" or "rf"',
+                    }
+                ),
+                400,
+            )
+
+        # Get HA config
+        web_server = get_web_server()
+        ha_url = web_server.ha_url
+        ha_token = web_server.ha_token
+
+        # Get device connection info (try cache first)
+        connection_info = web_server.get_cached_connection_info(entity_id)
+
+        if not connection_info:
+            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+            connection_info = device_manager_bl.get_device_connection_info(entity_id)
+
+            if connection_info:
+                # Cache for future use
+                web_server.cache_connection_info(entity_id, connection_info)
+
+        if not connection_info:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Could not get connection info for {entity_id}",
+                    }
+                ),
+                404,
+            )
+
+        # Create learner
+        learner = BroadlinkLearner(
+            host=connection_info["host"],
+            mac=connection_info["mac_bytes"],
+            device_type=connection_info["type"],
+        )
+
+        # Authenticate
+        if not learner.authenticate():
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
+                500,
+            )
+
+        # Learn command
+        logger.info(
+            f"Learning {command_type} command '{command_name}' for device {device_id}"
+        )
+
+        if command_type == "ir":
+            result = learner.learn_ir_command(timeout=30)
+            if result:
+                base64_data = result
+                frequency = None
+            else:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Timeout - no IR signal detected within 30 seconds",
+                        }
+                    ),
+                    408,
+                )
+        else:  # RF
+            result = learner.learn_rf_command(timeout=30)
+            if result:
+                base64_data, frequency = result
+            else:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Timeout - no RF signal detected within 30 seconds",
+                        }
+                    ),
+                    408,
+                )
+
+        # Save to devices.json
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
+        success = device_manager.add_learned_command(
+            device_id=device_id,
+            command_name=command_name,
+            command_data=base64_data,
+            command_type=command_type,
+            frequency=frequency,
+        )
+
+        if not success:
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to save command to storage"}
+                ),
+                500,
+            )
+
+        # Also update connection info in device
+        device_manager.update_device_connection_info(
+            device_id,
+            {
+                "host": connection_info["host"],
+                "mac": connection_info["mac"],
+                "type": connection_info["type"],
+                "type_hex": connection_info["type_hex"],
+                "model": connection_info["model"],
+            },
+        )
+
+        response = {
+            "success": True,
+            "command_name": command_name,
+            "command_type": command_type,
+            "data": base64_data,
+            "data_length": len(base64_data),
+        }
+
+        if frequency:
+            response["frequency"] = frequency
+
+        logger.info(
+            f"Successfully learned command '{command_name}' ({len(base64_data)} chars)"
+        )
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"Error learning command: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/test/direct", methods=["POST"])
+def test_command_direct():
+    """
+    Test a command by sending it directly to the device
+
+    Request body:
+    {
+        "device_id": "living_room_tv",
+        "entity_id": "remote.living_room_rm4_pro",
+        "command_name": "power"
+    }
+
+    Returns:
+    {
+        "success": true,
+        "message": "Command sent successfully"
+    }
+    """
+    try:
+        from broadlink_learner import BroadlinkLearner
+        from broadlink_device_manager import BroadlinkDeviceManager
+        from device_manager import DeviceManager
+
+        data = request.get_json()
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+
+        if not all([device_id, entity_id, command_name]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        # Get web server for storage path
+        web_server = get_web_server()
+
+        # Get command data and device info
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
+        command_data = device_manager.get_command_data(device_id, command_name)
+
+        if not command_data:
+            return (
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
+                404,
+            )
+
+        # Try cache first, then stored connection, then discovery
+        connection_info = web_server.get_cached_connection_info(entity_id)
+
+        if not connection_info:
+            # Check if device has stored connection info
+            device_info = device_manager.get_device(device_id)
+            stored_connection = device_info.get("connection") if device_info else None
+
+            if stored_connection and stored_connection.get("host"):
+                # Use stored connection info
+                logger.info(f"Using stored connection info for device {device_id}")
+                connection_info = {
+                    "host": stored_connection["host"],
+                    "mac_bytes": bytes.fromhex(
+                        stored_connection["mac"].replace(":", "")
+                    ),
+                    "type": stored_connection.get("type", 0x2712),  # Default RM type
+                }
+            else:
+                # Fall back to discovery
+                logger.info(f"No stored connection, discovering device for {entity_id}")
+                device_manager_bl = BroadlinkDeviceManager(
+                    web_server.ha_url, web_server.ha_token
+                )
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
+
+            if connection_info:
+                # Cache for future use
+                web_server.cache_connection_info(entity_id, connection_info)
+
+        if not connection_info:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Could not get connection info for {entity_id}",
+                    }
+                ),
+                404,
+            )
+
+        # Create learner and test
+        learner = BroadlinkLearner(
+            host=connection_info["host"],
+            mac=connection_info["mac_bytes"],
+            device_type=connection_info["type"],
+        )
+
+        if not learner.authenticate():
+            return (
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
+                500,
+            )
+
+        if learner.test_command(command_data):
+            # Update test status
+            device_manager.update_command_test_status(device_id, command_name, "direct")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Command sent successfully via direct connection",
+                }
+            )
+        else:
+            return jsonify({"success": False, "error": "Failed to send command"}), 500
+
+    except Exception as e:
+        logger.error(f"Error testing command: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/test/ha", methods=["POST"])
+def test_command_ha():
+    """
+    Test a command via HA remote.send_command service
+
+    Request body:
+    {
+        "device_id": "living_room_tv",
+        "entity_id": "remote.living_room_rm4_pro",
+        "command_name": "power"
+    }
+
+    Returns:
+    {
+        "success": true,
+        "message": "Command sent successfully"
+    }
+    """
+    try:
+        from device_manager import DeviceManager
+        import requests
+
+        data = request.get_json()
+        device_id = data.get("device_id")
+        entity_id = data.get("entity_id")
+        command_name = data.get("command_name")
+
+        if not all([device_id, entity_id, command_name]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        # Get web server for storage path
+        web_server = get_web_server()
+
+        # Get command data
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
+        command_data = device_manager.get_command_data(device_id, command_name)
+
+        if not command_data:
+            return (
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
+                404,
+            )
+
+        # Send via HA
+        web_server = get_web_server()
+        ha_url = web_server.ha_url
+        ha_token = web_server.ha_token
+
+        headers = {
+            "Authorization": f"Bearer {ha_token}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "entity_id": entity_id,
+            "command": command_data,  # Raw base64, no prefix
+        }
+
+        response = requests.post(
+            f"{ha_url}/api/services/remote/send_command",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+
+        if response.status_code == 200:
+            # Update test status
+            device_manager.update_command_test_status(device_id, command_name, "ha")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "Command sent successfully via Home Assistant",
+                }
+            )
+        else:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"HA API returned status {response.status_code}",
+                    }
+                ),
+                response.status_code,
+            )
+
+    except Exception as e:
+        logger.error(f"Error testing command via HA: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500

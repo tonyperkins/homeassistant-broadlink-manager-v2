@@ -334,24 +334,29 @@ def debug_discovery():
     try:
         import asyncio
         import time
+
         web_server = current_app.config.get("web_server")
         storage = get_storage_manager()
         device_manager = get_device_manager()
-        
+
         debug_info = {
             "storage_path": str(web_server.storage_path) if web_server else "N/A",
-            "storage_path_exists": web_server.storage_path.exists() if web_server else False,
+            "storage_path_exists": (
+                web_server.storage_path.exists() if web_server else False
+            ),
         }
-        
+
         # Get broadlink commands
         if web_server:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+            broadlink_commands = loop.run_until_complete(
+                web_server._get_all_broadlink_commands()
+            )
             loop.close()
             debug_info["broadlink_devices"] = list(broadlink_commands.keys())
             debug_info["broadlink_device_count"] = len(broadlink_commands)
-            
+
             # Check deletion cache
             deletion_cache = {}
             current_time = time.time()
@@ -361,10 +366,10 @@ def debug_discovery():
                     age = current_time - deletion_time
                     deletion_cache[device_name][cmd_name] = {
                         "age_seconds": round(age, 1),
-                        "expires_in": round(web_server.DELETION_CACHE_TTL - age, 1)
+                        "expires_in": round(web_server.DELETION_CACHE_TTL - age, 1),
                     }
             debug_info["deletion_cache"] = deletion_cache
-        
+
         # Get tracked devices
         tracked = set()
         if device_manager:
@@ -374,7 +379,7 @@ def debug_discovery():
                     tracked.add(device_id)
         debug_info["tracked_devices"] = list(tracked)
         debug_info["tracked_device_count"] = len(tracked)
-        
+
         return jsonify(debug_info)
     except Exception as e:
         logger.error(f"Debug error: {e}")
@@ -886,11 +891,16 @@ def sync_device_area(device_id):
             logger.warning(f"Device '{device_id}' not found in either manager")
             return jsonify({"error": "Device not found"}), 404
 
-        # Build full entity_id
-        entity_type = device_data.get("entity_type", "switch")
-        full_entity_id = f"{entity_type}.{device_id}"
-
-        logger.info(f"Syncing area for entity: {full_entity_id}")
+        # Build full entity_id - check if device_id already includes entity type
+        if "." in device_id:
+            # Already a full entity ID (e.g., "light.testrf")
+            full_entity_id = device_id
+            logger.info(f"Using provided entity_id: {full_entity_id}")
+        else:
+            # Just the device ID, need to add entity type
+            entity_type = device_data.get("entity_type", "switch")
+            full_entity_id = f"{entity_type}.{device_id}"
+            logger.info(f"Built entity_id: {full_entity_id}")
 
         # Get entity details from HA (includes area_id)
         loop = asyncio.new_event_loop()

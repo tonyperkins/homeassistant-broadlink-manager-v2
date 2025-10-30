@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.3] - 2025-10-26
+
+### ⚠️ BREAKING CHANGES
+- **Independent Command Storage**: Commands are now stored in `devices.json` instead of relying solely on Broadlink integration storage
+  - Existing commands will be automatically migrated on first run
+  - Provides better reliability and independence from integration storage
+  - **Note**: If you downgrade to alpha.2 or earlier, you may need to re-learn commands
+
+### Added
+- **Independent Command Storage System**: Commands stored directly in app's `devices.json`
+  - Three storage modes: `manager_only`, `integration_only`, `both` (default)
+  - Background polling automatically fetches command codes from integration storage
+  - Commands persist even if integration storage is cleared
+  - Automatic migration from integration-only storage on startup
+- **Manual Refresh Button**: Added refresh button (🔄) in command learner dialog
+  - Manually triggers polling check for pending commands
+  - Useful if automatic file watching misses updates
+- **Improved File Watching**: Reduced debounce from 1s to 0.1s for faster command detection
+- **API Endpoint**: `POST /api/commands/check-pending` to manually trigger polling
+
+### Changed
+- **Command Learning Flow**: Commands now saved to `devices.json` with "pending" status
+  - Background thread polls for actual command codes
+  - Updates automatically when codes are available (typically 3-5 seconds)
+  - Timeout after 60 seconds with error status
+- **Storage Architecture**: Moved from integration-dependent to app-managed storage
+  - Better reliability and control
+  - Reduced dependency on Home Assistant storage timing
+  - Optimistic UI updates for better UX
+
+### Fixed
+- **Polling Reliability**: File watcher now more responsive to rapid command learning
+- **Command Persistence**: Commands no longer lost if integration storage is cleared
+- **Storage Lag Issues**: Background polling handles HA storage write delays
+
+### Technical Details
+- Background polling thread monitors pending commands
+- Automatic code fetching from integration storage
+- File watcher triggers on `devices.json` changes
+- Configurable save destinations per command
+
 ## [0.3.0-alpha.2] - 2025-10-20
 
 ### Added

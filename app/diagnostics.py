@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import re
 import pkg_resources
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class DiagnosticsCollector:
         self.storage_manager = storage_manager
         self.area_manager = area_manager
         self.web_server = web_server
+        self.app_version = self._get_app_version()
 
     def collect_all(self) -> Dict[str, Any]:
         """
@@ -69,10 +71,23 @@ class DiagnosticsCollector:
             "errors": self._collect_recent_errors(),
         }
 
+    def _get_app_version(self) -> str:
+        """Get app version from config.yaml"""
+        try:
+            config_file = Path("config.yaml")
+            if config_file.exists():
+                with open(config_file, "r") as f:
+                    config = yaml.safe_load(f)
+                    return config.get("version", "unknown")
+        except Exception as e:
+            logger.debug(f"Could not read app version from config.yaml: {e}")
+        return "unknown"
+
     def _collect_system_info(self) -> Dict[str, Any]:
         """Collect system information"""
         try:
             return {
+                "app_version": self.app_version,
                 "platform": platform.system(),
                 "platform_version": platform.version(),
                 "platform_release": platform.release(),
@@ -656,6 +671,7 @@ class DiagnosticsCollector:
             "# Broadlink Manager Diagnostics",
             "",
             f"**Generated:** {data['timestamp']}",
+            f"**App Version:** {data['system'].get('app_version', 'Unknown')}",
             "",
             "## System Information",
             f"- **Platform:** {data['system'].get('platform', 'Unknown')}",

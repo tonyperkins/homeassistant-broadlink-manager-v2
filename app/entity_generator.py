@@ -498,23 +498,44 @@ class EntityGenerator:
             return None
 
         # Count speed commands - support both 'speed_N' and 'fan_speed_N' patterns
+        # Also support named speeds like 'speed_low', 'speed_medium', 'speed_high'
         speed_commands = {}
+        named_speed_map = {
+            "low": 1,
+            "medium": 2,
+            "med": 2,
+            "high": 3,
+            "off": 0,  # Some fans have speed_off
+        }
+
         for k, v in commands.items():
             if k.startswith("speed_") or k.startswith("fan_speed_"):
-                # Extract speed number from command name
+                # Extract speed identifier from command name
                 if k.startswith("fan_speed_"):
-                    speed_num = k.replace("fan_speed_", "")
+                    speed_id = k.replace("fan_speed_", "")
                 else:
-                    speed_num = k.replace("speed_", "")
+                    speed_id = k.replace("speed_", "")
 
-                # Store with normalized key 'speed_N'
-                if speed_num.isdigit():
+                # Convert to numeric if it's a digit, or map named speeds
+                if speed_id.isdigit():
+                    speed_num = speed_id
+                elif speed_id.lower() in named_speed_map:
+                    speed_num = str(named_speed_map[speed_id.lower()])
+                else:
+                    # Unknown speed name, skip it
+                    logger.debug(f"Skipping unknown speed command: {k}")
+                    continue
+
+                # Store with normalized key 'speed_N' (skip speed_0/off)
+                if speed_num != "0":
                     speed_commands[f"speed_{speed_num}"] = v
 
         speed_count = len(speed_commands)
 
         if speed_count == 0:
-            logger.warning(f"Fan {entity_id} has no speed commands")
+            logger.warning(
+                f"Fan {entity_id} has no speed commands (found commands: {list(commands.keys())})"
+            )
             return None
 
         # Check if reverse/direction command exists (support fan_reverse too)

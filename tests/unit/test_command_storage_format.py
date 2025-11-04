@@ -7,12 +7,14 @@ causing test command to fail with "Bad Request" from Home Assistant.
 
 This test ensures commands are stored and retrieved correctly regardless
 of whether they're stored as strings or metadata objects.
+
+NOTE: This test is deprecated - StorageManager (metadata.json) has been removed
+in favor of DeviceManager (devices.json). See SYSTEM-RETRIEVED-MEMORY[0d325394].
 """
 
 import pytest
-import tempfile
-from pathlib import Path
-from app.storage_manager import StorageManager
+
+pytestmark = pytest.mark.skip(reason="StorageManager removed - test deprecated")
 
 
 @pytest.mark.unit

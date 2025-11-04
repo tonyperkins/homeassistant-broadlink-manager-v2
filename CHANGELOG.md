@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.4] - 2025-11-04
+
+### Fixed
+- **Entity Generator**: Fan entities with named speed commands (e.g., `speed_low`, `speed_medium`, `speed_high`) are now properly detected
+  - Previously only numeric speed commands (e.g., `speed_1`, `speed_2`) were recognized
+  - Added mapping system: `low→1`, `medium→2`, `high→3`
+  - Supports both `speed_*` and `fan_speed_*` prefixes
+  - Improved warning messages now show which commands were found for easier debugging
+  - Fully backward compatible with existing numeric speed commands
+
+### Changed
+- **Test Suite**: Deprecated `test_command_storage_format.py` (StorageManager removed in favor of DeviceManager)
+- **Documentation**: Added comprehensive bug fix documentation in `docs/development/BUG_FIX_ENTITY_GENERATOR_SPEED_COMMANDS.md`
+
+### Added
+- **Manual Test**: New speed command detection test suite (`tests/manual/test_speed_command_detection.py`)
+  - Tests named speed commands
+  - Tests numeric speed commands
+  - Tests mixed speed configurations
+
 ## [0.3.0-alpha.3] - 2025-10-26
 
 ### ⚠️ BREAKING CHANGES

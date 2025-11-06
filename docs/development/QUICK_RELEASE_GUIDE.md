@@ -7,11 +7,9 @@
 ```bash
 # Fix release (0.3.0-alpha.4 → 0.3.0-alpha.5)
 python scripts/quick_release.py patch -m "Your fix description"
-
-# Then create GitHub release (auto-opens browser)
 ```
 
-That's it! The script handles everything automatically.
+That's it! The script handles **everything** automatically, including creating the GitHub release.
 
 ---
 
@@ -24,9 +22,10 @@ The `quick_release.py` script automates the entire release process:
 3. ✅ Commits changes with proper message
 4. ✅ Pushes to `develop` branch
 5. ✅ Creates and pushes git tag
-6. ✅ Provides GitHub release link
+6. ✅ **Creates GitHub release automatically** (using GitHub CLI)
 
-**Time saved**: ~5-10 minutes per release
+**Time saved**: ~10 minutes per release  
+**Requirements**: GitHub CLI installed and authenticated (`gh auth login`)
 
 ---
 
@@ -100,19 +99,21 @@ python scripts/quick_release.py patch -m "Fix area sync 404 error"
 ✅ Release 0.3.0-alpha.5 complete!
 ```
 
-### 3. Create GitHub Release
-Click the provided link or use GitHub CLI:
+### 3. ✅ GitHub Release Created Automatically!
 
-```bash
-gh release create v0.3.0-alpha.5 --prerelease --generate-notes
+The script automatically creates the GitHub release using GitHub CLI.
+
+**Output:**
+```
+📢 Creating GitHub release...
+✅ GitHub release created successfully!
+   View at: https://github.com/.../releases/tag/v0.3.0-alpha.5
 ```
 
-**Or manually:**
-1. Click the link from script output
-2. Title: `v0.3.0-alpha.5`
-3. Check "Set as a pre-release"
-4. Click "Generate release notes" (auto-fills from commits)
-5. Publish
+**If GitHub CLI is not available:**
+- Install: `winget install GitHub.cli` (Windows) or visit https://cli.github.com/
+- Authenticate: `gh auth login`
+- Script will fall back to providing manual link if CLI fails
 
 ### 4. Test in Home Assistant
 ```bash
@@ -208,7 +209,7 @@ git push origin :refs/tags/v0.3.0-alpha.5
 
 ## Comparison: Old vs New Process
 
-### Old Process (8 Steps, ~10 minutes)
+### Old Process (9 Steps, ~10 minutes)
 1. Create release branch
 2. Update config.yaml manually
 3. Update package.json manually
@@ -216,16 +217,18 @@ git push origin :refs/tags/v0.3.0-alpha.5
 5. Commit and push release branch
 6. Merge to main
 7. Create tag
-8. Merge back to develop
+8. Create GitHub release manually
+9. Merge back to develop
 
 ### New Process (1 Command, ~30 seconds)
 ```bash
 python scripts/quick_release.py patch -m "Fix description"
-# Click GitHub link to create release
+# Done! Everything automated including GitHub release
 ```
 
-**Time saved**: ~9 minutes per release  
-**Releases per week**: 3-5 instead of 1-2
+**Time saved**: ~10 minutes per release  
+**Releases per week**: 3-5 instead of 1-2  
+**Manual steps**: 0 (fully automated)
 
 ---
 

@@ -2,6 +2,49 @@
 
 This directory contains utility scripts for maintaining Broadlink Manager.
 
+## quick_release.py ⭐ NEW
+
+**One-command alpha releases for rapid iteration**
+
+Automates the entire release process: version bumping, CHANGELOG updates, git operations, and tagging.
+
+### Quick Start
+
+```bash
+# Patch release (0.3.0-alpha.4 → 0.3.0-alpha.5)
+python scripts/quick_release.py patch -m "Fix area sync error"
+
+# Preview without making changes
+python scripts/quick_release.py patch --dry-run
+```
+
+### Features
+- ✅ Bumps version in config.yaml and package.json
+- ✅ Updates CHANGELOG.md automatically
+- ✅ Commits and pushes to develop
+- ✅ Creates and pushes git tag
+- ✅ Provides GitHub release link
+
+### Usage
+```bash
+# Patch release (increment alpha number)
+python scripts/quick_release.py patch -m "Your fix description"
+
+# Minor release (new feature set)
+python scripts/quick_release.py minor -m "New features"
+
+# Specific version
+python scripts/quick_release.py 0.3.0-alpha.6 -m "Custom version"
+
+# Options
+--dry-run              # Preview without making changes
+--no-github            # Skip GitHub release link
+```
+
+**See `docs/development/QUICK_RELEASE_GUIDE.md` for complete documentation**
+
+---
+
 ## generate_device_index.py
 
 Generates a searchable index of all device codes from the SmartIR Code Aggregator database.

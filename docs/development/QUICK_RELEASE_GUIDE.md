@@ -152,17 +152,23 @@ python scripts/quick_release.py 0.3.0-alpha.6
 
 ## When to Use This vs Full Release Process
 
-### Use Quick Release For:
+### Use Quick Release For (Develop Branch):
 - ✅ **Alpha releases** (0.x.x-alpha.x)
 - ✅ **Bug fixes** during testing
 - ✅ **Frequent releases** to testers
 - ✅ **Rapid iteration** during development
+- ✅ **User-driven QA** - Let testers find issues
 
-### Use Full Release Process For:
+**Strategy**: Release on `develop` branch, users act as QA, merge to `main` when stable
+
+### Use Full Release Process For (Main Branch):
 - ❌ **Beta releases** (0.x.x-beta.x)
 - ❌ **Stable releases** (1.x.x)
 - ❌ **Major versions** (1.0.0, 2.0.0)
 - ❌ **Production releases**
+- ❌ **Merging tested code from develop to main**
+
+**Strategy**: Merge develop to main, tag on main, broader release
 
 See `RELEASE_PROCESS.md` for full release process.
 

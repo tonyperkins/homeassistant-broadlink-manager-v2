@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0-alpha.6] - 2025-11-12
+
+### Added
+- **SmartIR Climate Profiles**: Added preset modes support for climate entities
+  - New "Preset Modes" section in climate profile form with 6 common presets (none, eco, boost, sleep, away, comfort)
+  - Command generation includes preset mode combinations
+  - Generated JSON profiles include `presetModes` array
+  - Command keys format: `cool_24_auto_eco` (includes preset at end)
+  - Command labels show preset in brackets: `COOL 24°C auto [eco]`
+  - Automatic inference of preset modes when loading existing profiles
+  - Command count calculations updated to include preset mode multiplier
+  - Fully compatible with SmartIR format specification
+
 ## [0.3.0-alpha.5] - 2025-11-06
 
 ### Fixed

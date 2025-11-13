@@ -40,7 +40,7 @@
         <i class="mdi mdi-information-outline"></i>
         <div>
           <strong>Complete mode will require learning {{ completeModeCommands }} commands</strong>
-          <p>This includes all combinations of modes ({{ selectedModesCount }}), temperatures ({{ tempCount }}), fan speeds ({{ selectedFanModesCount }}), and swing modes ({{ selectedSwingModesCount }}).</p>
+          <p>This includes all combinations of modes ({{ selectedModesCount }}), temperatures ({{ tempCount }}), fan speeds ({{ selectedFanModesCount }}), swing modes ({{ selectedSwingModesCount }}), and preset modes ({{ selectedPresetModesCount }}).</p>
           <p class="warning-text">⏱️ Estimated time: {{ completeModeTime }} minutes at ~30 seconds per command</p>
         </div>
       </div>
@@ -235,6 +235,61 @@
     </div>
 
     <div class="form-section">
+      <h4>Preset Modes (Optional)</h4>
+      <p class="help-text">Select special modes your device supports</p>
+      
+      <div class="checkbox-grid">
+        <label class="checkbox-item">
+          <input type="checkbox" value="none" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-circle-outline"></i>
+            None
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="eco" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-leaf"></i>
+            Eco
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="boost" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-rocket-launch"></i>
+            Boost
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="sleep" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-power-sleep"></i>
+            Sleep
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="away" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-home-export-outline"></i>
+            Away
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="comfort" v-model="config.presetModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-sofa"></i>
+            Comfort
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-section">
       <h4>Sensors (Optional)</h4>
       <p class="help-text">Link external sensors for better climate control</p>
       
@@ -305,6 +360,7 @@ const config = ref({
   modes: ['off', 'auto', 'cool', 'heat'],
   fanModes: ['auto', 'low', 'medium', 'high'],
   swingModes: [],
+  presetModes: [],
   tempSensor: '',
   humiditySensor: '',
   powerSensor: '',
@@ -340,6 +396,10 @@ const selectedSwingModesCount = computed(() => {
   return config.value.swingModes.length || 1
 })
 
+const selectedPresetModesCount = computed(() => {
+  return config.value.presetModes.length || 1
+})
+
 const tempCount = computed(() => {
   const min = config.value.minTemp || 16
   const max = config.value.maxTemp || 30
@@ -350,7 +410,7 @@ const tempCount = computed(() => {
 // Computed: Quick mode commands (one temp per combination + off)
 const quickModeCommands = computed(() => {
   const hasOff = config.value.modes.includes('off') ? 1 : 0
-  const combinations = selectedModesCount.value * selectedFanModesCount.value * selectedSwingModesCount.value
+  const combinations = selectedModesCount.value * selectedFanModesCount.value * selectedSwingModesCount.value * selectedPresetModesCount.value
   return combinations + hasOff
 })
 
@@ -361,7 +421,7 @@ const quickModeTime = computed(() => {
 // Computed: Complete mode commands (all temps for all combinations + off)
 const completeModeCommands = computed(() => {
   const hasOff = config.value.modes.includes('off') ? 1 : 0
-  const combinations = selectedModesCount.value * tempCount.value * selectedFanModesCount.value * selectedSwingModesCount.value
+  const combinations = selectedModesCount.value * tempCount.value * selectedFanModesCount.value * selectedSwingModesCount.value * selectedPresetModesCount.value
   return combinations + hasOff
 })
 

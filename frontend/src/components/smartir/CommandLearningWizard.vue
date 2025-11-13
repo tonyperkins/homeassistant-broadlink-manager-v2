@@ -256,10 +256,12 @@ const commandList = computed(() => {
   if (props.platform === 'climate') {
     const modes = props.config.modes || []
     const fanModes = props.config.fanModes || []
+    const swingModes = props.config.swingModes || []
+    const presetModes = props.config.presetModes || []
     const minTemp = props.config.minTemp || 16
     const maxTemp = props.config.maxTemp || 30
     
-    // Generate commands for each mode/temp/fan combination
+    // Generate commands for each mode/temp/fan/swing/preset combination
     modes.forEach(mode => {
       if (mode === 'off') {
         list.push({
@@ -273,15 +275,41 @@ const commandList = computed(() => {
         // For each temperature
         for (let temp = minTemp; temp <= maxTemp; temp++) {
           fanModes.forEach(fanMode => {
-            const key = `${mode}_${temp}_${fanMode}`
-            list.push({
-              key,
-              label: `${mode.toUpperCase()} ${temp}°C ${fanMode}`,
-              description: `Mode: ${mode}, Temp: ${temp}°C, Fan: ${fanMode}`,
-              icon: getModeIcon(mode),
-              mode,
-              temp,
-              fanMode
+            // If swing modes configured, iterate through them
+            const swingList = swingModes.length > 0 ? swingModes : [null]
+            swingList.forEach(swingMode => {
+              // If preset modes configured, iterate through them
+              const presetList = presetModes.length > 0 ? presetModes : [null]
+              presetList.forEach(presetMode => {
+                // Build key and label
+                let key = `${mode}_${temp}_${fanMode}`
+                let label = `${mode.toUpperCase()} ${temp}°C ${fanMode}`
+                let description = `Mode: ${mode}, Temp: ${temp}°C, Fan: ${fanMode}`
+                
+                if (swingMode) {
+                  key += `_${swingMode}`
+                  label += ` ${swingMode}`
+                  description += `, Swing: ${swingMode}`
+                }
+                
+                if (presetMode) {
+                  key += `_${presetMode}`
+                  label += ` [${presetMode}]`
+                  description += `, Preset: ${presetMode}`
+                }
+                
+                list.push({
+                  key,
+                  label,
+                  description,
+                  icon: getModeIcon(mode),
+                  mode,
+                  temp,
+                  fanMode,
+                  swingMode,
+                  presetMode
+                })
+              })
             })
           })
         }

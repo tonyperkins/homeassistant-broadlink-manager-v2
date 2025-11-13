@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import re
-import pkg_resources
+from importlib.metadata import version, PackageNotFoundError
 import yaml
 
 logger = logging.getLogger(__name__)
@@ -104,8 +104,6 @@ class DiagnosticsCollector:
     def _collect_dependencies(self) -> Dict[str, Any]:
         """Collect Python package versions"""
         try:
-            installed = {pkg.key: pkg.version for pkg in pkg_resources.working_set}
-
             # Key dependencies to track
             key_deps = [
                 "broadlink",
@@ -124,10 +122,10 @@ class DiagnosticsCollector:
 
             dependencies = {}
             for dep in key_deps:
-                dependencies[dep] = installed.get(dep, "not installed")
-
-            # Add count of all installed packages
-            dependencies["total_packages"] = len(installed)
+                try:
+                    dependencies[dep] = version(dep)
+                except PackageNotFoundError:
+                    dependencies[dep] = "not installed"
 
             return dependencies
         except Exception as e:

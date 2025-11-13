@@ -92,7 +92,9 @@ def learn_command():
         )  # manager_only, integration_only, both
 
         logger.info(
-            f"Parsed: entity_id={entity_id}, device={device}, command={command}, type={command_type}, device_id={device_id}, save_destination={save_destination}"
+            f"Parsed: entity_id={entity_id}, device={device}, "
+            f"command={command}, type={command_type}, "
+            f"device_id={device_id}, save_destination={save_destination}"
         )
 
         # If device is not provided, try to derive it from device_id
@@ -210,7 +212,9 @@ def learn_command():
                                 # Save updated device
                                 device_manager.update_device(device_id, managed_device)
                                 logger.info(
-                                    f"✅ Updated devices.json for {device_id} with new command '{command}' (save_destination={save_destination})"
+                                    f"✅ Updated devices.json for {device_id} "
+                                    f"with new command '{command}' "
+                                    f"(save_destination={save_destination})"
                                 )
                             else:
                                 logger.warning(
@@ -1351,12 +1355,22 @@ def learn_command_direct_stream():
 
                 if result:
                     base64_data, frequency = result
-                    yield f"data: {json.dumps({'status': 'captured', 'message': f'RF command captured at {frequency} MHz', 'frequency': frequency})}\n\n"
+                    data = {
+                        "status": "captured",
+                        "message": f"RF command captured at {frequency} MHz",
+                        "frequency": frequency,
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
                 else:
                     yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no RF signal detected'})}\n\n"
                     return
             else:
-                yield f"data: {json.dumps({'status': 'learning', 'message': 'Waiting for IR signal...', 'step': 'capture'})}\n\n"
+                data = {
+                    "status": "learning",
+                    "message": "Waiting for IR signal...",
+                    "step": "capture",
+                }
+                yield f"data: {json.dumps(data)}\n\n"
                 result = learner.learn_ir_command(timeout=30)
                 if result:
                     base64_data = result
@@ -1396,7 +1410,12 @@ def learn_command_direct_stream():
                 },
             )
 
-            yield f"data: {json.dumps({'status': 'complete', 'message': 'Command learned successfully!', 'command_name': command_name})}\n\n"
+            data = {
+                "status": "complete",
+                "message": "Command learned successfully!",
+                "command_name": command_name,
+            }
+            yield f"data: {json.dumps(data)}\n\n"
 
         except Exception as e:
             logger.error(f"Error in SSE learning: {e}", exc_info=True)

@@ -231,6 +231,14 @@ def main():
         sys.exit(1)
     print(f"✅ Pushed to develop")
 
+    # Also push to main for Home Assistant compatibility
+    print(f"\n🚀 Pushing to main...")
+    success, output = run_command(["git", "push", "origin", "develop:main"], cwd=root_dir)
+    if not success:
+        print(f"❌ Failed to push to main: {output}")
+        sys.exit(1)
+    print(f"✅ Pushed to main")
+
     # Create tag
     print(f"\n🏷️  Creating tag v{new_version}...")
     success, output = run_command(

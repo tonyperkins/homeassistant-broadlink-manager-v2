@@ -12,7 +12,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import re
-import pkg_resources
+from importlib.metadata import version, PackageNotFoundError
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class DiagnosticsCollector:
         self.storage_manager = storage_manager
         self.area_manager = area_manager
         self.web_server = web_server
+        self.app_version = self._get_app_version()
 
     def collect_all(self) -> Dict[str, Any]:
         """
@@ -69,10 +71,23 @@ class DiagnosticsCollector:
             "errors": self._collect_recent_errors(),
         }
 
+    def _get_app_version(self) -> str:
+        """Get app version from config.yaml"""
+        try:
+            config_file = Path("config.yaml")
+            if config_file.exists():
+                with open(config_file, "r") as f:
+                    config = yaml.safe_load(f)
+                    return config.get("version", "unknown")
+        except Exception as e:
+            logger.debug(f"Could not read app version from config.yaml: {e}")
+        return "unknown"
+
     def _collect_system_info(self) -> Dict[str, Any]:
         """Collect system information"""
         try:
             return {
+                "app_version": self.app_version,
                 "platform": platform.system(),
                 "platform_version": platform.version(),
                 "platform_release": platform.release(),
@@ -89,8 +104,6 @@ class DiagnosticsCollector:
     def _collect_dependencies(self) -> Dict[str, Any]:
         """Collect Python package versions"""
         try:
-            installed = {pkg.key: pkg.version for pkg in pkg_resources.working_set}
-
             # Key dependencies to track
             key_deps = [
                 "broadlink",
@@ -109,10 +122,10 @@ class DiagnosticsCollector:
 
             dependencies = {}
             for dep in key_deps:
-                dependencies[dep] = installed.get(dep, "not installed")
-
-            # Add count of all installed packages
-            dependencies["total_packages"] = len(installed)
+                try:
+                    dependencies[dep] = version(dep)
+                except PackageNotFoundError:
+                    dependencies[dep] = "not installed"
 
             return dependencies
         except Exception as e:
@@ -656,6 +669,7 @@ class DiagnosticsCollector:
             "# Broadlink Manager Diagnostics",
             "",
             f"**Generated:** {data['timestamp']}",
+            f"**App Version:** {data['system'].get('app_version', 'Unknown')}",
             "",
             "## System Information",
             f"- **Platform:** {data['system'].get('platform', 'Unknown')}",

@@ -461,6 +461,21 @@ function inferSwingModesFromCommands(commands) {
   return Array.from(swingModes)
 }
 
+function inferPresetModesFromCommands(commands) {
+  const presetModes = new Set()
+  const commandKeys = Object.keys(commands)
+  
+  // Check for preset mode patterns
+  if (commandKeys.some(k => k.includes('none'))) presetModes.add('none')
+  if (commandKeys.some(k => k.includes('eco'))) presetModes.add('eco')
+  if (commandKeys.some(k => k.includes('boost'))) presetModes.add('boost')
+  if (commandKeys.some(k => k.includes('sleep'))) presetModes.add('sleep')
+  if (commandKeys.some(k => k.includes('away'))) presetModes.add('away')
+  if (commandKeys.some(k => k.includes('comfort'))) presetModes.add('comfort')
+  
+  return Array.from(presetModes)
+}
+
 // Helper function to infer media player features from commands
 function inferMediaPlayerFeaturesFromCommands(commands) {
   const features = []
@@ -601,10 +616,12 @@ watch(() => props.editData, async (newData) => {
       const inferredModes = profileData.operationModes || inferModesFromCommands(commands)
       const inferredFanModes = profileData.fanModes || inferFanModesFromCommands(commands)
       const inferredSwingModes = profileData.swingModes || inferSwingModesFromCommands(commands)
+      const inferredPresetModes = profileData.presetModes || inferPresetModesFromCommands(commands)
       
       console.log('🔍 Inferred modes:', inferredModes)
       console.log('🔍 Inferred fan modes:', inferredFanModes)
       console.log('🔍 Inferred swing modes:', inferredSwingModes)
+      console.log('🔍 Inferred preset modes:', inferredPresetModes)
       
       config = {
         minTemp: profileData.minTemperature,
@@ -612,7 +629,8 @@ watch(() => props.editData, async (newData) => {
         precision: profileData.precision,
         modes: inferredModes,
         fanModes: inferredFanModes,
-        swingModes: inferredSwingModes
+        swingModes: inferredSwingModes,
+        presetModes: inferredPresetModes
       }
     } else if (newData.platform === 'media_player') {
       // Infer features from commands
@@ -1051,6 +1069,11 @@ function generateSmartIRJson(profile) {
     // Add swing modes if configured
     if (profile.config.swingModes && profile.config.swingModes.length > 0) {
       json.swingModes = profile.config.swingModes
+    }
+    
+    // Add preset modes if configured
+    if (profile.config.presetModes && profile.config.presetModes.length > 0) {
+      json.presetModes = profile.config.presetModes
     }
     
     // Add temperature commands

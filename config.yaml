@@ -1,5 +1,5 @@
 name: Broadlink Manager v2 (Alpha)
-version: "0.3.0-alpha.4"
+version: "0.3.0-alpha.9"
 slug: broadlink-manager-v2
 description: Next-generation Broadlink device manager with Vue 3 interface (Alpha)
 arch:

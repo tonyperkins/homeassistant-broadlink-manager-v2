@@ -81,7 +81,13 @@ class AreaManager:
                 if response_data.get("success"):
                     return response_data.get("result")
                 else:
-                    logger.error(f"Command failed: {response_data.get('error')}")
+                    error = response_data.get("error", {})
+                    error_code = error.get("code") if isinstance(error, dict) else error
+                    # Only log as error if it's not a "not_found" error (which is expected for new entities)
+                    if error_code == "not_found":
+                        logger.debug(f"Command returned not_found: {error}")
+                    else:
+                        logger.error(f"Command failed: {error}")
                     return None
 
         except Exception as e:
@@ -237,7 +243,10 @@ class AreaManager:
                 logger.info(f"Retrieved details for entity {entity_id}")
                 return result
             else:
-                logger.warning(f"Entity {entity_id} not found in registry")
+                logger.debug(
+                    f"Entity {entity_id} not found in registry "
+                    "(may not be generated yet)"
+                )
                 return None
 
         except Exception as e:

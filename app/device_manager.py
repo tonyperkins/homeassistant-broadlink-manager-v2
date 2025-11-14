@@ -67,7 +67,8 @@ class DeviceManager:
                 if attempt < max_retries - 1:
                     backoff = 0.05 * (attempt + 1)
                     logger.debug(
-                        f"Load devices retry due to {type(e).__name__}: waiting {backoff:.2f}s (attempt {attempt+1}/{max_retries})"
+                        f"Load devices retry due to {type(e).__name__}: "
+                        f"waiting {backoff:.2f}s (attempt {attempt+1}/{max_retries})"
                     )
                     time.sleep(backoff)
                     continue
@@ -75,7 +76,9 @@ class DeviceManager:
                 return {}
             except FileNotFoundError:
                 # If file truly doesn't exist yet, return empty
-                logger.warning("devices.json not found when loading; returning empty set")
+                logger.warning(
+                    "devices.json not found when loading; returning empty set"
+                )
                 return {}
             except Exception as e:
                 logger.error(f"Unexpected error loading devices: {e}")

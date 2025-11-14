@@ -109,7 +109,7 @@ class BroadlinkLearner:
                 except (
                     broadlink.exceptions.ReadError,
                     broadlink.exceptions.StorageError,
-                ) as e:
+                ):
                     # Ignore errors from old commands in buffer (like HA does)
                     storage_errors += 1
                     if storage_errors == 1:
@@ -129,7 +129,8 @@ class BroadlinkLearner:
                     return base64_data
 
             logger.warning(
-                f"Timeout - no IR signal detected after {timeout} seconds ({check_count} checks, {storage_errors} storage errors)"
+                f"Timeout - no IR signal detected after {timeout} seconds "
+                f"({check_count} checks, {storage_errors} storage errors)"
             )
             return None
 
@@ -162,7 +163,9 @@ class BroadlinkLearner:
             # Step 1: Sweep frequency
             logger.info("Starting RF frequency sweep")
             if progress_callback:
-                progress_callback("Ready! Press and HOLD your remote button now...", "sweep")
+                progress_callback(
+                    "Ready! Press and HOLD your remote button now...", "sweep"
+                )
             self.device.sweep_frequency()
 
             start_time = time.time()
@@ -178,7 +181,8 @@ class BroadlinkLearner:
                     logger.info(f"RF frequency locked: {frequency} MHz")
                     if progress_callback:
                         progress_callback(
-                            f"Signal detected at {frequency} MHz! Keep holding...", "locked"
+                            f"Signal detected at {frequency} MHz! Keep holding...",
+                            "locked",
                         )
                     break
 
@@ -211,7 +215,7 @@ class BroadlinkLearner:
                 except (
                     broadlink.exceptions.ReadError,
                     broadlink.exceptions.StorageError,
-                ) as e:
+                ):
                     # Ignore errors from old commands in buffer (like HA does)
                     storage_errors += 1
                     if storage_errors == 1:

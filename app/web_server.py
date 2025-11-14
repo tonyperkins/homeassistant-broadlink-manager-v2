@@ -38,11 +38,11 @@ logger = logging.getLogger(__name__)
 
 class DevicesJsonWatcher(FileSystemEventHandler):
     """Watches devices.json for changes and triggers polling for pending commands"""
-    
+
     def __init__(self, web_server):
         self.web_server = web_server
         self.last_modified = 0
-    
+
     def _is_devices_file(self, event) -> bool:
         """Return True if the event refers to devices.json (src or dest path)."""
         try:
@@ -61,7 +61,9 @@ class DevicesJsonWatcher(FileSystemEventHandler):
         self.last_modified = current_time
 
         path = getattr(event, "dest_path", None) or getattr(event, "src_path", "")
-        logger.info(f"📁 devices.json {action_label} ({event.event_type}): {path}. Checking for pending commands...")
+        logger.info(
+            f"📁 devices.json {action_label} ({event.event_type}): {path}. Checking for pending commands..."
+        )
         self.web_server._check_and_start_polling_for_pending()
 
     def on_modified(self, event):
@@ -141,7 +143,7 @@ class BroadlinkWebServer:
         # Format: {device_name: {command_name: timestamp}}
         self.recently_deleted_commands: dict[str, dict[str, int]] = {}
         self.DELETION_CACHE_TTL = 30  # Keep deleted commands in cache for 30 seconds
-        
+
         # Storage command cache to handle async file writes
         # This cache sits in front of _get_all_broadlink_commands()
         # Format: {device_name: {command_name: command_data}}
@@ -163,7 +165,9 @@ class BroadlinkWebServer:
         # Background polling for pending commands
         # Format: [(device_id, device_name, command_name, start_time, entity_id_for_deletion)]
         # entity_id_for_deletion is only set for manager_only commands that need deletion after fetch
-        self.pending_command_polls: list[tuple[str, str, str, float, Optional[str]]] = []
+        self.pending_command_polls: list[tuple[str, str, str, float, Optional[str]]] = (
+            []
+        )
         self.poll_lock = threading.Lock()
         self.poll_thread = None
         self.poll_thread_running = False
@@ -210,15 +214,10 @@ class BroadlinkWebServer:
 
         # Automatic migration disabled - user preference
         # self._schedule_migration_check()
-        
-        # Migrate existing devices to add 'device' field if needed
-        migrated = self.device_manager.migrate_device_field()
-        if migrated > 0:
-            logger.info(f"Migrated {migrated} device(s) to add 'device' field for Broadlink storage lookups")
-        
+
         # Check for pending commands on startup and start polling if needed
         self._check_and_start_polling_on_startup()
-        
+
         # Start file watcher for devices.json
         self._start_file_watcher()
 
@@ -1842,7 +1841,7 @@ class BroadlinkWebServer:
     async def _get_all_broadlink_commands(self) -> Dict[str, Dict[str, str]]:
         """
         Get all Broadlink commands with cache layer.
-        
+
         This method sits behind a cache that handles async file writes:
         - On read: Returns cached data merged with file data
         - Cache is refreshed periodically (STORAGE_CACHE_TTL)
@@ -1850,7 +1849,7 @@ class BroadlinkWebServer:
         """
         try:
             current_time = time.time()
-            
+
             # Read from storage files
             storage_files = list(self.storage_path.glob("broadlink_remote_*_codes"))
             file_commands = {}
@@ -1872,29 +1871,31 @@ class BroadlinkWebServer:
 
             # Merge with cache: cache takes precedence for devices that have cached data
             all_commands = {}
-            
+
             # Start with file data
             for device_name, commands in file_commands.items():
                 all_commands[device_name] = commands.copy()
-            
+
             # Apply cache updates (additions/modifications)
             for device_name, cached_commands in self.storage_command_cache.items():
                 if device_name not in all_commands:
                     all_commands[device_name] = {}
                 all_commands[device_name].update(cached_commands)
-            
+
             # Filter out recently deleted commands
             for device_name in list(all_commands.keys()):
                 if device_name in self.recently_deleted_commands:
                     for cmd_name in list(all_commands[device_name].keys()):
                         if self._is_recently_deleted(device_name, cmd_name):
-                            logger.debug(f"Filtering out recently deleted: {device_name}/{cmd_name}")
+                            logger.debug(
+                                f"Filtering out recently deleted: {device_name}/{cmd_name}"
+                            )
                             del all_commands[device_name][cmd_name]
-                    
+
                     # Clean up empty devices
                     if not all_commands[device_name]:
                         del all_commands[device_name]
-            
+
             # Clean up expired deletion cache entries
             self._cleanup_deletion_cache()
 
@@ -1944,16 +1945,18 @@ class BroadlinkWebServer:
 
             for command_name in commands_to_remove:
                 del commands[command_name]
-            
+
             # Mark device for removal if no commands left
             if not commands:
                 devices_to_remove.append(device_name)
-        
+
         # Remove empty devices
         for device_name in devices_to_remove:
             del self.recently_deleted_commands[device_name]
-    
-    def _add_to_storage_cache(self, device_name: str, command_name: str, command_data: str):
+
+    def _add_to_storage_cache(
+        self, device_name: str, command_name: str, command_data: str
+    ):
         """
         Add a command to the storage cache.
         This is called immediately when learning/importing a command.
@@ -1963,7 +1966,7 @@ class BroadlinkWebServer:
             self.storage_command_cache[device_name] = {}
         self.storage_command_cache[device_name][command_name] = command_data
         logger.info(f"✅ Added to storage cache: {device_name}/{command_name}")
-    
+
     def _remove_from_storage_cache(self, device_name: str, command_name: str):
         """
         Remove a command from the storage cache.
@@ -1972,12 +1975,14 @@ class BroadlinkWebServer:
         if device_name in self.storage_command_cache:
             if command_name in self.storage_command_cache[device_name]:
                 del self.storage_command_cache[device_name][command_name]
-                logger.info(f"🗑️ Removed from storage cache: {device_name}/{command_name}")
-                
+                logger.info(
+                    f"🗑️ Removed from storage cache: {device_name}/{command_name}"
+                )
+
                 # Clean up empty device entries
                 if not self.storage_command_cache[device_name]:
                     del self.storage_command_cache[device_name]
-    
+
     def _clear_storage_cache(self, device_name: Optional[str] = None):
         """
         Clear storage cache for a device or all devices.
@@ -1991,10 +1996,16 @@ class BroadlinkWebServer:
             self.storage_command_cache.clear()
             logger.debug("Cleared all storage cache")
 
-    def schedule_command_poll(self, device_id: str, device_name: str, command_name: str, entity_id_for_deletion: Optional[str] = None):
+    def schedule_command_poll(
+        self,
+        device_id: str,
+        device_name: str,
+        command_name: str,
+        entity_id_for_deletion: Optional[str] = None,
+    ):
         """
         Schedule background polling for a pending command.
-        
+
         Args:
             device_id: Device ID in devices.json
             device_name: Device name for storage lookup
@@ -2003,19 +2014,31 @@ class BroadlinkWebServer:
         """
         with self.poll_lock:
             # Add to poll list (device_id, device_name, command_name, start_time, entity_id_for_deletion)
-            self.pending_command_polls.append((device_id, device_name, command_name, time.time(), entity_id_for_deletion))
+            self.pending_command_polls.append(
+                (
+                    device_id,
+                    device_name,
+                    command_name,
+                    time.time(),
+                    entity_id_for_deletion,
+                )
+            )
             if entity_id_for_deletion:
-                logger.info(f"📋 Scheduled poll for {device_name}/{command_name} (will delete from {entity_id_for_deletion} after fetch)")
+                logger.info(
+                    f"📋 Scheduled poll for {device_name}/{command_name} (will delete from {entity_id_for_deletion} after fetch)"
+                )
             else:
                 logger.info(f"📋 Scheduled poll for {device_name}/{command_name}")
-            
+
             # Start poll thread if not running
             if not self.poll_thread_running:
                 self.poll_thread_running = True
-                self.poll_thread = threading.Thread(target=self._poll_pending_commands, daemon=True)
+                self.poll_thread = threading.Thread(
+                    target=self._poll_pending_commands, daemon=True
+                )
                 self.poll_thread.start()
                 logger.info("🔄 Started background polling thread")
-    
+
     def _poll_pending_commands(self):
         """
         Background thread that continuously polls for pending commands.
@@ -2023,124 +2046,296 @@ class BroadlinkWebServer:
         Marks commands as 'error' after 60 seconds.
         """
         logger.info("🔄 Background polling thread started")
-        
+
         while True:
             try:
                 time.sleep(3)  # Poll every 3 seconds
                 current_time = time.time()
-                
+
                 with self.poll_lock:
-                    logger.debug(f"🔄 Polling cycle - current poll list size: {len(self.pending_command_polls)}")
-                    
+                    logger.debug(
+                        f"🔄 Polling cycle - current poll list size: {len(self.pending_command_polls)}"
+                    )
+
                     if not self.pending_command_polls:
                         # Check if there are any pending commands in devices.json and add them
-                        logger.debug("📋 Poll list empty, scanning devices.json for pending commands...")
+                        logger.debug(
+                            "📋 Poll list empty, scanning devices.json for pending commands..."
+                        )
                         devices = self.device_manager.get_all_devices()
                         found_pending = False
-                        
+
                         for device_id, device in devices.items():
                             commands = device.get("commands", {})
-                            # Use 'device' field for Broadlink storage lookups (normalized name without area)
-                            # Fallback to device_id for backward compatibility
-                            device_name = device.get("device", device_id)
-                            
+                            device_name = device.get("device_id", device_id)
+
                             for cmd_name, cmd_data in commands.items():
-                                if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
+                                if (
+                                    isinstance(cmd_data, dict)
+                                    and cmd_data.get("data") == "pending"
+                                ):
                                     found_pending = True
                                     # Add to poll list if not already there
-                                    logger.info(f"📋 Found untracked pending command: {device_name}/{cmd_name}, adding to poll list")
-                                    self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
-                        
+                                    logger.info(
+                                        f"📋 Found untracked pending command: {device_name}/{cmd_name}, adding to poll list"
+                                    )
+                                    self.pending_command_polls.append(
+                                        (
+                                            device_id,
+                                            device_name,
+                                            cmd_name,
+                                            time.time(),
+                                            None,
+                                        )
+                                    )
+
                         if not found_pending:
                             # No more pending commands anywhere, stop thread
                             self.poll_thread_running = False
-                            logger.info("✅ No more pending commands, stopping poll thread")
+                            logger.info(
+                                "✅ No more pending commands, stopping poll thread"
+                            )
                             break
                         else:
-                            logger.info(f"📋 Added {len(self.pending_command_polls)} pending commands to poll list")
-                    
+                            logger.info(
+                                f"📋 Added {len(self.pending_command_polls)} pending commands to poll list"
+                            )
+
                     # Process each pending command
                     still_pending = []
-                    for device_id, device_name, command_name, start_time, entity_id_for_deletion in self.pending_command_polls:
+                    for (
+                        device_id,
+                        device_name,
+                        command_name,
+                        start_time,
+                        entity_id_for_deletion,
+                    ) in self.pending_command_polls:
                         elapsed = current_time - start_time
-                        
+
                         # Try to fetch the code
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
                         try:
-                            all_commands = loop.run_until_complete(self._get_all_broadlink_commands())
+                            all_commands = loop.run_until_complete(
+                                self._get_all_broadlink_commands()
+                            )
                             device_commands = all_commands.get(device_name, {})
                             learned_code = device_commands.get(command_name)
-                            
-                            if learned_code and learned_code not in ["pending", "error"]:
+
+                            # Debug logging for first few attempts
+                            if elapsed < 10:
+                                logger.debug(
+                                    f"🔍 Looking for {device_name}/{command_name} in storage"
+                                )
+                                logger.debug(
+                                    f"📋 Available devices in storage: {list(all_commands.keys())}"
+                                )
+                                if device_name in all_commands:
+                                    logger.debug(
+                                        f"📋 Commands for {device_name}: {list(device_commands.keys())}"
+                                    )
+
+                            if learned_code and learned_code not in [
+                                "pending",
+                                "error",
+                            ]:
                                 # Got the code! Update devices.json
-                                logger.info(f"✅ Found code for {device_name}/{command_name} after {elapsed:.1f}s (length: {len(learned_code)} chars)")
-                                
+                                logger.info(
+                                    f"✅ Found code for {device_name}/{command_name} after {elapsed:.1f}s (length: {len(learned_code)} chars)"
+                                )
+
                                 # Update devices.json
                                 device = self.device_manager.get_device(device_id)
                                 if device:
                                     if "commands" not in device:
                                         device["commands"] = {}
-                                    
+
                                     # Update with actual code
                                     if command_name in device["commands"]:
-                                        device["commands"][command_name]["data"] = learned_code
-                                        self.device_manager.update_device(device_id, device)
-                                        logger.info(f"✅ Updated devices.json with actual code for {device_name}/{command_name}")
+                                        device["commands"][command_name][
+                                            "data"
+                                        ] = learned_code
+                                        self.device_manager.update_device(
+                                            device_id, device
+                                        )
+                                        logger.info(
+                                            f"✅ Updated devices.json with actual code for {device_name}/{command_name}"
+                                        )
                                     else:
-                                        logger.warning(f"⚠️ Command {command_name} not found in devices.json")
+                                        logger.warning(
+                                            f"⚠️ Command {command_name} not found in devices.json"
+                                        )
                                 else:
-                                    logger.warning(f"⚠️ Device {device_id} not found in device_manager")
-                                
+                                    logger.warning(
+                                        f"⚠️ Device {device_id} not found in device_manager"
+                                    )
+
                                 # If this was a manager_only command, delete from integration storage now
                                 if entity_id_for_deletion:
-                                    logger.info(f"🗑️ Now deleting {device_name}/{command_name} from integration storage (entity: {entity_id_for_deletion})")
+                                    logger.info(
+                                        f"🗑️ Now deleting {device_name}/{command_name} from integration storage (entity: {entity_id_for_deletion})"
+                                    )
                                     try:
                                         # Add to deletion cache first
-                                        self._add_to_deletion_cache(device_name, command_name)
-                                        
+                                        self._add_to_deletion_cache(
+                                            device_name, command_name
+                                        )
+
                                         # Delete from integration storage
                                         delete_result = loop.run_until_complete(
-                                            self._delete_command({
-                                                "entity_id": entity_id_for_deletion,
-                                                "device": device_name,
-                                                "command": command_name,
-                                            })
+                                            self._delete_command(
+                                                {
+                                                    "entity_id": entity_id_for_deletion,
+                                                    "device": device_name,
+                                                    "command": command_name,
+                                                }
+                                            )
                                         )
                                         if delete_result:
-                                            logger.info(f"✅ Deleted {device_name}/{command_name} from integration storage")
+                                            logger.info(
+                                                f"✅ Deleted {device_name}/{command_name} from integration storage"
+                                            )
                                         else:
-                                            logger.warning(f"⚠️ Failed to delete {device_name}/{command_name} from integration storage")
+                                            logger.warning(
+                                                f"⚠️ Failed to delete {device_name}/{command_name} from integration storage"
+                                            )
                                     except Exception as del_error:
-                                        logger.error(f"❌ Error deleting {device_name}/{command_name}: {del_error}")
-                                
+                                        logger.error(
+                                            f"❌ Error deleting {device_name}/{command_name}: {del_error}"
+                                        )
+
                                 # Don't re-add to pending list (success!)
                             elif elapsed >= self.POLL_TIMEOUT:
-                                # Timeout reached, mark as error
-                                logger.error(f"❌ Timeout polling for {device_name}/{command_name} after {elapsed:.1f}s - marking as error")
-                                
+                                # Timeout reached - try fallback search before marking as error
+                                logger.warning(
+                                    f"⚠️ Timeout approaching for {device_name}/{command_name}, trying fallback search..."
+                                )
+                                found_fallback = False
+                                for (
+                                    storage_device,
+                                    storage_commands,
+                                ) in all_commands.items():
+                                    if command_name in storage_commands:
+                                        fallback_code = storage_commands[command_name]
+                                        if fallback_code and fallback_code not in [
+                                            "pending",
+                                            "error",
+                                        ]:
+                                            logger.info(
+                                                f"✅ Found code for {command_name} under different device name '{storage_device}' after {elapsed:.1f}s"
+                                            )
+
+                                            # Update devices.json with fallback code
+                                            device = self.device_manager.get_device(
+                                                device_id
+                                            )
+                                            if (
+                                                device
+                                                and "commands" in device
+                                                and command_name in device["commands"]
+                                            ):
+                                                device["commands"][command_name][
+                                                    "data"
+                                                ] = fallback_code
+                                                device["commands"][command_name][
+                                                    "storage_device"
+                                                ] = storage_device  # Track where we found it
+                                                self.device_manager.update_device(
+                                                    device_id, device
+                                                )
+                                                logger.info(
+                                                    f"✅ Updated devices.json with fallback code (found in {storage_device})"
+                                                )
+
+                                                # Delete from integration storage if manager_only
+                                                if entity_id_for_deletion:
+                                                    try:
+                                                        self._add_to_deletion_cache(
+                                                            storage_device, command_name
+                                                        )
+                                                        delete_result = loop.run_until_complete(
+                                                            self._delete_command(
+                                                                {
+                                                                    "entity_id": entity_id_for_deletion,
+                                                                    "device": storage_device,
+                                                                    "command": command_name,
+                                                                }
+                                                            )
+                                                        )
+                                                        if delete_result:
+                                                            logger.info(
+                                                                f"✅ Deleted {storage_device}/{command_name} from integration storage"
+                                                            )
+                                                    except Exception as del_error:
+                                                        logger.error(
+                                                            f"❌ Error deleting {storage_device}/{command_name}: {del_error}"
+                                                        )
+
+                                                found_fallback = True
+                                                break
+
+                                if found_fallback:
+                                    # Don't re-add to pending list (success with fallback!)
+                                    continue
+
+                                # Mark as error if not found even with fallback
+                                logger.error(
+                                    f"❌ Timeout polling for {device_name}/{command_name} after {elapsed:.1f}s - marking as error"
+                                )
+
                                 # Update devices.json with error status
                                 device = self.device_manager.get_device(device_id)
-                                if device and "commands" in device and command_name in device["commands"]:
+                                if (
+                                    device
+                                    and "commands" in device
+                                    and command_name in device["commands"]
+                                ):
                                     device["commands"][command_name]["data"] = "error"
                                     self.device_manager.update_device(device_id, device)
-                                    logger.error(f"❌ Marked {device_name}/{command_name} as error in devices.json")
-                                
+                                    logger.error(
+                                        f"❌ Marked {device_name}/{command_name} as error in devices.json"
+                                    )
+
                                 # Don't re-add to pending list (failed)
                             else:
                                 # Still pending, try again
-                                logger.debug(f"⏳ Code still pending for {device_name}/{command_name} ({elapsed:.1f}s elapsed)")
-                                still_pending.append((device_id, device_name, command_name, start_time, entity_id_for_deletion))
+                                logger.debug(
+                                    f"⏳ Code still pending for {device_name}/{command_name} ({elapsed:.1f}s elapsed)"
+                                )
+                                still_pending.append(
+                                    (
+                                        device_id,
+                                        device_name,
+                                        command_name,
+                                        start_time,
+                                        entity_id_for_deletion,
+                                    )
+                                )
+                        except Exception as e:
+                            logger.error(
+                                f"❌ Error polling for {device_name}/{command_name}: {e}"
+                            )
+                            # Still try again on error unless timed out
+                            if elapsed < self.POLL_TIMEOUT:
+                                still_pending.append(
+                                    (
+                                        device_id,
+                                        device_name,
+                                        command_name,
+                                        start_time,
+                                        entity_id_for_deletion,
+                                    )
+                                )
                         finally:
                             loop.close()
-                    
+
                     # Update pending list
                     self.pending_command_polls = still_pending
-                    
+
             except Exception as e:
                 logger.error(f"Error in polling thread: {e}")
                 time.sleep(5)  # Wait a bit before retrying on error
-    
+
     def _check_for_pending_commands(self) -> bool:
         """Check if there are any pending commands in devices.json"""
         try:
@@ -2154,13 +2349,13 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error checking for pending commands: {e}")
             return False
-    
+
     def _start_file_watcher(self):
         """Start watching devices.json for changes"""
         try:
             devices_json_path = self.device_manager.devices_file
             watch_dir = str(Path(devices_json_path).parent)
-            
+
             event_handler = DevicesJsonWatcher(self)
             self.file_observer = Observer()
             self.file_observer.schedule(event_handler, watch_dir, recursive=False)
@@ -2168,65 +2363,75 @@ class BroadlinkWebServer:
             logger.info(f"📁 Started file watcher for {devices_json_path}")
         except Exception as e:
             logger.error(f"Failed to start file watcher: {e}")
-    
+
     def _check_and_start_polling_for_pending(self):
         """Check for pending commands and start polling if needed (called by file watcher)"""
         with self.poll_lock:
             devices = self.device_manager.get_all_devices()
             found_pending = False
-            
+
             for device_id, device in devices.items():
                 commands = device.get("commands", {})
-                # Use 'device' field for Broadlink storage lookups (normalized name without area)
-                # Fallback to device_id for backward compatibility
-                device_name = device.get("device", device_id)
-                
+                device_name = device.get("device_id", device_id)
+
                 for cmd_name, cmd_data in commands.items():
                     if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
                         # Check if already in poll list
                         already_polling = any(
-                            poll[0] == device_id and poll[2] == cmd_name 
+                            poll[0] == device_id and poll[2] == cmd_name
                             for poll in self.pending_command_polls
                         )
-                        
+
                         if not already_polling:
                             found_pending = True
-                            logger.info(f"📋 File watcher found new pending command: {device_name}/{cmd_name}")
-                            self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
-            
+                            logger.info(
+                                f"📋 File watcher found new pending command: {device_name}/{cmd_name}"
+                            )
+                            self.pending_command_polls.append(
+                                (device_id, device_name, cmd_name, time.time(), None)
+                            )
+
             if found_pending and not self.poll_thread_running:
                 self.poll_thread_running = True
-                self.poll_thread = threading.Thread(target=self._poll_pending_commands, daemon=True)
+                self.poll_thread = threading.Thread(
+                    target=self._poll_pending_commands, daemon=True
+                )
                 self.poll_thread.start()
                 logger.info("🔄 File watcher started background polling thread")
-    
+
     def _check_and_start_polling_on_startup(self):
         """Check for pending commands on startup and start polling thread if needed"""
         try:
             devices = self.device_manager.get_all_devices()
             pending_found = False
-            
+
             for device_id, device in devices.items():
                 commands = device.get("commands", {})
-                # Use 'device' field for Broadlink storage lookups (normalized name without area)
-                # Fallback to device_id for backward compatibility
-                device_name = device.get("device", device_id)
+                device_name = device.get("device_id", device_id)
                 entity_id = device.get("broadlink_entity")
-                
+
                 for cmd_name, cmd_data in commands.items():
                     if isinstance(cmd_data, dict) and cmd_data.get("data") == "pending":
                         pending_found = True
                         # Schedule polling for this command
                         # We don't know if it needs deletion, so pass None for entity_id_for_deletion
-                        logger.info(f"📋 Found pending command on startup: {device_name}/{cmd_name}")
+                        logger.info(
+                            f"📋 Found pending command on startup: {device_name}/{cmd_name}"
+                        )
                         with self.poll_lock:
-                            self.pending_command_polls.append((device_id, device_name, cmd_name, time.time(), None))
-            
+                            self.pending_command_polls.append(
+                                (device_id, device_name, cmd_name, time.time(), None)
+                            )
+
             if pending_found and not self.poll_thread_running:
                 self.poll_thread_running = True
-                self.poll_thread = threading.Thread(target=self._poll_pending_commands, daemon=True)
+                self.poll_thread = threading.Thread(
+                    target=self._poll_pending_commands, daemon=True
+                )
                 self.poll_thread.start()
-                logger.info("🔄 Started background polling thread for existing pending commands")
+                logger.info(
+                    "🔄 Started background polling thread for existing pending commands"
+                )
         except Exception as e:
             logger.error(f"Error checking for pending commands on startup: {e}")
 
@@ -3087,31 +3292,31 @@ class BroadlinkWebServer:
     def get_cached_connection_info(self, entity_id: str):
         """Get cached device connection info if available and not expired"""
         import time
-        
+
         if entity_id not in self.device_connection_cache:
             return None
-        
+
         cached = self.device_connection_cache[entity_id]
         cached_at = cached.get("cached_at", 0)
-        
+
         # Check if cache is expired
         if time.time() - cached_at > self.CONNECTION_CACHE_TTL:
             logger.debug(f"Cache expired for {entity_id}")
             del self.device_connection_cache[entity_id]
             return None
-        
+
         logger.debug(f"Using cached connection info for {entity_id}")
         return cached
-    
+
     def cache_connection_info(self, entity_id: str, connection_info: dict):
         """Cache device connection info"""
         import time
-        
+
         if connection_info:
             connection_info["cached_at"] = time.time()
             self.device_connection_cache[entity_id] = connection_info
             logger.debug(f"Cached connection info for {entity_id}")
-    
+
     def invalidate_connection_cache(self, entity_id: str = None):
         """Invalidate connection cache for specific device or all devices"""
         if entity_id:

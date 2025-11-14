@@ -66,10 +66,12 @@ class BroadlinkDeviceManager:
                 # If we still don't have a numeric type, log warning and skip
                 if device_type is None or not isinstance(device_type, int):
                     logger.warning(
-                        f"Could not get numeric device type for {device.model if hasattr(device, 'model') else 'unknown device'}"
+                        f"Could not get numeric device type for "
+                        f"{device.model if hasattr(device, 'model') else 'unknown device'}"
                     )
                     logger.debug(
-                        f"device.type = {device.type if hasattr(device, 'type') else 'N/A'}, device.devtype = {device.devtype if hasattr(device, 'devtype') else 'N/A'}"
+                        f"device.type = {device.type if hasattr(device, 'type') else 'N/A'}, "
+                        f"device.devtype = {device.devtype if hasattr(device, 'devtype') else 'N/A'}"
                     )
                     continue
 
@@ -95,8 +97,8 @@ class BroadlinkDeviceManager:
             logger.info(f"Discovered {len(device_list)} device(s)")
             return device_list
 
-        except Exception as e:
-            logger.error(f"Error discovering devices: {e}", exc_info=True)
+        except Exception:
+            logger.error("Error discovering devices", exc_info=True)
             return []
 
     def get_ha_entity_info(self, entity_id: str) -> Optional[Dict]:
@@ -175,7 +177,7 @@ class BroadlinkDeviceManager:
         # Convert MAC string to bytes
         try:
             mac_bytes = bytes.fromhex(mac_str.replace(":", ""))
-        except Exception as e:
+        except Exception:
             logger.error(f"Invalid MAC address format: {mac_str}")
             return None
 
@@ -188,7 +190,7 @@ class BroadlinkDeviceManager:
                     if device_type.startswith("0x")
                     else int(device_type)
                 )
-            except Exception as e:
+            except Exception:
                 logger.error(f"Invalid device type format: {device_type}")
                 return None
 

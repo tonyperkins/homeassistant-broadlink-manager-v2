@@ -6,6 +6,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.3.0-alpha.9] - 2025-11-13
+
+### Fixed
+- Fix: Use pre-built GHCR images for faster updates
+
+
+## [0.3.0-alpha.8] - 2025-11-13
+
+### Fixed
+- Docker fixes: standalone mode config defaults and Python 3.13 compatibility
+
+
+## [0.3.0-alpha.7] - 2025-11-13
+
+### Fixed
+- Code quality: Fix all flake8 linting errors
+
+
+
+## [0.3.0-alpha.6] - 2025-11-12
+
+### Added
+- **SmartIR Climate Profiles**: Added preset modes support for climate entities
+  - New "Preset Modes" section in climate profile form with 6 common presets (none, eco, boost, sleep, away, comfort)
+  - Command generation includes preset mode combinations
+  - Generated JSON profiles include `presetModes` array
+  - Command keys format: `cool_24_auto_eco` (includes preset at end)
+  - Command labels show preset in brackets: `COOL 24°C auto [eco]`
+  - Automatic inference of preset modes when loading existing profiles
+  - Command count calculations updated to include preset mode multiplier
+  - Fully compatible with SmartIR format specification
+
+## [0.3.0-alpha.5] - 2025-11-06
+
+### Fixed
+- Fix area sync 404 error for newly created devices
+
+
+
+## [0.3.0-alpha.4] - 2025-11-04
+
+### Fixed
+- **Entity Generator**: Fan entities with named speed commands (e.g., `speed_low`, `speed_medium`, `speed_high`) are now properly detected
+  - Previously only numeric speed commands (e.g., `speed_1`, `speed_2`) were recognized
+  - Added mapping system: `low→1`, `medium→2`, `high→3`
+  - Supports both `speed_*` and `fan_speed_*` prefixes
+  - Improved warning messages now show which commands were found for easier debugging
+  - Fully backward compatible with existing numeric speed commands
+
+### Changed
+- **Test Suite**: Deprecated `test_command_storage_format.py` (StorageManager removed in favor of DeviceManager)
+- **Documentation**: Added comprehensive bug fix documentation in `docs/development/BUG_FIX_ENTITY_GENERATOR_SPEED_COMMANDS.md`
+
+### Added
+- **Manual Test**: New speed command detection test suite (`tests/manual/test_speed_command_detection.py`)
+  - Tests named speed commands
+  - Tests numeric speed commands
+  - Tests mixed speed configurations
 
 ## [0.3.0-alpha.4] - 2025-10-26
 

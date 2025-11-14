@@ -8,10 +8,23 @@
 # Wait for Home Assistant to start
 bashio::log.info "Starting Broadlink Manager v2..."
 
-# Get configuration options
-LOG_LEVEL=$(bashio::config 'log_level')
-WEB_PORT=$(bashio::config 'web_port')
-AUTO_DISCOVER=$(bashio::config 'auto_discover')
+# Get configuration options with defaults
+LOG_LEVEL=$(bashio::config 'log_level' 'info')
+WEB_PORT=$(bashio::config 'web_port' '8099')
+AUTO_DISCOVER=$(bashio::config 'auto_discover' 'true')
+
+# Validate and set defaults if null/empty
+if [ -z "${LOG_LEVEL}" ] || [ "${LOG_LEVEL}" = "null" ]; then
+    LOG_LEVEL="info"
+fi
+
+if [ -z "${WEB_PORT}" ] || [ "${WEB_PORT}" = "null" ]; then
+    WEB_PORT="8099"
+fi
+
+if [ -z "${AUTO_DISCOVER}" ] || [ "${AUTO_DISCOVER}" = "null" ]; then
+    AUTO_DISCOVER="true"
+fi
 
 # Set log level
 bashio::log.info "Setting log level to: ${LOG_LEVEL}"

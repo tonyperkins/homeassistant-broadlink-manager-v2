@@ -396,6 +396,8 @@ const smartirInstalled = computed(() => {
   // Check if simulating not-installed
   const isSimulating = localStorage.getItem('smartir_simulate_not_installed') === 'true'
   if (isSimulating) return false
+  // Hide filter if SmartIR is disabled or not installed
+  if (!smartirEnabled?.value) return false
   return smartirStatus?.value?.installed || false
 })
 

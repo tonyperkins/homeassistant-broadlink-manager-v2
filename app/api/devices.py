@@ -336,7 +336,6 @@ def debug_discovery():
         import time
 
         web_server = current_app.config.get("web_server")
-        storage = get_storage_manager()
         device_manager = get_device_manager()
 
         debug_info = {
@@ -922,18 +921,24 @@ def sync_device_area(device_id):
 
             if not entity_details:
                 loop.close()
+                logger.info(
+                    f"Entity {full_entity_id} not found in HA registry yet "
+                    "(entities not generated or HA not restarted)"
+                )
                 return (
                     jsonify(
                         {
-                            "success": False,
+                            "success": True,
                             "message": (
-                                "Entity not found in HA registry. "
-                                "Make sure entities are generated and HA has been restarted."
+                                "Entity not found in HA registry yet. "
+                                "This is normal for newly created devices. "
+                                "Area will sync after entity generation and HA restart."
                             ),
                             "area": None,
+                            "pending": True,
                         }
                     ),
-                    404,
+                    200,
                 )
 
             area_id = entity_details.get("area_id")

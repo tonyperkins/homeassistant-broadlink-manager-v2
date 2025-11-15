@@ -19,6 +19,7 @@ class SmartIRDetector:
         self.config_path = Path(config_path)
         self.smartir_path = self.config_path / "custom_components" / "smartir"
         self.codes_path = self.smartir_path / "codes"
+        self.custom_codes_path = self.smartir_path / "custom_codes"
 
     def is_installed(self) -> bool:
         """Check if SmartIR is installed"""
@@ -54,45 +55,82 @@ class SmartIRDetector:
         return sorted(platforms)
 
     def get_device_codes(self, platform: str) -> List[Dict[str, Any]]:
-        """Get list of available device codes for a platform"""
-        platform_path = self.codes_path / platform
-        if not platform_path.exists():
-            return []
+        """Get list of available device codes for a platform
 
+        Checks both codes and custom_codes directories.
+        Custom codes take precedence if same code number exists in both.
+        """
         codes = []
-        for code_file in platform_path.glob("*.json"):
-            try:
-                code_number = int(code_file.stem)
-                with open(code_file, "r") as f:
-                    data = json.load(f)
-                    codes.append(
-                        {
-                            "code": code_number,
-                            "manufacturer": data.get("manufacturer", "Unknown"),
-                            "models": data.get("supportedModels", []),
-                            "file": str(code_file),
-                        }
-                    )
-            except (ValueError, json.JSONDecodeError) as e:
-                logger.debug(f"Skipping invalid code file {code_file}: {e}")
-                continue
+        seen_codes = set()
+
+        # Check custom_codes first (takes precedence)
+        custom_platform_path = self.custom_codes_path / platform
+        if custom_platform_path.exists():
+            for code_file in custom_platform_path.glob("*.json"):
+                try:
+                    code_number = int(code_file.stem)
+                    with open(code_file, "r") as f:
+                        data = json.load(f)
+                        codes.append(
+                            {
+                                "code": code_number,
+                                "manufacturer": data.get("manufacturer", "Unknown"),
+                                "models": data.get("supportedModels", []),
+                                "file": str(code_file),
+                                "source": "custom",
+                            }
+                        )
+                        seen_codes.add(code_number)
+                except (ValueError, json.JSONDecodeError) as e:
+                    logger.debug(f"Skipping invalid code file {code_file}: {e}")
+                    continue
+
+        # Then check main codes directory
+        platform_path = self.codes_path / platform
+        if platform_path.exists():
+            for code_file in platform_path.glob("*.json"):
+                try:
+                    code_number = int(code_file.stem)
+                    # Skip if we already have this code from custom_codes
+                    if code_number in seen_codes:
+                        continue
+                    with open(code_file, "r") as f:
+                        data = json.load(f)
+                        codes.append(
+                            {
+                                "code": code_number,
+                                "manufacturer": data.get("manufacturer", "Unknown"),
+                                "models": data.get("supportedModels", []),
+                                "file": str(code_file),
+                                "source": "builtin",
+                            }
+                        )
+                except (ValueError, json.JSONDecodeError) as e:
+                    logger.debug(f"Skipping invalid code file {code_file}: {e}")
+                    continue
 
         return sorted(codes, key=lambda x: x["code"])
 
     def find_next_custom_code(self, platform: str) -> int:
-        """Find next available custom device code (10000+)"""
-        platform_path = self.codes_path / platform
-        if not platform_path.exists():
-            return 10000
+        """Find next available custom device code (10000+)
 
+        Checks both codes and custom_codes directories.
+        """
         custom_codes = []
-        for code_file in platform_path.glob("*.json"):
-            try:
-                code_number = int(code_file.stem)
-                if code_number >= 10000:
-                    custom_codes.append(code_number)
-            except ValueError:
+
+        # Check both directories for custom codes (10000+)
+        for base_path in [self.codes_path, self.custom_codes_path]:
+            platform_path = base_path / platform
+            if not platform_path.exists():
                 continue
+
+            for code_file in platform_path.glob("*.json"):
+                try:
+                    code_number = int(code_file.stem)
+                    if code_number >= 10000:
+                        custom_codes.append(code_number)
+                except ValueError:
+                    continue
 
         if not custom_codes:
             return 10000
@@ -192,11 +230,24 @@ class SmartIRDetector:
 
         return result
 
+    def get_code_save_path(self, platform: str, code_number: int) -> Path:
+        """Get the correct path to save a code file
+
+        Custom codes (10000+) or any edits go to custom_codes directory.
+        This ensures user customizations persist through HACS updates.
+        """
+        # Always use custom_codes for saves to avoid HACS overwriting
+        return self.custom_codes_path / platform / f"{code_number}.json"
+
     def write_code_file(
         self, platform: str, code_number: int, data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Write a SmartIR code file"""
-        platform_path = self.codes_path / platform
+        """Write a SmartIR code file to custom_codes directory
+
+        All saves go to custom_codes to persist through HACS updates.
+        """
+        # Use custom_codes path for all saves
+        platform_path = self.custom_codes_path / platform
 
         result = {"success": False, "file": None, "error": None}
 
@@ -221,7 +272,7 @@ class SmartIRDetector:
 
             result["success"] = True
             result["file"] = str(code_file)
-            logger.info(f"Created SmartIR code file: {code_file}")
+            logger.info(f"Created SmartIR code file in custom_codes: {code_file}")
 
         except Exception as e:
             result["error"] = f"Could not write code file: {e}"

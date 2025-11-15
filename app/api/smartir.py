@@ -218,26 +218,32 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get SmartIR codes directory
+            # Get custom_codes directory (persists through HACS updates)
             smartir_path = smartir_detector.smartir_path
-            codes_dir = smartir_path / "codes" / platform
+            custom_codes_dir = smartir_path / "custom_codes" / platform
 
-            # Create codes directory if it doesn't exist
-            codes_dir.mkdir(parents=True, exist_ok=True)
+            # Create custom_codes directory if it doesn't exist
+            custom_codes_dir.mkdir(parents=True, exist_ok=True)
 
             # Save the JSON file
             filename = f"{code_number}.json"
-            file_path = codes_dir / filename
+            file_path = custom_codes_dir / filename
 
             # Check if file already exists
             if file_path.exists():
-                logger.warning(f"Profile file {filename} already exists, overwriting")
+                logger.info(
+                    f"Profile file {filename} already exists in custom_codes, updating"
+                )
+            else:
+                logger.info(
+                    f"Creating new profile {filename} in custom_codes (persists through HACS updates)"
+                )
 
             # Write JSON file with proper formatting
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(profile_json, f, indent=2, ensure_ascii=False)
 
-            logger.info(f"✅ Saved SmartIR profile: {file_path}")
+            logger.info(f"✅ Saved SmartIR profile to custom_codes: {file_path}")
 
             return (
                 jsonify(
@@ -327,11 +333,28 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get SmartIR codes directory
+            # Get both codes and custom_codes directories
             smartir_path = smartir_detector.smartir_path
             codes_dir = smartir_path / "codes" / platform
+            custom_codes_dir = smartir_path / "custom_codes" / platform
 
-            if not codes_dir.exists():
+            # Collect profile files from both directories
+            profile_files = []
+            seen_codes = set()
+
+            # Check custom_codes first (takes precedence)
+            if custom_codes_dir.exists():
+                for file_path in custom_codes_dir.glob("*.json"):
+                    profile_files.append((file_path, "custom"))
+                    seen_codes.add(file_path.stem)
+
+            # Then check codes directory (skip if already in custom_codes)
+            if codes_dir.exists():
+                for file_path in codes_dir.glob("*.json"):
+                    if file_path.stem not in seen_codes:
+                        profile_files.append((file_path, "builtin"))
+
+            if not profile_files:
                 return jsonify({"success": True, "profiles": []}), 200
 
             # Load YAML config to get controller data
@@ -361,9 +384,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             config_path = current_app.config.get("config_path", "/config")
             storage_path = Path(config_path) / ".storage"
 
-            # Read all JSON files in the directory
+            # Read all JSON files from both directories
             profiles = []
-            for file_path in codes_dir.glob("*.json"):
+            for file_path, source in profile_files:
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
@@ -479,6 +502,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                             "controllerBrand": controller_brand,
                             "commandCount": command_count,
                             "learnedCount": learned_count,
+                            "source": source,
                         }
                     )
                 except Exception as e:
@@ -495,7 +519,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
     @smartir_bp.route("/platforms/<platform>/profiles/<code>", methods=["GET"])
     def get_profile(platform, code):
-        """Get a specific profile"""
+        """Get a specific profile - checks custom_codes first, then codes"""
         try:
             # Validate SmartIR is installed
             if not smartir_detector.is_installed():
@@ -504,11 +528,21 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get file path
+            # Check custom_codes first (takes precedence)
             smartir_path = smartir_detector.smartir_path
-            file_path = smartir_path / "codes" / platform / f"{code}.json"
+            custom_file_path = smartir_path / "custom_codes" / platform / f"{code}.json"
+            builtin_file_path = smartir_path / "codes" / platform / f"{code}.json"
 
-            if not file_path.exists():
+            file_path = None
+            source = None
+
+            if custom_file_path.exists():
+                file_path = custom_file_path
+                source = "custom"
+            elif builtin_file_path.exists():
+                file_path = builtin_file_path
+                source = "builtin"
+            else:
                 return (
                     jsonify({"success": False, "error": f"Profile {code} not found"}),
                     404,
@@ -518,7 +552,17 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             with open(file_path, "r", encoding="utf-8") as f:
                 profile_data = json.load(f)
 
-            return jsonify({"success": True, "profile": profile_data}), 200
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "profile": profile_data,
+                        "source": source,
+                        "path": str(file_path),
+                    }
+                ),
+                200,
+            )
 
         except Exception as e:
             logger.error(f"Error getting profile: {e}")
@@ -581,11 +625,27 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get file path
+            # Check custom_codes first, then codes
             smartir_path = smartir_detector.smartir_path
-            file_path = smartir_path / "codes" / platform / f"{code}.json"
+            custom_file_path = smartir_path / "custom_codes" / platform / f"{code}.json"
+            builtin_file_path = smartir_path / "codes" / platform / f"{code}.json"
 
-            if not file_path.exists():
+            file_path = None
+
+            if custom_file_path.exists():
+                file_path = custom_file_path
+            elif builtin_file_path.exists():
+                # Don't allow deleting builtin profiles
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"Cannot delete builtin profile {code}. Only custom profiles can be deleted.",
+                        }
+                    ),
+                    400,
+                )
+            else:
                 return (
                     jsonify({"success": False, "error": f"Profile {code} not found"}),
                     404,
@@ -1452,20 +1512,18 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                                 }
                             )
 
-                # Get custom profiles
+                # Get custom profiles from custom_codes directory
                 if source in ["all", "custom"] and smartir_detector.is_installed():
                     smartir_path = smartir_detector.smartir_path
-                    codes_dir = smartir_path / "codes" / platform
+                    custom_codes_dir = smartir_path / "custom_codes" / platform
 
-                    if codes_dir.exists():
-                        for file_path in codes_dir.glob("*.json"):
+                    if custom_codes_dir.exists():
+                        for file_path in custom_codes_dir.glob("*.json"):
                             try:
                                 code = file_path.stem
-                                code_num = int(code)
 
-                                # Only include custom codes (10000+)
-                                if code_num < 10000:
-                                    continue
+                                # All files in custom_codes are custom profiles
+                                # (includes both 10000+ and edited builtin profiles)
 
                                 with open(file_path, "r", encoding="utf-8") as f:
                                     data = json.load(f)

@@ -24,5 +24,6 @@ homeassistant_api: true
 hassio_api: true
 hassio_role: default
 host_network: true
+image: ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2/{arch}
 map:
   - config:rw

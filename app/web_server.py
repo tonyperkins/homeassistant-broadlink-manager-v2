@@ -3332,9 +3332,10 @@ class BroadlinkWebServer:
 
     def run(self):
         """Run the Flask web server"""
-        # In supervisor mode, bind to 127.0.0.1 since ingress handles external access
-        # In standalone mode, bind to 0.0.0.0 to allow external connections
-        host = "127.0.0.1" if self.supervisor_mode else "0.0.0.0"
+        # Always bind to 0.0.0.0 to allow connections from Docker network (ingress proxy)
+        # The ingress proxy in supervisor mode connects via the container's IP
+        # In standalone mode, this allows external connections
+        host = "0.0.0.0"
         logger.info(
             f"Starting Broadlink Manager web server on {host}:{self.port} "
             f"(supervisor_mode={self.supervisor_mode})"

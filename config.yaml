@@ -12,7 +12,6 @@ boot: manual
 init: false
 auth_api: true
 ingress: true
-ingress_port: 8099
 panel_icon: mdi:remote
 options:
   log_level: info

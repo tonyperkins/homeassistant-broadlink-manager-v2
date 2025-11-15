@@ -2,6 +2,7 @@ name: Broadlink Manager v2 (Alpha)
 version: "0.3.0-alpha.15"
 slug: broadlink-manager-v2
 description: Next-generation Broadlink device manager with Vue 3 interface (Alpha)
+image: ghcr.io/home-assistant/{arch}-addon-base-python:latest
 arch:
   - amd64
   - aarch64

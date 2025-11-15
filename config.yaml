@@ -12,6 +12,7 @@ init: false
 auth_api: true
 webui: "http://[HOST]:[PORT:8099]"
 ingress: true
+ingress_port: 8099
 panel_icon: mdi:remote
 options:
   log_level: info
@@ -21,10 +22,6 @@ schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
   web_port: port
   auto_discover: bool?
-ports:
-  8099/tcp: 8099
-ports_description:
-  8099/tcp: Web interface for Broadlink device management
 homeassistant_api: true
 hassio_api: true
 hassio_role: default

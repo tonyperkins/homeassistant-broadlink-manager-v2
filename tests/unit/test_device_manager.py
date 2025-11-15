@@ -156,14 +156,14 @@ class TestDeviceManager:
         assert 'device2' not in devices
     
     def test_generate_device_id(self, device_manager):
-        """Test device ID generation"""
+        """Test device ID generation (area_id is ignored, only device name is used)"""
         device_id = device_manager.generate_device_id('master_bedroom', 'Samsung TV')
-        assert device_id == 'master_bedroom_samsung_tv'
+        assert device_id == 'samsung_tv'
         
         # Test with special characters
         device_id = device_manager.generate_device_id('living_room', 'Sony A/V Receiver')
-        assert device_id == 'living_room_sony_a_v_receiver'
+        assert device_id == 'sony_a_v_receiver'
         
         # Test with multiple spaces
         device_id = device_manager.generate_device_id('office', 'HP   Printer')
-        assert device_id == 'office_hp_printer'
+        assert device_id == 'hp_printer'

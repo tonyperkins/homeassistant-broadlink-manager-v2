@@ -16,11 +16,9 @@ ingress_port: 8888
 panel_icon: mdi:remote
 options:
   log_level: info
-  web_port: 8888
   auto_discover: true
 schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
-  web_port: port
   auto_discover: bool?
 homeassistant_api: true
 hassio_api: true

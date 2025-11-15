@@ -412,7 +412,7 @@ class DeviceManager:
     def generate_device_id(self, area_id: str, device_name: str) -> str:
         """
         Generate a device ID from device name only.
-        
+
         NOTE: area_id parameter is kept for backward compatibility but is NOT used.
         Area is stored as metadata only and does not affect the device ID.
 
@@ -645,22 +645,22 @@ class DeviceManager:
         except Exception as e:
             logger.error(f"Error updating connection info: {e}")
             return False
-    
+
     def migrate_device_field(self) -> int:
         """
         Migrate existing Broadlink devices to add 'device' field if missing.
         The 'device' field stores the normalized device name for Broadlink storage lookups.
-        
+
         Since device IDs should already be normalized device names (without area),
         the 'device' field should just match the device_id.
-        
+
         Returns:
             Number of devices migrated
         """
         try:
             devices = self._load_devices()
             migrated_count = 0
-            
+
             for device_id, device_data in devices.items():
                 # Only migrate Broadlink devices that don't have the 'device' field
                 device_type = device_data.get("device_type", "broadlink")
@@ -669,8 +669,10 @@ class DeviceManager:
                     # since device IDs are normalized device names (area is metadata only)
                     device_data["device"] = device_id
                     migrated_count += 1
-                    logger.info(f"Migrated device '{device_id}': added device field = '{device_id}'")
-            
+                    logger.info(
+                        f"Migrated device '{device_id}': added device field = '{device_id}'"
+                    )
+
             if migrated_count > 0:
                 if self._save_devices(devices):
                     logger.info(f"Successfully migrated {migrated_count} device(s)")
@@ -681,7 +683,7 @@ class DeviceManager:
             else:
                 logger.debug("No devices needed migration")
                 return 0
-                
+
         except Exception as e:
             logger.error(f"Error during device migration: {e}")
             return 0

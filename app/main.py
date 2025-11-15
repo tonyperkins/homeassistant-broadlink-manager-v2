@@ -89,9 +89,7 @@ class BroadlinkManager:
             self.web_thread.start()
 
             logger.info("Broadlink Manager web interface started")
-            logger.info(
-                "Access the web interface via Home Assistant ingress"
-            )
+            logger.info("Access the web interface via Home Assistant ingress")
 
             # Main application loop - keep the main thread alive
             while self.running:

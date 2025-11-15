@@ -649,7 +649,7 @@ def create_managed_device():
                 )
 
             device_data["broadlink_entity"] = broadlink_entity
-            
+
             # Store the Broadlink storage device name (normalized name without area)
             # This is used for looking up commands in Broadlink storage files
             if storage_name:

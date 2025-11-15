@@ -3340,7 +3340,12 @@ class BroadlinkWebServer:
             f"Starting Broadlink Manager web server on {host}:{self.port} "
             f"(supervisor_mode={self.supervisor_mode})"
         )
-        self.app.run(host=host, port=self.port, debug=False)
+        
+        # Use Waitress production server instead of Flask development server
+        # This avoids permission issues and is more suitable for production
+        from waitress import serve
+        logger.info("Using Waitress WSGI server")
+        serve(self.app, host=host, port=self.port, threads=4)
 
 
 if __name__ == "__main__":

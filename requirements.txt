@@ -2,6 +2,7 @@
 broadlink>=0.18.0
 flask>=3.0.0
 flask-cors>=4.0.0
+waitress>=2.1.2
 aiohttp>=3.9.0
 aiofiles>=23.0.0
 requests>=2.31.0

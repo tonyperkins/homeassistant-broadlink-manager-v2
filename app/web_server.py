@@ -3329,8 +3329,14 @@ class BroadlinkWebServer:
 
     def run(self):
         """Run the Flask web server"""
-        logger.info(f"Starting Broadlink Manager web server on port {self.port}")
-        self.app.run(host="0.0.0.0", port=self.port, debug=False)
+        # In supervisor mode, bind to 127.0.0.1 since ingress handles external access
+        # In standalone mode, bind to 0.0.0.0 to allow external connections
+        host = "127.0.0.1" if self.supervisor_mode else "0.0.0.0"
+        logger.info(
+            f"Starting Broadlink Manager web server on {host}:{self.port} "
+            f"(supervisor_mode={self.supervisor_mode})"
+        )
+        self.app.run(host=host, port=self.port, debug=False)
 
 
 if __name__ == "__main__":

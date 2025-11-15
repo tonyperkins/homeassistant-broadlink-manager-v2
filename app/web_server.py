@@ -3341,11 +3341,14 @@ class BroadlinkWebServer:
             f"(supervisor_mode={self.supervisor_mode})"
         )
         
-        # Use Waitress production server instead of Flask development server
-        # This avoids permission issues and is more suitable for production
-        from waitress import serve
-        logger.info("Using Waitress WSGI server")
-        serve(self.app, host=host, port=self.port, threads=4)
+        # Try to use Waitress production server, fall back to Flask if not available
+        try:
+            from waitress import serve
+            logger.info("Using Waitress WSGI server")
+            serve(self.app, host=host, port=self.port, threads=4)
+        except ImportError:
+            logger.warning("Waitress not available, using Flask development server")
+            self.app.run(host=host, port=self.port, debug=False)
 
 
 if __name__ == "__main__":

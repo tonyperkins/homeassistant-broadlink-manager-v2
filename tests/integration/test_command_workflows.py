@@ -244,10 +244,10 @@ class TestSmartIRCommandWorkflow:
 
     def test_smartir_profile_deletion_allowed_when_not_in_use(self, client, tmp_path):
         """Test that SmartIR profiles can be deleted when not in use"""
-        # Create a profile file
-        codes_dir = tmp_path / "custom_components" / "smartir" / "codes" / "climate"
-        codes_dir.mkdir(parents=True)
-        profile_file = codes_dir / "10001.json"
+        # Create a profile file in custom_codes (where custom profiles are stored)
+        custom_codes_dir = tmp_path / "custom_components" / "smartir" / "custom_codes" / "climate"
+        custom_codes_dir.mkdir(parents=True)
+        profile_file = custom_codes_dir / "10001.json"
 
         profile_data = {
             "manufacturer": "Test",
@@ -315,11 +315,8 @@ class TestStorageSeparation:
             "smartir_path",
             tmp_path / "custom_components" / "smartir"
         ):
-            with patch("builtins.open", create=True) as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = json.dumps(profile_data)
-
-                # The SmartIR test endpoint should use the JSON code
-                response = client.get("/api/smartir/profiles/10000?platform=climate")
+            # The SmartIR get profile endpoint should use the JSON code
+            response = client.get("/api/smartir/platforms/climate/profiles/10000")
 
         # Verify it reads from SmartIR JSON, not Broadlink storage
         assert response.status_code == 200
@@ -379,11 +376,11 @@ class TestCodeNumbering:
             with open(profile_file, "w") as f:
                 json.dump({"manufacturer": "Test", "commands": {}}, f)
 
-        with patch.object(
-            client.application.config["smartir_detector"],
-            "custom_codes_path",
-            tmp_path / "custom_components" / "smartir" / "custom_codes"
-        ):
+        detector = client.application.config["smartir_detector"]
+        
+        # Patch both paths since find_next_custom_code checks both
+        with patch.object(detector, "custom_codes_path", tmp_path / "custom_components" / "smartir" / "custom_codes"), \
+             patch.object(detector, "codes_path", tmp_path / "custom_components" / "smartir" / "codes"):
             response = client.get("/api/smartir/platforms/climate/next-code")
 
         assert response.status_code == 200
@@ -393,11 +390,8 @@ class TestCodeNumbering:
         (custom_codes_dir / "10001.json").unlink()
 
         # Next code should still be 10003, not 10001
-        with patch.object(
-            client.application.config["smartir_detector"],
-            "custom_codes_path",
-            tmp_path / "custom_components" / "smartir" / "custom_codes"
-        ):
+        with patch.object(detector, "custom_codes_path", tmp_path / "custom_components" / "smartir" / "custom_codes"), \
+             patch.object(detector, "codes_path", tmp_path / "custom_components" / "smartir" / "codes"):
             response = client.get("/api/smartir/platforms/climate/next-code")
 
         assert response.json["next_code"] == 10003

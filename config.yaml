@@ -13,6 +13,8 @@ init: false
 auth_api: true
 ingress: true
 panel_icon: mdi:remote
+ports:
+  8099/tcp: null
 options:
   log_level: info
   auto_discover: true

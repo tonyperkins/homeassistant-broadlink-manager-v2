@@ -24,5 +24,6 @@ schema:
 homeassistant_api: true
 hassio_api: true
 hassio_role: default
+host_network: true
 map:
   - config:rw

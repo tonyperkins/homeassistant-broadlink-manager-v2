@@ -13,6 +13,10 @@ auth_api: true
 webui: "http://[HOST]:[PORT:8888]"
 ingress: true
 ingress_port: 8888
+ports:
+  8888/tcp: null
+ports_description:
+  8888/tcp: Web interface (ingress)
 panel_icon: mdi:remote
 options:
   log_level: info

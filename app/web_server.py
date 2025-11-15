@@ -133,6 +133,9 @@ class BroadlinkWebServer:
             self.config_loader.get_broadlink_manager_path()
         )  # For devices.json (broadlink_manager/)
 
+        # Store supervisor mode flag for binding decision
+        self.supervisor_mode = self.config_loader.mode == "supervisor"
+
         logger.info(f"Web server initialized in {self.config_loader.mode} mode")
 
         # WebSocket notifications cache

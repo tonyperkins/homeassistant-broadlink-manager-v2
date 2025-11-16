@@ -501,11 +501,15 @@ class EntityGenerator:
         # Also support named speeds like 'speed_low', 'speed_medium', 'speed_high'
         speed_commands = {}
         named_speed_map = {
-            "low": 1,
-            "medium": 2,
-            "med": 2,
-            "high": 3,
             "off": 0,  # Some fans have speed_off
+            "low": 1,
+            "lowmedium": 2,  # Support RF fan custom speeds
+            "medium": 3,
+            "mediumhigh": 4,  # Support RF fan custom speeds
+            "high": 5,
+            "med": 3,  # Alias for medium
+            "quiet": 1,  # Some fans use 'quiet' for lowest speed
+            "auto": 3,  # Some fans have auto mode as medium speed
         }
 
         for k, v in commands.items():

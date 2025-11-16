@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.3.0-alpha.21] - 2025-11-16
+
+### Fixed
+- Fix RF fan entity generation with custom speed names (lowMedium, mediumHigh)
+
+
 
 ## [0.3.0-alpha.20] - 2025-11-15
 

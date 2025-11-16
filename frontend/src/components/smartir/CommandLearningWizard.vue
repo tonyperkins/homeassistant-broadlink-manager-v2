@@ -261,6 +261,21 @@ const commandList = computed(() => {
     const minTemp = props.config.minTemp || 16
     const maxTemp = props.config.maxTemp || 30
     
+    // Always add 'off' command first if it exists in commands (even if not in operationModes)
+    // This handles SmartIR profiles where 'off' is a standalone command
+    const hasOffInModes = modes.includes('off')
+    const hasOffCommand = props.modelValue && props.modelValue.off
+    
+    if (!hasOffInModes && hasOffCommand) {
+      list.push({
+        key: 'off',
+        label: 'Power Off',
+        description: 'Turn device off (standalone command)',
+        icon: 'mdi mdi-power',
+        mode: 'off'
+      })
+    }
+    
     // Generate commands for each mode/temp/fan/swing/preset combination
     modes.forEach(mode => {
       if (mode === 'off') {
@@ -446,8 +461,9 @@ async function learnCommand(cmd) {
       hasLearnedAny.value = true // Mark that user has learned at least one command
       
       if (result.code === 'pending') {
-        // Code is pending - it will be fetched when saving the profile
-        console.log(`⏳ Command '${cmd.key}' learned, code will be fetched from storage when saving`)
+        // Code is pending - backend polling thread will fetch it automatically
+        // The backend polls every 3 seconds with 60-second timeout and fallback search
+        console.log(`⏳ Command '${cmd.key}' learned, backend will fetch code from storage automatically`)
       }
       
       // If sequential learning, move to next

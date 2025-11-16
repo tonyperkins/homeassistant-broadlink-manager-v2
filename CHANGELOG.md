@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0-alpha.20] - 2025-11-15
+
+### Fixed
+- **SmartIR Profile Editing**: Fixed commands staying "pending" instead of saving actual IR/RF codes
+  - Properly leverages backend polling mechanism (polls every 3s with 60s timeout)
+  - `fetchLearnedCommandsForEdit()` now called at preview step to ensure codes are ready before save
+  - Backend has fallback search across all device names to handle storage write lag
+- **SmartIR "Off" Commands**: Fixed recognition of standalone "off" commands in existing profiles
+  - Detects "off" commands that exist in JSON but not in `operationModes` array
+  - Adds "Power Off (standalone command)" card in wizard for editing
+  - Maintains backward compatibility with both command structures
+- Documentation: Created comprehensive guide at `docs/development/SMARTIR_PROFILE_EDITING_FIXES.md`
+
 ## [0.3.0-alpha.11] - 2025-11-14
 
 ### Fixed

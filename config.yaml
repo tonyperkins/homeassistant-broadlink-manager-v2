@@ -1,5 +1,5 @@
 name: Broadlink Manager v2 (Alpha)
-version: "0.3.0-alpha.18"
+version: "0.3.0-alpha.19"
 slug: broadlink-manager-v2
 description: Next-generation Broadlink device manager with Vue 3 interface (Alpha)
 arch:
@@ -23,6 +23,7 @@ schema:
 homeassistant_api: true
 hassio_api: true
 hassio_role: default
+apparmor: false
 image: ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2
 map:
   - config:rw

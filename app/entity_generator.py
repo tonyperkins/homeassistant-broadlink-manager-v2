@@ -687,6 +687,28 @@ class EntityGenerator:
                     ),
                 },
             },
+            {
+                "choose": [
+                    {
+                        "conditions": "{{ percentage == 0 }}",
+                        "sequence": [
+                            {
+                                "service": "input_boolean.turn_off",
+                                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                            }
+                        ],
+                    },
+                    {
+                        "conditions": "{{ percentage > 0 }}",
+                        "sequence": [
+                            {
+                                "service": "input_boolean.turn_on",
+                                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                            }
+                        ],
+                    },
+                ]
+            },
         ]
 
         # Add direction support if reverse/direction command exists

@@ -588,9 +588,12 @@ class EntityGenerator:
         )
 
         # Turn on (default to medium speed) - use raw base64 data
-        default_speed = (speed_count + 1) // 2
+        # Get sorted list of actual speed numbers and pick the middle one
+        speed_numbers = sorted([int(k.split('_')[1]) for k in speed_commands.keys()])
+        default_speed_idx = (len(speed_numbers) + 1) // 2  # Middle speed (1-indexed)
+        default_speed_num = speed_numbers[default_speed_idx - 1]  # Convert to 0-indexed
         default_speed_cmd_name = speed_commands.get(
-            f"speed_{default_speed}", list(speed_commands.values())[0]
+            f"speed_{default_speed_num}", list(speed_commands.values())[0]
         )
         default_speed_cmd = broadlink_commands.get(device, {}).get(
             default_speed_cmd_name, ""
@@ -641,16 +644,19 @@ class EntityGenerator:
         set_percentage_option_conditions = []  # For input_select (speed numbers)
         set_percentage_command_conditions = []  # For remote commands (base64)
 
-        for i in range(1, speed_count + 1):
-            percentage = int((i / speed_count) * 100)
+        # Get sorted list of actual speed numbers (e.g., [1, 3, 5] not [1, 2, 3])
+        speed_numbers = sorted([int(k.split('_')[1]) for k in speed_commands.keys()])
+        
+        for idx, speed_num in enumerate(speed_numbers, start=1):
+            percentage = int((idx / speed_count) * 100)
 
-            # Template for input_select option (just the number)
+            # Template for input_select option (use sequential index)
             set_percentage_option_conditions.append(
-                f"{{%- elif percentage <= {percentage} -%}}\n" f"  {i}"
+                f"{{%- elif percentage <= {percentage} -%}}\n" f"  {idx}"
             )
 
-            # Template for remote command (base64 data)
-            speed_cmd_name = speed_commands.get(f"speed_{i}", "")
+            # Template for remote command (use actual speed number)
+            speed_cmd_name = speed_commands.get(f"speed_{speed_num}", "")
             speed_cmd_data = broadlink_commands.get(device, {}).get(speed_cmd_name, "")
             set_percentage_command_conditions.append(
                 f"{{%- elif percentage <= {percentage} -%}}\n" f"  b64:{speed_cmd_data}"

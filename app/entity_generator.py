@@ -1399,18 +1399,43 @@ class EntityGenerator:
             # Fans need speed selector
             elif entity_type == "fan":
                 # Count speed commands - support both 'speed_N' and 'fan_speed_N' patterns
-                speed_count = 0
+                # Also support named speeds like 'speed_low', 'speed_medium', 'speed_high'
+                # This must match the logic in _generate_fan()
+                named_speed_map = {
+                    "off": 0,
+                    "low": 1,
+                    "lowmedium": 2,
+                    "medium": 3,
+                    "mediumhigh": 4,
+                    "high": 5,
+                    "med": 3,
+                    "quiet": 1,
+                    "auto": 3,
+                }
+                
+                speed_commands = {}
                 for k in entity_data["commands"].keys():
                     if k.startswith("speed_") or k.startswith("fan_speed_"):
-                        # Extract speed number from command name
+                        # Extract speed identifier from command name
                         if k.startswith("fan_speed_"):
-                            speed_num = k.replace("fan_speed_", "")
+                            speed_id = k.replace("fan_speed_", "")
                         else:
-                            speed_num = k.replace("speed_", "")
+                            speed_id = k.replace("speed_", "")
 
-                        if speed_num.isdigit():
-                            speed_count += 1
+                        # Convert to numeric if it's a digit, or map named speeds
+                        if speed_id.isdigit():
+                            speed_num = speed_id
+                        elif speed_id.lower() in named_speed_map:
+                            speed_num = str(named_speed_map[speed_id.lower()])
+                        else:
+                            # Unknown speed name, skip it
+                            continue
 
+                        # Store with normalized key 'speed_N' (skip speed_0/off)
+                        if speed_num != "0":
+                            speed_commands[f"speed_{speed_num}"] = k
+
+                speed_count = len(speed_commands)
                 options = ["off"] + [str(i) for i in range(1, speed_count + 1)]
 
                 helpers["input_select"][f"{sanitized_id}_speed"] = {

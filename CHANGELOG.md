@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.3.0-alpha.23] - 2025-11-17
+
+### Fixed
+- Fix fan auto-on behavior - setting speed now automatically turns fan on/off, matching SmartIR
+
+
 ## [0.3.0-alpha.22] - 2025-11-17
 
 ### Fixed

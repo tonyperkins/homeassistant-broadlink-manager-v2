@@ -94,7 +94,10 @@ class DeviceManagerAdapter:
             "fan_off",
             "fan_reverse",
         }
-        if command_names & fan_patterns:
+        # Also check for speed_* patterns (speed_low, speed_1, etc.)
+        has_speed_commands = any(cmd.startswith("speed_") for cmd in command_names)
+        
+        if command_names & fan_patterns or has_speed_commands:
             return "fan"
 
         # Check for light patterns in commands or device name

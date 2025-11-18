@@ -224,6 +224,47 @@ class BroadlinkWebServer:
         # Start file watcher for devices.json
         self._start_file_watcher()
 
+        # Initialize entity files to prevent configuration errors
+        self._initialize_entity_files()
+
+    def _initialize_entity_files(self):
+        """
+        Create placeholder entity files if they don't exist.
+        This prevents Home Assistant configuration errors when package.yaml is referenced
+        but hasn't been generated yet.
+        """
+        try:
+            config_path = self.config_loader.get_config_path()
+            broadlink_manager_dir = config_path / "broadlink_manager"
+
+            # Create directory if it doesn't exist
+            broadlink_manager_dir.mkdir(parents=True, exist_ok=True)
+
+            # Define files to initialize
+            files_to_create = {
+                "package.yaml": "# Broadlink Manager Package\n# This file will be populated when you generate entities\n# Settings > Generate Entities to create your device configurations\n",
+                "helpers.yaml": "# Broadlink Manager Helpers\n# This file will be populated when you generate entities\n",
+            }
+
+            # Create placeholder files if they don't exist
+            for filename, content in files_to_create.items():
+                file_path = broadlink_manager_dir / filename
+                if not file_path.exists():
+                    file_path.write_text(content)
+                    logger.info(f"Created placeholder file: {file_path}")
+
+            # Also create the entities file in the config root
+            entities_file = config_path / "broadlink_manager_entities.yaml"
+            if not entities_file.exists():
+                entities_file.write_text(
+                    "# Broadlink Manager Entities\n# This file will be populated when you generate entities\n"
+                )
+                logger.info(f"Created placeholder file: {entities_file}")
+
+        except Exception as e:
+            logger.warning(f"Failed to initialize entity files: {e}")
+            # Don't fail startup if we can't create placeholders
+
     def _setup_routes(self):
         """Setup Flask routes"""
 

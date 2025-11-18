@@ -465,13 +465,11 @@ class TestCodeFileWriting:
             assert saved_data["manufacturer"] == "Custom"
 
     def test_write_code_file_already_exists(self):
-        """Test writing code file that already exists"""
+        """Test that writing fails if file already exists"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir)
-            climate_path = config_path / "custom_components" / "smartir" / "codes" / "climate"
+            climate_path = config_path / "custom_components" / "smartir" / "custom_codes" / "climate"
             climate_path.mkdir(parents=True)
-            
-            # Create existing file
             (climate_path / "10000.json").write_text('{}')
             
             detector = SmartIRDetector(str(config_path))
@@ -490,8 +488,8 @@ class TestCodeFileWriting:
             
             assert result["success"] is True
             
-            # Verify directory was created
-            climate_path = config_path / "custom_components" / "smartir" / "codes" / "climate"
+            # Verify directory was created in custom_codes
+            climate_path = config_path / "custom_components" / "smartir" / "custom_codes" / "climate"
             assert climate_path.exists()
 
 

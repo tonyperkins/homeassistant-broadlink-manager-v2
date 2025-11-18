@@ -937,7 +937,7 @@ async function saveToSmartIR() {
     
     // Show success message
     toastRef.value?.success(
-      `File: ${result.filename}\nDevice Code: ${codeNumber}\nAdded to: smartir/${profile.value.platform}.yaml\n\n⚠️ Restart Home Assistant to activate`,
+      `✅ Profile saved to custom_codes/${profile.value.platform}/${result.filename}\n✅ Device added to smartir/${profile.value.platform}.yaml\n✅ Profile visible in Broadlink Manager immediately\n\n⚠️ Restart Home Assistant for SmartIR integration to use this profile`,
       '✅ Profile Saved Successfully!'
     )
     

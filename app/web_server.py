@@ -744,26 +744,45 @@ class BroadlinkWebServer:
                         f"📝 Generating {len(broadlink_devices)} Broadlink native entities..."
                     )
 
-                    # Use device_manager directly - commands are now stored in devices.json
-                    from entity_generator_v2 import EntityGeneratorV2
+                    # Validate devices have required fields
+                    devices_missing_remote = []
+                    for device_id, device_data in broadlink_devices.items():
+                        if not device_data.get("broadlink_entity"):
+                            devices_missing_remote.append(
+                                device_data.get("name", device_id)
+                            )
 
-                    generator = EntityGeneratorV2(
-                        device_manager=self.device_manager,
-                        config_path=str(self.config_loader.get_config_path()),
-                    )
-                    broadlink_result = generator.generate_all_devices(broadlink_devices)
-
-                    if broadlink_result.get("success"):
-                        results["broadlink_count"] = broadlink_result.get(
-                            "entities_count", 0
+                    if devices_missing_remote:
+                        error_msg = (
+                            f"The following device(s) are missing a Broadlink remote entity: "
+                            f"{', '.join(devices_missing_remote)}. "
+                            f"Please edit each device and select a Broadlink remote from the dropdown."
                         )
-                        logger.info(
-                            f"✅ Generated {results['broadlink_count']} Broadlink entities"
-                        )
+                        logger.error(error_msg)
+                        results["errors"].append(f"Broadlink: {error_msg}")
                     else:
-                        results["errors"].append(
-                            f"Broadlink: {broadlink_result.get('message', 'Unknown error')}"
+                        # Use device_manager directly - commands are now stored in devices.json
+                        from entity_generator_v2 import EntityGeneratorV2
+
+                        generator = EntityGeneratorV2(
+                            device_manager=self.device_manager,
+                            config_path=str(self.config_loader.get_config_path()),
                         )
+                        broadlink_result = generator.generate_all_devices(
+                            broadlink_devices
+                        )
+
+                        if broadlink_result.get("success"):
+                            results["broadlink_count"] = broadlink_result.get(
+                                "entities_count", 0
+                            )
+                            logger.info(
+                                f"✅ Generated {results['broadlink_count']} Broadlink entities"
+                            )
+                        else:
+                            results["errors"].append(
+                                f"Broadlink: {broadlink_result.get('message', 'Unknown error')}"
+                            )
 
                 # Generate SmartIR entities
                 if smartir_devices:

@@ -1475,12 +1475,13 @@ class EntityGenerator:
                 }
 
                 # Only add direction selector if direction commands exist
+                entity_commands = entity_data.get("commands", {})
                 has_direction_commands = (
-                    "reverse" in commands
-                    or "direction" in commands
-                    or "fan_reverse" in commands
-                    or "fan_direction_forward" in commands
-                    or "fan_direction_reverse" in commands
+                    "reverse" in entity_commands
+                    or "direction" in entity_commands
+                    or "fan_reverse" in entity_commands
+                    or "fan_direction_forward" in entity_commands
+                    or "fan_direction_reverse" in entity_commands
                 )
                 if has_direction_commands:
                     helpers["input_select"][f"{sanitized_id}_direction"] = {

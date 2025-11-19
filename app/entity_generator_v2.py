@@ -48,11 +48,19 @@ class DeviceManagerAdapter:
         for device_id, device_data in devices.items():
             commands = device_data.get("commands", {})
             if not commands:
+                logger.debug(f"Skipping device '{device_id}': no commands")
                 continue
 
             # Get broadlink entity from device
             broadlink_entity = device_data.get("broadlink_entity", "")
             device_name = device_data.get("name", device_id)
+
+            logger.info(
+                f"Converting device '{device_id}' to entity: "
+                f"broadlink_entity='{broadlink_entity}', "
+                f"commands={len(commands)}, "
+                f"name='{device_name}'"
+            )
 
             # Infer entity type from commands and device info
             entity_type = self._infer_entity_type(commands, device_id, device_data)
@@ -68,6 +76,7 @@ class DeviceManagerAdapter:
                 "enabled": True,
             }
 
+        logger.info(f"Converted {len(entities)} devices to entity metadata")
         return entities
 
     def _infer_entity_type(
@@ -96,7 +105,7 @@ class DeviceManagerAdapter:
         }
         # Also check for speed_* patterns (speed_low, speed_1, etc.)
         has_speed_commands = any(cmd.startswith("speed_") for cmd in command_names)
-        
+
         if command_names & fan_patterns or has_speed_commands:
             return "fan"
 

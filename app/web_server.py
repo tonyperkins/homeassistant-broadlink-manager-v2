@@ -747,7 +747,12 @@ class BroadlinkWebServer:
                     # Validate devices have required fields
                     devices_missing_remote = []
                     for device_id, device_data in broadlink_devices.items():
-                        if not device_data.get("broadlink_entity"):
+                        broadlink_entity = device_data.get("broadlink_entity", "")
+                        logger.info(
+                            f"Device '{device_id}': broadlink_entity='{broadlink_entity}', "
+                            f"has_commands={bool(device_data.get('commands'))}"
+                        )
+                        if not broadlink_entity:
                             devices_missing_remote.append(
                                 device_data.get("name", device_id)
                             )

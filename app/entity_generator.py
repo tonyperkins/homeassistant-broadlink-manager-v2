@@ -589,7 +589,7 @@ class EntityGenerator:
 
         # Turn on (default to medium speed) - use raw base64 data
         # Get sorted list of actual speed numbers and pick the middle one
-        speed_numbers = sorted([int(k.split('_')[1]) for k in speed_commands.keys()])
+        speed_numbers = sorted([int(k.split("_")[1]) for k in speed_commands.keys()])
         default_speed_idx = (len(speed_numbers) + 1) // 2  # Middle speed (1-indexed)
         default_speed_num = speed_numbers[default_speed_idx - 1]  # Convert to 0-indexed
         default_speed_cmd_name = speed_commands.get(
@@ -645,8 +645,8 @@ class EntityGenerator:
         set_percentage_command_conditions = []  # For remote commands (base64)
 
         # Get sorted list of actual speed numbers (e.g., [1, 3, 5] not [1, 2, 3])
-        speed_numbers = sorted([int(k.split('_')[1]) for k in speed_commands.keys()])
-        
+        speed_numbers = sorted([int(k.split("_")[1]) for k in speed_commands.keys()])
+
         for idx, speed_num in enumerate(speed_numbers, start=1):
             percentage = int((idx / speed_count) * 100)
 
@@ -700,7 +700,9 @@ class EntityGenerator:
                         "sequence": [
                             {
                                 "service": "input_boolean.turn_off",
-                                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                                "target": {
+                                    "entity_id": f"input_boolean.{sanitized_id}_state"
+                                },
                             }
                         ],
                     },
@@ -709,7 +711,9 @@ class EntityGenerator:
                         "sequence": [
                             {
                                 "service": "input_boolean.turn_on",
-                                "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                                "target": {
+                                    "entity_id": f"input_boolean.{sanitized_id}_state"
+                                },
                             }
                         ],
                     },
@@ -1440,7 +1444,7 @@ class EntityGenerator:
                     "quiet": 1,
                     "auto": 3,
                 }
-                
+
                 speed_commands = {}
                 for k in entity_data["commands"].keys():
                     if k.startswith("speed_") or k.startswith("fan_speed_"):

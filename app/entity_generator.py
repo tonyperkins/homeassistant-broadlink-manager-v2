@@ -612,7 +612,7 @@ class EntityGenerator:
             {
                 "service": "input_select.select_option",
                 "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
-                "data": {"option": str(default_speed)},
+                "data": {"option": str(default_speed_idx)},
             },
         ]
 

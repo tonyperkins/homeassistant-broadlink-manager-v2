@@ -430,6 +430,7 @@ For best auto-detection results, use these naming patterns:
 
 ### 📘 User Guides
 - **[Installation Scenarios Guide](docs/INSTALLATION_SCENARIOS.md)** - Complete guide for all user types (first-time, existing, migration)
+- **[Automation Examples Guide](docs/AUTOMATION_EXAMPLES.md)** - Using learned commands in automations and dashboards
 - **[Automatic Migration Guide](docs/AUTO_MIGRATION.md)** - How automatic command discovery and migration works
 - **[Entity Customization Guide](docs/CUSTOMIZATION.md)** - Customize entity names, icons, and more
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Installation and deployment instructions

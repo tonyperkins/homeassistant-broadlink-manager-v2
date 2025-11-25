@@ -25,6 +25,14 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
   - How the system works
   - Best practices
 
+- **[Automation Examples](AUTOMATION_EXAMPLES.md)** - Using commands in automations and dashboards
+  - Basic automation examples
+  - Dashboard card configurations
+  - Time-based controls
+  - Temperature-based controls
+  - Finding device and command names
+  - Troubleshooting automation issues
+
 - **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Solutions to common problems
   - Installation issues
   - Startup problems
@@ -94,6 +102,12 @@ Complete documentation for the Broadlink Manager Home Assistant add-on.
 #### Learn IR/RF Commands
 1. Read [README.md](../README.md) - Learning Commands section
 2. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Command Learning Issues
+
+#### Use Commands in Automations
+1. Read [AUTOMATION_EXAMPLES.md](AUTOMATION_EXAMPLES.md) - Complete automation guide
+2. Check automation examples for your use case
+3. Learn dashboard card configurations
+4. If issues: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Automation troubleshooting
 
 #### Auto-Generate Entities
 1. Read [README.md](../README.md) - Auto-Generating Entities section

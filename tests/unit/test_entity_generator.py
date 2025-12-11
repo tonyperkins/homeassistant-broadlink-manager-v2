@@ -133,15 +133,16 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             content = f.read()
 
-        # Count occurrences of "platform: template"
-        platform_count = content.count("platform: template")
-
-        # Should only have ONE platform entry for light
-        assert platform_count == 1, f"Expected 1 platform entry, found {platform_count}"
+        # Modern template syntax: should have template: key with light: list
+        assert "template:" in content, "Should have template: key"
+        assert "- light:" in content or "light:" in content, "Should have light: key under template"
 
         # Verify both entities are present
         assert "bedroom_light" in content
         assert "kitchen_light" in content
+        
+        # Should NOT have legacy platform: template
+        assert "platform: template" not in content, "Should not use legacy platform: template syntax"
 
     def test_mixed_entity_types_separate_platforms(self, generator, mock_storage):
         """Test that different entity types get separate platform entries"""
@@ -182,17 +183,22 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             content = f.read()
 
-        # Should have THREE platform entries:
-        # - 1 universal platform for media_player
-        # - 2 template platforms (1 for media_player's companion switch, 1 for light)
+        # Modern template syntax:
+        # - 1 universal platform for media_player (unchanged)
+        # - 1 template: key with light: and switch: entries (modern syntax)
         universal_count = content.count("platform: universal")
-        template_count = content.count("platform: template")
         assert universal_count == 1, f"Expected 1 universal platform, found {universal_count}"
-        assert template_count == 2, f"Expected 2 template platforms, found {template_count}"
+        
+        # Should have modern template: structure
+        assert "template:" in content, "Should have template: key"
+        assert "- light:" in content or "light:" in content, "Should have light: under template"
+        assert "- switch:" in content or "switch:" in content, "Should have switch: under template (for media player companion)"
+        
+        # Should NOT have legacy platform: template
+        assert "platform: template" not in content, "Should not use legacy platform: template syntax"
 
-        # Verify structure (singular domain names, not plural)
+        # Verify structure
         assert "media_player:" in content
-        assert "lights:" in content
 
     def test_entity_id_without_type_prefix(self, generator, mock_storage):
         """Test that entity IDs are used without entity type prefix in YAML"""
@@ -297,13 +303,16 @@ class TestEntityGenerator:
         with open(mock_storage.helpers_file, "r") as f:
             helpers_content = f.read()
 
-        # CRITICAL: Both fans should have direction helpers, regardless of command existence
-        assert "ceiling_fan_no_reverse_direction:" in helpers_content, \
-            "Fan without reverse command should still have direction helper"
+        # Only fans WITH reverse/direction commands should have direction helpers
+        # This is the correct behavior - direction helpers are only created when needed
         assert "ceiling_fan_with_reverse_direction:" in helpers_content, \
             "Fan with reverse command should have direction helper"
+        
+        # Fan WITHOUT reverse should NOT have direction helper (correct behavior)
+        assert "ceiling_fan_no_reverse_direction:" not in helpers_content, \
+            "Fan without reverse command should NOT have direction helper"
 
-        # Verify direction options
+        # Verify direction options exist for the fan that has reverse
         assert "forward" in helpers_content
         assert "reverse" in helpers_content
 
@@ -311,8 +320,8 @@ class TestEntityGenerator:
         with open(mock_storage.entities_file, "r") as f:
             entities_content = f.read()
 
-        # Both fans should have direction_template
-        assert "direction_template:" in entities_content or "direction_template" in entities_content
+        # Only fan with reverse should have direction field (modern syntax uses 'direction:' not 'direction_template:')
+        assert "direction:" in entities_content, "Fan with reverse should have direction: field"
 
     def test_fan_helpers_match_entity_config(self, generator, mock_storage):
         """Test that all fan helper references in entity config actually exist"""

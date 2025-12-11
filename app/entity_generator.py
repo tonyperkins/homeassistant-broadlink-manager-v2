@@ -141,10 +141,26 @@ class EntityGenerator:
         entities: Dict[str, Dict[str, Any]],
         broadlink_commands: Dict[str, Dict[str, str]],
     ) -> Dict[str, Any]:
-        """Build the entities YAML structure"""
+        """
+        Build the entities YAML structure using modern template syntax (HA 2021.4+).
+
+        Modern syntax structure:
+        template:
+          - light:
+              - unique_id: ...
+                name: ...
+          - fan:
+              - unique_id: ...
+                name: ...
+        """
         yaml_structure = {}
-        # Temporary storage to group entities by type
-        entities_by_type = {}
+        # Storage for template entities by type (lists of entity configs)
+        template_entities = {
+            "light": [],
+            "fan": [],
+            "switch": [],
+            "cover": [],
+        }
 
         for entity_id, entity_data in entities.items():
             if not entity_data.get("enabled", True):
@@ -186,57 +202,34 @@ class EntityGenerator:
             if config:
                 # Media players use universal platform (not template), so handle differently
                 if entity_type == "media_player":
-                    # Universal media players are separate entries (not grouped)
-                    if entity_type not in yaml_structure:
-                        yaml_structure[entity_type] = []
-                    yaml_structure[entity_type].append(config)
+                    # Universal media players are separate entries (not grouped under template:)
+                    if "media_player" not in yaml_structure:
+                        yaml_structure["media_player"] = []
+                    yaml_structure["media_player"].append(config)
 
                     # Also generate companion switch for power control
                     switch_config = self._generate_media_player_switch(
                         entity_id, entity_data, broadlink_commands
                     )
                     if switch_config:
-                        if "switch" not in entities_by_type:
-                            entities_by_type["switch"] = {}
-                        # Extract switch config from wrapper
-                        switch_entity_id = f"{entity_id}_power"
-                        switch_platform_key = list(switch_config.keys())[1]
-                        switch_entity_config = switch_config[switch_platform_key][
-                            switch_entity_id
-                        ]
-                        entities_by_type["switch"][
-                            switch_entity_id
-                        ] = switch_entity_config
+                        # Add to template switches list
+                        template_entities["switch"].append(switch_config)
                 else:
-                    # Template platforms: group entities by type
-                    if entity_type not in entities_by_type:
-                        entities_by_type[entity_type] = {}
+                    # Template platforms: add entity config directly to list
+                    # Generators now return entity configs directly (not wrapped)
+                    if entity_type in template_entities:
+                        template_entities[entity_type].append(config)
 
-                    # Extract the entity config from the platform wrapper
-                    # config is like: {"platform": "template", "lights": {"entity_id": {...}}}
-                    platform_key = list(config.keys())[1]  # Get 'lights', 'fans', etc.
-                    entity_config = config[platform_key][entity_id]
-                    entities_by_type[entity_type][entity_id] = entity_config
+        # Build the modern template: structure
+        # Only include entity types that have entities
+        template_list = []
+        for entity_type, entity_configs in template_entities.items():
+            if entity_configs:
+                # Each type gets its own entry in the template list
+                template_list.append({entity_type: entity_configs})
 
-        # Now build the final YAML structure with one platform entry per type (for template platforms)
-        for entity_type, entities_dict in entities_by_type.items():
-            # Map entity_type to the correct platform key
-            platform_key_map = {
-                "light": "lights",
-                "fan": "fans",
-                "switch": "switches",
-                "cover": "covers",
-            }
-
-            platform_key = platform_key_map.get(entity_type)
-            if not platform_key:
-                logger.warning(f"Unknown platform key for entity type: {entity_type}")
-                continue
-
-            # Create single platform entry with all entities of this type
-            yaml_structure[entity_type] = [
-                {"platform": "template", platform_key: entities_dict}
-            ]
+        if template_list:
+            yaml_structure["template"] = template_list
 
         return yaml_structure
 
@@ -273,21 +266,13 @@ class EntityGenerator:
             logger.warning(f"Light {entity_id} missing required commands")
             return None
 
-        config = {
-            "platform": "template",
-            "lights": {
-                entity_id: {
-                    "unique_id": entity_id,
-                    "friendly_name": entity_data.get("name")
-                    or entity_data.get(
-                        "friendly_name", entity_id.replace("_", " ").title()
-                    ),
-                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
-                }
-            },
+        # Modern template syntax (HA 2021.4+) - return light config directly
+        light_config = {
+            "unique_id": entity_id,
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+            "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
         }
-
-        light_config = config["lights"][entity_id]
 
         # Add icon if specified
         if entity_data.get("icon"):
@@ -295,13 +280,13 @@ class EntityGenerator:
 
         # Add brightness support if brightness commands exist
         if has_brightness:
-            light_config["level_template"] = (
+            light_config["level"] = (
                 f"{{{{ states('input_number.{sanitized_id}_brightness') | int }}}}"
             )
 
         # Add color temperature support if color temp commands exist
         if has_color_temp:
-            light_config["temperature_template"] = (
+            light_config["temperature"] = (
                 f"{{{{ states('input_number.{sanitized_id}_color_temp') | int }}}}"
             )
 
@@ -474,7 +459,7 @@ class EntityGenerator:
 
                 light_config["set_temperature"] = color_temp_actions
 
-        return config
+        return light_config
 
     def _generate_fan(
         self,
@@ -551,22 +536,14 @@ class EntityGenerator:
             or "fan_direction_reverse" in commands
         )
 
-        config = {
-            "platform": "template",
-            "fans": {
-                entity_id: {
-                    "unique_id": entity_id,
-                    "friendly_name": entity_data.get("name")
-                    or entity_data.get(
-                        "friendly_name", entity_id.replace("_", " ").title()
-                    ),
-                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
-                    "speed_count": speed_count,
-                }
-            },
+        # Modern template syntax (HA 2021.4+) - return fan config directly
+        fan_config = {
+            "unique_id": entity_id,
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+            "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
+            "speed_count": speed_count,
         }
-
-        fan_config = config["fans"][entity_id]
 
         # Note: icon_template is not supported for fan entities in HA
         # Icons must be set via entity customization in HA UI or entity registry
@@ -580,7 +557,7 @@ class EntityGenerator:
             )
             percentage_conditions.append(f"  {percentage}")
 
-        fan_config["percentage_template"] = (
+        fan_config["percentage"] = (
             f"{{%- if is_state('input_select.{sanitized_id}_speed', 'off') -%}}\n"
             f"  0\n" + "\n".join(percentage_conditions) + f"\n{{%- endif -%}}"
         )
@@ -722,7 +699,7 @@ class EntityGenerator:
         # Add direction support if reverse/direction command exists
         if has_direction:
             # Direction template
-            fan_config["direction_template"] = (
+            fan_config["direction"] = (
                 f"{{{{ states('input_select.{sanitized_id}_direction') }}}}"
             )
 
@@ -768,7 +745,7 @@ class EntityGenerator:
 
             fan_config["set_direction"] = set_direction_actions
 
-        return config
+        return fan_config
 
     def _generate_switch(
         self,
@@ -799,21 +776,13 @@ class EntityGenerator:
             logger.warning(f"Switch {entity_id} missing required commands")
             return None
 
-        config = {
-            "platform": "template",
-            "switches": {
-                entity_id: {
-                    "unique_id": entity_id,
-                    "friendly_name": entity_data.get("name")
-                    or entity_data.get(
-                        "friendly_name", entity_id.replace("_", " ").title()
-                    ),
-                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
-                }
-            },
+        # Modern template syntax (HA 2021.4+) - return switch config directly
+        switch_config = {
+            "unique_id": entity_id,
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+            "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
         }
-
-        switch_config = config["switches"][entity_id]
 
         # Add icon if specified
         if entity_data.get("icon"):
@@ -879,7 +848,7 @@ class EntityGenerator:
                 },
             ]
 
-        return config
+        return switch_config
 
     def _generate_media_player(
         self,
@@ -1078,41 +1047,33 @@ class EntityGenerator:
             "friendly_name", entity_id.replace("_", " ").title()
         )
 
+        # Modern template syntax (HA 2021.4+) - return switch config directly
         config = {
-            "platform": "template",
-            "switches": {
-                switch_entity_id: {
-                    "unique_id": switch_entity_id,
-                    "friendly_name": f"{friendly_name} Power",
-                    "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
-                    "turn_on": [
-                        {
-                            "service": "remote.send_command",
-                            "target": {"entity_id": broadlink_entity},
-                            "data": {"device": device, "command": turn_on_cmd},
-                        },
-                        {
-                            "service": "input_boolean.turn_on",
-                            "target": {
-                                "entity_id": f"input_boolean.{sanitized_id}_state"
-                            },
-                        },
-                    ],
-                    "turn_off": [
-                        {
-                            "service": "remote.send_command",
-                            "target": {"entity_id": broadlink_entity},
-                            "data": {"device": device, "command": turn_off_cmd},
-                        },
-                        {
-                            "service": "input_boolean.turn_off",
-                            "target": {
-                                "entity_id": f"input_boolean.{sanitized_id}_state"
-                            },
-                        },
-                    ],
-                }
-            },
+            "unique_id": switch_entity_id,
+            "name": f"{friendly_name} Power",
+            "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
+            "turn_on": [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"device": device, "command": turn_on_cmd},
+                },
+                {
+                    "service": "input_boolean.turn_on",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ],
+            "turn_off": [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"device": device, "command": turn_off_cmd},
+                },
+                {
+                    "service": "input_boolean.turn_off",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ],
         }
 
         logger.info(f"Generated companion switch for media player {entity_id}")
@@ -1248,22 +1209,13 @@ class EntityGenerator:
             logger.warning(f"Cover {entity_id} missing open or close commands")
             return None
 
-        # Build the cover configuration
-        config = {
-            "platform": "template",
-            "covers": {
-                entity_id: {
-                    "unique_id": entity_id,
-                    "friendly_name": entity_data.get("name")
-                    or entity_data.get(
-                        "friendly_name", entity_id.replace("_", " ").title()
-                    ),
-                    "value_template": f"{{{{ is_state('input_select.{entity_id}_position', 'open') }}}}",
-                }
-            },
+        # Modern template syntax (HA 2021.4+) - return cover config directly
+        cover_config = {
+            "unique_id": entity_id,
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+            "state": f"{{{{ is_state('input_select.{entity_id}_position', 'open') }}}}",
         }
-
-        cover_config = config["covers"][entity_id]
 
         # Add icon if specified
         if entity_data.get("icon"):
@@ -1312,8 +1264,8 @@ class EntityGenerator:
             k: v for k, v in commands.items() if k.startswith("position_")
         }
         if position_commands:
-            # Add position template
-            cover_config["position_template"] = (
+            # Add position template (modern syntax uses 'position' not 'position_template')
+            cover_config["position"] = (
                 f"{{{{ states('input_number.{entity_id}_position') | int }}}}"
             )
 
@@ -1364,7 +1316,7 @@ class EntityGenerator:
         logger.info(
             f"Generated cover configuration for {entity_id} with {len(commands)} commands"
         )
-        return config
+        return cover_config
 
     def _build_helpers_yaml(
         self, entities: Dict[str, Dict[str, Any]]
@@ -1573,13 +1525,9 @@ class EntityGenerator:
         return {
             "step1": "Add these lines to your configuration.yaml:",
             "code": (
-                "# Broadlink Manager Entities\n"
-                "light: !include broadlink_manager/entities.yaml\n"
-                "fan: !include broadlink_manager/entities.yaml\n"
-                "switch: !include broadlink_manager/entities.yaml\n"
+                "# Broadlink Manager Entities (Modern Template Syntax - HA 2021.4+)\n"
+                "template: !include broadlink_manager/entities.yaml\n"
                 "media_player: !include broadlink_manager/entities.yaml\n"
-                "climate: !include broadlink_manager/entities.yaml\n"
-                "cover: !include broadlink_manager/entities.yaml\n"
                 "input_boolean: !include broadlink_manager/helpers.yaml\n"
                 "input_select: !include broadlink_manager/helpers.yaml\n"
                 "input_number: !include broadlink_manager/helpers.yaml"
@@ -1587,4 +1535,5 @@ class EntityGenerator:
             "step2": "Check your configuration (Developer Tools → YAML → Check Configuration)",
             "step3": "Restart Home Assistant",
             "step4": "Your entities will appear in Home Assistant!",
+            "note": "Requires Home Assistant 2021.4 or newer for modern template syntax support",
         }

@@ -210,6 +210,7 @@ For Home Assistant OS and Supervised installations.
 #### Prerequisites
 
 Before installing this add-on, ensure you have:
+- **Home Assistant 2021.4 or newer** (required for modern template syntax)
 - Home Assistant OS or Supervised installation
 - At least one Broadlink device configured in Home Assistant
 - The official Broadlink integration installed and working
@@ -269,6 +270,7 @@ For Home Assistant installations that don't support add-ons (Container, Core, or
 
 #### Prerequisites
 
+- **Home Assistant 2021.4 or newer** (required for modern template syntax)
 - **Home Assistant** (any installation type: Container, Core, etc.)
 - **Docker and Docker Compose** installed on your host
 - **Network access** to Home Assistant

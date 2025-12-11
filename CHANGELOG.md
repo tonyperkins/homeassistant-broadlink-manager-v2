@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.0-alpha.29] - 2024-12-10
+
+### Fixed
+- **CRITICAL: Modern Template Syntax** - Updated entity generator to use Home Assistant's modern template syntax (HA 2021.4+)
+  - Fixed all template field names to match modern syntax standards
+  - Changed `value_template:` → `state:` (all entity types)
+  - Changed `level_template:` → `level:` (light brightness)
+  - Changed `temperature_template:` → `temperature:` (light color temp)
+  - Changed `percentage_template:` → `percentage:` (fan speed)
+  - Changed `direction_template:` → `direction:` (fan direction)
+  - Changed `position_template:` → `position:` (cover position)
+  - Changed `friendly_name:` → `name:` (all entity types)
+  - Updated `_build_entities_yaml()` to generate `template:` structure instead of `platform: template`
+  - Updated setup instructions to use `template: !include` instead of individual platform includes
+  - **Prevents Home Assistant deprecation warnings and ensures compatibility with HA 2026.6+**
+  - **Minimum HA version now: 2021.4 or newer**
+
+### Added
+- Comprehensive migration guide: `docs/TEMPLATE_SYNTAX_MIGRATION.md`
+- Complete field name reference: `docs/development/TEMPLATE_FIELD_NAMES.md`
+- Updated README.md with HA 2021.4+ requirement in prerequisites
+
+### Changed
+- Entity generation now produces modern `template:` YAML structure
+- Configuration.yaml setup simplified to single `template:` include line
+- All generated entities now use modern syntax by default
+
 ## [0.3.0-alpha.25] - 2025-11-18
 
 ### Fixed

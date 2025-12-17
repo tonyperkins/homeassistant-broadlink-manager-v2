@@ -217,6 +217,10 @@ Before installing this add-on, ensure you have:
 
 ### Step 1: Add the Repository
 
+[![Add repository on my Home Assistant][repository-badge]][repository-url]
+
+*Manual setup steps:*
+
 1. Navigate to **Settings** → **Add-ons** in your Home Assistant interface
 2. Click the **Add-on Store** button (bottom right)
 3. Click the **⋮** menu (top right) and select **Repositories**
@@ -535,3 +539,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 [issue]: https://github.com/tonyperkins/homeassistant-broadlink-manager/issues
 [reddit]: https://reddit.com/r/homeassistant
 [repository]: https://github.com/tonyperkins/homeassistant-broadlink-manager
+[repository-badge]: https://img.shields.io/badge/Add%20repository%20to%20my-Home%20Assistant-41BDF5?logo=home-assistant&style=for-the-badge
+[repository-url]: https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Ftonyperkins%2Fhomeassistant-broadlink-manager-v2

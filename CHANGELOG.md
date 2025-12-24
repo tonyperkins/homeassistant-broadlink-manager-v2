@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.30] - 2024-12-23
+
+### Fixed
+- **Entity Generation: Brightness Range Conversion** - Fixed brightness values incorrectly mapped between Home Assistant's 0-255 scale and helper's 0-100 percentage scale
+  - Added bidirectional conversion: helper 0-100% ↔ HA 0-255 brightness
+  - Fixes "can't go above 100" error when setting brightness above 50%
+  - Fixes 100% brightness displaying as "255%" instead of "100%"
+  - Helper now correctly stores and displays 0-100 percentage values
+  
+- **Entity Generation: Custom Commands Support** - Custom commands with non-standard names now automatically generate as button entities
+  - Detects commands that don't match standard patterns (turn_on, brightness_up, etc.)
+  - Creates template button entities for each custom command (e.g., warm_tone, cool_tone, reading_mode)
+  - Auto-generates friendly names (e.g., "Living Room Light Warm Tone")
+  - Buttons appear alongside main entity in Home Assistant
+  - Standard commands remain integrated in main entity (not duplicated as buttons)
+
+### Added
+- Complete entity generation fixes documentation: `docs/ENTITY_GENERATION_FIXES.md`
+- Comprehensive testing guide: `docs/TESTING_ENTITY_FIXES.md`
+- New method `_generate_custom_command_buttons()` in entity generator
+
+### Changed
+- Entity generator now includes `button` type in template entities
+- Light entities now properly convert brightness between HA and helper scales
+
 ## [0.3.0-alpha.29] - 2024-12-10
 
 ### Fixed

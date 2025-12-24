@@ -160,6 +160,7 @@ class EntityGenerator:
             "fan": [],
             "switch": [],
             "cover": [],
+            "button": [],
         }
 
         for entity_id, entity_data in entities.items():
@@ -219,6 +220,13 @@ class EntityGenerator:
                     # Generators now return entity configs directly (not wrapped)
                     if entity_type in template_entities:
                         template_entities[entity_type].append(config)
+
+            # Generate button entities for custom commands
+            custom_buttons = self._generate_custom_command_buttons(
+                entity_id, entity_data, broadlink_commands
+            )
+            if custom_buttons:
+                template_entities["button"].extend(custom_buttons)
 
         # Build the modern template: structure
         # Only include entity types that have entities
@@ -280,8 +288,9 @@ class EntityGenerator:
 
         # Add brightness support if brightness commands exist
         if has_brightness:
+            # Convert helper's 0-100 percentage to HA's 0-255 brightness scale
             light_config["level"] = (
-                f"{{{{ states('input_number.{sanitized_id}_brightness') | int }}}}"
+                f"{{{{ (states('input_number.{sanitized_id}_brightness') | int * 255 / 100) | int }}}}"
             )
 
         # Add color temperature support if color temp commands exist
@@ -406,11 +415,12 @@ class EntityGenerator:
                 )
 
             # Update the brightness helper
+            # Convert HA's 0-255 brightness to 0-100 percentage for the helper
             brightness_actions.append(
                 {
                     "service": "input_number.set_value",
                     "target": {"entity_id": f"input_number.{sanitized_id}_brightness"},
-                    "data": {"value": "{{ brightness }}"},
+                    "data": {"value": "{{ (brightness * 100 / 255) | int }}"},
                 }
             )
 
@@ -1317,6 +1327,125 @@ class EntityGenerator:
             f"Generated cover configuration for {entity_id} with {len(commands)} commands"
         )
         return cover_config
+
+    def _generate_custom_command_buttons(
+        self,
+        entity_id: str,
+        entity_data: Dict[str, Any],
+        broadlink_commands: Dict[str, Dict[str, str]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate button entities for custom commands that don't fit standard patterns.
+        This allows users to trigger any learned command, even if it's not part of the
+        main entity's standard controls (like custom light tones, special modes, etc.)
+        """
+        device = entity_data["device"]
+        commands = entity_data["commands"]
+
+        # Get the Broadlink entity to use
+        broadlink_entity = self._get_broadlink_entity(entity_data)
+        if not broadlink_entity:
+            return []
+
+        # Define standard command names that are already handled by main entities
+        standard_commands = {
+            # Light commands
+            "turn_on",
+            "turn_off",
+            "toggle",
+            "brightness_up",
+            "brightness_down",
+            "bright",
+            "dim",
+            "cooler",
+            "warmer",
+            # Fan commands
+            "fan_on",
+            "fan_off",
+            "fan_toggle",
+            "fan_reverse",
+            # Switch commands
+            "on",
+            "off",
+            # Cover commands
+            "open",
+            "close",
+            "stop",
+            "open_tilt",
+            "close_tilt",
+            # Media player commands
+            "power",
+            "volume_up",
+            "volume_down",
+            "mute",
+            "play",
+            "pause",
+            "stop",
+            "next",
+            "previous",
+            "source_hdmi1",
+            "source_hdmi2",
+            "source_hdmi3",
+            "source_hdmi4",
+            "source_tv",
+            "source_av",
+            "source_usb",
+        }
+
+        # Also exclude speed/position commands (handled by main entity)
+        def is_standard_command(cmd_name):
+            if cmd_name in standard_commands:
+                return True
+            if cmd_name.startswith("speed_") or cmd_name.startswith("fan_speed_"):
+                return True
+            if cmd_name.startswith("position_"):
+                return True
+            if cmd_name.startswith("source_"):
+                return True
+            return False
+
+        # Find custom commands
+        custom_commands = {
+            k: v for k, v in commands.items() if not is_standard_command(k)
+        }
+
+        if not custom_commands:
+            return []
+
+        # Generate button entities for each custom command
+        buttons = []
+
+        for cmd_name, cmd_ref in custom_commands.items():
+            # Get the actual command code
+            cmd_code = broadlink_commands.get(device, {}).get(cmd_ref, "")
+            if not cmd_code:
+                logger.warning(f"No command code found for {device}.{cmd_name}")
+                continue
+
+            # Create a friendly name from the command name
+            friendly_cmd_name = cmd_name.replace("_", " ").title()
+
+            # Get the parent entity's display name
+            parent_name = entity_data.get("name") or entity_data.get(
+                "friendly_name", entity_id.replace("_", " ").title()
+            )
+
+            button_config = {
+                "unique_id": f"{entity_id}_{cmd_name}_button",
+                "name": f"{parent_name} {friendly_cmd_name}",
+                "press": [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{cmd_code}"},
+                    }
+                ],
+            }
+
+            buttons.append(button_config)
+            logger.info(f"Generated button for custom command: {entity_id}.{cmd_name}")
+
+        return buttons
 
     def _build_helpers_yaml(
         self, entities: Dict[str, Dict[str, Any]]

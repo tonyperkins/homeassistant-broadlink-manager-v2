@@ -2126,36 +2126,72 @@ class BroadlinkWebServer:
                     )
 
                     if not self.pending_command_polls:
-                        # Check if there are any pending commands in devices.json and add them
+                        # Check if there are any pending commands in devices.json and SmartIR profiles
                         logger.debug(
-                            "📋 Poll list empty, scanning devices.json for pending commands..."
+                            "📋 Poll list empty, scanning for pending commands..."
                         )
                         devices = self.device_manager.get_all_devices()
                         found_pending = False
 
                         for device_id, device in devices.items():
-                            commands = device.get("commands", {})
+                            device_type = device.get("device_type", "broadlink")
                             device_name = device.get("device_id", device_id)
+                            
+                            if device_type == "smartir":
+                                # SmartIR device - check profile JSON file for pending commands
+                                device_code = device.get("device_code")
+                                entity_type = device.get("entity_type", "climate")
+                                
+                                if device_code:
+                                    try:
+                                        smartir_path = self.config_path / ".." / "custom_components" / "smartir"
+                                        profile_path = smartir_path / "custom_codes" / entity_type / f"{device_code}.json"
+                                        
+                                        if profile_path.exists():
+                                            with open(profile_path, "r", encoding="utf-8") as f:
+                                                profile_data = json.load(f)
+                                            
+                                            commands = profile_data.get("commands", {})
+                                            for cmd_name, cmd_code in commands.items():
+                                                if cmd_code == "pending":
+                                                    found_pending = True
+                                                    logger.info(
+                                                        f"📋 Found pending SmartIR command in profile {device_code}: {cmd_name}"
+                                                    )
+                                                    self.pending_command_polls.append(
+                                                        (
+                                                            device_id,
+                                                            device_name,
+                                                            cmd_name,
+                                                            time.time(),
+                                                            None,
+                                                        )
+                                                    )
+                                    except Exception as e:
+                                        logger.debug(f"Error scanning SmartIR profile {device_code}: {e}")
+                            else:
+                                # Broadlink native device - check devices.json
+                                commands = device.get("commands", {})
 
-                            for cmd_name, cmd_data in commands.items():
-                                if (
-                                    isinstance(cmd_data, dict)
-                                    and cmd_data.get("data") == "pending"
-                                ):
-                                    found_pending = True
-                                    # Add to poll list if not already there
-                                    logger.info(
-                                        f"📋 Found untracked pending command: {device_name}/{cmd_name}, adding to poll list"
-                                    )
-                                    self.pending_command_polls.append(
-                                        (
-                                            device_id,
-                                            device_name,
-                                            cmd_name,
-                                            time.time(),
-                                            None,
+                                for cmd_name, cmd_data in commands.items():
+                                    if (
+                                        isinstance(cmd_data, dict)
+                                        and cmd_data.get("data") == "pending"
+                                    ):
+                                        found_pending = True
+                                        # Add to poll list if not already there
+                                        logger.info(
+                                            f"📋 Found untracked pending command: {device_name}/{cmd_name}, adding to poll list"
                                         )
-                                    )
+                                        self.pending_command_polls.append(
+                                            (
+                                                device_id,
+                                                device_name,
+                                                cmd_name,
+                                                time.time(),
+                                                None,
+                                            )
+                                        )
 
                         if not found_pending:
                             # No more pending commands anywhere, stop thread
@@ -2212,27 +2248,68 @@ class BroadlinkWebServer:
                                     f"✅ Found code for {device_name}/{command_name} after {elapsed:.1f}s (length: {len(learned_code)} chars)"
                                 )
 
-                                # Update devices.json
+                                # Update devices.json or SmartIR profile
                                 device = self.device_manager.get_device(device_id)
                                 if device:
-                                    if "commands" not in device:
-                                        device["commands"] = {}
-
-                                    # Update with actual code
-                                    if command_name in device["commands"]:
-                                        device["commands"][command_name][
-                                            "data"
-                                        ] = learned_code
-                                        self.device_manager.update_device(
-                                            device_id, device
-                                        )
-                                        logger.info(
-                                            f"✅ Updated devices.json with actual code for {device_name}/{command_name}"
-                                        )
+                                    device_type = device.get("device_type", "broadlink")
+                                    
+                                    if device_type == "smartir":
+                                        # SmartIR device - update profile JSON file
+                                        device_code = device.get("device_code")
+                                        entity_type = device.get("entity_type", "climate")
+                                        
+                                        if device_code:
+                                            try:
+                                                # Get SmartIR path
+                                                smartir_path = self.config_path / ".." / "custom_components" / "smartir"
+                                                profile_path = smartir_path / "custom_codes" / entity_type / f"{device_code}.json"
+                                                
+                                                if profile_path.exists():
+                                                    # Read profile
+                                                    with open(profile_path, "r", encoding="utf-8") as f:
+                                                        profile_data = json.load(f)
+                                                    
+                                                    # Update command
+                                                    if "commands" not in profile_data:
+                                                        profile_data["commands"] = {}
+                                                    
+                                                    profile_data["commands"][command_name] = learned_code
+                                                    
+                                                    # Write back
+                                                    with open(profile_path, "w", encoding="utf-8") as f:
+                                                        json.dump(profile_data, f, indent=2, ensure_ascii=False)
+                                                    
+                                                    logger.info(
+                                                        f"✅ Updated SmartIR profile {device_code}.json with code for {command_name}"
+                                                    )
+                                                else:
+                                                    logger.warning(
+                                                        f"⚠️ SmartIR profile {profile_path} not found"
+                                                    )
+                                            except Exception as e:
+                                                logger.error(
+                                                    f"❌ Error updating SmartIR profile: {e}"
+                                                )
                                     else:
-                                        logger.warning(
-                                            f"⚠️ Command {command_name} not found in devices.json"
-                                        )
+                                        # Broadlink native device - update devices.json
+                                        if "commands" not in device:
+                                            device["commands"] = {}
+
+                                        # Update with actual code
+                                        if command_name in device["commands"]:
+                                            device["commands"][command_name][
+                                                "data"
+                                            ] = learned_code
+                                            self.device_manager.update_device(
+                                                device_id, device
+                                            )
+                                            logger.info(
+                                                f"✅ Updated devices.json with actual code for {device_name}/{command_name}"
+                                            )
+                                        else:
+                                            logger.warning(
+                                                f"⚠️ Command {command_name} not found in devices.json"
+                                            )
                                 else:
                                     logger.warning(
                                         f"⚠️ Device {device_id} not found in device_manager"

@@ -2139,7 +2139,7 @@ class BroadlinkWebServer:
                         devices = self.device_manager.get_all_devices()
                         for device_id, device in devices.items():
                             device_type = device.get("device_type", "broadlink")
-                            
+
                             if device_type == "broadlink":
                                 # Broadlink native device - check devices.json
                                 device_name = device.get("device_id", device_id)
@@ -2163,46 +2163,46 @@ class BroadlinkWebServer:
                                                 None,
                                             )
                                         )
-                        
+
                         # 2. Scan SmartIR profile directories directly (independent of devices.json)
                         try:
                             smartir_path = self.config_path / "custom_components" / "smartir"
                             custom_codes_path = smartir_path / "custom_codes"
-                            
+
                             if custom_codes_path.exists():
                                 # Scan each platform directory (climate, fan, media_player, light)
                                 for platform_dir in custom_codes_path.iterdir():
                                     if platform_dir.is_dir():
                                         platform = platform_dir.name
-                                        
+
                                         # Scan all profile JSON files in this platform
                                         for profile_file in platform_dir.glob("*.json"):
                                             try:
                                                 with open(profile_file, "r", encoding="utf-8") as f:
                                                     profile_data = json.load(f)
-                                                
+
                                                 device_code = profile_file.stem
                                                 manufacturer = profile_data.get("manufacturer", "")
                                                 model = profile_data.get("supportedModels", [""])[0]
                                                 commands = profile_data.get("commands", {})
-                                                
+
                                                 # Check for pending commands
                                                 for cmd_name, cmd_code in commands.items():
                                                     if cmd_code == "pending":
                                                         found_pending = True
-                                                        
+
                                                         # Generate device name from manufacturer/model for storage lookup
                                                         import re
                                                         device_name = f"{manufacturer.lower()}_{model.lower()}"
                                                         device_name = re.sub(r"[^a-z0-9]+", "_", device_name)
-                                                        
+
                                                         logger.info(
                                                             f"📋 Found pending SmartIR command in profile {device_code} ({platform}): {cmd_name}"
                                                         )
-                                                        
+
                                                         # Use profile path as device_id for SmartIR profiles
                                                         profile_id = f"smartir_{platform}_{device_code}"
-                                                        
+
                                                         self.pending_command_polls.append(
                                                             (
                                                                 profile_id,
@@ -2243,7 +2243,7 @@ class BroadlinkWebServer:
                         else:
                             device_id, device_name, command_name, start_time, entity_id_for_deletion = poll_item
                             metadata = None
-                        
+
                         elapsed = current_time - start_time
 
                         # Try to fetch the code
@@ -2283,22 +2283,22 @@ class BroadlinkWebServer:
                                     # SmartIR profile - update profile JSON file directly
                                     try:
                                         profile_path = Path(metadata["smartir_profile"])
-                                        
+
                                         if profile_path.exists():
                                             # Read profile
                                             with open(profile_path, "r", encoding="utf-8") as f:
                                                 profile_data = json.load(f)
-                                            
+
                                             # Update command
                                             if "commands" not in profile_data:
                                                 profile_data["commands"] = {}
-                                            
+
                                             profile_data["commands"][command_name] = learned_code
-                                            
+
                                             # Write back
                                             with open(profile_path, "w", encoding="utf-8") as f:
                                                 json.dump(profile_data, f, indent=2, ensure_ascii=False)
-                                            
+
                                             logger.info(
                                                 f"✅ Updated SmartIR profile {metadata['device_code']}.json with code for {command_name}"
                                             )

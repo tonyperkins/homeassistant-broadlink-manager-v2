@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.31] - 2025-12-26
+
+### Fixed
+- **SmartIR Command Learning** - Fixed SmartIR profile polling and command learning workflow
+  - Fixed incorrect SmartIR path in polling (removed `..` directory traversal)
+  - Added SmartIR metadata support to command learning system
+  - Implemented profile scanning fallback to detect SmartIR devices without devices.json entries
+  - Polling now correctly updates SmartIR profile JSON files when commands are learned
+  - Fixed issue where learned commands stayed "pending" in SmartIR profiles
+  - Removed duplicate device entries from climate.yaml to prevent unique_id conflicts
+
+### Added
+- Comprehensive command learning architecture documentation: `docs/development/COMMAND_LEARNING_ARCHITECTURE.md`
+  - Explains API flow, storage file polling, and SmartIR vs Broadlink native handling
+  - Documents the 3-60 second storage write lag and polling mechanism
+  - Includes debugging guide with log examples and troubleshooting tips
+
+### Changed
+- `schedule_command_poll()` now accepts optional `smartir_metadata` parameter
+- Command learning endpoint detects SmartIR devices via profile scanning when not in devices.json
+- Polling thread handles both 5-element and 6-element tuple formats for backward compatibility
+
 ## [0.3.0-alpha.30] - 2024-12-23
 
 ### Fixed

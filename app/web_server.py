@@ -2070,6 +2070,7 @@ class BroadlinkWebServer:
         device_name: str,
         command_name: str,
         entity_id_for_deletion: Optional[str] = None,
+        smartir_metadata: Optional[dict] = None,
     ):
         """
         Schedule background polling for a pending command.
@@ -2079,9 +2080,10 @@ class BroadlinkWebServer:
             device_name: Device name for storage lookup
             command_name: Command name
             entity_id_for_deletion: If set, delete command from this entity after fetching (manager_only mode)
+            smartir_metadata: Optional SmartIR profile metadata (profile path, device_code, platform)
         """
         with self.poll_lock:
-            # Add to poll list (device_id, device_name, command_name, start_time, entity_id_for_deletion)
+            # Add to poll list with optional metadata for SmartIR profiles
             self.pending_command_polls.append(
                 (
                     device_id,
@@ -2089,6 +2091,7 @@ class BroadlinkWebServer:
                     command_name,
                     time.time(),
                     entity_id_for_deletion,
+                    smartir_metadata,
                 )
             )
             if entity_id_for_deletion:

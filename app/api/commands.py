@@ -175,6 +175,26 @@ def learn_command():
 
                 # Schedule background task to poll for the actual code
                 # Pass entity_id so it can delete after fetching
+                # For SmartIR devices, also pass profile metadata
+                smartir_metadata = None
+                device_manager = current_app.config.get("device_manager")
+                if device_manager and device_id:
+                    managed_device = device_manager.get_device(device_id)
+                    if managed_device and managed_device.get("device_type") == "smartir":
+                        # This is a SmartIR device - add metadata for profile update
+                        device_code = managed_device.get("device_code")
+                        entity_type = managed_device.get("entity_type", "climate")
+                        if device_code:
+                            config_path = current_app.config.get("config_path", "/config")
+                            from pathlib import Path
+                            profile_path = Path(config_path) / "custom_components" / "smartir" / "custom_codes" / entity_type / f"{device_code}.json"
+                            smartir_metadata = {
+                                "smartir_profile": str(profile_path),
+                                "device_code": device_code,
+                                "platform": entity_type
+                            }
+                            logger.info(f"📋 SmartIR device detected - will update profile {device_code}.json")
+                
                 logger.info(
                     f"Scheduling background poll for command '{command}' on device '{device}'"
                 )
@@ -183,6 +203,7 @@ def learn_command():
                     device,
                     command,
                     entity_id if save_destination == "manager_only" else None,
+                    smartir_metadata,
                 )
 
                 # NOTE: We DON'T add to storage cache for manager_only commands

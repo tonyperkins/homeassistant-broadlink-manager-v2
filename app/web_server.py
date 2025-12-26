@@ -2163,7 +2163,7 @@ class BroadlinkWebServer:
                         
                         # 2. Scan SmartIR profile directories directly (independent of devices.json)
                         try:
-                            smartir_path = self.config_path / ".." / "custom_components" / "smartir"
+                            smartir_path = self.config_path / "custom_components" / "smartir"
                             custom_codes_path = smartir_path / "custom_codes"
                             
                             if custom_codes_path.exists():

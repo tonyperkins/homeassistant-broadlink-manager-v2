@@ -177,6 +177,8 @@ def learn_command():
                 # Pass entity_id so it can delete after fetching
                 # For SmartIR devices, also pass profile metadata
                 smartir_metadata = None
+                
+                # Try to detect SmartIR device from devices.json first
                 device_manager = current_app.config.get("device_manager")
                 if device_manager and device_id:
                     managed_device = device_manager.get_device(device_id)
@@ -193,7 +195,50 @@ def learn_command():
                                 "device_code": device_code,
                                 "platform": entity_type
                             }
-                            logger.info(f"📋 SmartIR device detected - will update profile {device_code}.json")
+                            logger.info(f"📋 SmartIR device detected from devices.json - will update profile {device_code}.json")
+                
+                # If not found in devices.json, scan SmartIR profiles by device name
+                if not smartir_metadata:
+                    try:
+                        config_path = current_app.config.get("config_path", "/config")
+                        from pathlib import Path
+                        smartir_path = Path(config_path) / "custom_components" / "smartir"
+                        custom_codes_path = smartir_path / "custom_codes"
+                        
+                        if custom_codes_path.exists():
+                            # Scan all platforms for matching profile
+                            for platform_dir in custom_codes_path.iterdir():
+                                if platform_dir.is_dir():
+                                    platform = platform_dir.name
+                                    for profile_file in platform_dir.glob("*.json"):
+                                        try:
+                                            import json
+                                            with open(profile_file, "r", encoding="utf-8") as f:
+                                                profile_data = json.load(f)
+                                            
+                                            # Generate device name from manufacturer/model
+                                            import re
+                                            manufacturer = profile_data.get("manufacturer", "")
+                                            model = profile_data.get("supportedModels", [""])[0]
+                                            profile_device_name = f"{manufacturer.lower()}_{model.lower()}"
+                                            profile_device_name = re.sub(r"[^a-z0-9]+", "_", profile_device_name)
+                                            
+                                            # Check if this profile matches the device being learned
+                                            if profile_device_name == device.lower():
+                                                device_code = profile_file.stem
+                                                smartir_metadata = {
+                                                    "smartir_profile": str(profile_file),
+                                                    "device_code": device_code,
+                                                    "platform": platform
+                                                }
+                                                logger.info(f"📋 SmartIR device detected by profile scan - will update profile {device_code}.json")
+                                                break
+                                        except Exception as e:
+                                            logger.debug(f"Error checking profile {profile_file}: {e}")
+                                    if smartir_metadata:
+                                        break
+                    except Exception as e:
+                        logger.debug(f"Error scanning SmartIR profiles: {e}")
                 
                 logger.info(
                     f"Scheduling background poll for command '{command}' on device '{device}'"

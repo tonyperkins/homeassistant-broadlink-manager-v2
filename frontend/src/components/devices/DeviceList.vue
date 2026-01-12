@@ -1000,8 +1000,7 @@ const generateEntities = async () => {
       // File locations
       if (broadlinkCount > 0) {
         messageParts.push('\n📁 Broadlink entities created in:')
-        messageParts.push('  • broadlink_manager/entities.yaml')
-        messageParts.push('  • broadlink_manager/helpers.yaml')
+        messageParts.push('  • broadlink_manager/package.yaml')
       }
       
       if (smartirCount > 0) {
@@ -1013,7 +1012,10 @@ const generateEntities = async () => {
       
       // Configuration instructions
       messageParts.push('\n📝 Next steps:')
-      messageParts.push('1. Check your configuration.yaml includes the generated files')
+      messageParts.push('1. Add to configuration.yaml:')
+      messageParts.push('   homeassistant:')
+      messageParts.push('     packages:')
+      messageParts.push('       broadlink_manager: !include broadlink_manager/package.yaml')
       messageParts.push('2. Restart Home Assistant to load the new entities')
       
       // Show errors if any

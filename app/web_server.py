@@ -253,14 +253,6 @@ class BroadlinkWebServer:
                     file_path.write_text(content)
                     logger.info(f"Created placeholder file: {file_path}")
 
-            # Also create the entities file in the config root
-            entities_file = config_path / "broadlink_manager_entities.yaml"
-            if not entities_file.exists():
-                entities_file.write_text(
-                    "# Broadlink Manager Entities\n# This file will be populated when you generate entities\n"
-                )
-                logger.info(f"Created placeholder file: {entities_file}")
-
         except Exception as e:
             logger.warning(f"Failed to initialize entity files: {e}")
             # Don't fail startup if we can't create placeholders

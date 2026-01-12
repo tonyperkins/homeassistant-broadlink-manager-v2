@@ -230,11 +230,9 @@ Learned commands found in storage
 
 5. **Add to Configuration** (2 min)
    ```yaml
-   light: !include broadlink_manager/entities.yaml
-   fan: !include broadlink_manager/entities.yaml
-   switch: !include broadlink_manager/entities.yaml
-   input_boolean: !include broadlink_manager/helpers.yaml
-   input_select: !include broadlink_manager/helpers.yaml
+   homeassistant:
+     packages:
+       broadlink_manager: !include broadlink_manager/package.yaml
    ```
 
 6. **Restart Home Assistant** (1-2 min)

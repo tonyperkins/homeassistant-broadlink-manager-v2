@@ -1052,7 +1052,7 @@ function generateSmartIRJson(profile) {
     supportedController: "Broadlink",
     commandsEncoding: "Base64",
     commandType: profile.commandType || 'ir',  // Store IR or RF type
-    commands: {}
+    commands: profile.commands || {}  // Always include commands from profile
   }
   
   if (profile.platform === 'climate') {
@@ -1075,9 +1075,6 @@ function generateSmartIRJson(profile) {
     if (profile.config.presetModes && profile.config.presetModes.length > 0) {
       json.presetModes = profile.config.presetModes
     }
-    
-    // Add temperature commands
-    json.commands = profile.commands
   }
   
   return json

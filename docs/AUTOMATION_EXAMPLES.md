@@ -629,18 +629,6 @@ homeassistant:
     broadlink_manager: !include broadlink_manager/package.yaml
 ```
 
-**Alternative (Individual Includes):**
-
-If you prefer more control, you can include files individually:
-
-```yaml
-light: !include broadlink_manager/entities.yaml
-fan: !include broadlink_manager/entities.yaml
-switch: !include broadlink_manager/entities.yaml
-input_boolean: !include broadlink_manager/helpers.yaml
-input_select: !include broadlink_manager/helpers.yaml
-```
-
 ### Step 4: Restart Home Assistant
 
 After restarting, you'll have proper entities that can be used like any other Home Assistant entity:

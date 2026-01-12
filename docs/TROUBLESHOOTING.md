@@ -354,7 +354,9 @@ This guide helps you diagnose and fix common issues with the Broadlink Manager a
 
 2. **Verify include paths**:
    ```yaml
-   light: !include broadlink_manager/entities.yaml
+   homeassistant:
+     packages:
+       broadlink_manager: !include broadlink_manager/package.yaml
    ```
 
 3. **Check file permissions**:
@@ -367,7 +369,7 @@ This guide helps you diagnose and fix common issues with the Broadlink Manager a
    - Generate again
 
 5. **Manual YAML review**:
-   - Open `/config/broadlink_manager/entities.yaml`
+   - Open `/config/broadlink_manager/package.yaml`
    - Check for syntax errors
    - Verify indentation (2 spaces)
 
@@ -381,11 +383,9 @@ This guide helps you diagnose and fix common issues with the Broadlink Manager a
 
 1. **Verify includes in configuration.yaml**:
    ```yaml
-   light: !include broadlink_manager/entities.yaml
-   fan: !include broadlink_manager/entities.yaml
-   switch: !include broadlink_manager/entities.yaml
-   input_boolean: !include broadlink_manager/helpers.yaml
-   input_select: !include broadlink_manager/helpers.yaml
+   homeassistant:
+     packages:
+       broadlink_manager: !include broadlink_manager/package.yaml
    ```
 
 2. **Check for duplicate includes**:

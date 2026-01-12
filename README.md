@@ -393,20 +393,11 @@ The add-on can automatically create Home Assistant entities from your learned co
 3. **Generate entity files** by clicking the "Generate Entities" button
 4. **Add to configuration.yaml** (if not already using the package method):
 
-   **Option A: Using Package (Recommended)** - If you added this during setup, you're done!
+   Add to your `configuration.yaml`:
    ```yaml
    homeassistant:
      packages:
        broadlink_manager: !include broadlink_manager/package.yaml
-   ```
-
-   **Option B: Individual Includes** - Only if you prefer manual control:
-   ```yaml
-   light: !include broadlink_manager/entities.yaml
-   fan: !include broadlink_manager/entities.yaml
-   switch: !include broadlink_manager/entities.yaml
-   input_boolean: !include broadlink_manager/helpers.yaml
-   input_select: !include broadlink_manager/helpers.yaml
    ```
 
 5. **Restart Home Assistant** and your entities will appear!

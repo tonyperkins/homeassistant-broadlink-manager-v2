@@ -99,7 +99,6 @@ class EntityGenerator:
             package_yaml = {**entities_yaml, **helpers_yaml}
 
             # Write files
-            self._write_yaml_file(self.storage.entities_file, entities_yaml)
             self._write_yaml_file(self.storage.helpers_file, helpers_yaml)
             self._write_yaml_file(self.storage.package_file, package_yaml)
 
@@ -121,7 +120,7 @@ class EntityGenerator:
                 "entities_count": len(entities),
                 "entity_counts": entity_counts,
                 "files": {
-                    "entities": str(self.storage.entities_file),
+                    "package": str(self.storage.package_file),
                     "helpers": str(self.storage.helpers_file),
                 },
                 "timestamp": timestamp,
@@ -1654,12 +1653,9 @@ class EntityGenerator:
         return {
             "step1": "Add these lines to your configuration.yaml:",
             "code": (
-                "# Broadlink Manager Entities (Modern Template Syntax - HA 2021.4+)\n"
-                "template: !include broadlink_manager/entities.yaml\n"
-                "media_player: !include broadlink_manager/entities.yaml\n"
-                "input_boolean: !include broadlink_manager/helpers.yaml\n"
-                "input_select: !include broadlink_manager/helpers.yaml\n"
-                "input_number: !include broadlink_manager/helpers.yaml"
+                "homeassistant:\n"
+                "  packages:\n"
+                "    broadlink_manager: !include broadlink_manager/package.yaml"
             ),
             "step2": "Check your configuration (Developer Tools → YAML → Check Configuration)",
             "step3": "Restart Home Assistant",

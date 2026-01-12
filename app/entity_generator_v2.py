@@ -26,7 +26,6 @@ class DeviceManagerAdapter:
     def __init__(self, device_manager, config_path: Path):
         self.device_manager = device_manager
         self.config_path = Path(config_path)
-        self.entities_file = self.config_path / "broadlink_manager_entities.yaml"
         self.helpers_file = self.config_path / "broadlink_manager" / "helpers.yaml"
         self.package_file = self.config_path / "broadlink_manager" / "package.yaml"
 

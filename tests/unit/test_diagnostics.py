@@ -215,7 +215,7 @@ class TestStorageInfoCollection:
             
             # Create test files
             (storage_path / "devices.json").write_text('{"test": "data"}')
-            (storage_path / "entities.yaml").write_text("test: data")
+            (storage_path / "package.yaml").write_text("test: data")
             
             collector = DiagnosticsCollector(str(storage_path))
             info = collector._collect_storage_info()
@@ -224,7 +224,7 @@ class TestStorageInfoCollection:
             assert info["files"]["devices.json"]["exists"] is True
             assert info["files"]["devices.json"]["size"] > 0
             assert "modified" in info["files"]["devices.json"]
-            assert info["files"]["entities.yaml"]["exists"] is True
+            assert info["files"]["package.yaml"]["exists"] is True
 
     def test_collect_storage_info_with_command_files(self):
         """Test storage info collection with command files"""

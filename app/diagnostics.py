@@ -373,7 +373,7 @@ class DiagnosticsCollector:
                     "devices.json.backup",
                     "metadata.json",
                     "metadata.json.backup",
-                    "entities.yaml",
+                    "package.yaml",
                     "helpers.yaml",
                 ]
 

@@ -143,6 +143,7 @@ def flask_app():
     config_loader.get_ha_url.return_value = 'http://localhost:8123'
     config_loader.get_ha_token.return_value = 'test_token'
     temp_storage = Path(tempfile.mkdtemp())
+    config_loader.get_config_path.return_value = temp_storage
     config_loader.get_storage_path.return_value = temp_storage
     config_loader.get_broadlink_manager_path.return_value = temp_storage / 'broadlink_manager'
     

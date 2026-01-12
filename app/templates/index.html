@@ -3169,48 +3169,24 @@
                             <div style="margin-bottom: 20px;">
                                 <strong style="color: var(--ha-text-primary-color);">📁 Files Created:</strong>
                                 <ul style="margin: 8px 0 0 20px; line-height: 1.8; color: var(--ha-text-primary-color);">
-                                    <li>/config/broadlink_manager/package.yaml (for packages method)</li>
-                                    <li>/config/broadlink_manager/entities.yaml (for list/direct method)</li>
-                                    <li>/config/broadlink_manager/helpers.yaml (for list/direct method)</li>
-                                    <li>/config/broadlink_manager/metadata.json</li>
-                                    <li>/config/broadlink_manager/README.md</li>
+                                    <li>/config/broadlink_manager/package.yaml</li>
+                                    <li>/config/broadlink_manager/helpers.yaml</li>
                                 </ul>
                             </div>
                             
                             <div style="background: var(--ha-info-color); padding: 16px; border-radius: 8px; color: white;">
-                                <strong>📝 Next Steps - Choose ONE option:</strong>
+                                <strong>📝 Next Steps:</strong>
                             
                             <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                                <strong>Option 1: Packages (Recommended)</strong>
+                                <strong>Add to configuration.yaml:</strong>
                                 <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">homeassistant:
   packages:
     broadlink_manager: !include broadlink_manager/package.yaml</pre>
                                 <small style="opacity: 0.95;">✅ Works with existing configs • No conflicts • Everything in one file</small>
                             </div>
                             
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                                <strong>Option 2: List Format</strong>
-                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light:
-  - platform: existing_platform  # Your existing config
-  - !include broadlink_manager/entities.yaml
-
-fan:
-  - platform: existing_platform  # Your existing config
-  - !include broadlink_manager/entities.yaml</pre>
-                                <small style="opacity: 0.95;">✅ If you already have light:, fan:, etc.</small>
-                            </div>
-                            
-                            <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                                <strong>Option 3: Direct Include (New configs only)</strong>
-                                <pre style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 4px; margin: 8px 0; overflow-x: auto; font-size: 11px; color: #e8f4f8; font-family: 'Consolas', 'Monaco', monospace;">light: !include broadlink_manager/entities.yaml
-fan: !include broadlink_manager/entities.yaml
-input_boolean: !include broadlink_manager/helpers.yaml
-input_select: !include broadlink_manager/helpers.yaml</pre>
-                                <small style="opacity: 0.95; display: flex; align-items: center; gap: 4px;"><i class="mdi mdi-alert" style="font-size: 14px;"></i> Only if you DON'T have these sections yet</small>
-                            </div>
-                            
                                 <ol style="margin: 16px 0 0 20px; line-height: 1.8;">
-                                    <li>Add ONE of the options above to <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">configuration.yaml</code></li>
+                                    <li>Add the code above to <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">configuration.yaml</code></li>
                                     <li>Check your configuration (Developer Tools → YAML)</li>
                                     <li>Restart Home Assistant</li>
                                     <li>Your entities will appear! 🎉</li>

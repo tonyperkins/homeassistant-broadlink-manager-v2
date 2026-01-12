@@ -29,7 +29,6 @@ class TestEntityGenerator:
     def mock_storage(self, temp_dir):
         """Create mock storage manager"""
         storage = Mock()
-        storage.entities_file = temp_dir / "entities.yaml"
         storage.helpers_file = temp_dir / "helpers.yaml"
         storage.package_file = temp_dir / "package.yaml"
         storage.set_last_generated = Mock()

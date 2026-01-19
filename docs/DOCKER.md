@@ -59,6 +59,28 @@ It requires manual configuration of the Home Assistant connection but provides t
 
 ---
 
+## Available Docker Images
+
+The standalone Docker image is available from GitHub Container Registry:
+
+```
+ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
+```
+
+**Available Tags:**
+- `:standalone` - Latest stable standalone release
+- `:standalone-latest` - Alias for latest stable release
+- `:standalone-X.X.X` - Specific version (e.g., `:standalone-0.3.0`)
+
+**Supported Architectures:**
+- `linux/amd64` - x86-64 systems
+- `linux/arm64` - ARM 64-bit (e.g., Raspberry Pi 4)
+- `linux/arm/v7` - ARM 32-bit (e.g., older Raspberry Pi)
+
+The image automatically selects the correct architecture for your platform.
+
+---
+
 ## Quick Start
 
 The fastest way to get started:
@@ -174,7 +196,7 @@ docker run -d \
   -e AUTO_DISCOVER=true \
   -v /path/to/homeassistant/config:/config \
   --restart unless-stopped \
-  ghcr.io/tonyperkins/broadlink-manager:standalone
+  ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
 ```
 
 **Note:** Replace the paths and values with your actual configuration.
@@ -275,7 +297,7 @@ services:
       - /path/to/ha/config:/config
 
   broadlink-manager:
-    image: broadlink-manager:standalone
+    image: ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
     container_name: broadlink-manager
     network_mode: host
     environment:
@@ -387,7 +409,7 @@ docker stop broadlink-manager
 docker rm broadlink-manager
 
 # Pull latest image
-docker pull ghcr.io/tonyperkins/broadlink-manager:standalone
+docker pull ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
 
 # Start new container (use your previous docker run command)
 docker run -d ...

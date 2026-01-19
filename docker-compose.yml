@@ -2,10 +2,15 @@ version: '3.8'
 
 services:
   broadlink-manager:
+    # Option 1: Build locally from source
     build:
       context: .
       dockerfile: Dockerfile.standalone
     image: broadlink-manager:standalone
+    
+    # Option 2: Use published image (comment out 'build' section above and uncomment below)
+    # image: ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
+    
     container_name: broadlink-manager
     restart: unless-stopped
     

@@ -90,7 +90,7 @@ docker run -d \\
   --name broadlink-manager \\
   -p 5000:5000 \\
   -v /path/to/data:/data \\
-  ghcr.io/tonyperkins/broadlink-manager:latest
+  ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
 ```
 
 ---

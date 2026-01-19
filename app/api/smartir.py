@@ -229,10 +229,24 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             filename = f"{code_number}.json"
             file_path = custom_codes_dir / filename
 
-            # Check if file already exists
+            # Check if file already exists and merge commands
             if file_path.exists():
                 logger.info(
-                    f"Profile file {filename} already exists in custom_codes, updating"
+                    f"Profile file {filename} already exists in custom_codes, merging commands"
+                )
+                # Load existing profile
+                with open(file_path, "r", encoding="utf-8") as f:
+                    existing_profile = json.load(f)
+                
+                # Merge commands: existing + new (new commands override existing)
+                existing_commands = existing_profile.get("commands", {})
+                new_commands = profile_json.get("commands", {})
+                merged_commands = {**existing_commands, **new_commands}
+                
+                # Update profile with merged commands
+                profile_json["commands"] = merged_commands
+                logger.info(
+                    f"📝 Merged {len(existing_commands)} existing + {len(new_commands)} new = {len(merged_commands)} total commands"
                 )
             else:
                 logger.info(
@@ -1044,8 +1058,22 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     if content:
                         existing_devices = content if isinstance(content, list) else []
 
-            # Add new device
-            existing_devices.append(device_config)
+            # Check if device with this unique_id already exists (edit mode)
+            unique_id = device_config.get("unique_id")
+            device_index = None
+            if unique_id:
+                for i, device in enumerate(existing_devices):
+                    if device.get("unique_id") == unique_id:
+                        device_index = i
+                        break
+            
+            # Update existing device or add new one
+            if device_index is not None:
+                logger.info(f"Updating existing device with unique_id: {unique_id}")
+                existing_devices[device_index] = device_config
+            else:
+                logger.info(f"Adding new device with unique_id: {unique_id}")
+                existing_devices.append(device_config)
 
             # Validate the entire file content
             is_valid, errors = YAMLValidator.validate_yaml_file_content(

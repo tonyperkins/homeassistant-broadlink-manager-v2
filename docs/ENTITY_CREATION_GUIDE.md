@@ -122,12 +122,9 @@ Broadlink Manager generates Home Assistant YAML configuration files directly fro
 
 #### Generated Files
 ```
-/config/packages/broadlink_manager/
-├── light.yaml
-├── fan.yaml
-├── switch.yaml
-├── media_player.yaml
-└── helpers.yaml
+/config/broadlink_manager/
+├── package.yaml     (contains all template entities)
+└── helpers.yaml     (contains input_boolean helpers)
 ```
 
 #### Example: Light Entity
@@ -158,15 +155,13 @@ Broadlink Manager generates Home Assistant YAML configuration files directly fro
 - Or auto-detected from command names (e.g., `light_on` → light entity)
 - Or inferred from device name (e.g., "light" in name → light entity)
 
-**Output (light.yaml):**
+**Output (package.yaml):**
 ```yaml
-light:
-  - platform: template
-    lights:
-      office_ceiling_fan_light:
-        unique_id: office_ceiling_fan_light
-        friendly_name: "Office Fan Light"
-        icon_template: "mdi:ceiling-fan-light"
+template:
+  - light:
+      - unique_id: office_ceiling_fan
+        name: "Office Ceiling Fan"
+        icon: "mdi:ceiling-fan-light"
         value_template: "{{ is_state('input_boolean.office_ceiling_fan_light_state', 'on') }}"
         turn_on:
           - service: remote.send_command
@@ -222,14 +217,21 @@ After YAML generation, Home Assistant needs to load the new entities.
 
 1. **YAML Files Created**
    ```
-   /config/packages/broadlink_manager/
+   /config/broadlink_manager/
+   ├── package.yaml
+   └── helpers.yaml
    ```
 
-2. **HA Configuration Includes Packages**
+2. **HA Configuration Includes Package**
    ```yaml
    # configuration.yaml
    homeassistant:
-     packages: !include_dir_named packages
+     packages:
+       broadlink_manager: !include broadlink_manager/package.yaml
+   
+   # Or use directory include:
+   homeassistant:
+     packages: !include_dir_named broadlink_manager
    ```
 
 3. **Restart Home Assistant**
@@ -239,9 +241,9 @@ After YAML generation, Home Assistant needs to load the new entities.
    - Entities appear in UI
 
 4. **Entities Available**
-   - Entity ID: `light.office_ceiling_fan_light`
-   - Display Name: "Office Fan Light"
-   - Area: "Tony's Office"
+   - Entity ID: `light.office_ceiling_fan`
+   - Display name: "Office Ceiling Fan"
+   - Area: "Office"
    - State: Tracked via helper
 
 ---
@@ -415,9 +417,9 @@ Different entity types support different actions and commands.
                                   ▼
                     ┌──────────────────────────┐
                     │ Generated YAML Files     │
-                    │ packages/broadlink_*/    │
+                    │ broadlink_manager/       │
                     │                          │
-                    │ - media_player.yaml      │
+                    │ - package.yaml           │
                     │ - helpers.yaml           │
                     └──────────────────────────┘
                                   │
@@ -678,7 +680,7 @@ cat /config/broadlink_manager/devices.json
 # Click "Generate Entities" button
 
 # Check generated files
-ls -la /config/packages/broadlink_manager/
+ls -la /config/broadlink_manager/
 
 # Restart HA and check logs
 ```
@@ -719,7 +721,7 @@ data:
 **Solution:**
 ```bash
 # Check helper exists
-ls /config/packages/broadlink_manager/helpers.yaml
+ls /config/broadlink_manager/helpers.yaml
 
 # Verify helper state
 Developer Tools → States → input_boolean.entity_name_state

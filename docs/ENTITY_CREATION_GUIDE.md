@@ -17,9 +17,9 @@ Broadlink Manager creates Home Assistant entities (lights, fans, switches, media
    │ on remote    │          │ broadlink_*  │         │              │
    └──────────────┘          └──────────────┘         └──────────────┘
 
-4. Generate Entities       5. Create Helpers        6. Restart HA
+4. Generate YAML           5. Create Helpers        6. Restart HA
    ┌──────────────┐          ┌──────────────┐         ┌──────────────┐
-   │ metadata.json│   →      │ helpers.yaml │   →     │ Entities     │
+   │ devices.json │   →      │ helpers.yaml │   →     │ Entities     │
    │ → YAML files │          │ (state track)│         │ Available    │
    └──────────────┘          └──────────────┘         └──────────────┘
 ```
@@ -29,7 +29,7 @@ Broadlink Manager creates Home Assistant entities (lights, fans, switches, media
 - **Broadlink Device**: Physical IR/RF transmitter (e.g., RM4 Pro) - the hardware that sends signals
 - **Controlled Device**: The device you want to control (TV, fan, light) - the target
 - **Commands**: IR/RF codes learned from your original remote
-- **Metadata**: Configuration that defines how entities are created
+- **Device Configuration**: Stored in `devices.json` - defines device settings and entity generation
 - **Template Entities**: Home Assistant entities that use the Broadlink remote to send commands
 - **Helper Entities**: `input_boolean` entities that track device state (on/off)
 
@@ -116,58 +116,9 @@ Broadlink Manager tracks which devices you want to manage and their commands.
 
 ---
 
-### Phase 3: Entity Metadata
+### Phase 3: YAML Generation
 
-Entity metadata defines HOW Home Assistant entities should be created from your devices.
-
-#### Storage Location
-```
-/config/broadlink_manager/metadata.json
-```
-
-#### Metadata Structure
-```json
-{
-  "version": 1,
-  "entities": {
-    "living_room_tv": {
-      "entity_type": "media_player",
-      "device": "living_room_tv",
-      "broadlink_entity": "remote.kitchen_rm4_pro",
-      "area": "Living Room",
-      "commands": {
-        "turn_on": "power_on",
-        "turn_off": "power_off",
-        "volume_up": "volume_up",
-        "volume_down": "volume_down"
-      },
-      "friendly_name": "Living Room TV",
-      "name": "LR TV",
-      "icon": "mdi:television",
-      "enabled": true
-    }
-  }
-}
-```
-
-**Key Fields:**
-- `entity_type`: Type of HA entity to create (`light`, `fan`, `switch`, `media_player`)
-- `device`: Links to the device name in Broadlink storage
-- `broadlink_entity`: Which Broadlink remote sends the commands
-- `area`: Where to place the entity in Home Assistant
-- `commands`: Maps HA actions (turn_on) to learned commands (power_on)
-- `name`: Custom display name (optional, overrides `friendly_name`)
-- `icon`: Custom icon (optional)
-- `enabled`: Whether to generate this entity
-
-**Related Documentation:**
-- Customization options: See [CUSTOMIZATION.md](CUSTOMIZATION.md)
-
----
-
-### Phase 4: YAML Generation
-
-Broadlink Manager generates Home Assistant YAML configuration files from the metadata.
+Broadlink Manager generates Home Assistant YAML configuration files directly from `devices.json`.
 
 #### Generated Files
 ```
@@ -181,23 +132,31 @@ Broadlink Manager generates Home Assistant YAML configuration files from the met
 
 #### Example: Light Entity
 
-**Input (metadata.json):**
+**Input (devices.json):**
 ```json
 {
-  "office_ceiling_fan_light": {
-    "entity_type": "light",
-    "device": "office_ceiling_fan",
-    "broadlink_entity": "remote.kitchen_rm4_pro",
-    "commands": {
-      "turn_on": "light_on",
-      "turn_off": "light_off"
-    },
-    "friendly_name": "Office Ceiling Fan Light",
-    "name": "Office Fan Light",
-    "icon": "mdi:ceiling-fan-light"
+  "devices": {
+    "office_ceiling_fan": {
+      "device_id": "office_ceiling_fan",
+      "device_type": "broadlink",
+      "device_name": "Office Ceiling Fan Light",
+      "broadlink_entity": "remote.kitchen_rm4_pro",
+      "area": "Office",
+      "commands": {
+        "light_on": "light_on",
+        "light_off": "light_off"
+      },
+      "entity_type": "light",
+      "created_at": "2025-10-15T19:30:00Z"
+    }
   }
 }
 ```
+
+**Entity Type Detection:**
+- Explicitly set via `entity_type` field in device config
+- Or auto-detected from command names (e.g., `light_on` → light entity)
+- Or inferred from device name (e.g., "light" in name → light entity)
 
 **Output (light.yaml):**
 ```yaml
@@ -255,7 +214,7 @@ input_boolean:
 
 ---
 
-### Phase 5: Home Assistant Integration
+### Phase 4: Home Assistant Integration
 
 After YAML generation, Home Assistant needs to load the new entities.
 
@@ -442,23 +401,6 @@ Different entity types support different actions and commands.
                     │ {                        │
                     │   "living_room_tv": {    │
                     │     "device_type": "..." │
-                    │     "commands": {...}    │
-                    │   }                      │
-                    │ }                        │
-                    └──────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      ENTITY DEFINITION                               │
-└─────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-                    ┌──────────────────────────┐
-                    │ Broadlink Manager        │
-                    │ metadata.json            │
-                    │                          │
-                    │ {                        │
-                    │   "living_room_tv": {    │
                     │     "entity_type": "..." │
                     │     "commands": {...}    │
                     │   }                      │
@@ -579,7 +521,7 @@ This creates an entity in the "Bedroom" area, even though the Broadlink is in th
 
 ### Command Name Mapping
 
-Commands in metadata map to learned command names in Broadlink storage.
+Commands in `devices.json` reference learned command names in Broadlink storage.
 
 **Broadlink Storage:**
 ```json
@@ -592,15 +534,18 @@ Commands in metadata map to learned command names in Broadlink storage.
 }
 ```
 
-**Metadata Mapping:**
+**devices.json:**
 ```json
 {
-  "living_room_tv": {
-    "commands": {
-      "turn_on": "samsung_power",
-      "turn_off": "samsung_power",
-      "volume_up": "samsung_vol_up",
-      "volume_down": "samsung_vol_down"
+  "devices": {
+    "living_room_tv": {
+      "device_id": "living_room_tv",
+      "device_type": "broadlink",
+      "commands": {
+        "samsung_power": "samsung_power",
+        "samsung_vol_up": "samsung_vol_up",
+        "samsung_vol_down": "samsung_vol_down"
+      }
     }
   }
 }
@@ -637,45 +582,33 @@ Commands:
 **Step 2: Device Tracked Automatically**
 ```json
 {
-  "office_ceiling_fan": {
-    "device_id": "office_ceiling_fan",
-    "device_type": "broadlink",
-    "broadlink_entity": "remote.kitchen_rm4_pro",
-    "commands": {
-      "light_on": "light_on",
-      "light_off": "light_off"
+  "devices": {
+    "office_ceiling_fan": {
+      "device_id": "office_ceiling_fan",
+      "device_type": "broadlink",
+      "device_name": "Office Ceiling Fan",
+      "broadlink_entity": "remote.kitchen_rm4_pro",
+      "area": "Office",
+      "commands": {
+        "light_on": "light_on",
+        "light_off": "light_off"
+      },
+      "entity_type": "light",
+      "created_at": "2025-10-15T19:30:00Z"
     }
   }
 }
 ```
 
-**Step 3: Create Entity Metadata**
-```json
-{
-  "office_ceiling_fan_light": {
-    "entity_type": "light",
-    "device": "office_ceiling_fan",
-    "broadlink_entity": "remote.kitchen_rm4_pro",
-    "area": "Tony's Office",
-    "commands": {
-      "turn_on": "light_on",
-      "turn_off": "light_off"
-    },
-    "friendly_name": "Office Ceiling Fan Light",
-    "name": "Office Fan Light",
-    "icon": "mdi:ceiling-fan-light"
-  }
-}
-```
-
-**Step 4: Generate YAML**
+**Step 3: Generate YAML**
 - Click "Generate Entities" in Broadlink Manager
+- Entity type auto-detected from commands or explicitly set
 - Files created in `/config/packages/broadlink_manager/`
 
-**Step 5: Restart Home Assistant**
-- Entity appears as `light.office_ceiling_fan_light`
-- Display name: "Office Fan Light"
-- Area: "Tony's Office"
+**Step 4: Restart Home Assistant**
+- Entity appears as `light.office_ceiling_fan`
+- Display name: "Office Ceiling Fan"
+- Area: "Office"
 
 ---
 
@@ -693,23 +626,27 @@ Commands:
   - fan_oscillate_off
 ```
 
-**Step 2: Create Entity Metadata**
+**Step 2: Device Configuration in devices.json**
 ```json
 {
-  "bedroom_ceiling_fan": {
-    "entity_type": "fan",
-    "device": "bedroom_ceiling_fan",
-    "broadlink_entity": "remote.bedroom_rm4_pro",
-    "area": "Bedroom",
-    "commands": {
-      "turn_off": "fan_off",
-      "speed_1": "fan_low",
-      "speed_2": "fan_medium",
-      "speed_3": "fan_high",
-      "oscillate_on": "fan_oscillate_on",
-      "oscillate_off": "fan_oscillate_off"
-    },
-    "friendly_name": "Bedroom Ceiling Fan"
+  "devices": {
+    "bedroom_ceiling_fan": {
+      "device_id": "bedroom_ceiling_fan",
+      "device_type": "broadlink",
+      "device_name": "Bedroom Ceiling Fan",
+      "broadlink_entity": "remote.bedroom_rm4_pro",
+      "area": "Bedroom",
+      "commands": {
+        "fan_off": "fan_off",
+        "fan_low": "fan_low",
+        "fan_medium": "fan_medium",
+        "fan_high": "fan_high",
+        "fan_oscillate_on": "fan_oscillate_on",
+        "fan_oscillate_off": "fan_oscillate_off"
+      },
+      "entity_type": "fan",
+      "created_at": "2025-10-15T19:30:00Z"
+    }
   }
 }
 ```
@@ -727,18 +664,18 @@ Commands:
 ### Entity Not Appearing
 
 **Check:**
-1. Is `enabled: true` in metadata?
-2. Did you regenerate YAML after creating metadata?
+1. Is the device configured in `devices.json`?
+2. Did you regenerate YAML after adding the device?
 3. Did you restart Home Assistant?
 4. Check HA logs for YAML errors
 
 **Solution:**
 ```bash
-# Verify metadata
-cat /config/broadlink_manager/metadata.json
+# Verify device configuration
+cat /config/broadlink_manager/devices.json
 
-# Regenerate YAML
-POST /api/entities/generate
+# Regenerate YAML via Broadlink Manager UI
+# Click "Generate Entities" button
 
 # Check generated files
 ls -la /config/packages/broadlink_manager/
@@ -798,20 +735,23 @@ target:
 ### Wrong Area Assignment
 
 **Check:**
-1. Is the `area` field set correctly in metadata?
+1. Is the `area` field set correctly in `devices.json`?
 2. Did you regenerate YAML after changing area?
 3. Did you restart HA?
 
 **Solution:**
+Edit the device in `devices.json`:
 ```json
 {
-  "entity_id": {
-    "area": "Correct Room Name"
+  "devices": {
+    "device_id": {
+      "area": "Correct Room Name"
+    }
   }
 }
 ```
 
-Then regenerate and restart.
+Then regenerate YAML and restart HA.
 
 ---
 
@@ -858,20 +798,20 @@ Then regenerate and restart.
 
 ---
 
-### Metadata Management
+### Device Configuration Management
 
 **Version Control:**
-- Keep metadata.json in version control
+- Keep `devices.json` in version control
 - Document changes in commit messages
 - Backup before major changes
 
 **Testing:**
-- Test commands before creating entities
+- Test commands before generating entities
 - Verify Broadlink coverage for each device
 - Test entity actions after generation
 
 **Documentation:**
-- Document custom command mappings
+- Document device configurations and command mappings
 - Note any special requirements
 - Keep track of which Broadlink controls which devices
 
@@ -889,19 +829,23 @@ Then regenerate and restart.
 
 ## Summary
 
-Entity creation in Broadlink Manager follows a clear pipeline:
+Entity creation in Broadlink Manager v2 follows a streamlined pipeline:
 
-1. **Learn Commands** → Stored in HA's Broadlink storage
-2. **Track Devices** → Managed in `devices.json`
-3. **Define Entities** → Configured in `metadata.json`
-4. **Generate YAML** → Template entities and helpers created
-5. **Restart HA** → Entities become available
+1. **Learn Commands** → Stored in HA's Broadlink storage (`.storage/broadlink_remote_*_codes`)
+2. **Track Devices** → Automatically synced to `devices.json` with device configuration
+3. **Generate YAML** → Template entities and helpers created directly from `devices.json`
+4. **Restart HA** → Entities become available
 
 Each step builds on the previous one, with clear separation between:
 - **Command Storage** (Home Assistant's responsibility)
-- **Device Management** (Broadlink Manager's device tracking)
-- **Entity Configuration** (Your customization choices)
-- **YAML Generation** (Automated by Broadlink Manager)
-- **Entity Creation** (Home Assistant's responsibility)
+- **Device Management** (Broadlink Manager tracks in `devices.json`)
+- **YAML Generation** (Automated by Broadlink Manager from device config)
+- **Entity Creation** (Home Assistant reads generated YAML)
 
-This separation allows for flexible configuration, easy troubleshooting, and maintainable smart home setups.
+**Key Points:**
+- All device configuration is in `devices.json` - single source of truth
+- Entity type is auto-detected from commands or explicitly set in device config
+- No separate metadata file needed - everything is in the device configuration
+- Automatic command sync keeps `devices.json` in sync with Broadlink storage
+
+This streamlined approach allows for flexible configuration, easy troubleshooting, and maintainable smart home setups.

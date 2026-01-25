@@ -1,6 +1,6 @@
 {
   "name": "broadlink-manager-frontend",
-  "version": "0.3.0-alpha.34",
+  "version": "0.3.0-beta.3",
   "private": true,
   "type": "module",
   "scripts": {

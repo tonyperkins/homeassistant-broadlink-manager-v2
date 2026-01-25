@@ -63,9 +63,7 @@ class SmartIRYAMLGenerator:
                 }
 
             # Build device configuration
-            config = self._build_device_config(
-                device_id, device_data, controller_entity
-            )
+            config = self._build_device_config(device_id, device_data, controller_entity)
 
             # Debug: Log the config being generated
             logger.info(
@@ -75,9 +73,7 @@ class SmartIRYAMLGenerator:
 
             # Write to platform-specific file
             platform_file = self.smartir_dir / f"{entity_type}.yaml"
-            success, validation_errors = self._append_device_to_file(
-                platform_file, config, entity_type
-            )
+            success, validation_errors = self._append_device_to_file(platform_file, config, entity_type)
 
             if success:
                 return {
@@ -102,9 +98,7 @@ class SmartIRYAMLGenerator:
 
     # Deprecated: SmartIR uses entity IDs directly, not IP addresses
     # Kept for backward compatibility but no longer used
-    def _get_controller_ip(
-        self, controller_entity: str, broadlink_devices: List[Dict[str, Any]]
-    ) -> Optional[str]:
+    def _get_controller_ip(self, controller_entity: str, broadlink_devices: List[Dict[str, Any]]) -> Optional[str]:
         """
         DEPRECATED: Get IP address for a Broadlink controller entity
 
@@ -118,9 +112,7 @@ class SmartIRYAMLGenerator:
         Returns:
             IP address or None if not found
         """
-        logger.warning(
-            "_get_controller_ip is deprecated. SmartIR uses entity IDs directly."
-        )
+        logger.warning("_get_controller_ip is deprecated. SmartIR uses entity IDs directly.")
         for device in broadlink_devices:
             if device.get("entity_id") == controller_entity:
                 return device.get("host") or device.get("ip")
@@ -202,9 +194,7 @@ class SmartIRYAMLGenerator:
             # Validate the device config before proceeding
             is_valid, errors = YAMLValidator.validate_device_config(config, entity_type)
             if not is_valid:
-                logger.error(
-                    f"Device configuration validation failed for {config.get('unique_id', 'unknown')}:"
-                )
+                logger.error(f"Device configuration validation failed for {config.get('unique_id', 'unknown')}:")
                 for error in errors:
                     logger.error(f"  - {error}")
                 return False, errors
@@ -238,9 +228,7 @@ class SmartIRYAMLGenerator:
                 logger.info(f"Added new SmartIR device: {unique_id}")
 
             # Validate the entire file content before writing
-            is_valid, errors = YAMLValidator.validate_yaml_file_content(
-                existing_devices, entity_type
-            )
+            is_valid, errors = YAMLValidator.validate_yaml_file_content(existing_devices, entity_type)
             if not is_valid:
                 logger.error(f"YAML file validation failed for {file_path}:")
                 for error in errors:
@@ -248,9 +236,7 @@ class SmartIRYAMLGenerator:
                 return False, errors
 
             # Generate and validate YAML string
-            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(
-                existing_devices, entity_type
-            )
+            is_valid, yaml_string, errors = YAMLValidator.validate_and_format_yaml(existing_devices, entity_type)
             if not is_valid:
                 logger.error(f"YAML generation failed for {file_path}:")
                 for error in errors:
@@ -279,9 +265,7 @@ class SmartIRYAMLGenerator:
             logger.error(f"Error writing to {file_path}: {e}")
             return False, [str(e)]
 
-    def remove_device_from_file(
-        self, device_id: str, entity_type: str
-    ) -> Dict[str, Any]:
+    def remove_device_from_file(self, device_id: str, entity_type: str) -> Dict[str, Any]:
         """
         Remove a device from its platform file
 
@@ -309,9 +293,7 @@ class SmartIRYAMLGenerator:
                 return {"success": False, "error": "Platform file is empty"}
 
             # Handle both list and dict formats
-            devices = (
-                content if isinstance(content, list) else content.get(entity_type, [])
-            )
+            devices = content if isinstance(content, list) else content.get(entity_type, [])
 
             # Filter out the device
             original_count = len(devices)
@@ -398,9 +380,7 @@ class SmartIRYAMLGenerator:
             logger.error(f"Error checking configuration.yaml: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_device_config_from_file(
-        self, device_id: str, entity_type: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_device_config_from_file(self, device_id: str, entity_type: str) -> Optional[Dict[str, Any]]:
         """
         Get a device's configuration from its platform file
 
@@ -423,9 +403,7 @@ class SmartIRYAMLGenerator:
             if not content:
                 return None
 
-            devices = (
-                content if isinstance(content, list) else content.get(entity_type, [])
-            )
+            devices = content if isinstance(content, list) else content.get(entity_type, [])
 
             for device in devices:
                 if device.get("unique_id") == device_id:

@@ -22,15 +22,13 @@ class SmartIRCodeService:
     # Aggregator: https://github.com/tonyperkins/smartir-code-aggregator
     # Original SmartIR: https://github.com/smartHomeHub/SmartIR
     GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-code-aggregator"
-    GITHUB_RAW_BASE = (
-        "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main"
+    GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main"
+    DEVICE_INDEX_URL = (
+        "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/smartir_device_index.json"
     )
-    DEVICE_INDEX_URL = "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/smartir_device_index.json"
     CACHE_TTL_HOURS = 24
 
-    def __init__(
-        self, cache_path: str = "/config/broadlink_manager/cache", smartir_detector=None
-    ):
+    def __init__(self, cache_path: str = "/config/broadlink_manager/cache", smartir_detector=None):
         """
         Initialize SmartIR code service
 
@@ -89,9 +87,7 @@ class SmartIRCodeService:
             except Exception as e:
                 logger.error(f"Error loading bundled device index: {e}")
         else:
-            logger.warning(
-                f"Bundled device index not found at {self.bundled_index_file}"
-            )
+            logger.warning(f"Bundled device index not found at {self.bundled_index_file}")
 
         # Return empty index on error
         return {"version": "0.0.0", "last_updated": None, "platforms": {}}
@@ -129,9 +125,7 @@ class SmartIRCodeService:
             logger.error(f"Network error fetching GitHub directory {path}: {e}")
             return None
 
-    def _fetch_code_file(
-        self, entity_type: str, code_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def _fetch_code_file(self, entity_type: str, code_id: str) -> Optional[Dict[str, Any]]:
         """
         Fetch and parse a code file from GitHub
 
@@ -186,9 +180,7 @@ class SmartIRCodeService:
         files = self._fetch_github_directory(f"codes/{entity_type}")
         if not files:
             # GitHub fetch failed - fall back to bundled index
-            logger.warning(
-                f"Failed to fetch from GitHub, using bundled index for {entity_type}"
-            )
+            logger.warning(f"Failed to fetch from GitHub, using bundled index for {entity_type}")
             return self._refresh_from_bundled_index(entity_type)
 
         # Parse code files to extract manufacturers and models
@@ -240,9 +232,7 @@ class SmartIRCodeService:
 
         # Save cache
         if self._save_cache():
-            success_rate = (
-                (len(codes_data) / total_files * 100) if total_files > 0 else 0
-            )
+            success_rate = (len(codes_data) / total_files * 100) if total_files > 0 else 0
 
             # Log summary
             if errors["skipped_codes"]:
@@ -254,9 +244,7 @@ class SmartIRCodeService:
                 ellipsis = "..." if len(errors["skipped_codes"]) > 10 else ""
                 logger.debug(f"Skipped codes: {skipped_preview}{ellipsis}")
             else:
-                logger.info(
-                    f"✅ Cached {len(codes_data)} codes for {entity_type} (100% success)"
-                )
+                logger.info(f"✅ Cached {len(codes_data)} codes for {entity_type} (100% success)")
 
             # Store error info for API access
             self._last_refresh_errors[entity_type] = {
@@ -292,18 +280,14 @@ class SmartIRCodeService:
             manufacturers_dict = {}
             codes_data = {}
 
-            for manufacturer, mfr_data in platform_data.get(
-                "manufacturers", {}
-            ).items():
+            for manufacturer, mfr_data in platform_data.get("manufacturers", {}).items():
                 models_list = []
                 for model_info in mfr_data.get("models", []):
                     code_id = str(model_info.get("code"))
                     models = model_info.get("models", [])
                     controller = model_info.get("controller", "Broadlink")
 
-                    models_list.append(
-                        {"code_id": code_id, "models": models, "controller": controller}
-                    )
+                    models_list.append({"code_id": code_id, "models": models, "controller": controller})
 
                     # Store code data
                     codes_data[code_id] = {
@@ -327,9 +311,7 @@ class SmartIRCodeService:
 
             # Save cache
             if self._save_cache():
-                logger.info(
-                    f"✅ Cached {len(codes_data)} codes for {entity_type} from bundled index"
-                )
+                logger.info(f"✅ Cached {len(codes_data)} codes for {entity_type} from bundled index")
                 return True
 
             return False
@@ -389,9 +371,7 @@ class SmartIRCodeService:
                 )
 
         # Sort by code
-        return sorted(
-            models, key=lambda x: int(x["code"]) if x["code"].isdigit() else 0
-        )
+        return sorted(models, key=lambda x: int(x["code"]) if x["code"].isdigit() else 0)
 
     def refresh_device_index(self) -> Dict[str, Any]:
         """Fetch latest device index from GitHub and update bundled file"""
@@ -414,10 +394,7 @@ class SmartIRCodeService:
                 "success": True,
                 "version": index.get("version"),
                 "last_updated": index.get("last_updated"),
-                "total_devices": sum(
-                    p.get("total_devices", 0)
-                    for p in index.get("platforms", {}).values()
-                ),
+                "total_devices": sum(p.get("total_devices", 0) for p in index.get("platforms", {}).values()),
             }
         except Exception as e:
             logger.error(f"Error refreshing device index: {e}")
@@ -437,9 +414,7 @@ class SmartIRCodeService:
         codes = self._cache.get("codes", {}).get(entity_type, {})
         return codes.get(code_id)
 
-    def fetch_full_code(
-        self, entity_type: str, code_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def fetch_full_code(self, entity_type: str, code_id: str) -> Optional[Dict[str, Any]]:
         """
         Fetch full code data from local file (for custom codes) or GitHub (for repository codes)
 
@@ -453,11 +428,7 @@ class SmartIRCodeService:
         # Check if this is a custom code (10000+) - load from local file
         try:
             code_num = int(code_id)
-            if (
-                code_num >= 10000
-                and self.smartir_detector
-                and self.smartir_detector.is_installed()
-            ):
+            if code_num >= 10000 and self.smartir_detector and self.smartir_detector.is_installed():
                 # Load from local SmartIR installation
                 smartir_path = self.smartir_detector.smartir_path
                 file_path = smartir_path / "codes" / entity_type / f"{code_id}.json"
@@ -468,9 +439,7 @@ class SmartIRCodeService:
                     with open(file_path, "r", encoding="utf-8") as f:
                         full_code = json.load(f)
 
-                    logger.info(
-                        f"Loaded custom profile {code_id} from local file: {file_path}"
-                    )
+                    logger.info(f"Loaded custom profile {code_id} from local file: {file_path}")
                     return full_code
                 else:
                     logger.warning(f"Custom profile {code_id} not found at {file_path}")
@@ -492,9 +461,7 @@ class SmartIRCodeService:
             List of matching codes
         """
         # Ensure cache is populated
-        if not self._is_cache_valid() or entity_type not in self._cache.get(
-            "codes", {}
-        ):
+        if not self._is_cache_valid() or entity_type not in self._cache.get("codes", {}):
             self.refresh_codes(entity_type)
 
         query_lower = query.lower()
@@ -506,9 +473,7 @@ class SmartIRCodeService:
             models = [m.lower() for m in code_info.get("models", [])]
 
             # Check if query matches manufacturer or any model
-            if query_lower in manufacturer or any(
-                query_lower in model for model in models
-            ):
+            if query_lower in manufacturer or any(query_lower in model for model in models):
                 results.append(
                     {
                         "code_id": code_id,
@@ -518,9 +483,7 @@ class SmartIRCodeService:
                     }
                 )
 
-        return sorted(
-            results, key=lambda x: int(x["code_id"]) if x["code_id"].isdigit() else 0
-        )
+        return sorted(results, key=lambda x: int(x["code_id"]) if x["code_id"].isdigit() else 0)
 
     def get_refresh_errors(self, entity_type: str) -> Optional[Dict[str, Any]]:
         """
@@ -582,9 +545,7 @@ class SmartIRCodeService:
                         }
                     )
 
-            logger.debug(
-                f"Found {len(custom_profiles)} custom profiles for {entity_type}"
-            )
+            logger.debug(f"Found {len(custom_profiles)} custom profiles for {entity_type}")
             return custom_profiles
 
         except Exception as e:

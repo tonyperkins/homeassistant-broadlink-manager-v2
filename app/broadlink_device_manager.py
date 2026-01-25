@@ -83,16 +83,10 @@ class BroadlinkDeviceManager:
                     "type": device_type,
                     "type_hex": hex(device_type),
                     "model": device.model if hasattr(device, "model") else "Unknown",
-                    "manufacturer": (
-                        device.manufacturer
-                        if hasattr(device, "manufacturer")
-                        else "Broadlink"
-                    ),
+                    "manufacturer": (device.manufacturer if hasattr(device, "manufacturer") else "Broadlink"),
                 }
                 device_list.append(device_info)
-                logger.debug(
-                    f"Discovered: {device_info['model']} at {device_info['host']}"
-                )
+                logger.debug(f"Discovered: {device_info['model']} at {device_info['host']}")
 
             logger.info(f"Discovered {len(device_list)} device(s)")
             return device_list
@@ -153,9 +147,7 @@ class BroadlinkDeviceManager:
 
         # If not in attributes, try network discovery
         if not all([host, mac_str, device_type]):
-            logger.info(
-                f"Connection info not in entity attributes, trying network discovery"
-            )
+            logger.info(f"Connection info not in entity attributes, trying network discovery")
             discovered = self.discover_devices(timeout=5)
 
             if not discovered:
@@ -185,11 +177,7 @@ class BroadlinkDeviceManager:
         if isinstance(device_type, str):
             try:
                 # Handle hex strings like "0x2787"
-                device_type = (
-                    int(device_type, 16)
-                    if device_type.startswith("0x")
-                    else int(device_type)
-                )
+                device_type = int(device_type, 16) if device_type.startswith("0x") else int(device_type)
             except Exception:
                 logger.error(f"Invalid device type format: {device_type}")
                 return None
@@ -207,9 +195,7 @@ class BroadlinkDeviceManager:
         logger.info(f"Connection info: {connection_info['model']} at {host}")
         return connection_info
 
-    def match_discovered_to_ha_entity(
-        self, entity_id: str, discovered_devices: List[Dict]
-    ) -> Optional[Dict]:
+    def match_discovered_to_ha_entity(self, entity_id: str, discovered_devices: List[Dict]) -> Optional[Dict]:
         """
         Match a discovered device to an HA entity by MAC address
 
@@ -229,9 +215,7 @@ class BroadlinkDeviceManager:
         for device in discovered_devices:
             device_mac = device["mac"].replace(":", "").lower()
             if device_mac == entity_mac:
-                logger.info(
-                    f"Matched {entity_id} to discovered device at {device['host']}"
-                )
+                logger.info(f"Matched {entity_id} to discovered device at {device['host']}")
                 return device
 
         logger.warning(f"No discovered device matches {entity_id}")

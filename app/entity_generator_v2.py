@@ -116,9 +116,7 @@ class DeviceManagerAdapter:
         # Default to switch
         return "switch"
 
-    def _convert_commands_to_v1_format(
-        self, commands: Dict[str, Any]
-    ) -> Dict[str, str]:
+    def _convert_commands_to_v1_format(self, commands: Dict[str, Any]) -> Dict[str, str]:
         """
         Convert commands to v1 format
         V1 uses {command_name: command_name} because it references Broadlink storage
@@ -184,9 +182,7 @@ class EntityGeneratorV2:
                 broadlink_commands[device_id] = device_commands
 
             # Delegate to v1 generator
-            logger.info(
-                f"Generating entities using v1 logic for {len(broadlink_commands)} devices"
-            )
+            logger.info(f"Generating entities using v1 logic for {len(broadlink_commands)} devices")
             result = self.v1_generator.generate_all(broadlink_commands)
 
             # Ensure broadlink_manager directory exists

@@ -69,9 +69,7 @@ class BroadlinkManager:
         try:
             # Use fixed ingress port for Home Assistant add-on
             port = 8099
-            self.web_server = BroadlinkWebServer(
-                port=port, config_loader=self.config_loader
-            )
+            self.web_server = BroadlinkWebServer(port=port, config_loader=self.config_loader)
             logger.info(f"Starting web server on port {port}")
             self.web_server.run()
         except Exception as e:
@@ -83,9 +81,7 @@ class BroadlinkManager:
 
         try:
             # Start the web server in a separate thread
-            self.web_thread = threading.Thread(
-                target=self._start_web_server, daemon=True
-            )
+            self.web_thread = threading.Thread(target=self._start_web_server, daemon=True)
             self.web_thread.start()
 
             logger.info("Broadlink Manager web interface started")
@@ -96,9 +92,7 @@ class BroadlinkManager:
                 # Check if web thread is still alive
                 if self.web_thread and not self.web_thread.is_alive():
                     logger.error("Web server thread died, restarting...")
-                    self.web_thread = threading.Thread(
-                        target=self._start_web_server, daemon=True
-                    )
+                    self.web_thread = threading.Thread(target=self._start_web_server, daemon=True)
                     self.web_thread.start()
 
                 # Sleep for a bit to avoid busy waiting

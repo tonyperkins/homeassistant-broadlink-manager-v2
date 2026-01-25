@@ -23,10 +23,7 @@ class SmartIRDetector:
 
     def is_installed(self) -> bool:
         """Check if SmartIR is installed"""
-        return (
-            self.smartir_path.exists()
-            and (self.smartir_path / "manifest.json").exists()
-        )
+        return self.smartir_path.exists() and (self.smartir_path / "manifest.json").exists()
 
     def get_version(self) -> Optional[str]:
         """Get SmartIR version if installed"""
@@ -239,9 +236,7 @@ class SmartIRDetector:
         # Always use custom_codes for saves to avoid HACS overwriting
         return self.custom_codes_path / platform / f"{code_number}.json"
 
-    def write_code_file(
-        self, platform: str, code_number: int, data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def write_code_file(self, platform: str, code_number: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """Write a SmartIR code file to custom_codes directory
 
         All saves go to custom_codes to persist through HACS updates.

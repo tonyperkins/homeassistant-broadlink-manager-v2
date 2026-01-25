@@ -103,17 +103,14 @@ class TestConfigurationCollection:
             config_file = Path(tmpdir) / "config.yaml"
             config_file.write_text("test: config")
             
-            with patch('pathlib.Path') as mock_path:
-                mock_config = MagicMock()
-                mock_config.exists.return_value = True
-                mock_config.stat.return_value.st_size = 100
-                mock_path.return_value = mock_config
-                
-                collector = DiagnosticsCollector(tmpdir)
-                config = collector._collect_configuration()
-                
-                # Note: The actual implementation checks Path("config.yaml")
-                # This test verifies the logic works when file exists
+            collector = DiagnosticsCollector(tmpdir)
+            config = collector._collect_configuration()
+            
+            # Verify basic config structure is returned
+            assert "log_level" in config
+            assert "web_port" in config
+            assert "ha_url_configured" in config
+            assert "ha_token_configured" in config
 
 
 class TestDeviceInfoCollection:

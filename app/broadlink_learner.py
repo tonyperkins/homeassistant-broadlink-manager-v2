@@ -49,7 +49,9 @@ class BroadlinkLearner:
         """
         try:
             logger.info(f"Connecting to device at {self.host}")
-            self.device = broadlink.gendevice(self.device_type, (self.host, 80), self.mac)
+            self.device = broadlink.gendevice(
+                self.device_type, (self.host, 80), self.mac
+            )
 
             logger.info("Authenticating with device")
             self.device.auth()
@@ -111,7 +113,9 @@ class BroadlinkLearner:
                     # Ignore errors from old commands in buffer (like HA does)
                     storage_errors += 1
                     if storage_errors == 1:
-                        logger.debug("Ignoring storage errors from old commands in buffer")
+                        logger.debug(
+                            "Ignoring storage errors from old commands in buffer"
+                        )
                     continue
 
                 if packet:
@@ -159,7 +163,9 @@ class BroadlinkLearner:
             # Step 1: Sweep frequency
             logger.info("Starting RF frequency sweep")
             if progress_callback:
-                progress_callback("Ready! Press and HOLD your remote button now...", "sweep")
+                progress_callback(
+                    "Ready! Press and HOLD your remote button now...", "sweep"
+                )
             self.device.sweep_frequency()
 
             start_time = time.time()
@@ -181,7 +187,9 @@ class BroadlinkLearner:
                     break
 
             if frequency is None:
-                logger.warning(f"Timeout - no RF frequency found after {timeout} seconds")
+                logger.warning(
+                    f"Timeout - no RF frequency found after {timeout} seconds"
+                )
                 self.device.cancel_sweep_frequency()
                 return None
 
@@ -191,7 +199,9 @@ class BroadlinkLearner:
             # Step 2: Find and capture RF packet
             logger.info("Capturing RF packet")
             if progress_callback:
-                progress_callback("Capturing signal... You can RELEASE the button now", "capture")
+                progress_callback(
+                    "Capturing signal... You can RELEASE the button now", "capture"
+                )
             self.device.find_rf_packet()
 
             start_time = time.time()
@@ -209,7 +219,9 @@ class BroadlinkLearner:
                     # Ignore errors from old commands in buffer (like HA does)
                     storage_errors += 1
                     if storage_errors == 1:
-                        logger.debug("Ignoring storage errors from old commands in buffer")
+                        logger.debug(
+                            "Ignoring storage errors from old commands in buffer"
+                        )
                     continue
 
                 if packet:
@@ -243,7 +255,9 @@ class BroadlinkLearner:
         Returns:
             Tuple of (base64 data, frequency in MHz), or None if timeout/error
         """
-        return self.learn_rf_command_with_progress(timeout=timeout, progress_callback=None)
+        return self.learn_rf_command_with_progress(
+            timeout=timeout, progress_callback=None
+        )
 
     def test_command(self, base64_data: str) -> bool:
         """

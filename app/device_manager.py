@@ -36,7 +36,9 @@ class DeviceManager:
         if not self.devices_file.exists():
             # Check if backup exists
             if self.backup_file.exists():
-                logger.warning("devices.json missing but backup found - restoring from backup")
+                logger.warning(
+                    "devices.json missing but backup found - restoring from backup"
+                )
                 try:
                     import shutil
 
@@ -74,7 +76,9 @@ class DeviceManager:
                 return {}
             except FileNotFoundError:
                 # If file truly doesn't exist yet, return empty
-                logger.warning("devices.json not found when loading; returning empty set")
+                logger.warning(
+                    "devices.json not found when loading; returning empty set"
+                )
                 return {}
             except Exception as e:
                 logger.error(f"Unexpected error loading devices: {e}")
@@ -126,7 +130,9 @@ class DeviceManager:
                         break
                     except PermissionError:
                         if attempt < max_retries - 1:
-                            logger.warning(f"File locked, retrying... (attempt {attempt + 1}/{max_retries})")
+                            logger.warning(
+                                f"File locked, retrying... (attempt {attempt + 1}/{max_retries})"
+                            )
                             time.sleep(0.1 * (attempt + 1))  # Exponential backoff
                         else:
                             raise
@@ -147,7 +153,9 @@ class DeviceManager:
                     logger.warning("Save failed - restoring from backup")
                     try:
                         shutil.copy2(self.backup_file, self.devices_file)
-                        logger.info("Restored devices.json from backup after failed save")
+                        logger.info(
+                            "Restored devices.json from backup after failed save"
+                        )
                     except Exception as restore_error:
                         logger.error(f"Failed to restore from backup: {restore_error}")
 
@@ -314,7 +322,9 @@ class DeviceManager:
             logger.error(f"Error deleting device {device_id}: {e}")
             return False
 
-    def add_command(self, device_id: str, command_name: str, command_data: Dict[str, Any]) -> bool:
+    def add_command(
+        self, device_id: str, command_name: str, command_data: Dict[str, Any]
+    ) -> bool:
         """
         Add a command to a device
 
@@ -373,7 +383,9 @@ class DeviceManager:
                 devices[device_id]["updated_at"] = datetime.now().isoformat()
 
                 if self._save_devices(devices):
-                    logger.info(f"Deleted command {command_name} from device {device_id}")
+                    logger.info(
+                        f"Deleted command {command_name} from device {device_id}"
+                    )
                     return True
 
             return False
@@ -414,7 +426,9 @@ class DeviceManager:
         # Convert to lowercase and replace spaces/special chars with underscores
         clean_name = device_name.lower().replace(" ", "_")
         clean_name = "".join(c if c.isalnum() or c == "_" else "_" for c in clean_name)
-        clean_name = "_".join(filter(None, clean_name.split("_")))  # Remove multiple underscores
+        clean_name = "_".join(
+            filter(None, clean_name.split("_"))
+        )  # Remove multiple underscores
 
         # Return just the normalized device name - area is NOT part of device ID
         return clean_name
@@ -459,7 +473,9 @@ class DeviceManager:
             return False
         return device.get("device_type", "broadlink") == "smartir"
 
-    def validate_smartir_device(self, device_data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_smartir_device(
+        self, device_data: Dict[str, Any]
+    ) -> tuple[bool, Optional[str]]:
         """
         Validate SmartIR device data
 
@@ -530,7 +546,9 @@ class DeviceManager:
             logger.error(f"Error adding learned command: {e}")
             return False
 
-    def update_command_test_status(self, device_id: str, command_name: str, test_method: str) -> bool:
+    def update_command_test_status(
+        self, device_id: str, command_name: str, test_method: str
+    ) -> bool:
         """
         Update command test status
 
@@ -551,7 +569,9 @@ class DeviceManager:
 
             commands = devices[device_id].get("commands", {})
             if command_name not in commands:
-                logger.warning(f"Command {command_name} not found in device {device_id}")
+                logger.warning(
+                    f"Command {command_name} not found in device {device_id}"
+                )
                 return False
 
             commands[command_name]["tested"] = True
@@ -593,7 +613,9 @@ class DeviceManager:
 
         return None
 
-    def update_device_connection_info(self, device_id: str, connection_info: Dict[str, Any]) -> bool:
+    def update_device_connection_info(
+        self, device_id: str, connection_info: Dict[str, Any]
+    ) -> bool:
         """
         Update device connection info for direct learning
 
@@ -647,7 +669,9 @@ class DeviceManager:
                     # since device IDs are normalized device names (area is metadata only)
                     device_data["device"] = device_id
                     migrated_count += 1
-                    logger.info(f"Migrated device '{device_id}': added device field = '{device_id}'")
+                    logger.info(
+                        f"Migrated device '{device_id}': added device field = '{device_id}'"
+                    )
 
             if migrated_count > 0:
                 if self._save_devices(devices):

@@ -155,7 +155,9 @@ class EntityDetector:
                     position_num = match.group(1)
                     return entity_type, f"position_{position_num}"
 
-                logger.debug(f"Detected '{command_name}' as {entity_type}.{command_role}")
+                logger.debug(
+                    f"Detected '{command_name}' as {entity_type}.{command_role}"
+                )
                 return entity_type, command_role
 
         logger.debug(f"No pattern match for command: {command_name}")
@@ -207,7 +209,9 @@ class EntityDetector:
                     "entity_type": entity_type,
                     "device": device_name,
                     "commands": dict(command_roles),
-                    "friendly_name": self.generate_friendly_name(device_name, entity_type),
+                    "friendly_name": self.generate_friendly_name(
+                        device_name, entity_type
+                    ),
                     "area": area_name,
                     "icon": self._suggest_icon(entity_type, device_name),
                     "enabled": True,
@@ -360,7 +364,9 @@ class EntityDetector:
 
         elif entity_type == "media_player":
             # Media player needs at least power or volume control
-            has_power = "power" in command_roles or ("turn_on" in command_roles and "turn_off" in command_roles)
+            has_power = "power" in command_roles or (
+                "turn_on" in command_roles and "turn_off" in command_roles
+            )
             has_volume = "volume_up" in command_roles or "volume_down" in command_roles
             return has_power or has_volume
 
@@ -368,8 +374,12 @@ class EntityDetector:
             # Climate needs at least on/off or temperature control or hvac modes
             has_on_off = "turn_on" in command_roles and "turn_off" in command_roles
             has_temps = any(role.startswith("temperature_") for role in command_roles)
-            has_temp_control = "temperature_up" in command_roles or "temperature_down" in command_roles
-            has_hvac_modes = any(role.startswith("hvac_mode_") for role in command_roles)
+            has_temp_control = (
+                "temperature_up" in command_roles or "temperature_down" in command_roles
+            )
+            has_hvac_modes = any(
+                role.startswith("hvac_mode_") for role in command_roles
+            )
             return has_on_off or has_temps or has_temp_control or has_hvac_modes
 
         elif entity_type == "cover":
@@ -382,7 +392,9 @@ class EntityDetector:
 
         return False
 
-    def suggest_missing_commands(self, entity_type: str, existing_commands: List[str]) -> List[str]:
+    def suggest_missing_commands(
+        self, entity_type: str, existing_commands: List[str]
+    ) -> List[str]:
         """
         Suggest commands that would be useful for this entity type
 
@@ -561,7 +573,11 @@ class EntityDetector:
                 return "mdi:play-box"
 
         elif entity_type == "climate":
-            if "ac" in device_lower or "air" in device_lower and "condition" in device_lower:
+            if (
+                "ac" in device_lower
+                or "air" in device_lower
+                and "condition" in device_lower
+            ):
                 return "mdi:air-conditioner"
             elif "heat" in device_lower and "pump" in device_lower:
                 return "mdi:heat-pump"

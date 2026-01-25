@@ -52,7 +52,9 @@ async def verify_command_in_storage(
                         f"✅ Verified command '{command_name}' exists for device '{device_name}' (after {attempt + 1} attempts)"
                     )
                 else:
-                    logger.info(f"✅ Verified command '{command_name}' exists for device '{device_name}'")
+                    logger.info(
+                        f"✅ Verified command '{command_name}' exists for device '{device_name}'"
+                    )
                 return True
 
             # Command not found yet, wait and retry
@@ -85,7 +87,9 @@ def learn_command():
         command = data.get("command")
         command_type = data.get("command_type", "ir")
         device_id = data.get("device_id")  # For managed devices
-        save_destination = data.get("save_destination", "manager_only")  # manager_only, integration_only, both
+        save_destination = data.get(
+            "save_destination", "manager_only"
+        )  # manager_only, integration_only, both
 
         logger.info(
             f"Parsed: entity_id={entity_id}, device={device}, "
@@ -130,7 +134,9 @@ def learn_command():
 
         # If HA API returned success, handle based on save destination
         if result.get("success"):
-            logger.info(f"✅ Learn command API call succeeded for '{command}' on device '{device}'")
+            logger.info(
+                f"✅ Learn command API call succeeded for '{command}' on device '{device}'"
+            )
 
             # Initialize learned_code variable
             learned_code = None
@@ -138,7 +144,9 @@ def learn_command():
             # For RF commands, keep the original notification message
             if command_type == "rf":
                 # Use the message from _learn_command which tells user to check HA notifications
-                logger.info(f"RF command - using notification message from _learn_command")
+                logger.info(
+                    f"RF command - using notification message from _learn_command"
+                )
                 # RF commands are always "pending" since they require multi-step process
                 learned_code = "pending"
                 # Add to cache only for integration_only (not both, since HA will save to storage)
@@ -148,16 +156,22 @@ def learn_command():
             # For IR commands with integration_only: Add to cache immediately and trust it
             elif save_destination == "integration_only":
                 web_server._add_to_storage_cache(device, command, "pending")
-                logger.info(f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately")
+                logger.info(
+                    f"✅ Added {device}/{command} to storage cache - will appear as untracked immediately"
+                )
                 learned_code = "pending"
                 result["code"] = "pending"
-                result["message"] = f"✅ Command '{command}' learned and added to storage!"
+                result["message"] = (
+                    f"✅ Command '{command}' learned and added to storage!"
+                )
             else:
                 # For manager_only: Save as pending and schedule background update
                 # Don't block the user waiting for storage file to be written
                 learned_code = "pending"
                 result["code"] = "pending"
-                result["message"] = f"✅ Command '{command}' learned! Code will be updated automatically in background."
+                result["message"] = (
+                    f"✅ Command '{command}' learned! Code will be updated automatically in background."
+                )
 
                 # Schedule background task to poll for the actual code
                 # Pass entity_id so it can delete after fetching
@@ -168,12 +182,17 @@ def learn_command():
                 device_manager = current_app.config.get("device_manager")
                 if device_manager and device_id:
                     managed_device = device_manager.get_device(device_id)
-                    if managed_device and managed_device.get("device_type") == "smartir":
+                    if (
+                        managed_device
+                        and managed_device.get("device_type") == "smartir"
+                    ):
                         # This is a SmartIR device - add metadata for profile update
                         device_code = managed_device.get("device_code")
                         entity_type = managed_device.get("entity_type", "climate")
                         if device_code:
-                            config_path = current_app.config.get("config_path", "/config")
+                            config_path = current_app.config.get(
+                                "config_path", "/config"
+                            )
 
                             profile_path = (
                                 Path(config_path)
@@ -198,7 +217,9 @@ def learn_command():
                         config_path = current_app.config.get("config_path", "/config")
                         from pathlib import Path
 
-                        smartir_path = Path(config_path) / "custom_components" / "smartir"
+                        smartir_path = (
+                            Path(config_path) / "custom_components" / "smartir"
+                        )
                         custom_codes_path = smartir_path / "custom_codes"
 
                         if custom_codes_path.exists():
@@ -210,22 +231,32 @@ def learn_command():
                                         try:
                                             import json
 
-                                            with open(profile_file, "r", encoding="utf-8") as f:
+                                            with open(
+                                                profile_file, "r", encoding="utf-8"
+                                            ) as f:
                                                 profile_data = json.load(f)
 
                                             # Generate device name from manufacturer/model
                                             import re
 
-                                            manufacturer = profile_data.get("manufacturer", "")
-                                            model = profile_data.get("supportedModels", [""])[0]
+                                            manufacturer = profile_data.get(
+                                                "manufacturer", ""
+                                            )
+                                            model = profile_data.get(
+                                                "supportedModels", [""]
+                                            )[0]
                                             profile_device_name = f"{manufacturer.lower()}_{model.lower()}"
-                                            profile_device_name = re.sub(r"[^a-z0-9]+", "_", profile_device_name)
+                                            profile_device_name = re.sub(
+                                                r"[^a-z0-9]+", "_", profile_device_name
+                                            )
 
                                             # Check if this profile matches the device being learned
                                             if profile_device_name == device.lower():
                                                 device_code = profile_file.stem
                                                 smartir_metadata = {
-                                                    "smartir_profile": str(profile_file),
+                                                    "smartir_profile": str(
+                                                        profile_file
+                                                    ),
                                                     "device_code": device_code,
                                                     "platform": platform,
                                                 }
@@ -235,13 +266,17 @@ def learn_command():
                                                 )
                                                 break
                                         except Exception as e:
-                                            logger.debug(f"Error checking profile {profile_file}: {e}")
+                                            logger.debug(
+                                                f"Error checking profile {profile_file}: {e}"
+                                            )
                                     if smartir_metadata:
                                         break
                     except Exception as e:
                         logger.debug(f"Error scanning SmartIR profiles: {e}")
 
-                logger.info(f"Scheduling background poll for command '{command}' on device '{device}'")
+                logger.info(
+                    f"Scheduling background poll for command '{command}' on device '{device}'"
+                )
                 web_server.schedule_command_poll(
                     device_id,
                     device,
@@ -282,7 +317,9 @@ def learn_command():
                                     f"(save_destination={save_destination})"
                                 )
                             else:
-                                logger.warning(f"⚠️ Device {device_id} not found in device manager")
+                                logger.warning(
+                                    f"⚠️ Device {device_id} not found in device manager"
+                                )
                         else:
                             logger.warning("⚠️ Device manager not available")
                     except Exception as save_error:
@@ -292,11 +329,15 @@ def learn_command():
                 # For manager_only, deletion will happen in background AFTER fetching the code
                 # This is handled by the polling thread (see schedule_command_poll above)
                 if save_destination == "manager_only":
-                    logger.info(f"ℹ️ Deletion of '{command}' from integration storage will happen after code is fetched")
+                    logger.info(
+                        f"ℹ️ Deletion of '{command}' from integration storage will happen after code is fetched"
+                    )
 
                 # Log if integration_only (no devices.json update)
                 if save_destination == "integration_only":
-                    logger.info(f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only")
+                    logger.info(
+                        f"ℹ️ Skipping devices.json update for '{command}' - save_destination=integration_only"
+                    )
 
             # Close the event loop
             loop.close()
@@ -363,14 +404,20 @@ def send_raw_command():
 
         # Log what we're sending
         if command_type == "rf":
-            logger.info(f"Sending raw RF code to HA (code length: {len(command)} chars)")
+            logger.info(
+                f"Sending raw RF code to HA (code length: {len(command)} chars)"
+            )
         else:
-            logger.info(f"Sending raw IR code to HA (code length: {len(command)} chars)")
+            logger.info(
+                f"Sending raw IR code to HA (code length: {len(command)} chars)"
+            )
 
         logger.info(f"Service payload: {service_payload}")
 
         result = loop.run_until_complete(
-            web_server._make_ha_request("POST", "services/remote/send_command", service_payload)
+            web_server._make_ha_request(
+                "POST", "services/remote/send_command", service_payload
+            )
         )
         loop.close()
 
@@ -400,7 +447,9 @@ def test_command():
         command = data.get("command")
         device_id = data.get("device_id")  # Entity ID to look up command mapping
 
-        logger.info(f"Parsed - entity_id: {entity_id}, device: {device}, command: {command}, device_id: {device_id}")
+        logger.info(
+            f"Parsed - entity_id: {entity_id}, device: {device}, command: {command}, device_id: {device_id}"
+        )
 
         # If device is not provided, try to derive it from device_id
         if not device and device_id:
@@ -434,7 +483,9 @@ def test_command():
 
         if entity_data:
             is_smartir = entity_data.get("device_type") == "smartir"
-            logger.info(f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}")
+            logger.info(
+                f"Device type detected: {'SmartIR' if is_smartir else 'Broadlink'}"
+            )
             commands_mapping = entity_data.get("commands", {})
 
             # Look up the actual command code from the mapping
@@ -443,8 +494,12 @@ def test_command():
             # If command_data is a dict (metadata), extract the actual code
             if isinstance(command_data, dict):
                 # Command stored with metadata: {'code': 'JgBQAAA...', 'command_type': 'ir', ...}
-                actual_command = command_data.get("code", command_data.get("data", command))
-                logger.info(f"Command mapping: '{command}' -> extracted code from metadata")
+                actual_command = command_data.get(
+                    "code", command_data.get("data", command)
+                )
+                logger.info(
+                    f"Command mapping: '{command}' -> extracted code from metadata"
+                )
             else:
                 # Command stored as string directly
                 actual_command = command_data
@@ -465,7 +520,9 @@ def test_command():
 
         # For SmartIR devices, we need to look up the raw IR code from the SmartIR code file
         if is_smartir:
-            logger.info(f"SmartIR device detected - looking up raw IR code for command '{command}'")
+            logger.info(
+                f"SmartIR device detected - looking up raw IR code for command '{command}'"
+            )
 
             # Get SmartIR code service to look up the raw code
             smartir_code_service = current_app.config.get("smartir_code_service")
@@ -486,13 +543,17 @@ def test_command():
 
             if not device_code:
                 return (
-                    jsonify({"success": False, "error": "SmartIR device_code not found"}),
+                    jsonify(
+                        {"success": False, "error": "SmartIR device_code not found"}
+                    ),
                     400,
                 )
 
             # Look up the raw IR code from SmartIR code file
             try:
-                code_data = smartir_code_service.fetch_full_code(entity_type, device_code)
+                code_data = smartir_code_service.fetch_full_code(
+                    entity_type, device_code
+                )
                 if not code_data:
                     return (
                         jsonify(
@@ -515,7 +576,9 @@ def test_command():
                         temp = parts[1] if parts[1].isdigit() else None
                         fan = parts[2] if len(parts) > 2 else None
 
-                        logger.info(f"Parsing command: mode='{mode}', temp='{temp}', fan='{fan}'")
+                        logger.info(
+                            f"Parsing command: mode='{mode}', temp='{temp}', fan='{fan}'"
+                        )
 
                         # Try to find the command in nested structure
                         mode_data = commands_data.get(mode)
@@ -525,7 +588,9 @@ def test_command():
                                 if isinstance(temp_data, dict) and fan:
                                     # Nested by fan mode: cool -> 24 -> auto
                                     raw_code = temp_data.get(fan)
-                                    logger.info(f"Found code for {mode} at {temp}°C, fan {fan}")
+                                    logger.info(
+                                        f"Found code for {mode} at {temp}°C, fan {fan}"
+                                    )
                                 else:
                                     # Just temperature nested: cool -> 24
                                     raw_code = temp_data
@@ -536,13 +601,19 @@ def test_command():
                                 if default_temp in mode_data:
                                     temp_data = mode_data[default_temp]
                                 else:
-                                    temp_data = next(iter(mode_data.values())) if mode_data else None
+                                    temp_data = (
+                                        next(iter(mode_data.values()))
+                                        if mode_data
+                                        else None
+                                    )
 
                                 if isinstance(temp_data, dict) and fan:
                                     raw_code = temp_data.get(fan)
                                 else:
                                     raw_code = temp_data
-                                logger.info(f"Using default/first temperature for {mode}")
+                                logger.info(
+                                    f"Using default/first temperature for {mode}"
+                                )
                         else:
                             raw_code = mode_data
                     else:
@@ -556,12 +627,16 @@ def test_command():
                 if isinstance(raw_code, dict):
                     # Still nested - might have fan modes or other parameters
                     # Try to get the first available value (usually the default fan mode)
-                    logger.info(f"Command '{command}' has additional nesting (fan modes?), extracting first value")
+                    logger.info(
+                        f"Command '{command}' has additional nesting (fan modes?), extracting first value"
+                    )
                     raw_code = next(iter(raw_code.values())) if raw_code else None
 
                     # If still a dict, try one more level
                     if isinstance(raw_code, dict):
-                        logger.info(f"Command '{command}' has multiple levels of nesting, extracting first value again")
+                        logger.info(
+                            f"Command '{command}' has multiple levels of nesting, extracting first value again"
+                        )
                         raw_code = next(iter(raw_code.values())) if raw_code else None
 
                 if not raw_code or not isinstance(raw_code, str):
@@ -587,7 +662,9 @@ def test_command():
                         400,
                     )
 
-                logger.info(f"Found raw IR code for command '{command}' in SmartIR code file {device_code}")
+                logger.info(
+                    f"Found raw IR code for command '{command}' in SmartIR code file {device_code}"
+                )
 
                 # Send the raw code directly with b64: prefix
                 # The b64: prefix tells Broadlink it's a base64-encoded raw command
@@ -595,7 +672,9 @@ def test_command():
                     "entity_id": entity_id,
                     "command": f"b64:{raw_code}",
                 }  # Prefix with b64: for raw codes
-                logger.info(f"Sending SmartIR raw code to HA (code length: {len(raw_code)} chars)")
+                logger.info(
+                    f"Sending SmartIR raw code to HA (code length: {len(raw_code)} chars)"
+                )
 
             except Exception as e:
                 logger.error(f"Error looking up SmartIR code: {e}")
@@ -614,23 +693,31 @@ def test_command():
 
             # If command is "pending" or "error", send command name instead of raw code
             if command in ["pending", "error"]:
-                logger.info(f"Command is '{command}' - sending command name to HA instead of raw code")
+                logger.info(
+                    f"Command is '{command}' - sending command name to HA instead of raw code"
+                )
                 # Send the command name - HA will look it up from its storage
                 service_payload = {
                     "entity_id": entity_id,
                     "command": data.get("command"),  # Use original command name
                 }
-                logger.info(f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)")
+                logger.info(
+                    f"Sending command name '{data.get('command')}' to HA (will be looked up from storage)"
+                )
             else:
                 # Send raw code with b64: prefix
                 service_payload = {
                     "entity_id": entity_id,
                     "command": f"b64:{command}",
                 }
-                logger.info(f"Sending Broadlink raw code to HA (code length: {len(command)} chars)")
+                logger.info(
+                    f"Sending Broadlink raw code to HA (code length: {len(command)} chars)"
+                )
 
         result = loop.run_until_complete(
-            web_server._make_ha_request("POST", "services/remote/send_command", service_payload)
+            web_server._make_ha_request(
+                "POST", "services/remote/send_command", service_payload
+            )
         )
         loop.close()
 
@@ -705,7 +792,9 @@ def delete_command_from_storage():
                 400,
             )
 
-        logger.info(f"🗑️ Deleting command '{command}' from Broadlink storage for device '{device}'")
+        logger.info(
+            f"🗑️ Deleting command '{command}' from Broadlink storage for device '{device}'"
+        )
 
         # Get web server instance
         web_server = get_web_server()
@@ -731,7 +820,9 @@ def delete_command_from_storage():
                 storage_key = dev_data.get("device") or dev_id
                 if storage_key == device:
                     entity_id = dev_data.get("broadlink_entity")
-                    logger.info(f"🔍 Found entity_id '{entity_id}' for storage key '{device}' (device_id: {dev_id})")
+                    logger.info(
+                        f"🔍 Found entity_id '{entity_id}' for storage key '{device}' (device_id: {dev_id})"
+                    )
                     break
 
         if not entity_id:
@@ -748,14 +839,18 @@ def delete_command_from_storage():
         logger.info(f"🔧 Calling HA service with payload: {service_payload}")
 
         result = loop.run_until_complete(
-            web_server._make_ha_request("POST", "services/remote/delete_command", service_payload)
+            web_server._make_ha_request(
+                "POST", "services/remote/delete_command", service_payload
+            )
         )
         loop.close()
 
         logger.info(f"📥 HA API response: {result}")
 
         if result is not None:
-            logger.info(f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}")
+            logger.info(
+                f"✅ Command '{command}' deleted from Broadlink storage via {entity_id}"
+            )
 
             # Add to deletion cache for optimistic UI update
             # This prevents the command from showing as "untracked" during storage file update lag
@@ -844,7 +939,9 @@ def get_untracked_commands():
         # Get all commands from Broadlink storage
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
         loop.close()
 
         # Get all tracked commands from devices.json
@@ -863,7 +960,9 @@ def get_untracked_commands():
             commands_dict = device_data.get("commands", {})
             tracked_commands[device_name] = set(commands_dict.keys())
 
-            logger.debug(f"  Tracked commands for {device_name}: {tracked_commands[device_name]}")
+            logger.debug(
+                f"  Tracked commands for {device_name}: {tracked_commands[device_name]}"
+            )
 
         # Cleanup expired deletion cache entries
         web_server._cleanup_deletion_cache()
@@ -883,11 +982,14 @@ def get_untracked_commands():
             untracked_for_device = {
                 cmd: data
                 for cmd, data in commands.items()
-                if cmd not in tracked and not web_server._is_recently_deleted(device_name, cmd)
+                if cmd not in tracked
+                and not web_server._is_recently_deleted(device_name, cmd)
             }
 
             if untracked_for_device:
-                logger.info(f"  ⚠️ Untracked commands: {list(untracked_for_device.keys())}")
+                logger.info(
+                    f"  ⚠️ Untracked commands: {list(untracked_for_device.keys())}"
+                )
             else:
                 logger.info(f"  ✅ All commands tracked")
 
@@ -920,12 +1022,12 @@ def import_commands():
         source_device = data.get("source_device")  # Broadlink device name
         commands = data.get("commands", [])  # List of command names to import
 
-        logger.info(f"📥 Parsed: device_id={device_id}, source_device={source_device}, commands={commands}")
+        logger.info(
+            f"📥 Parsed: device_id={device_id}, source_device={source_device}, commands={commands}"
+        )
 
         if not device_id or not source_device or not commands:
-            error_msg = (
-                f"Missing required fields: device_id={device_id}, source_device={source_device}, commands={commands}"
-            )
+            error_msg = f"Missing required fields: device_id={device_id}, source_device={source_device}, commands={commands}"
             logger.error(f"❌ {error_msg}")
             return (
                 jsonify(
@@ -955,14 +1057,20 @@ def import_commands():
             )
 
         # Get commands from Broadlink storage
-        logger.info(f"📦 Fetching commands from Broadlink storage for device '{source_device}'...")
+        logger.info(
+            f"📦 Fetching commands from Broadlink storage for device '{source_device}'..."
+        )
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
         loop.close()
 
         storage_commands = broadlink_commands.get(source_device, {})
-        logger.info(f"📦 Found {len(storage_commands)} commands in storage for '{source_device}'")
+        logger.info(
+            f"📦 Found {len(storage_commands)} commands in storage for '{source_device}'"
+        )
 
         # Add commands to device metadata with proper data
         device_commands = entity_data.get("commands", {})
@@ -988,7 +1096,9 @@ def import_commands():
         # Save to device_manager
         device_manager.update_device(device_id, entity_data)
 
-        logger.info(f"✅ Imported {imported_count} commands from '{source_device}' to device '{device_id}'")
+        logger.info(
+            f"✅ Imported {imported_count} commands from '{source_device}' to device '{device_id}'"
+        )
 
         return jsonify(
             {
@@ -1019,7 +1129,9 @@ def sync_commands():
         logger.info("📦 Fetching commands from Broadlink storage...")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        broadlink_commands = loop.run_until_complete(web_server._get_all_broadlink_commands())
+        broadlink_commands = loop.run_until_complete(
+            web_server._get_all_broadlink_commands()
+        )
         loop.close()
 
         logger.info(f"📦 Found commands for devices: {list(broadlink_commands.keys())}")
@@ -1031,11 +1143,15 @@ def sync_commands():
 
         # Sync managed devices (from device_manager - devices.json)
         managed_devices = device_manager.get_all_devices()
-        logger.info(f"📋 Found {len(managed_devices)} managed devices: {list(managed_devices.keys())}")
+        logger.info(
+            f"📋 Found {len(managed_devices)} managed devices: {list(managed_devices.keys())}"
+        )
 
         for device_id, device_data in managed_devices.items():
             device_name = device_data.get("device") or device_id
-            logger.info(f"🔍 Checking managed device '{device_id}' (storage name: '{device_name}')")
+            logger.info(
+                f"🔍 Checking managed device '{device_id}' (storage name: '{device_name}')"
+            )
 
             storage_commands = broadlink_commands.get(device_name, {})
             tracked_commands = device_data.get("commands", {})
@@ -1049,7 +1165,9 @@ def sync_commands():
             for cmd_name, cmd_data in storage_commands.items():
                 # Skip commands that were recently deleted (optimistic UI)
                 if cmd_name in recently_deleted:
-                    logger.debug(f"  ⏭️ Skipping recently deleted command '{cmd_name}' during sync")
+                    logger.debug(
+                        f"  ⏭️ Skipping recently deleted command '{cmd_name}' during sync"
+                    )
                     continue
 
                 cmd_type = detect_command_type(cmd_data)
@@ -1064,7 +1182,9 @@ def sync_commands():
                     # Existing command - check if type needs updating
                     existing_cmd = tracked_commands[cmd_name]
                     if isinstance(existing_cmd, dict):
-                        existing_type = existing_cmd.get("command_type") or existing_cmd.get("type")
+                        existing_type = existing_cmd.get(
+                            "command_type"
+                        ) or existing_cmd.get("type")
                     else:
                         existing_type = None
 
@@ -1075,7 +1195,11 @@ def sync_commands():
                             "type": cmd_type,
                         }
 
-            commands_to_remove = [cmd_name for cmd_name in tracked_commands.keys() if cmd_name not in storage_commands]
+            commands_to_remove = [
+                cmd_name
+                for cmd_name in tracked_commands.keys()
+                if cmd_name not in storage_commands
+            ]
 
             if commands_to_add or commands_to_remove or commands_to_update:
                 updated_commands = {**tracked_commands}
@@ -1087,7 +1211,9 @@ def sync_commands():
                 for cmd_name, cmd_data in commands_to_update.items():
                     updated_commands[cmd_name] = cmd_data
                     total_updated += 1
-                    logger.info(f"  ✏️ Updated type for '{cmd_name}' to {cmd_data['type']}")
+                    logger.info(
+                        f"  ✏️ Updated type for '{cmd_name}' to {cmd_data['type']}"
+                    )
 
                 for cmd_name in commands_to_remove:
                     del updated_commands[cmd_name]
@@ -1170,7 +1296,9 @@ def detect_command_type(command_data):
                     return "ir"
                 else:
                     # RF command (0x26 followed by non-zero)
-                    logger.debug(f"Detected RF command (0x26 0x{second_byte:02x} prefix)")
+                    logger.debug(
+                        f"Detected RF command (0x26 0x{second_byte:02x} prefix)"
+                    )
                     return "rf"
 
             # Fallback: check base64 prefix patterns
@@ -1264,7 +1392,9 @@ def learn_command_direct_stream():
             if not connection_info:
                 yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
                 device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
-                connection_info = device_manager_bl.get_device_connection_info(entity_id)
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
 
                 if connection_info:
                     # Cache for future use
@@ -1353,7 +1483,9 @@ def learn_command_direct_stream():
             # Save command
             yield f"data: {json.dumps({'status': 'saving', 'message': 'Saving command...'})}\n\n"
 
-            device_manager = DeviceManager(storage_path=str(web_server.broadlink_manager_path))
+            device_manager = DeviceManager(
+                storage_path=str(web_server.broadlink_manager_path)
+            )
             success = device_manager.add_learned_command(
                 device_id=device_id,
                 command_name=command_name,
@@ -1485,12 +1617,16 @@ def learn_command_direct():
         # Authenticate
         if not learner.authenticate():
             return (
-                jsonify({"success": False, "error": "Failed to authenticate with device"}),
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
                 500,
             )
 
         # Learn command
-        logger.info(f"Learning {command_type} command '{command_name}' for device {device_id}")
+        logger.info(
+            f"Learning {command_type} command '{command_name}' for device {device_id}"
+        )
 
         if command_type == "ir":
             result = learner.learn_ir_command(timeout=30)
@@ -1523,7 +1659,9 @@ def learn_command_direct():
                 )
 
         # Save to devices.json
-        device_manager = DeviceManager(storage_path=str(web_server.broadlink_manager_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         success = device_manager.add_learned_command(
             device_id=device_id,
             command_name=command_name,
@@ -1534,7 +1672,9 @@ def learn_command_direct():
 
         if not success:
             return (
-                jsonify({"success": False, "error": "Failed to save command to storage"}),
+                jsonify(
+                    {"success": False, "error": "Failed to save command to storage"}
+                ),
                 500,
             )
 
@@ -1561,7 +1701,9 @@ def learn_command_direct():
         if frequency:
             response["frequency"] = frequency
 
-        logger.info(f"Successfully learned command '{command_name}' ({len(base64_data)} chars)")
+        logger.info(
+            f"Successfully learned command '{command_name}' ({len(base64_data)} chars)"
+        )
         return jsonify(response)
 
     except Exception as e:
@@ -1604,12 +1746,16 @@ def test_command_direct():
         web_server = get_web_server()
 
         # Get command data and device info
-        device_manager = DeviceManager(storage_path=str(web_server.broadlink_manager_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:
             return (
-                jsonify({"success": False, "error": f"Command {command_name} not found"}),
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
                 404,
             )
 
@@ -1626,14 +1772,20 @@ def test_command_direct():
                 logger.info(f"Using stored connection info for device {device_id}")
                 connection_info = {
                     "host": stored_connection["host"],
-                    "mac_bytes": bytes.fromhex(stored_connection["mac"].replace(":", "")),
+                    "mac_bytes": bytes.fromhex(
+                        stored_connection["mac"].replace(":", "")
+                    ),
                     "type": stored_connection.get("type", 0x2712),  # Default RM type
                 }
             else:
                 # Fall back to discovery
                 logger.info(f"No stored connection, discovering device for {entity_id}")
-                device_manager_bl = BroadlinkDeviceManager(web_server.ha_url, web_server.ha_token)
-                connection_info = device_manager_bl.get_device_connection_info(entity_id)
+                device_manager_bl = BroadlinkDeviceManager(
+                    web_server.ha_url, web_server.ha_token
+                )
+                connection_info = device_manager_bl.get_device_connection_info(
+                    entity_id
+                )
 
             if connection_info:
                 # Cache for future use
@@ -1659,7 +1811,9 @@ def test_command_direct():
 
         if not learner.authenticate():
             return (
-                jsonify({"success": False, "error": "Failed to authenticate with device"}),
+                jsonify(
+                    {"success": False, "error": "Failed to authenticate with device"}
+                ),
                 500,
             )
 
@@ -1715,12 +1869,16 @@ def test_command_ha():
         web_server = get_web_server()
 
         # Get command data
-        device_manager = DeviceManager(storage_path=str(web_server.broadlink_manager_path))
+        device_manager = DeviceManager(
+            storage_path=str(web_server.broadlink_manager_path)
+        )
         command_data = device_manager.get_command_data(device_id, command_name)
 
         if not command_data:
             return (
-                jsonify({"success": False, "error": f"Command {command_name} not found"}),
+                jsonify(
+                    {"success": False, "error": f"Command {command_name} not found"}
+                ),
                 404,
             )
 

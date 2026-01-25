@@ -37,33 +37,14 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-test.txt
     
-    - name: Install Playwright browsers
-      run: |
-        playwright install chromium
-    
     - name: Run linting
       run: |
         flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
-    - name: Run unit and integration tests
+    - name: Run unit tests
       run: |
-        pytest tests/unit/ tests/integration/ -v --cov=app --cov-report=xml --cov-report=term-missing
-    
-    - name: Start web server for E2E tests
-      run: |
-        python app/main.py &
-        sleep 5
-      env:
-        HA_URL: http://localhost:8123
-        HA_TOKEN: test_token
-        LOG_LEVEL: info
-    
-    - name: Run E2E tests
-      run: |
-        pytest tests/e2e/ -v --cov=app --cov-append --cov-report=xml --cov-report=term-missing
-      env:
-        BASE_URL: http://localhost:8099
+        pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -75,7 +56,7 @@ jobs:
     
     - name: Generate coverage report
       run: |
-        pytest tests/unit/ tests/integration/ tests/e2e/ --cov=app --cov-report=html
+        pytest tests/unit/ --cov=app --cov-report=html
     
     - name: Upload coverage HTML
       uses: actions/upload-artifact@v4

@@ -1,0 +1,1558 @@
+﻿[1m============================= test session starts =============================[0m
+platform win32 -- Python 3.13.1, pytest-8.4.2, pluggy-1.6.0 -- C:\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2
+configfile: pytest.ini
+plugins: Faker-37.11.0, asyncio-1.2.0, base-url-2.1.0, cov-4.1.0, flask-1.3.0, mock-3.15.1, playwright-0.7.1, anyio-4.8.0, langsmith-0.3.10
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+[1mcollecting ... [0mcollected 477 items
+
+tests/e2e/test_accessibility.py::TestAccessibility::test_keyboard_navigation [32mPASSED[0m[32m [  0%][0m
+tests/e2e/test_accessibility.py::TestAccessibility::test_buttons_have_accessible_names [31mFAILED[0m[31m [  0%][0m
+tests/e2e/test_accessibility.py::TestAccessibility::test_heading_hierarchy [32mPASSED[0m[31m [  0%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_learn_command_button_exists [32mPASSED[0m[31m [  0%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_learn_command_modal_opens [32mPASSED[0m[31m [  1%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_command_name_input [32mPASSED[0m[31m [  1%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_learning_countdown_display [33mSKIPPED[0m[31m [  1%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_command_list_displays [32mPASSED[0m[31m [  1%][0m
+tests/e2e/test_command_learning.py::TestCommandLearning::test_test_command_button [32mPASSED[0m[31m [  1%][0m
+tests/e2e/test_command_learning.py::TestCommandManagement::test_delete_command_button [32mPASSED[0m[31m [  2%][0m
+tests/e2e/test_command_learning.py::TestCommandManagement::test_command_search_filter [32mPASSED[0m[31m [  2%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_add_device_button_exists [31mFAILED[0m[31m [  2%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_create_device_modal_opens [32mPASSED[0m[31m [  2%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_device_form_fields [32mPASSED[0m[31m [  2%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_create_device_workflow [33mSKIPPED[0m[31m [  3%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_device_list_displays [31mFAILED[0m[31m [  3%][0m
+tests/e2e/test_device_management.py::TestDeviceManagement::test_device_search_filter [32mPASSED[0m[31m [  3%][0m
+tests/e2e/test_device_management.py::TestDeviceInteractions::test_device_click_shows_details [31mFAILED[0m[31m [  3%][0m
+tests/e2e/test_device_management.py::TestDeviceInteractions::test_device_edit_button [32mPASSED[0m[31m [  3%][0m
+tests/e2e/test_device_management.py::TestDeviceInteractions::test_device_delete_confirmation [32mPASSED[0m[31m [  4%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_01_dashboard_overview [32mPASSED[0m[31m [  4%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_02_device_list [32mPASSED[0m[31m [  4%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_03_create_device_modal [32mPASSED[0m[31m [  4%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_04_broadlink_device_form [32mPASSED[0m[31m [  5%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_05_smartir_device_form [32mPASSED[0m[31m [  5%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_06_command_learning_wizard [32mPASSED[0m[31m [  5%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_07_settings_menu [32mPASSED[0m[31m [  5%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_08_smartir_status_card [32mPASSED[0m[31m [  5%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_09_entity_generation_success [32mPASSED[0m[31m [  6%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_10_mobile_view [32mPASSED[0m[31m [  6%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_11_tablet_view [32mPASSED[0m[31m [  6%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_12_dashboard_dark_mode [32mPASSED[0m[31m [  6%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_13_device_list_dark_mode [32mPASSED[0m[31m [  6%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_14_smartir_status_dark_mode [32mPASSED[0m[31m [  7%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_15_settings_menu_dark_mode [32mPASSED[0m[31m [  7%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_16_mobile_device_list [32mPASSED[0m[31m [  7%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_17_mobile_dashboard_dark [32mPASSED[0m[31m [  7%][0m
+tests/e2e/test_documentation_screenshots.py::TestDocumentationScreenshots::test_18_tablet_device_list [32mPASSED[0m[31m [  7%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_homepage_loads [31mFAILED[0m[31m [  8%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_device_list_visible [31mFAILED[0m[31m [  8%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_navigation_menu [32mPASSED[0m[31m [  8%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_responsive_layout [31mERROR[0m[31m [  8%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_responsive_layout [31mERROR[0m[31m [  8%][0m
+tests/e2e/test_ui_navigation.py::TestUINavigation::test_no_console_errors [32mPASSED[0m[31m [  9%][0m
+tests/e2e/test_ui_navigation.py::TestUIPerformance::test_page_load_time [31mFAILED[0m[31m [  9%][0m
+tests/e2e/test_ui_navigation.py::TestUIPerformance::test_no_layout_shift [32mPASSED[0m[31m [  9%][0m
+tests/integration/test_api_endpoints.py::TestDeviceEndpoints::test_get_devices_empty [31mFAILED[0m[31m [  9%][0m
+tests/integration/test_api_endpoints.py::TestDeviceEndpoints::test_create_device [31mFAILED[0m[31m [  9%][0m
+tests/integration/test_api_endpoints.py::TestDeviceEndpoints::test_get_device_by_id [31mFAILED[0m[31m [ 10%][0m
+tests/integration/test_api_endpoints.py::TestDeviceEndpoints::test_update_device [31mFAILED[0m[31m [ 10%][0m
+tests/integration/test_api_endpoints.py::TestDeviceEndpoints::test_delete_device [31mFAILED[0m[31m [ 10%][0m
+tests/integration/test_api_endpoints.py::TestCommandEndpoints::test_add_command [31mFAILED[0m[31m [ 10%][0m
+tests/integration/test_api_endpoints.py::TestCommandEndpoints::test_get_device_commands [31mFAILED[0m[31m [ 10%][0m
+tests/integration/test_api_endpoints.py::TestCommandEndpoints::test_delete_command [31mFAILED[0m[31m [ 11%][0m
+tests/integration/test_api_endpoints.py::TestAreaEndpoints::test_get_areas [31mFAILED[0m[31m [ 11%][0m
+tests/integration/test_api_endpoints.py::TestAreaEndpoints::test_create_area [31mFAILED[0m[31m [ 11%][0m
+tests/integration/test_api_endpoints.py::TestBroadlinkEndpoints::test_discover_devices [31mFAILED[0m[31m [ 11%][0m
+tests/integration/test_api_endpoints.py::TestBroadlinkEndpoints::test_learn_command [31mFAILED[0m[31m [ 11%][0m
+tests/integration/test_api_endpoints.py::TestBroadlinkEndpoints::test_send_command [32mPASSED[0m[31m [ 12%][0m
+tests/integration/test_command_workflows.py::TestBroadlinkCommandWorkflow::test_learn_command_returns_actual_code [31mERROR[0m[31m [ 12%][0m
+tests/integration/test_command_workflows.py::TestBroadlinkCommandWorkflow::test_test_command_immediately_after_learn [31mERROR[0m[31m [ 12%][0m
+tests/integration/test_command_workflows.py::TestBroadlinkCommandWorkflow::test_reject_pending_command_in_test [31mERROR[0m[31m [ 12%][0m
+tests/integration/test_command_workflows.py::TestBroadlinkCommandWorkflow::test_delete_command [31mERROR[0m[31m [ 12%][0m
+tests/integration/test_command_workflows.py::TestSmartIRCommandWorkflow::test_smartir_learn_returns_actual_code [31mERROR[0m[31m [ 13%][0m
+tests/integration/test_command_workflows.py::TestSmartIRCommandWorkflow::test_smartir_test_command [31mERROR[0m[31m [ 13%][0m
+tests/integration/test_command_workflows.py::TestSmartIRCommandWorkflow::test_smartir_reject_pending_command [31mERROR[0m[31m [ 13%][0m
+tests/integration/test_command_workflows.py::TestSmartIRCommandWorkflow::test_smartir_profile_deletion_blocked_when_in_use [31mERROR[0m[31m [ 13%][0m
+tests/integration/test_command_workflows.py::TestSmartIRCommandWorkflow::test_smartir_profile_deletion_allowed_when_not_in_use [33mXFAIL[0m[31m [ 14%][0m
+tests/integration/test_command_workflows.py::TestStorageSeparation::test_smartir_does_not_read_broadlink_storage [33mXFAIL[0m[31m [ 14%][0m
+tests/integration/test_command_workflows.py::TestStorageSeparation::test_broadlink_does_not_write_to_smartir_json [33mXFAIL[0m[31m [ 14%][0m
+tests/integration/test_command_workflows.py::TestCodeNumbering::test_next_code_increments_correctly [33mXFAIL[0m[31m [ 14%][0m
+tests/integration/test_config_api.py::TestConfigEndpoints::test_get_config [31mFAILED[0m[31m [ 14%][0m
+tests/integration/test_config_api.py::TestConfigEndpoints::test_get_system_info [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_config_api.py::TestConfigEndpoints::test_get_ha_connection_status [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_config_api.py::TestBroadlinkDeviceDiscovery::test_get_broadlink_devices [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_config_api.py::TestBroadlinkDeviceDiscovery::test_discover_broadlink_devices [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_config_api.py::TestAreaConfiguration::test_get_areas_from_ha [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_config_api.py::TestAreaConfiguration::test_sync_areas [32mPASSED[0m[31m [ 16%][0m
+tests/integration/test_config_api.py::TestStoragePaths::test_get_storage_paths [32mPASSED[0m[31m [ 16%][0m
+tests/integration/test_config_api.py::TestStoragePaths::test_validate_storage_paths [32mPASSED[0m[31m [ 16%][0m
+tests/integration/test_config_api.py::TestDeploymentMode::test_get_deployment_mode [32mPASSED[0m[31m [ 16%][0m
+tests/integration/test_config_api.py::TestDeploymentMode::test_is_supervisor_mode [32mPASSED[0m[31m [ 16%][0m
+tests/integration/test_config_api.py::TestVersionInfo::test_get_app_version [32mPASSED[0m[31m [ 17%][0m
+tests/integration/test_config_api.py::TestVersionInfo::test_get_dependencies_versions [32mPASSED[0m[31m [ 17%][0m
+tests/integration/test_config_api.py::TestConfigValidation::test_validate_ha_connection [31mFAILED[0m[31m [ 17%][0m
+tests/integration/test_config_api.py::TestConfigValidation::test_validate_broadlink_entity [32mPASSED[0m[31m [ 17%][0m
+tests/integration/test_config_api.py::TestConfigValidation::test_validate_area_exists [32mPASSED[0m[31m [ 18%][0m
+tests/integration/test_config_api.py::TestConfigUpdate::test_update_ha_url [32mPASSED[0m[31m [ 18%][0m
+tests/integration/test_config_api.py::TestConfigUpdate::test_update_ha_token [32mPASSED[0m[31m [ 18%][0m
+tests/integration/test_config_api.py::TestDiagnostics::test_get_diagnostics_json [31mFAILED[0m[31m [ 18%][0m
+tests/integration/test_config_api.py::TestDiagnostics::test_get_diagnostics_markdown [31mFAILED[0m[31m [ 18%][0m
+tests/integration/test_config_api.py::TestDiagnostics::test_download_diagnostics_bundle [32mPASSED[0m[31m [ 19%][0m
+tests/integration/test_config_api.py::TestDiagnostics::test_diagnostics_sanitization [32mPASSED[0m[31m [ 19%][0m
+tests/integration/test_config_api.py::TestHealthCheck::test_health_check [32mPASSED[0m[31m [ 19%][0m
+tests/integration/test_config_api.py::TestHealthCheck::test_readiness_check [32mPASSED[0m[31m [ 19%][0m
+tests/integration/test_config_api.py::TestConfigErrorHandling::test_invalid_json_payload [31mFAILED[0m[31m [ 19%][0m
+tests/integration/test_config_api.py::TestConfigErrorHandling::test_missing_required_fields [31mFAILED[0m[31m [ 20%][0m
+tests/integration/test_config_api.py::TestConfigErrorHandling::test_unauthorized_config_update [32mPASSED[0m[31m [ 20%][0m
+tests/integration/test_device_validation.py::TestDeviceNameValidation::test_create_device_with_valid_name [32mPASSED[0m[31m [ 20%][0m
+tests/integration/test_device_validation.py::TestDeviceNameValidation::test_create_device_with_special_characters [32mPASSED[0m[31m [ 20%][0m
+tests/integration/test_device_validation.py::TestDeviceNameValidation::test_create_device_with_empty_name [32mPASSED[0m[31m [ 20%][0m
+tests/integration/test_device_validation.py::TestDeviceNameValidation::test_create_device_with_very_long_name [32mPASSED[0m[31m [ 21%][0m
+tests/integration/test_device_validation.py::TestDeviceNameValidation::test_create_device_with_unicode_name [32mPASSED[0m[31m [ 21%][0m
+tests/integration/test_device_validation.py::TestEntityTypeValidation::test_valid_entity_types [32mPASSED[0m[31m [ 21%][0m
+tests/integration/test_device_validation.py::TestEntityTypeValidation::test_invalid_entity_type [32mPASSED[0m[31m [ 21%][0m
+tests/integration/test_device_validation.py::TestEntityTypeValidation::test_missing_entity_type [31mFAILED[0m[31m [ 22%][0m
+tests/integration/test_device_validation.py::TestBroadlinkEntityValidation::test_valid_broadlink_entity_format [32mPASSED[0m[31m [ 22%][0m
+tests/integration/test_device_validation.py::TestBroadlinkEntityValidation::test_invalid_entity_format [32mPASSED[0m[31m [ 22%][0m
+tests/integration/test_device_validation.py::TestBroadlinkEntityValidation::test_missing_broadlink_entity [32mPASSED[0m[31m [ 22%][0m
+tests/integration/test_device_validation.py::TestAreaValidation::test_valid_area [32mPASSED[0m[31m [ 22%][0m
+tests/integration/test_device_validation.py::TestAreaValidation::test_empty_area [31mFAILED[0m[31m [ 23%][0m
+tests/integration/test_device_validation.py::TestAreaValidation::test_missing_area [31mFAILED[0m[31m [ 23%][0m
+tests/integration/test_device_validation.py::TestDuplicateDeviceValidation::test_create_duplicate_device_name [32mPASSED[0m[31m [ 23%][0m
+tests/integration/test_device_validation.py::TestDuplicateDeviceValidation::test_update_device_to_duplicate_name [33mSKIPPED[0m[31m [ 23%][0m
+tests/integration/test_device_validation.py::TestCommandValidation::test_add_valid_command [33mSKIPPED[0m[31m [ 23%][0m
+tests/integration/test_device_validation.py::TestCommandValidation::test_add_command_with_invalid_code [33mSKIPPED[0m[31m [ 24%][0m
+tests/integration/test_device_validation.py::TestUpdateValidation::test_update_device_valid_fields [33mSKIPPED[0m[31m [ 24%][0m
+tests/integration/test_device_validation.py::TestUpdateValidation::test_update_device_readonly_fields [33mSKIPPED[0m[31m [ 24%][0m
+tests/integration/test_full_workflow.py::TestFullWorkflow::test_create_device_learn_commands_generate_entities [31mFAILED[0m[31m [ 24%][0m
+tests/integration/test_full_workflow.py::TestFullWorkflow::test_fan_workflow_with_multiple_speeds [31mFAILED[0m[31m [ 24%][0m
+tests/integration/test_full_workflow.py::TestMultiDeviceWorkflow::test_multiple_devices_same_area [31mFAILED[0m[31m [ 25%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_get_managed_devices_empty [32mPASSED[0m[31m [ 25%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_create_managed_device_broadlink [32mPASSED[0m[31m [ 25%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_create_managed_device_smartir [31mFAILED[0m[31m [ 25%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_get_managed_device_by_id [32mPASSED[0m[31m [ 25%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_update_managed_device [32mPASSED[0m[31m [ 26%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_delete_managed_device [32mPASSED[0m[31m [ 26%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_delete_managed_device_with_commands [32mPASSED[0m[31m [ 26%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceValidation::test_create_device_missing_required_fields [32mPASSED[0m[31m [ 26%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceValidation::test_create_device_invalid_device_type [32mPASSED[0m[31m [ 27%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceValidation::test_get_nonexistent_device [32mPASSED[0m[31m [ 27%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceValidation::test_update_nonexistent_device [32mPASSED[0m[31m [ 27%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceValidation::test_delete_nonexistent_device [31mFAILED[0m[31m [ 27%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceWorkflow::test_full_device_lifecycle [33mSKIPPED[0m[31m [ 27%][0m
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceWorkflow::test_full_device_lifecycle [31mERROR[0m[31m [ 27%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_get_smartir_devices_empty [31mFAILED[0m[31m [ 28%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_create_smartir_climate_device [32mPASSED[0m[31m [ 28%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_create_smartir_media_player_device [32mPASSED[0m[31m [ 28%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_create_smartir_fan_device [32mPASSED[0m[31m [ 28%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_create_smartir_device_missing_code [32mPASSED[0m[31m [ 28%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceEndpoints::test_create_smartir_device_missing_controller [32mPASSED[0m[31m [ 29%][0m
+tests/integration/test_smartir_api.py::TestSmartIRCodeRetrieval::test_get_manufacturers [31mFAILED[0m[31m [ 29%][0m
+tests/integration/test_smartir_api.py::TestSmartIRCodeRetrieval::test_get_models_for_manufacturer [31mFAILED[0m[31m [ 29%][0m
+tests/integration/test_smartir_api.py::TestSmartIRCodeRetrieval::test_get_device_code [31mFAILED[0m[31m [ 29%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceIndex::test_get_device_index [32mPASSED[0m[31m [ 29%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceIndex::test_update_device_index [32mPASSED[0m[31m [ 30%][0m
+tests/integration/test_smartir_api.py::TestSmartIRValidation::test_validate_smartir_code_format [32mPASSED[0m[31m [ 30%][0m
+tests/integration/test_smartir_api.py::TestSmartIRValidation::test_reject_invalid_smartir_code [32mPASSED[0m[31m [ 30%][0m
+tests/integration/test_smartir_api.py::TestSmartIRValidation::test_validate_controller_entity_format [32mPASSED[0m[31m [ 30%][0m
+tests/integration/test_smartir_api.py::TestSmartIRYAMLGeneration::test_generate_smartir_yaml [32mPASSED[0m[31m [ 31%][0m
+tests/integration/test_smartir_api.py::TestSmartIRYAMLGeneration::test_download_smartir_yaml [32mPASSED[0m[31m [ 31%][0m
+tests/integration/test_smartir_api.py::TestSmartIRDeviceLifecycle::test_full_smartir_device_lifecycle [33mSKIPPED[0m[31m [ 31%][0m
+tests/integration/test_smartir_api.py::TestSmartIRControllerTypes::test_broadlink_controller [32mPASSED[0m[31m [ 31%][0m
+tests/integration/test_smartir_api.py::TestSmartIRControllerTypes::test_xiaomi_controller [32mPASSED[0m[31m [ 31%][0m
+tests/integration/test_smartir_api.py::TestSmartIRControllerTypes::test_harmony_hub_controller [32mPASSED[0m[31m [ 32%][0m
+tests/integration/test_smartir_api.py::TestSmartIRErrorHandling::test_invalid_platform_type [32mPASSED[0m[31m [ 32%][0m
+tests/integration/test_smartir_api.py::TestSmartIRErrorHandling::test_nonexistent_smartir_code [32mPASSED[0m[31m [ 32%][0m
+tests/integration/test_smartir_api.py::TestSmartIRErrorHandling::test_empty_controller_device [32mPASSED[0m[31m [ 32%][0m
+tests/integration/test_smartir_non_broadlink.py::TestSmartIRNonBroadlinkIntegration::test_scenario_user_has_xiaomi_remote_only [32mPASSED[0m[31m [ 32%][0m
+tests/integration/test_smartir_non_broadlink.py::TestSmartIRNonBroadlinkIntegration::test_scenario_harmony_hub_for_media_player [32mPASSED[0m[31m [ 33%][0m
+tests/integration/test_smartir_non_broadlink.py::TestSmartIRNonBroadlinkIntegration::test_scenario_mixed_controllers [32mPASSED[0m[31m [ 33%][0m
+tests/integration/test_smartir_non_broadlink.py::TestSmartIRNonBroadlinkIntegration::test_scenario_generic_remote_entity [32mPASSED[0m[31m [ 33%][0m
+tests/integration/test_smartir_non_broadlink.py::TestSmartIRNonBroadlinkIntegration::test_generated_yaml_is_valid_smartir_format [32mPASSED[0m[31m [ 33%][0m
+tests/manual/test_direct_learning.py::test_send_command [31mERROR[0m[31m            [ 33%][0m
+tests/manual/test_smartir_yaml_output.py::test_yaml_generation [32mPASSED[0m[31m    [ 34%][0m
+tests/manual/test_speed_command_detection.py::test_named_speed_commands [31mFAILED[0m[31m [ 34%][0m
+tests/manual/test_speed_command_detection.py::test_numeric_speed_commands [31mFAILED[0m[31m [ 34%][0m
+tests/manual/test_speed_command_detection.py::test_mixed_speed_commands [31mFAILED[0m[31m [ 34%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_success [31mFAILED[0m[31m [ 35%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_missing_entity_id [32mPASSED[0m[31m [ 35%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_missing_device [32mPASSED[0m[31m [ 35%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_missing_command [32mPASSED[0m[31m [ 35%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_derives_device_from_device_id [31mFAILED[0m[31m [ 35%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_no_web_server [32mPASSED[0m[31m [ 36%][0m
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_ha_api_failure [31mFAILED[0m[31m [ 36%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_success [31mFAILED[0m[31m [ 36%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_missing_entity_id [32mPASSED[0m[31m [ 36%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_missing_command [32mPASSED[0m[31m [ 36%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_pending_status [32mPASSED[0m[31m [ 37%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_null_status [32mPASSED[0m[31m [ 37%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_no_web_server [32mPASSED[0m[31m [ 37%][0m
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_ha_api_failure [31mFAILED[0m[31m [ 37%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_broadlink_success [31mFAILED[0m[31m [ 37%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_missing_fields [32mPASSED[0m[31m [ 38%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_derives_device_from_device_id [31mFAILED[0m[31m [ 38%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_with_command_metadata [31mFAILED[0m[31m [ 38%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_no_web_server [32mPASSED[0m[31m [ 38%][0m
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_ha_api_failure [31mFAILED[0m[31m [ 38%][0m
+tests/unit/test_api_commands.py::TestVerifyCommandInStorage::test_verify_command_found_immediately [31mFAILED[0m[31m [ 39%][0m
+tests/unit/test_api_commands.py::TestVerifyCommandInStorage::test_verify_command_not_found [31mFAILED[0m[31m [ 39%][0m
+tests/unit/test_api_commands.py::TestVerifyCommandInStorage::test_verify_command_found_after_retry [31mFAILED[0m[31m [ 39%][0m
+tests/unit/test_api_commands.py::TestVerifyCommandInStorage::test_verify_command_exception_handling [31mFAILED[0m[31m [ 39%][0m
+tests/unit/test_area_assignment.py::TestAreaManagement::test_get_existing_area [31mFAILED[0m[31m [ 40%][0m
+tests/unit/test_area_assignment.py::TestAreaManagement::test_create_new_area [31mFAILED[0m[31m [ 40%][0m
+tests/unit/test_area_assignment.py::TestAreaManagement::test_assign_entity_to_area [31mFAILED[0m[31m [ 40%][0m
+tests/unit/test_area_assignment.py::TestAreaManagement::test_assign_nonexistent_entity [31mFAILED[0m[31m [ 40%][0m
+tests/unit/test_area_assignment.py::TestAreaManagement::test_check_entity_exists [31mFAILED[0m[31m [ 40%][0m
+tests/unit/test_area_assignment.py::TestBulkAreaAssignment::test_assign_multiple_entities [31mFAILED[0m[31m [ 41%][0m
+tests/unit/test_area_assignment.py::TestBulkAreaAssignment::test_assign_entities_creates_areas [31mFAILED[0m[31m [ 41%][0m
+tests/unit/test_area_assignment.py::TestBulkAreaAssignment::test_skip_entities_without_area [31mFAILED[0m[31m [ 41%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_initialization [32mPASSED[0m[31m [ 41%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_get_or_create_area_existing [31mFAILED[0m[31m [ 41%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_get_or_create_area_new [31mFAILED[0m[31m [ 42%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_assign_entity_to_area [31mFAILED[0m[31m [ 42%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_assign_entity_to_area_failure [31mFAILED[0m[31m [ 42%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_check_entity_exists [31mFAILED[0m[31m [ 42%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_check_entity_not_exists [31mFAILED[0m[31m [ 42%][0m
+tests/unit/test_area_manager.py::TestAreaManager::test_reload_config [31mFAILED[0m[31m [ 43%][0m
+tests/unit/test_broadlink_device_manager.py::TestBroadlinkDeviceManagerInit::test_init_stores_config [32mPASSED[0m[31m [ 43%][0m
+tests/unit/test_broadlink_device_manager.py::TestBroadlinkDeviceManagerInit::test_init_strips_trailing_slash [32mPASSED[0m[31m [ 43%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetHeaders::test_get_headers_format [32mPASSED[0m[31m [ 43%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_success [32mPASSED[0m[31m [ 44%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_fallback_to_type [32mPASSED[0m[31m [ 44%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_skips_invalid_type [32mPASSED[0m[31m [ 44%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_empty_result [32mPASSED[0m[31m [ 44%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_exception_handling [32mPASSED[0m[31m [ 44%][0m
+tests/unit/test_broadlink_device_manager.py::TestDiscoverDevices::test_discover_devices_multiple_devices [32mPASSED[0m[31m [ 45%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetHAEntityInfo::test_get_entity_info_success [32mPASSED[0m[31m [ 45%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetHAEntityInfo::test_get_entity_info_not_found [32mPASSED[0m[31m [ 45%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetHAEntityInfo::test_get_entity_info_exception [32mPASSED[0m[31m [ 45%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetDeviceConnectionInfo::test_get_connection_info_from_attributes [32mPASSED[0m[31m [ 45%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetDeviceConnectionInfo::test_get_connection_info_from_discovery [32mPASSED[0m[31m [ 46%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetDeviceConnectionInfo::test_get_connection_info_invalid_mac [32mPASSED[0m[31m [ 46%][0m
+tests/unit/test_broadlink_device_manager.py::TestGetDeviceConnectionInfo::test_get_connection_info_hex_device_type [32mPASSED[0m[31m [ 46%][0m
+tests/unit/test_broadlink_device_manager.py::TestMatchDiscoveredToHAEntity::test_match_by_mac_address [32mPASSED[0m[31m [ 46%][0m
+tests/unit/test_broadlink_device_manager.py::TestMatchDiscoveredToHAEntity::test_match_no_match_found [32mPASSED[0m[31m [ 46%][0m
+tests/unit/test_broadlink_device_manager.py::TestMatchDiscoveredToHAEntity::test_match_entity_not_found [32mPASSED[0m[31m [ 47%][0m
+tests/unit/test_command_deletion.py::TestCommandDeletion::test_delete_command_success [31mFAILED[0m[31m [ 47%][0m
+tests/unit/test_command_deletion.py::TestCommandDeletion::test_delete_nonexistent_command [31mFAILED[0m[31m [ 47%][0m
+tests/unit/test_command_deletion.py::TestCommandDeletion::test_delete_command_from_storage [31mFAILED[0m[31m [ 47%][0m
+tests/unit/test_command_deletion.py::TestCommandDeletion::test_delete_multiple_commands [31mFAILED[0m[31m [ 48%][0m
+tests/unit/test_command_deletion.py::TestCommandDeletionIntegration::test_delete_command_from_device [31mFAILED[0m[31m [ 48%][0m
+tests/unit/test_command_learning.py::TestCommandLearning::test_learn_command_success [31mFAILED[0m[31m [ 48%][0m
+tests/unit/test_command_learning.py::TestCommandLearning::test_learn_command_rf_type [31mFAILED[0m[31m [ 48%][0m
+tests/unit/test_command_learning.py::TestCommandLearning::test_learn_command_legacy_format [31mFAILED[0m[31m [ 48%][0m
+tests/unit/test_command_learning.py::TestCommandLearning::test_learn_multiple_commands [31mFAILED[0m[31m [ 49%][0m
+tests/unit/test_command_learning.py::TestCommandLearning::test_learn_command_creates_notification [31mFAILED[0m[31m [ 49%][0m
+tests/unit/test_command_learning.py::TestCommandLearningIntegration::test_learn_and_store_command [31mFAILED[0m[31m [ 49%][0m
+tests/unit/test_command_storage_format.py::TestCommandStorageFormat::test_command_stored_as_string [33mSKIPPED[0m[31m [ 49%][0m
+tests/unit/test_command_storage_format.py::TestCommandStorageFormat::test_command_stored_as_metadata_dict [33mSKIPPED[0m[31m [ 49%][0m
+tests/unit/test_command_storage_format.py::TestCommandStorageFormat::test_extract_code_from_metadata [33mSKIPPED[0m[31m [ 50%][0m
+tests/unit/test_command_storage_format.py::TestCommandStorageFormat::test_command_without_code_field [33mSKIPPED[0m[31m [ 50%][0m
+tests/unit/test_command_storage_format.py::TestCommandStorageFormat::test_mixed_command_formats [33mSKIPPED[0m[31m [ 50%][0m
+tests/unit/test_command_storage_format.py::TestCommandRetrievalAPI::test_api_command_extraction_logic [33mSKIPPED[0m[31m [ 50%][0m
+tests/unit/test_command_storage_format.py::TestCommandRetrievalAPI::test_api_handles_missing_code_gracefully [33mSKIPPED[0m[31m [ 50%][0m
+tests/unit/test_config_loader.py::TestConfigLoaderInitialization::test_init_supervisor_mode [32mPASSED[0m[31m [ 51%][0m
+tests/unit/test_config_loader.py::TestConfigLoaderInitialization::test_init_standalone_mode [32mPASSED[0m[31m [ 51%][0m
+tests/unit/test_config_loader.py::TestConfigLoaderInitialization::test_detect_supervisor_environment_with_token [32mPASSED[0m[31m [ 51%][0m
+tests/unit/test_config_loader.py::TestConfigLoaderInitialization::test_detect_supervisor_environment_without_token [32mPASSED[0m[31m [ 51%][0m
+tests/unit/test_config_loader.py::TestHAURLConfiguration::test_get_ha_url_supervisor_mode [32mPASSED[0m[31m [ 51%][0m
+tests/unit/test_config_loader.py::TestHAURLConfiguration::test_get_ha_url_standalone_default [32mPASSED[0m[31m [ 52%][0m
+tests/unit/test_config_loader.py::TestHAURLConfiguration::test_get_ha_url_standalone_custom [32mPASSED[0m[31m [ 52%][0m
+tests/unit/test_config_loader.py::TestHAURLConfiguration::test_get_ha_url_removes_trailing_slash [32mPASSED[0m[31m [ 52%][0m
+tests/unit/test_config_loader.py::TestHATokenConfiguration::test_get_ha_token_supervisor_mode [32mPASSED[0m[31m [ 52%][0m
+tests/unit/test_config_loader.py::TestHATokenConfiguration::test_get_ha_token_standalone_mode [32mPASSED[0m[31m [ 53%][0m
+tests/unit/test_config_loader.py::TestHATokenConfiguration::test_get_ha_token_missing_supervisor [32mPASSED[0m[31m [ 53%][0m
+tests/unit/test_config_loader.py::TestHATokenConfiguration::test_get_ha_token_missing_standalone [32mPASSED[0m[31m [ 53%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_config_path_default [32mPASSED[0m[31m [ 53%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_config_path_ha_config_path [32mPASSED[0m[31m [ 53%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_config_path_config_path [32mPASSED[0m[31m [ 54%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_config_path_priority [32mPASSED[0m[31m [ 54%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_storage_path [32mPASSED[0m[31m [ 54%][0m
+tests/unit/test_config_loader.py::TestPathConfiguration::test_get_broadlink_manager_path [32mPASSED[0m[31m [ 54%][0m
+tests/unit/test_config_loader.py::TestLoadOptions::test_load_options_default [32mPASSED[0m[31m [ 54%][0m
+tests/unit/test_config_loader.py::TestLoadOptions::test_load_options_supervisor_mode [32mPASSED[0m[31m [ 55%][0m
+tests/unit/test_config_loader.py::TestLoadOptions::test_load_options_standalone_mode [32mPASSED[0m[31m [ 55%][0m
+tests/unit/test_config_loader.py::TestLoadSupervisorOptions::test_load_supervisor_options_file_exists [32mPASSED[0m[31m [ 55%][0m
+tests/unit/test_config_loader.py::TestLoadSupervisorOptions::test_load_supervisor_options_file_missing [32mPASSED[0m[31m [ 55%][0m
+tests/unit/test_config_loader.py::TestLoadSupervisorOptions::test_load_supervisor_options_json_error [32mPASSED[0m[31m [ 55%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_log_level [32mPASSED[0m[31m [ 56%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_web_port_valid [32mPASSED[0m[31m [ 56%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_web_port_invalid [32mPASSED[0m[31m [ 56%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_auto_discover_true [32mPASSED[0m[31m [ 56%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_auto_discover_false [32mPASSED[0m[31m [ 57%][0m
+tests/unit/test_config_loader.py::TestLoadEnvOptions::test_load_env_options_empty [32mPASSED[0m[31m [ 57%][0m
+tests/unit/test_config_loader.py::TestConfigSanitization::test_sanitize_config_for_log [32mPASSED[0m[31m [ 57%][0m
+tests/unit/test_config_loader.py::TestConfigSanitization::test_sanitize_config_does_not_modify_original [32mPASSED[0m[31m [ 57%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_valid_supervisor [32mPASSED[0m[31m [ 57%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_valid_standalone [32mPASSED[0m[31m [ 58%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_missing_token_supervisor [32mPASSED[0m[31m [ 58%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_missing_token_standalone [32mPASSED[0m[31m [ 58%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_missing_config_path [32mPASSED[0m[31m [ 58%][0m
+tests/unit/test_config_loader.py::TestConfigValidation::test_validate_configuration_all_invalid [32mPASSED[0m[31m [ 58%][0m
+tests/unit/test_config_loader.py::TestEnvironmentInfo::test_get_environment_info_supervisor [32mPASSED[0m[31m [ 59%][0m
+tests/unit/test_config_loader.py::TestEnvironmentInfo::test_get_environment_info_standalone [32mPASSED[0m[31m [ 59%][0m
+tests/unit/test_config_loader.py::TestEnvironmentInfo::test_get_environment_info_no_token [32mPASSED[0m[31m [ 59%][0m
+tests/unit/test_config_loader.py::TestEnvironmentInfo::test_get_environment_info_custom_paths [32mPASSED[0m[31m [ 59%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_broadlink_rm4_pro [32mPASSED[0m[31m [ 59%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_broadlink_rm_mini [32mPASSED[0m[31m [ 60%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_xiaomi_remote [32mPASSED[0m[31m [ 60%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_aqara_remote [32mPASSED[0m[31m [ 60%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_harmony_hub [32mPASSED[0m[31m [ 60%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_esphome_remote [32mPASSED[0m[31m [ 61%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_unknown_remote [32mPASSED[0m[31m [ 61%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_empty_entity [32mPASSED[0m[31m [ 61%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_detect_none_entity [32mPASSED[0m[31m [ 61%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_supports_learning_broadlink [32mPASSED[0m[31m [ 61%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_supports_learning_xiaomi [32mPASSED[0m[31m [ 62%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_supports_deletion_broadlink [32mPASSED[0m[31m [ 62%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_supports_deletion_harmony [32mPASSED[0m[31m [ 62%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_get_capabilities_broadlink [32mPASSED[0m[31m [ 62%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_get_capabilities_xiaomi [32mPASSED[0m[31m [ 62%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_all_types_have_required_fields [32mPASSED[0m[31m [ 63%][0m
+tests/unit/test_controller_detector.py::TestControllerDetector::test_case_insensitive_detection [32mPASSED[0m[31m [ 63%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_detect_standalone_mode [32mPASSED[0m[31m [ 63%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_detect_supervisor_mode [32mPASSED[0m[31m [ 63%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_standalone_ha_url [32mPASSED[0m[31m [ 63%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_standalone_ha_url_default [32mPASSED[0m[31m [ 64%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_supervisor_ha_url [32mPASSED[0m[31m [ 64%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_standalone_token [32mPASSED[0m[31m [ 64%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeDetection::test_supervisor_token [32mPASSED[0m[31m [ 64%][0m
+tests/unit/test_deployment_modes.py::TestAPICompatibilityStandaloneMode::test_all_endpoints_available_standalone [31mFAILED[0m[31m [ 64%][0m
+tests/unit/test_deployment_modes.py::TestAPICompatibilitySupervisorMode::test_core_endpoints_work_in_supervisor [31mFAILED[0m[31m [ 65%][0m
+tests/unit/test_deployment_modes.py::TestAPICompatibilitySupervisorMode::test_restricted_endpoints_in_supervisor_strict [31mFAILED[0m[31m [ 65%][0m
+tests/unit/test_deployment_modes.py::TestAPICompatibilitySupervisorMode::test_restricted_endpoints_in_supervisor_graceful [31mFAILED[0m[31m [ 65%][0m
+tests/unit/test_deployment_modes.py::TestAPICompatibilitySupervisorMode::test_access_attempt_logging [31mFAILED[0m[31m [ 65%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeConfiguration::test_mode_specific_configuration[standalone-http://localhost:8123-HA_TOKEN] [32mPASSED[0m[31m [ 66%][0m
+tests/unit/test_deployment_modes.py::TestDeploymentModeConfiguration::test_mode_specific_configuration[supervisor-http://supervisor/core-SUPERVISOR_TOKEN] [32mPASSED[0m[31m [ 66%][0m
+tests/unit/test_deployment_modes.py::TestFileSystemAccess::test_config_path_standalone [32mPASSED[0m[31m [ 66%][0m
+tests/unit/test_deployment_modes.py::TestFileSystemAccess::test_config_path_supervisor [32mPASSED[0m[31m [ 66%][0m
+tests/unit/test_deployment_modes.py::TestFileSystemAccess::test_storage_path_all_modes [32mPASSED[0m[31m [ 66%][0m
+tests/unit/test_deployment_modes.py::TestFileSystemAccess::test_broadlink_manager_path_all_modes [32mPASSED[0m[31m [ 67%][0m
+tests/unit/test_deployment_modes.py::TestCompatibilitySummary::test_compatibility_score_standalone [32mPASSED[0m[31m [ 67%][0m
+tests/unit/test_deployment_modes.py::TestCompatibilitySummary::test_compatibility_score_supervisor [32mPASSED[0m[31m [ 67%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_normalize_device_name [32mPASSED[0m[31m [ 67%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_entity_id_format_without_prefix [32mPASSED[0m[31m [ 67%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_entity_id_format_for_all_types [32mPASSED[0m[31m [ 68%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_smartir_device_entity_id_format [32mPASSED[0m[31m [ 68%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_entity_id_uniqueness_check [32mPASSED[0m[31m [ 68%][0m
+tests/unit/test_device_api.py::TestDeviceAPI::test_device_rename_entity_id_update [32mPASSED[0m[31m [ 68%][0m
+tests/unit/test_device_api.py::TestEntityIDHelpers::test_helper_state_tracker_format [32mPASSED[0m[31m [ 68%][0m
+tests/unit/test_device_api.py::TestEntityIDHelpers::test_helper_speed_selector_format [32mPASSED[0m[31m [ 69%][0m
+tests/unit/test_device_api.py::TestEntityIDHelpers::test_helper_direction_selector_format [32mPASSED[0m[31m [ 69%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_initialization [32mPASSED[0m[31m [ 69%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_create_device [32mPASSED[0m[31m [ 69%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_create_duplicate_device [32mPASSED[0m[31m [ 70%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_get_device [32mPASSED[0m[31m [ 70%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_get_nonexistent_device [32mPASSED[0m[31m [ 70%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_get_all_devices [32mPASSED[0m[31m [ 70%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_update_device [32mPASSED[0m[31m [ 70%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_update_preserves_commands [32mPASSED[0m[31m [ 71%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_delete_device [32mPASSED[0m[31m [ 71%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_delete_nonexistent_device [32mPASSED[0m[31m [ 71%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_add_command [32mPASSED[0m[31m [ 71%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_add_command_to_nonexistent_device [32mPASSED[0m[31m [ 71%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_delete_command [32mPASSED[0m[31m [ 72%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_get_device_commands [32mPASSED[0m[31m [ 72%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_get_devices_by_broadlink [32mPASSED[0m[31m [ 72%][0m
+tests/unit/test_device_manager.py::TestDeviceManager::test_generate_device_id [32mPASSED[0m[31m [ 72%][0m
+tests/unit/test_diagnostics.py::TestDiagnosticsCollectorInitialization::test_init_with_path_only [32mPASSED[0m[31m [ 72%][0m
+tests/unit/test_diagnostics.py::TestDiagnosticsCollectorInitialization::test_init_with_managers [32mPASSED[0m[31m [ 73%][0m
+tests/unit/test_diagnostics.py::TestSystemInfoCollection::test_collect_system_info_success [32mPASSED[0m[31m [ 73%][0m
+tests/unit/test_diagnostics.py::TestSystemInfoCollection::test_collect_system_info_error_handling [32mPASSED[0m[31m [ 73%][0m
+tests/unit/test_diagnostics.py::TestConfigurationCollection::test_collect_configuration_with_env_vars [32mPASSED[0m[31m [ 73%][0m
+tests/unit/test_diagnostics.py::TestConfigurationCollection::test_collect_configuration_without_env_vars [32mPASSED[0m[31m [ 74%][0m
+tests/unit/test_diagnostics.py::TestConfigurationCollection::test_collect_configuration_with_config_file [32mPASSED[0m[31m [ 74%][0m
+tests/unit/test_diagnostics.py::TestDeviceInfoCollection::test_collect_device_info_no_managers [32mPASSED[0m[31m [ 74%][0m
+tests/unit/test_diagnostics.py::TestDeviceInfoCollection::test_collect_device_info_with_device_manager [32mPASSED[0m[31m [ 74%][0m
+tests/unit/test_diagnostics.py::TestDeviceInfoCollection::test_collect_device_info_with_storage_manager [32mPASSED[0m[31m [ 74%][0m
+tests/unit/test_diagnostics.py::TestDeviceInfoCollection::test_collect_device_info_error_handling [32mPASSED[0m[31m [ 75%][0m
+tests/unit/test_diagnostics.py::TestIntegrationStatusCollection::test_collect_integration_status [32mPASSED[0m[31m [ 75%][0m
+tests/unit/test_diagnostics.py::TestStorageInfoCollection::test_collect_storage_info_nonexistent_path [32mPASSED[0m[31m [ 75%][0m
+tests/unit/test_diagnostics.py::TestStorageInfoCollection::test_collect_storage_info_with_files [32mPASSED[0m[31m [ 75%][0m
+tests/unit/test_diagnostics.py::TestStorageInfoCollection::test_collect_storage_info_with_command_files [32mPASSED[0m[31m [ 75%][0m
+tests/unit/test_diagnostics.py::TestStorageInfoCollection::test_collect_storage_info_error_handling [32mPASSED[0m[31m [ 76%][0m
+tests/unit/test_diagnostics.py::TestCommandStructureCollection::test_collect_command_structure_no_managers [32mPASSED[0m[31m [ 76%][0m
+tests/unit/test_diagnostics.py::TestCommandStructureCollection::test_collect_command_structure_with_device_manager [32mPASSED[0m[31m [ 76%][0m
+tests/unit/test_diagnostics.py::TestCommandStructureCollection::test_collect_command_structure_with_storage_manager [32mPASSED[0m[31m [ 76%][0m
+tests/unit/test_diagnostics.py::TestCommandStructureCollection::test_collect_command_structure_with_string_commands [32mPASSED[0m[31m [ 76%][0m
+tests/unit/test_diagnostics.py::TestDataSanitization::test_sanitize_data_removes_tokens [32mPASSED[0m[31m [ 77%][0m
+tests/unit/test_diagnostics.py::TestDataSanitization::test_sanitize_data_removes_passwords [32mPASSED[0m[31m [ 77%][0m
+tests/unit/test_diagnostics.py::TestDataSanitization::test_sanitize_data_preserves_safe_data [32mPASSED[0m[31m [ 77%][0m
+tests/unit/test_diagnostics.py::TestMarkdownReportGeneration::test_generate_markdown_report_basic [32mPASSED[0m[31m [ 77%][0m
+tests/unit/test_diagnostics.py::TestMarkdownReportGeneration::test_generate_markdown_report_with_checkmarks [31mFAILED[0m[31m [ 77%][0m
+tests/unit/test_diagnostics.py::TestCollectAll::test_collect_all_returns_complete_data [32mPASSED[0m[31m [ 78%][0m
+tests/unit/test_diagnostics.py::TestCollectAll::test_collect_all_with_managers [32mPASSED[0m[31m [ 78%][0m
+tests/unit/test_diagnostics.py::TestCollectAll::test_collect_all_timestamp_format [32mPASSED[0m[31m [ 78%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_multiple_media_players_single_platform [31mFAILED[0m[31m [ 78%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_multiple_lights_single_platform [31mFAILED[0m[31m [ 79%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_mixed_entity_types_separate_platforms [31mFAILED[0m[31m [ 79%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_entity_id_without_type_prefix [31mFAILED[0m[31m [ 79%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_fan_direction_helper_always_created [31mFAILED[0m[31m [ 79%][0m
+tests/unit/test_entity_generator.py::TestEntityGenerator::test_fan_helpers_match_entity_config [31mFAILED[0m[31m [ 79%][0m
+tests/unit/test_regressions.py::TestEntityIDPrefixRegression::test_light_entity_id_no_prefix [31mFAILED[0m[31m [ 80%][0m
+tests/unit/test_regressions.py::TestEntityIDPrefixRegression::test_fan_entity_id_no_prefix [31mFAILED[0m[31m [ 80%][0m
+tests/unit/test_regressions.py::TestEntityIDPrefixRegression::test_helper_ids_no_prefix [32mPASSED[0m[31m [ 80%][0m
+tests/unit/test_regressions.py::TestFanDirectionHelperRegression::test_fan_without_reverse_has_direction_helper [31mFAILED[0m[31m [ 80%][0m
+tests/unit/test_regressions.py::TestFanDirectionHelperRegression::test_fan_with_reverse_has_direction_helper [32mPASSED[0m[31m [ 80%][0m
+tests/unit/test_regressions.py::TestSmartIRConfigPersistenceRegression::test_smartir_config_fields_persist [32mPASSED[0m[31m [ 81%][0m
+tests/unit/test_regressions.py::TestSmartIRConfigPersistenceRegression::test_smartir_config_update_persists [32mPASSED[0m[31m [ 81%][0m
+tests/unit/test_regressions.py::TestSmartIRControllerDataRegression::test_controller_data_uses_entity_id_not_ip [33mSKIPPED[0mtegration tests)[31m [ 81%][0m
+tests/unit/test_regressions.py::TestSmartIRControllerDataRegression::test_non_broadlink_controller_uses_entity_id [33mSKIPPED[0mtegration
+tests)[31m                                                                   [ 81%][0m
+tests/unit/test_regressions.py::TestDeviceNameNormalizationRegression::test_normalize_device_name_special_chars [32mPASSED[0m[31m [ 81%][0m
+tests/unit/test_regressions.py::TestDeviceNameNormalizationRegression::test_normalize_preserves_underscores [32mPASSED[0m[31m [ 82%][0m
+tests/unit/test_regressions.py::TestDeviceNameNormalizationRegression::test_normalize_handles_unicode [32mPASSED[0m[31m [ 82%][0m
+tests/unit/test_regressions.py::TestBackupRecoveryRegression::test_backup_created_before_save [32mPASSED[0m[31m [ 82%][0m
+tests/unit/test_regressions.py::TestBackupRecoveryRegression::test_recovery_from_backup_on_missing_file [32mPASSED[0m[31m [ 82%][0m
+tests/unit/test_regressions.py::TestMultipleEntityGroupingRegression::test_multiple_lights_single_platform [31mFAILED[0m[31m [ 83%][0m
+tests/unit/test_smartir_code_service.py::TestSmartIRCodeServiceInit::test_init_creates_cache_directory [32mPASSED[0m[31m [ 83%][0m
+tests/unit/test_smartir_code_service.py::TestSmartIRCodeServiceInit::test_init_loads_bundled_index [32mPASSED[0m[31m [ 83%][0m
+tests/unit/test_smartir_code_service.py::TestLoadCache::test_load_cache_file_not_exists [32mPASSED[0m[31m [ 83%][0m
+tests/unit/test_smartir_code_service.py::TestLoadCache::test_load_cache_file_exists [32mPASSED[0m[31m [ 83%][0m
+tests/unit/test_smartir_code_service.py::TestLoadCache::test_load_cache_invalid_json [32mPASSED[0m[31m [ 84%][0m
+tests/unit/test_smartir_code_service.py::TestSaveCache::test_save_cache_success [32mPASSED[0m[31m [ 84%][0m
+tests/unit/test_smartir_code_service.py::TestSaveCache::test_save_cache_permission_error [32mPASSED[0m[31m [ 84%][0m
+tests/unit/test_smartir_code_service.py::TestLoadDeviceIndex::test_load_device_index_returns_dict [32mPASSED[0m[31m [ 84%][0m
+tests/unit/test_smartir_code_service.py::TestGetManufacturers::test_get_manufacturers_for_platform [32mPASSED[0m[31m [ 84%][0m
+tests/unit/test_smartir_code_service.py::TestGetManufacturers::test_get_manufacturers_invalid_platform [32mPASSED[0m[31m [ 85%][0m
+tests/unit/test_smartir_code_service.py::TestGetManufacturers::test_get_manufacturers_empty_platform [32mPASSED[0m[31m [ 85%][0m
+tests/unit/test_smartir_code_service.py::TestGetModels::test_get_models_for_manufacturer [32mPASSED[0m[31m [ 85%][0m
+tests/unit/test_smartir_code_service.py::TestGetModels::test_get_models_invalid_manufacturer [32mPASSED[0m[31m [ 85%][0m
+tests/unit/test_smartir_code_service.py::TestGetModels::test_get_models_invalid_platform [32mPASSED[0m[31m [ 85%][0m
+tests/unit/test_smartir_code_service.py::TestGetCodeInfo::test_get_code_info_not_in_cache [32mPASSED[0m[31m [ 86%][0m
+tests/unit/test_smartir_code_service.py::TestSearchDevices::test_search_devices_exists [32mPASSED[0m[31m [ 86%][0m
+tests/unit/test_smartir_code_service.py::TestCacheStatus::test_get_cache_status [32mPASSED[0m[31m [ 86%][0m
+tests/unit/test_smartir_code_service.py::TestCacheManagement::test_cache_invalidation [32mPASSED[0m[31m [ 86%][0m
+tests/unit/test_smartir_code_service.py::TestCacheManagement::test_cache_valid_within_ttl [32mPASSED[0m[31m [ 87%][0m
+tests/unit/test_smartir_code_service.py::TestCacheManagement::test_cache_valid_no_timestamp [32mPASSED[0m[31m [ 87%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRDetectorInitialization::test_init_default_path [32mPASSED[0m[31m [ 87%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRDetectorInitialization::test_init_custom_path [32mPASSED[0m[31m [ 87%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRInstallationDetection::test_is_installed_true [32mPASSED[0m[31m [ 87%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRInstallationDetection::test_is_installed_false_no_directory [32mPASSED[0m[31m [ 88%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRInstallationDetection::test_is_installed_false_no_manifest [32mPASSED[0m[31m [ 88%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRVersion::test_get_version_success [32mPASSED[0m[31m [ 88%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRVersion::test_get_version_no_manifest [32mPASSED[0m[31m [ 88%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRVersion::test_get_version_invalid_json [32mPASSED[0m[31m [ 88%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRVersion::test_get_version_no_version_field [32mPASSED[0m[31m [ 89%][0m
+tests/unit/test_smartir_detector.py::TestSupportedPlatforms::test_get_supported_platforms_multiple [32mPASSED[0m[31m [ 89%][0m
+tests/unit/test_smartir_detector.py::TestSupportedPlatforms::test_get_supported_platforms_empty [32mPASSED[0m[31m [ 89%][0m
+tests/unit/test_smartir_detector.py::TestSupportedPlatforms::test_get_supported_platforms_ignores_files [32mPASSED[0m[31m [ 89%][0m
+tests/unit/test_smartir_detector.py::TestDeviceCodes::test_get_device_codes_success [32mPASSED[0m[31m [ 89%][0m
+tests/unit/test_smartir_detector.py::TestDeviceCodes::test_get_device_codes_no_platform [32mPASSED[0m[31m [ 90%][0m
+tests/unit/test_smartir_detector.py::TestDeviceCodes::test_get_device_codes_invalid_json [32mPASSED[0m[31m [ 90%][0m
+tests/unit/test_smartir_detector.py::TestDeviceCodes::test_get_device_codes_invalid_filename [32mPASSED[0m[31m [ 90%][0m
+tests/unit/test_smartir_detector.py::TestDeviceCodes::test_get_device_codes_sorted [32mPASSED[0m[31m [ 90%][0m
+tests/unit/test_smartir_detector.py::TestCustomCodeGeneration::test_find_next_custom_code_no_existing [32mPASSED[0m[31m [ 90%][0m
+tests/unit/test_smartir_detector.py::TestCustomCodeGeneration::test_find_next_custom_code_with_existing [32mPASSED[0m[31m [ 91%][0m
+tests/unit/test_smartir_detector.py::TestCustomCodeGeneration::test_find_next_custom_code_ignores_standard_codes [32mPASSED[0m[31m [ 91%][0m
+tests/unit/test_smartir_detector.py::TestCustomCodeGeneration::test_find_next_custom_code_invalid_filenames [32mPASSED[0m[31m [ 91%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRStatus::test_get_status_not_installed [32mPASSED[0m[31m [ 91%][0m
+tests/unit/test_smartir_detector.py::TestSmartIRStatus::test_get_status_installed [32mPASSED[0m[31m [ 92%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileValidation::test_validate_code_file_success [32mPASSED[0m[31m [ 92%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileValidation::test_validate_code_file_not_found [32mPASSED[0m[31m [ 92%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileValidation::test_validate_code_file_missing_fields [32mPASSED[0m[31m [ 92%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileValidation::test_validate_code_file_invalid_json [32mPASSED[0m[31m [ 92%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileWriting::test_write_code_file_success [32mPASSED[0m[31m [ 93%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileWriting::test_write_code_file_already_exists [32mPASSED[0m[31m [ 93%][0m
+tests/unit/test_smartir_detector.py::TestCodeFileWriting::test_write_code_file_creates_directory [32mPASSED[0m[31m [ 93%][0m
+tests/unit/test_smartir_detector.py::TestInstallInstructions::test_get_install_instructions [32mPASSED[0m[31m [ 93%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_climate_device_with_broadlink_entity [32mPASSED[0m[31m [ 93%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_climate_device_with_non_broadlink_entity [32mPASSED[0m[31m [ 94%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_media_player_with_harmony_hub [32mPASSED[0m[31m [ 94%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_fan_device_minimal_config [32mPASSED[0m[31m [ 94%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_missing_controller_device [32mPASSED[0m[31m [ 94%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_unsupported_entity_type [32mPASSED[0m[31m [ 94%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_yaml_file_generation [32mPASSED[0m[31m [ 95%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_multiple_devices_in_same_file [32mPASSED[0m[31m [ 95%][0m
+tests/unit/test_smartir_yaml_generator.py::TestSmartIRYAMLGenerator::test_update_existing_device [32mPASSED[0m[31m [ 95%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_valid_climate_config [32mPASSED[0m[31m [ 95%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_missing_required_field [32mPASSED[0m[31m [ 96%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_wrong_platform_value [32mPASSED[0m[31m [ 96%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_invalid_device_code_type [32mPASSED[0m[31m [ 96%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_negative_device_code [32mPASSED[0m[31m [ 96%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_unique_id_with_spaces [32mPASSED[0m[31m [ 96%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_unique_id_with_uppercase [32mPASSED[0m[31m [ 97%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_invalid_entity_id_format [32mPASSED[0m[31m [ 97%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_valid_media_player_config [32mPASSED[0m[31m [ 97%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_valid_fan_config [32mPASSED[0m[31m [ 97%][0m
+tests/unit/test_yaml_validator.py::TestDeviceConfigValidation::test_empty_required_field [32mPASSED[0m[31m [ 97%][0m
+tests/unit/test_yaml_validator.py::TestYAMLFileValidation::test_valid_file_content [32mPASSED[0m[31m [ 98%][0m
+tests/unit/test_yaml_validator.py::TestYAMLFileValidation::test_duplicate_unique_ids [32mPASSED[0m[31m [ 98%][0m
+tests/unit/test_yaml_validator.py::TestYAMLFileValidation::test_invalid_content_type [32mPASSED[0m[31m [ 98%][0m
+tests/unit/test_yaml_validator.py::TestYAMLFileValidation::test_device_not_dict [32mPASSED[0m[31m [ 98%][0m
+tests/unit/test_yaml_validator.py::TestYAMLSyntaxValidation::test_valid_yaml_syntax [32mPASSED[0m[31m [ 98%][0m
+tests/unit/test_yaml_validator.py::TestYAMLSyntaxValidation::test_invalid_yaml_syntax [32mPASSED[0m[31m [ 99%][0m
+tests/unit/test_yaml_validator.py::TestEntityIDValidation::test_valid_entity_ids [32mPASSED[0m[31m [ 99%][0m
+tests/unit/test_yaml_validator.py::TestEntityIDValidation::test_invalid_entity_ids [32mPASSED[0m[31m [ 99%][0m
+tests/unit/test_yaml_validator.py::TestYAMLGeneration::test_generate_valid_yaml [32mPASSED[0m[31m [ 99%][0m
+tests/unit/test_yaml_validator.py::TestYAMLGeneration::test_generate_invalid_yaml [32mPASSED[0m[31m [100%][0m
+
+=================================== ERRORS ====================================
+[31m[1m__________ ERROR at setup of TestUINavigation.test_responsive_layout __________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:733: in pytest_fixture_setup
+    [0m[94mreturn[39;49;00m ([94myield[39;49;00m)[90m[39;49;00m
+            ^^^^^[90m[39;49;00m
+[1m[31mtests\e2e\conftest.py[0m:60: in mobile_context
+    [0m**browser.devices[[33m"[39;49;00m[33miPhone 12[39;49;00m[33m"[39;49;00m],[90m[39;49;00m
+      ^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   AttributeError: 'Browser' object has no attribute 'devices'[0m
+[31m[1m________ ERROR at teardown of TestUINavigation.test_responsive_layout _________[0m
+[1m[31mtests\e2e\conftest.py[0m:121: in capture_screenshot_on_failure
+    [0m[94mif[39;49;00m request.node.rep_call.failed:[90m[39;49;00m
+       ^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   AttributeError: 'Function' object has no attribute 'rep_call'[0m
+[31m[1m_ ERROR at setup of TestBroadlinkCommandWorkflow.test_learn_command_returns_actual_code _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:31: in broadlink_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_ ERROR at setup of TestBroadlinkCommandWorkflow.test_test_command_immediately_after_learn _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:31: in broadlink_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_ ERROR at setup of TestBroadlinkCommandWorkflow.test_reject_pending_command_in_test _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:31: in broadlink_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_____ ERROR at setup of TestBroadlinkCommandWorkflow.test_delete_command ______[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:31: in broadlink_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_ ERROR at setup of TestSmartIRCommandWorkflow.test_smartir_learn_returns_actual_code _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:160: in smartir_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m___ ERROR at setup of TestSmartIRCommandWorkflow.test_smartir_test_command ____[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:160: in smartir_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_ ERROR at setup of TestSmartIRCommandWorkflow.test_smartir_reject_pending_command _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:160: in smartir_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m_ ERROR at setup of TestSmartIRCommandWorkflow.test_smartir_profile_deletion_blocked_when_in_use _[0m
+[1m[31mtests\integration\test_command_workflows.py[0m:160: in smartir_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m]  [90m# Accept both OK and Created[39;49;00m[90m[39;49;00m
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m__ ERROR at teardown of TestManagedDeviceWorkflow.test_full_device_lifecycle __[0m
+[1m[31mtests\integration\test_managed_device_endpoints.py[0m:46: in app_for_testing
+    [0mshutil.rmtree([96mstr[39;49;00m(temp_storage))[90m[39;49;00m
+[1m[31mC:\Python313\Lib\shutil.py[0m:790: in rmtree
+    [0m[94mreturn[39;49;00m _rmtree_unsafe(path, onexc)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\shutil.py[0m:629: in _rmtree_unsafe
+    [0monexc(os.unlink, fullname, err)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\shutil.py[0m:625: in _rmtree_unsafe
+    [0mos.unlink(fullname)[90m[39;49;00m
+[1m[31mE   PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\perki\\AppData\\Local\\Temp\\tmpcwonp8e4\\broadlink_manager\\devices.json'[0m
+[31m[1m_____________________ ERROR at setup of test_send_command _____________________[0m
+file C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\tests\manual\test_direct_learning.py, line 302
+  def test_send_command(device, command_data: str) -> bool:
+[31mE       fixture 'command_data' not found[0m
+[31m>       available fixtures: _artifacts_recorder, _class_scoped_runner, _configure_application, _function_scoped_runner, _module_scoped_runner, _monkeypatch_response_class, _package_scoped_runner, _push_request_context, _pw_artifacts_folder, _session_faker, _session_scoped_runner, _verify_url, accept_any, accept_json, accept_jsonp, accept_mimetype, anyio_backend, anyio_backend_name, anyio_backend_options, area_manager, area_manager_with_mock, base_url, browser, browser_channel, browser_context_args, browser_name, browser_type, browser_type_launch_args, cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, class_mocker, client, client_class, config, connect_options, context, cov, delete_output_dir, device, device_manager, doctest_namespace, entity_generator, event_loop_policy, faker, flask_app, is_chromium, is_firefox, is_webkit, launch_browser, live_server, mock_broadlink_device, mock_broadlink_storage, mock_ha_api, mock_websocket_api, mocker, module_mocker, monkeypatch, new_context, no_cover, output_path, package_mocker, page, playwright, populated_device_manager, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, runner, sample_area_data, sample_command_data, sample_device_data, sample_entity_config, sample_ir_code, session_mocker, temp_storage_dir, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory, web_server_with_mocks[0m
+[31m>       use 'pytest --fixtures [testpath]' for help on them.[0m
+
+C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\tests\manual\test_direct_learning.py:302
+================================== FAILURES ===================================
+[31m[1m____________ TestAccessibility.test_buttons_have_accessible_names _____________[0m
+[1m[31mtests\e2e\test_accessibility.py[0m:42: in test_buttons_have_accessible_names
+    [0m[94massert[39;49;00m text [95mor[39;49;00m aria_label, \
+[1m[31mE   AssertionError: Button should have visible text or aria-label[0m
+[1m[31mE   assert ('' or None)[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_buttons_have_accessible_names.png
+[31m[1m_____________ TestDeviceManagement.test_add_device_button_exists ______________[0m
+[1m[31mtests\e2e\test_device_management.py[0m:25: in test_add_device_button_exists
+    [0mexpect(add_button).to_be_visible(timeout=[94m5000[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: Locator expected to be visible[0m
+[1m[31mE   Actual value: <element(s) not found> [0m
+[1m[31mE   Call log:[0m
+[1m[31mE     - LocatorAssertions.to_be_visible with timeout 5000ms[0m
+[1m[31mE     -   - waiting for locator("button:has-text('Add Device'), [data-testid='add-device'], .add-device-btn").first[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_add_device_button_exists.png
+[31m[1m_______________ TestDeviceManagement.test_device_list_displays ________________[0m
+[1m[31mtests\e2e\test_device_management.py[0m:123: in test_device_list_displays
+    [0mexpect(device_list).to_be_visible(timeout=[94m5000[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: Locator expected to be visible[0m
+[1m[31mE   Actual value: <element(s) not found> [0m
+[1m[31mE   Call log:[0m
+[1m[31mE     - LocatorAssertions.to_be_visible with timeout 5000ms[0m
+[1m[31mE     -   - waiting for locator("[data-testid='device-list'], .device-list, #devices").first[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_device_list_displays.png
+[31m[1m___________ TestDeviceInteractions.test_device_click_shows_details ____________[0m
+[1m[31mtests\e2e\test_device_management.py[0m:173: in test_device_click_shows_details
+    [0mexpect(details).to_be_visible(timeout=[94m3000[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: Locator expected to be visible[0m
+[1m[31mE   Actual value: <element(s) not found> [0m
+[1m[31mE   Call log:[0m
+[1m[31mE     - LocatorAssertions.to_be_visible with timeout 3000ms[0m
+[1m[31mE     -   - waiting for locator(".device-details, [data-testid='device-details'], .details-panel").first[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_device_click_shows_details.png
+[31m[1m____________________ TestUINavigation.test_homepage_loads _____________________[0m
+[1m[31mtests\e2e\test_ui_navigation.py[0m:21: in test_homepage_loads
+    [0mexpect(page).to_have_title([33m"[39;49;00m[33mBroadlink Manager[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: Page title expected to be 'Broadlink Manager'[0m
+[1m[31mE   Actual value: Broadlink Manager v2 [0m
+[1m[31mE   Call log:[0m
+[1m[31mE     - PageAssertions.to_have_title with timeout 5000ms[0m
+[1m[31mE     -   - waiting for locator(":root")[0m
+[1m[31mE     -     9 ╫ locator resolved to <html lang="en">à</html>[0m
+[1m[31mE     -       - unexpected value "Broadlink Manager v2"[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_homepage_loads.png
+[31m[1m__________________ TestUINavigation.test_device_list_visible __________________[0m
+[1m[31mtests\e2e\test_ui_navigation.py[0m:34: in test_device_list_visible
+    [0mexpect(device_section).to_be_visible(timeout=[94m5000[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: Locator expected to be visible[0m
+[1m[31mE   Actual value: <element(s) not found> [0m
+[1m[31mE   Call log:[0m
+[1m[31mE     - LocatorAssertions.to_be_visible with timeout 5000ms[0m
+[1m[31mE     -   - waiting for locator("[data-testid='device-list'], .device-list, #devices").first[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_device_list_visible.png
+[31m[1m____________________ TestUIPerformance.test_page_load_time ____________________[0m
+[1m[31mtests\e2e\test_ui_navigation.py[0m:88: in test_page_load_time
+    [0m[94massert[39;49;00m load_time < [94m3.0[39;49;00m, [33mf[39;49;00m[33m"[39;49;00m[33mPage took [39;49;00m[33m{[39;49;00mload_time[33m:[39;49;00m[33m.2f[39;49;00m[33m}[39;49;00m[33ms to load[39;49;00m[33m"[39;49;00m[90m[39;49;00m
+[1m[31mE   AssertionError: Page took 3.18s to load[0m
+[1m[31mE   assert 3.181192636489868 < 3.0[0m
+-------------------------- Captured stdout teardown ---------------------------
+Screenshot saved: test-results\screenshots\test_page_load_time.png
+[31m[1m_________________ TestDeviceEndpoints.test_get_devices_empty __________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:16: in test_get_devices_empty
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m___________________ TestDeviceEndpoints.test_create_device ____________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:31: in test_create_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 500 in [200, 201][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m__________________ TestDeviceEndpoints.test_get_device_by_id __________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:49: in test_get_device_by_id
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m___________________ TestDeviceEndpoints.test_update_device ____________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:72: in test_update_device
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m___________________ TestDeviceEndpoints.test_delete_device ____________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:88: in test_delete_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m204[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 500 in [200, 204][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+[31m[1m____________________ TestCommandEndpoints.test_add_command ____________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:117: in test_add_command
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [200, 201][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m________________ TestCommandEndpoints.test_get_device_commands ________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:142: in test_get_device_commands
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 404 == 200[0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m__________________ TestCommandEndpoints.test_delete_command ___________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:169: in test_delete_command
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m204[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [200, 204][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m______________________ TestAreaEndpoints.test_get_areas _______________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:179: in test_get_areas
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m api.areas:areas.py:38 Error getting areas: Cannot run the event loop while another loop is running
+[31m[1m_____________________ TestAreaEndpoints.test_create_area ______________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:194: in test_create_area
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 405 in [200, 201][0m
+[1m[31mE    +  where 405 = <WrapperTestResponse streamed [405 METHOD NOT ALLOWED]>.status_code[0m
+[31m[1m________________ TestBroadlinkEndpoints.test_discover_devices _________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:205: in test_discover_devices
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 404 == 200[0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m__________________ TestBroadlinkEndpoints.test_learn_command __________________[0m
+[1m[31mtests\integration\test_api_endpoints.py[0m:222: in test_learn_command
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m408[39;49;00m, [94m500[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [200, 408, 500][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m_____________________ TestConfigEndpoints.test_get_config _____________________[0m
+[1m[31mtests\integration\test_config_api.py[0m:64: in test_get_config
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 404 == 200[0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m______________ TestConfigValidation.test_validate_ha_connection _______________[0m
+[1m[31mtests\integration\test_config_api.py[0m:239: in test_validate_ha_connection
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m400[39;49;00m, [94m500[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [200, 400, 500][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m__________________ TestDiagnostics.test_get_diagnostics_json __________________[0m
+[1m[31mtests\integration\test_config_api.py[0m:326: in test_get_diagnostics_json
+    [0m[94massert[39;49;00m [33m'[39;49;00m[33msystem[39;49;00m[33m'[39;49;00m [95min[39;49;00m data [95mor[39;49;00m [33m'[39;49;00m[33mconfig[39;49;00m[33m'[39;49;00m [95min[39;49;00m data [95mor[39;49;00m [33m'[39;49;00m[33mdevices[39;49;00m[33m'[39;49;00m [95min[39;49;00m data[90m[39;49;00m
+[1m[31mE   AssertionError: assert ('system' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True} or 'config' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True} or 'devices' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True})[0m
+[31m[1m________________ TestDiagnostics.test_get_diagnostics_markdown ________________[0m
+[1m[31mtests\integration\test_config_api.py[0m:334: in test_get_diagnostics_markdown
+    [0m[94massert[39;49;00m response.content_type [95min[39;49;00m [[33m'[39;49;00m[33mtext/plain[39;49;00m[33m'[39;49;00m, [33m'[39;49;00m[33mtext/markdown[39;49;00m[33m'[39;49;00m, [33m'[39;49;00m[33mtext/plain; charset=utf-8[39;49;00m[33m'[39;49;00m][90m[39;49;00m
+[1m[31mE   AssertionError: assert 'application/json' in ['text/plain', 'text/markdown', 'text/plain; charset=utf-8'][0m
+[1m[31mE    +  where 'application/json' = <WrapperTestResponse streamed [200 OK]>.content_type[0m
+[31m[1m______________ TestConfigErrorHandling.test_invalid_json_payload ______________[0m
+[1m[31mtests\integration\test_config_api.py[0m:404: in test_invalid_json_payload
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m400[39;49;00m, [94m500[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [400, 500][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m____________ TestConfigErrorHandling.test_missing_required_fields _____________[0m
+[1m[31mtests\integration\test_config_api.py[0m:415: in test_missing_required_fields
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m400[39;49;00m, [94m500[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 404 in [400, 500][0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m______________ TestEntityTypeValidation.test_missing_entity_type ______________[0m
+[1m[31mtests\integration\test_device_validation.py[0m:218: in test_missing_entity_type
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m400[39;49;00m, [94m500[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 201 in [400, 500][0m
+[1m[31mE    +  where 201 = <WrapperTestResponse streamed [201 CREATED]>.status_code[0m
+[31m[1m_____________________ TestAreaValidation.test_empty_area ______________________[0m
+[1m[31mtests\integration\test_device_validation.py[0m:337: in test_empty_area
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 409 in [200, 201][0m
+[1m[31mE    +  where 409 = <WrapperTestResponse streamed [409 CONFLICT]>.status_code[0m
+[31m[1m____________________ TestAreaValidation.test_missing_area _____________________[0m
+[1m[31mtests\integration\test_device_validation.py[0m:356: in test_missing_area
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 409 in [200, 201][0m
+[1m[31mE    +  where 409 = <WrapperTestResponse streamed [409 CONFLICT]>.status_code[0m
+[31m[1m____ TestFullWorkflow.test_create_device_learn_commands_generate_entities _____[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m___________ TestFullWorkflow.test_fan_workflow_with_multiple_speeds ___________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m___________ TestMultiDeviceWorkflow.test_multiple_devices_same_area ___________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m________ TestManagedDeviceEndpoints.test_create_managed_device_smartir ________[0m
+[1m[31mtests\integration\test_managed_device_endpoints.py[0m:105: in test_create_managed_device_smartir
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m200[39;49;00m, [94m201[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 400 in [200, 201][0m
+[1m[31mE    +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code[0m
+[31m[1m_________ TestManagedDeviceValidation.test_delete_nonexistent_device __________[0m
+[1m[31mtests\integration\test_managed_device_endpoints.py[0m:299: in test_delete_nonexistent_device
+    [0m[94massert[39;49;00m response.status_code [95min[39;49;00m [[94m404[39;49;00m, [94m200[39;49;00m, [94m204[39;49;00m][90m[39;49;00m
+[1m[31mE   assert 500 in [404, 200, 204][0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m api.devices:devices.py:803 Error deleting managed device: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+[31m[1m__________ TestSmartIRDeviceEndpoints.test_get_smartir_devices_empty __________[0m
+[1m[31mtests\integration\test_smartir_api.py[0m:62: in test_get_smartir_devices_empty
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 404 == 200[0m
+[1m[31mE    +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code[0m
+[31m[1m_______________ TestSmartIRCodeRetrieval.test_get_manufacturers _______________[0m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1421: in patched
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:141: in __enter__
+    [0m[94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+           ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1403: in decoration_helper
+    [0marg = exit_stack.enter_context(patching)[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:530: in enter_context
+    [0mresult = _enter(cm)[90m[39;49;00m
+             ^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1479: in __enter__
+    [0m[96mself[39;49;00m.target = [96mself[39;49;00m.getter()[90m[39;49;00m
+                  ^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\pkgutil.py[0m:528: in resolve_name
+    [0mresult = [96mgetattr[39;49;00m(result, p)[90m[39;49;00m
+             ^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?[0m
+[31m[1m__________ TestSmartIRCodeRetrieval.test_get_models_for_manufacturer __________[0m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1421: in patched
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:141: in __enter__
+    [0m[94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+           ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1403: in decoration_helper
+    [0marg = exit_stack.enter_context(patching)[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:530: in enter_context
+    [0mresult = _enter(cm)[90m[39;49;00m
+             ^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1479: in __enter__
+    [0m[96mself[39;49;00m.target = [96mself[39;49;00m.getter()[90m[39;49;00m
+                  ^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\pkgutil.py[0m:528: in resolve_name
+    [0mresult = [96mgetattr[39;49;00m(result, p)[90m[39;49;00m
+             ^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?[0m
+[31m[1m________________ TestSmartIRCodeRetrieval.test_get_device_code ________________[0m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1421: in patched
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.decoration_helper(patched,[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:141: in __enter__
+    [0m[94mreturn[39;49;00m [96mnext[39;49;00m([96mself[39;49;00m.gen)[90m[39;49;00m
+           ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1403: in decoration_helper
+    [0marg = exit_stack.enter_context(patching)[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\contextlib.py[0m:530: in enter_context
+    [0mresult = _enter(cm)[90m[39;49;00m
+             ^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\unittest\mock.py[0m:1479: in __enter__
+    [0m[96mself[39;49;00m.target = [96mself[39;49;00m.getter()[90m[39;49;00m
+                  ^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mC:\Python313\Lib\pkgutil.py[0m:528: in resolve_name
+    [0mresult = [96mgetattr[39;49;00m(result, p)[90m[39;49;00m
+             ^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?[0m
+[31m[1m__________________________ test_named_speed_commands __________________________[0m
+[1m[31mtests\manual\test_speed_command_detection.py[0m:62: in test_named_speed_commands
+    [0mfan_config = result[[33m"[39;49;00m[33mfans[39;49;00m[33m"[39;49;00m][[33m"[39;49;00m[33mfan.test_fan[39;49;00m[33m"[39;49;00m][90m[39;49;00m
+                 ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   KeyError: 'fans'[0m
+---------------------------- Captured stdout call -----------------------------
+
+============================================================
+TEST: Named Speed Commands (speed_low, speed_medium, speed_high)
+============================================================
+[31m[1m_________________________ test_numeric_speed_commands _________________________[0m
+[1m[31mtests\manual\test_speed_command_detection.py[0m:120: in test_numeric_speed_commands
+    [0mfan_config = result[[33m"[39;49;00m[33mfans[39;49;00m[33m"[39;49;00m][[33m"[39;49;00m[33mfan.test_fan[39;49;00m[33m"[39;49;00m][90m[39;49;00m
+                 ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   KeyError: 'fans'[0m
+---------------------------- Captured stdout call -----------------------------
+
+============================================================
+TEST: Numeric Speed Commands (fan_speed_1, fan_speed_2, etc.)
+============================================================
+[31m[1m__________________________ test_mixed_speed_commands __________________________[0m
+[1m[31mtests\manual\test_speed_command_detection.py[0m:174: in test_mixed_speed_commands
+    [0mfan_config = result[[33m"[39;49;00m[33mfans[39;49;00m[33m"[39;49;00m][[33m"[39;49;00m[33mfan.test_fan[39;49;00m[33m"[39;49;00m][90m[39;49;00m
+                 ^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   KeyError: 'fans'[0m
+---------------------------- Captured stdout call -----------------------------
+
+============================================================
+TEST: Mixed Speed Commands (speed_low, speed_high)
+============================================================
+[31m[1m_________________ TestLearnCommand.test_learn_command_success _________________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:84: in test_learn_command_success
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m app.api.commands:commands.py:310 Error learning command: Cannot run the event loop while another loop is running
+[31m[1m______ TestLearnCommand.test_learn_command_derives_device_from_device_id ______[0m
+[1m[31mtests\unit\test_api_commands.py[0m:151: in test_learn_command_derives_device_from_device_id
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m app.api.commands:commands.py:310 Error learning command: Cannot run the event loop while another loop is running
+[31m[1m_____________ TestLearnCommand.test_learn_command_ha_api_failure ______________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:182: in test_learn_command_ha_api_failure
+    [0m[94massert[39;49;00m response.status_code == [94m400[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 400[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m app.api.commands:commands.py:310 Error learning command: Cannot run the event loop while another loop is running
+[31m[1m______________ TestSendRawCommand.test_send_raw_command_success _______________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:201: in test_send_raw_command_success
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m app.api.commands:commands.py:387 Error sending raw command: Cannot run the event loop while another loop is running
+[31m[1m___________ TestSendRawCommand.test_send_raw_command_ha_api_failure ___________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:290: in test_send_raw_command_ha_api_failure
+    [0m[94massert[39;49;00m response.status_code == [94m400[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 400[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[31m[1mERROR   [0m app.api.commands:commands.py:387 Error sending raw command: Cannot run the event loop while another loop is running
+[31m[1m_____________ TestTestCommand.test_test_command_broadlink_success _____________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:320: in test_test_command_broadlink_success
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m app.api.commands:commands.py:455 Entity data not found for device_id: switch.test_device
+[31m[1mERROR   [0m app.api.commands:commands.py:647 Error testing command: Cannot run the event loop while another loop is running
+[31m[1m_______ TestTestCommand.test_test_command_derives_device_from_device_id _______[0m
+[1m[31mtests\unit\test_api_commands.py[0m:369: in test_test_command_derives_device_from_device_id
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m app.api.commands:commands.py:455 Entity data not found for device_id: switch.office_lamp
+[31m[1mERROR   [0m app.api.commands:commands.py:647 Error testing command: Cannot run the event loop while another loop is running
+[31m[1m___________ TestTestCommand.test_test_command_with_command_metadata ___________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:399: in test_test_command_with_command_metadata
+    [0m[94massert[39;49;00m response.status_code == [94m200[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 200[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m app.api.commands:commands.py:455 Entity data not found for device_id: switch.test_device
+[31m[1mERROR   [0m app.api.commands:commands.py:647 Error testing command: Cannot run the event loop while another loop is running
+[31m[1m______________ TestTestCommand.test_test_command_ha_api_failure _______________[0m
+[1m[31mtests\unit\test_api_commands.py[0m:430: in test_test_command_ha_api_failure
+    [0m[94massert[39;49;00m response.status_code == [94m400[39;49;00m[90m[39;49;00m
+[1m[31mE   assert 500 == 400[0m
+[1m[31mE    +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m app.api.commands:commands.py:455 Entity data not found for device_id: None
+[31m[1mERROR   [0m app.api.commands:commands.py:647 Error testing command: Cannot run the event loop while another loop is running
+[31m[1m______ TestVerifyCommandInStorage.test_verify_command_found_immediately _______[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m__________ TestVerifyCommandInStorage.test_verify_command_not_found ___________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______ TestVerifyCommandInStorage.test_verify_command_found_after_retry _______[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______ TestVerifyCommandInStorage.test_verify_command_exception_handling ______[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m__________________ TestAreaManagement.test_get_existing_area __________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m___________________ TestAreaManagement.test_create_new_area ___________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m________________ TestAreaManagement.test_assign_entity_to_area ________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______________ TestAreaManagement.test_assign_nonexistent_entity ______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_________________ TestAreaManagement.test_check_entity_exists _________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m____________ TestBulkAreaAssignment.test_assign_multiple_entities _____________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m__________ TestBulkAreaAssignment.test_assign_entities_creates_areas __________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m___________ TestBulkAreaAssignment.test_skip_entities_without_area ____________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______________ TestAreaManager.test_get_or_create_area_existing _______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_________________ TestAreaManager.test_get_or_create_area_new _________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_________________ TestAreaManager.test_assign_entity_to_area __________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_____________ TestAreaManager.test_assign_entity_to_area_failure ______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m__________________ TestAreaManager.test_check_entity_exists ___________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m________________ TestAreaManager.test_check_entity_not_exists _________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_____________________ TestAreaManager.test_reload_config ______________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_______________ TestCommandDeletion.test_delete_command_success _______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_____________ TestCommandDeletion.test_delete_nonexistent_command _____________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m____________ TestCommandDeletion.test_delete_command_from_storage _____________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______________ TestCommandDeletion.test_delete_multiple_commands ______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_______ TestCommandDeletionIntegration.test_delete_command_from_device ________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_______________ TestCommandLearning.test_learn_command_success ________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_______________ TestCommandLearning.test_learn_command_rf_type ________________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m____________ TestCommandLearning.test_learn_command_legacy_format _____________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m______________ TestCommandLearning.test_learn_multiple_commands _______________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_________ TestCommandLearning.test_learn_command_creates_notification _________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_________ TestCommandLearningIntegration.test_learn_and_store_command _________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_ TestAPICompatibilityStandaloneMode.test_all_endpoints_available_standalone __[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m__ TestAPICompatibilitySupervisorMode.test_core_endpoints_work_in_supervisor __[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_ TestAPICompatibilitySupervisorMode.test_restricted_endpoints_in_supervisor_strict _[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_ TestAPICompatibilitySupervisorMode.test_restricted_endpoints_in_supervisor_graceful _[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_______ TestAPICompatibilitySupervisorMode.test_access_attempt_logging ________[0m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:474: in runtest
+    [0m[96msuper[39;49;00m().runtest()[90m[39;49;00m
+[1m[31m..\..\..\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py[0m:721: in inner
+    [0mrunner.run(coro, context=context)[90m[39;49;00m
+[1m[31mC:\Python313\Lib\asyncio\runners.py[0m:93: in run
+    [0m[94mraise[39;49;00m [96mRuntimeError[39;49;00m([90m[39;49;00m
+[1m[31mE   RuntimeError: Runner.run() cannot be called from a running event loop[0m
+[31m[1m_ TestMarkdownReportGeneration.test_generate_markdown_report_with_checkmarks __[0m
+[1m[31mtests\unit\test_diagnostics.py[0m:479: in test_generate_markdown_report_with_checkmarks
+    \x1b[0m\x1b[94massert\x1b[39;49;00m \x1b[33m"\x1b[39;49;00m\x1b[33mHA URL Configured:** \u2705\x1b[39;49;00m\x1b[33m"\x1b[39;49;00m \x1b[95min\x1b[39;49;00m report\x1b[90m\x1b[39;49;00m
+[1m[31mE   AssertionError: assert 'HA URL Configured:** \u2705' in '# Broadlink Manager Diagnostics\n\n**Generated:** 2024-01-01T00:00:00\n**App Version:** Unknown\n\n## System Information\n- **Platform:** Linux\n- **Python Version:** 3.9.0\n- **Architecture:** Unknown\n\n## Key Dependencies\n\n## Configuration\n- **Storage Path:** `/tmp/storage`\n- **Storage Exists:** \u274c\n- **Log Level:** info\n- **Web Port:** Unknown\n\n## Home Assistant Connection\n\n## Devices\n- **Total Devices:** 0\n- **Broadlink Entities:** 0\n- **SmartIR Devices:** 0\n\n## Storage\n- **Storage Path Exists:** \u2705\n'[0m
+[31m[1m_______ TestEntityGenerator.test_multiple_media_players_single_platform _______[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:80: in test_multiple_media_players_single_platform
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_tv.power_on
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_tv.power_off
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_stereo.power_on
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_stereo.power_off
+[31m[1m__________ TestEntityGenerator.test_multiple_lights_single_platform ___________[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:132: in test_multiple_lights_single_platform
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m_______ TestEntityGenerator.test_mixed_entity_types_separate_platforms ________[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:182: in test_mixed_entity_types_separate_platforms
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+------------------------------ Captured log call ------------------------------
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_tv.power_on
+[33mWARNING [0m entity_generator:entity_generator.py:1306 No command code found for living_room_tv.power_off
+[31m[1m___________ TestEntityGenerator.test_entity_id_without_type_prefix ____________[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:241: in test_entity_id_without_type_prefix
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m________ TestEntityGenerator.test_fan_direction_helper_always_created _________[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:319: in test_fan_direction_helper_always_created
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m__________ TestEntityGenerator.test_fan_helpers_match_entity_config ___________[0m
+[1m[31mtests\unit\test_entity_generator.py[0m:350: in test_fan_helpers_match_entity_config
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m_________ TestEntityIDPrefixRegression.test_light_entity_id_no_prefix _________[0m
+[1m[31mtests\unit\test_regressions.py[0m:73: in test_light_entity_id_no_prefix
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m__________ TestEntityIDPrefixRegression.test_fan_entity_id_no_prefix __________[0m
+[1m[31mtests\unit\test_regressions.py[0m:98: in test_fan_entity_id_no_prefix
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[31m[1m_ TestFanDirectionHelperRegression.test_fan_without_reverse_has_direction_helper _[0m
+[1m[31mtests\unit\test_regressions.py[0m:188: in test_fan_without_reverse_has_direction_helper
+    [0m[94massert[39;49;00m [33m"[39;49;00m[33mfan_no_reverse_direction:[39;49;00m[33m"[39;49;00m [95min[39;49;00m helpers_content[90m[39;49;00m
+[1m[31mE   assert 'fan_no_reverse_direction:' in "# Auto-generated by Broadlink Manager\n# Generated: 2026-01-25 13:39:57\n# DO NOT EDIT THIS FILE MANUALLY - Changes will be overwritten\n\ninput_boolean:\n  fan_no_reverse_state:\n    name: Fan Without Reverse State\n    initial: false\ninput_select:\n  fan_no_reverse_speed:\n    name: Fan Without Reverse Speed\n    options:\n    - 'off'\n    - '1'\n    - '2'\n    - '3'\n    initial: 'off'\n"[0m
+[31m[1m__ TestMultipleEntityGroupingRegression.test_multiple_lights_single_platform __[0m
+[1m[31mtests\unit\test_regressions.py[0m:540: in test_multiple_lights_single_platform
+    [0m[94mwith[39;49;00m [96mopen[39;49;00m(mock_storage.entities_file, [33m"[39;49;00m[33mr[39;49;00m[33m"[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   TypeError: expected str, bytes or os.PathLike object, not Mock[0m
+[33m============================== warnings summary ===============================[0m
+tests/integration/test_api_endpoints.py::TestAreaEndpoints::test_get_areas
+  C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\tests\unit\..\..\app\api\areas.py:39: RuntimeWarning: coroutine 'BroadlinkWebServer._get_ha_areas' was never awaited
+    return jsonify({"error": str(e)}), 500
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/integration/test_full_workflow.py: 3 warnings
+tests/unit/test_api_commands.py: 4 warnings
+tests/unit/test_area_assignment.py: 8 warnings
+tests/unit/test_area_manager.py: 7 warnings
+tests/unit/test_command_deletion.py: 5 warnings
+tests/unit/test_command_learning.py: 6 warnings
+tests/unit/test_deployment_modes.py: 5 warnings
+  C:\Users\perki\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py:824: RuntimeWarning: An exception occurred during teardown of an asyncio.Runner. The reason is likely that you closed the underlying event loop in a test, which prevents the cleanup of asynchronous generators by the runner.
+  This warning will become an error in future versions of pytest-asyncio. Please ensure that your tests don't close the event loop. Here is the traceback of the exception triggered during teardown:
+  Traceback (most recent call last):
+    File "C:\Users\perki\AppData\Roaming\Python\Python313\site-packages\pytest_asyncio\plugin.py", line 822, in _scoped_runner
+      runner.__exit__(None, None, None)
+      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+    File "C:\Python313\Lib\asyncio\runners.py", line 62, in __exit__
+      self.close()
+      ~~~~~~~~~~^^
+    File "C:\Python313\Lib\asyncio\runners.py", line 71, in close
+      loop.run_until_complete(loop.shutdown_asyncgens())
+      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "C:\Python313\Lib\asyncio\base_events.py", line 696, in run_until_complete
+      self._check_running()
+      ~~~~~~~~~~~~~~~~~~~^^
+    File "C:\Python313\Lib\asyncio\base_events.py", line 634, in _check_running
+      raise RuntimeError(
+          'Cannot run the event loop while another loop is running')
+  RuntimeError: Cannot run the event loop while another loop is running
+  
+  
+    warnings.warn(
+
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_get_managed_devices_empty
+  C:\Users\perki\AppData\Roaming\Python\Python313\site-packages\werkzeug\routing\rules.py:771: RuntimeWarning: coroutine 'TestFullWorkflow.test_create_device_learn_commands_generate_entities' was never awaited
+    _convert(elem) if is_dynamic else ast.Constant(elem)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/integration/test_managed_device_endpoints.py::TestManagedDeviceEndpoints::test_get_managed_devices_empty
+  C:\Users\perki\AppData\Roaming\Python\Python313\site-packages\werkzeug\routing\rules.py:771: RuntimeWarning: coroutine 'TestFullWorkflow.test_fan_workflow_with_multiple_speeds' was never awaited
+    _convert(elem) if is_dynamic else ast.Constant(elem)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_success
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_derives_device_from_device_id
+tests/unit/test_api_commands.py::TestLearnCommand::test_learn_command_ha_api_failure
+  C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\app\api\commands.py:311: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    return jsonify({"success": False, "error": str(e)}), 500
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_success
+tests/unit/test_api_commands.py::TestSendRawCommand::test_send_raw_command_ha_api_failure
+  C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\app\api\commands.py:388: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    return jsonify({"success": False, "error": str(e)}), 500
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_broadlink_success
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_derives_device_from_device_id
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_with_command_metadata
+tests/unit/test_api_commands.py::TestTestCommand::test_test_command_ha_api_failure
+  C:\Users\perki\CascadeProjects\homeassistant-projects\homeassistant-broadlink-manager-v2\app\api\commands.py:648: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    return jsonify({"success": False, "error": str(e)}), 500
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform win32, python 3.13.1-final-0 -----------
+Name                              Stmts   Miss Branch BrPart  Cover   Missing
+-----------------------------------------------------------------------------
+app\api\__init__.py                   4      0      0      0   100%
+app\api\areas.py                     22      4      2      1    79%   24, 30-35
+app\api\commands.py                 809    667    290      5    16%   38-73, 132-307, 366, 375-384, 431-433, 436-453, 468-602, 617-623, 635-644, 654-687, 693-784, 790-807, 813-831, 837-909, 915-1003, 1009-1127, 1144-1210, 1216-1227, 1236-1392, 1418-1569, 1590-1681, 1702-1772
+app\api\config.py                    66     52     12      0    18%   19, 25-40, 46-139, 145-153
+app\api\devices.py                  564    367    208     25    30%   51-83, 94-113, 126-166, 179-257, 269-279, 285-308, 314-361, 367-425, 431-507, 519, 536, 586, 588, 592->621, 610, 618, 627-631, 641, 649, 653-655, 665, 672-676, 686, 690, 698-733, 747, 751-794, 810-946, 967-969, 991-993, 1024->1040, 1029-1035, 1040->1047, 1048-1058, 1073-1075
+app\api\smartir.py                  792    712    270      5     8%   32-44, 58-72, 86-91, 96-113, 118-129, 138-142, 147-159, 164-169, 174-190, 195-279, 284-362, 367-416, 421-582, 596-633, 638-668, 678, 691-865, 870-942, 947-1008, 1013-1154, 1158->1705, 1163-1188, 1193-1223, 1228-1286, 1291-1329, 1334-1364, 1369-1400, 1405-1410, 1415-1431, 1436-1586, 1591-1703
+app\area_manager.py                 159    139     46      0    10%   43-88, 100-128, 141-154, 166-179, 191-208, 220-232, 244-338, 347-368
+app\broadlink_device_manager.py      95      8     26      4    90%   63->67, 139, 154-155, 166-167, 181-183
+app\broadlink_learner.py            130    130     38      0     0%   8-273
+app\config_loader.py                 87      0     24      1    99%   213->215
+app\controller_detector.py           29      0     10      0   100%
+app\device_manager.py               298    154     82     17    46%   36->exit, 45-47, 60->exit, 64-81, 103-104, 123->133, 127-132, 135-154, 192-193, 210-214, 265-266, 273->276, 282-286, 311-315, 338, 347-351, 368-369, 379-383, 398, 432-433, 441, 445, 457-460, 475->474, 479-489, 514-531, 545-571, 584-594, 607-625, 638-665
+app\diagnostics.py                  393    117    162     22    69%   78->84, 127-128, 131-133, 155, 158-160, 185, 188-190, 246-254, 257-259, 276-292, 295-297, 314-326, 337-339, 406-410, 420-422, 439->444, 446, 449-451, 505, 514-516, 531-536, 540->546, 547-549, 566-569, 572-589, 594-596, 676-679, 704-708, 713->725, 717-718, 747-748, 759->761, 768->767, 779-784
+app\entity_detector.py              202    185    128      0     5%   138-162, 184-228, 233-241, 252-296, 305-330, 343-383, 396-418, 422, 426-503, 516-591
+app\entity_generator.py             453    188    210     49    55%   81-82, 124-126, 161, 170, 173-186, 188->208, 198->208, 204->208, 210, 220->223, 241-242, 251-252, 263, 268, 274, 306-320, 335-387, 391-422, 442-443, 475-476, 479->460, 485-486, 650->661, 684-771, 792-793, 801-802, 834, 842, 850-851, 859, 867, 875, 883, 891-892, 900-901, 910-921, 946, 953, 999-1089, 1098-1215, 1234, 1288, 1290, 1310-1330, 1340, 1362-1364, 1376-1378, 1409, 1416-1420, 1423->1405, 1455, 1465-1488, 1515-1517
+app\entity_generator_v2.py           78     78     20      0     0%   8-195
+app\fix_entity_ids.py                57     57     12      0     0%   9-98
+app\main.py                          78     78     10      0     0%   7-134
+app\smartir_code_service.py         248    161     62      5    31%   87-93, 104-106, 118-126, 139-154, 168-260, 272-321, 340, 363-364, 378-401, 429-450, 464-486, 498, 512, 529-553, 557-558
+app\smartir_detector.py             138     20     38      2    86%   66-83, 93, 225-226, 237, 252-254, 272-274
+app\smartir_yaml_generator.py       173     92     80      7    45%   86-97, 115-121, 172-175, 197-200, 207->215, 211-212, 233-236, 241-244, 254-255, 264-266, 279-329, 338-381, 394-416
+app\web_server.py                  1674   1421    496      9    12%   52-53, 73, 76->exit, 95-101, 238->236, 242-243, 253-257, 262, 267-268, 273-281, 286-294, 299-307, 312-321, 326-334, 339-348, 353-364, 369-432, 437-466, 471-480, 485-503, 508-532, 537-569, 576-582, 587-594, 599-617, 622-634, 639-661, 666-795, 800-809, 814-837, 844-849, 854-866, 871-886, 892-897, 902-909, 914-974, 979-994, 999-1021, 1026-1087, 1092-1125, 1133-1141, 1147-1201, 1205-1207, 1215-1232, 1240-1332, 1336-1383, 1392-1608, 1612, 1632-1695, 1706-1760, 1764-1767, 1771-1787, 1791-1809, 1817-1820, 1827-1834, 1841-1847, 1867-1891, 1899-2255, 2259-2269, 2282-2283, 2296-2305, 2308-2311, 2320-2331, 2334-2339, 2343-2381, 2385-2501, 2505-2552, 2556-2677, 2682-2694, 2698-2729, 2733-2738, 2742-2770, 2774-2846, 2850-2881, 2885-2933, 2937-2964, 2968-3005, 3010-3086, 3090-3105, 3109-3114, 3118-3124, 3131-3144, 3148-3149
+app\yaml_validator.py               113     22     58      4    82%   69-70, 86->85, 99-100, 127, 230-231, 235-237, 251-268
+-----------------------------------------------------------------------------
+TOTAL                              6662   4652   2284    156    28%
+Coverage HTML written to dir htmlcov
+
+[36m[1m=========================== short test summary info ===========================[0m
+[31mFAILED[0m tests/e2e/test_accessibility.py::[1mTestAccessibility::test_buttons_have_accessible_names[0m - AssertionError: Button should have visible text or aria-label
+assert ('' or None)
+[31mFAILED[0m tests/e2e/test_device_management.py::[1mTestDeviceManagement::test_add_device_button_exists[0m - AssertionError: Locator expected to be visible
+Actual value: <element(s) not found> 
+Call log:
+  - LocatorAssertions.to_be_visible with timeout 5000ms
+  -   - waiting for locator("button:has-text('Add Device'), [data-testid='add-device'], .add-device-btn").first
+[31mFAILED[0m tests/e2e/test_device_management.py::[1mTestDeviceManagement::test_device_list_displays[0m - AssertionError: Locator expected to be visible
+Actual value: <element(s) not found> 
+Call log:
+  - LocatorAssertions.to_be_visible with timeout 5000ms
+  -   - waiting for locator("[data-testid='device-list'], .device-list, #devices").first
+[31mFAILED[0m tests/e2e/test_device_management.py::[1mTestDeviceInteractions::test_device_click_shows_details[0m - AssertionError: Locator expected to be visible
+Actual value: <element(s) not found> 
+Call log:
+  - LocatorAssertions.to_be_visible with timeout 3000ms
+  -   - waiting for locator(".device-details, [data-testid='device-details'], .details-panel").first
+[31mFAILED[0m tests/e2e/test_ui_navigation.py::[1mTestUINavigation::test_homepage_loads[0m - AssertionError: Page title expected to be 'Broadlink Manager'
+Actual value: Broadlink Manager v2 
+Call log:
+  - PageAssertions.to_have_title with timeout 5000ms
+  -   - waiting for locator(":root")
+  -     9 ╫ locator resolved to <html lang="en">à</html>
+  -       - unexpected value "Broadlink Manager v2"
+[31mFAILED[0m tests/e2e/test_ui_navigation.py::[1mTestUINavigation::test_device_list_visible[0m - AssertionError: Locator expected to be visible
+Actual value: <element(s) not found> 
+Call log:
+  - LocatorAssertions.to_be_visible with timeout 5000ms
+  -   - waiting for locator("[data-testid='device-list'], .device-list, #devices").first
+[31mFAILED[0m tests/e2e/test_ui_navigation.py::[1mTestUIPerformance::test_page_load_time[0m - AssertionError: Page took 3.18s to load
+assert 3.181192636489868 < 3.0
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestDeviceEndpoints::test_get_devices_empty[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestDeviceEndpoints::test_create_device[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestDeviceEndpoints::test_get_device_by_id[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestDeviceEndpoints::test_update_device[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestDeviceEndpoints::test_delete_device[0m - assert 500 in [200, 204]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestCommandEndpoints::test_add_command[0m - assert 404 in [200, 201]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestCommandEndpoints::test_get_device_commands[0m - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestCommandEndpoints::test_delete_command[0m - assert 404 in [200, 204]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestAreaEndpoints::test_get_areas[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestAreaEndpoints::test_create_area[0m - assert 405 in [200, 201]
+ +  where 405 = <WrapperTestResponse streamed [405 METHOD NOT ALLOWED]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestBroadlinkEndpoints::test_discover_devices[0m - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_api_endpoints.py::[1mTestBroadlinkEndpoints::test_learn_command[0m - assert 404 in [200, 408, 500]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestConfigEndpoints::test_get_config[0m - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestConfigValidation::test_validate_ha_connection[0m - assert 404 in [200, 400, 500]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestDiagnostics::test_get_diagnostics_json[0m - AssertionError: assert ('system' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True} or 'config' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True} or 'devices' in {'diagnostics': {'backups': {'devices.json.backup': {'exists': False}, 'metadata.json.backup': {'exists': False}}, 'broadlink_devices': {'devices': [], 'discovered_count': 0}, 'command_structure': {'note': 'No commands found in devices or metadata'}, 'configuration': {'auto_discover': 'true', 'config_file_exists': True, 'config_file_modified': '2026-01-25T13:31:59.904180', 'config_file_size': 652, 'ha_token_configured': False, 'ha_url_configured': False, 'log_level': 'info', 'storage_path': '\\config\\broadlink_manager', 'storage_path_exists': True, 'web_port': '8099'}, 'dependencies': {'aiofiles': '25.1.0', 'aiohttp': '3.13.0', 'broadlink': '0.19.0', 'colorlog': '6.9.0', 'flask': '3.1.2', 'flask-cors': '6.0.1', 'python-dateutil': '2.9.0.post0', 'python-dotenv': '1.0.1', 'pyyaml': '6.0.2', 'requests': '2.32.3', 'websockets': '15.0.1', 'zeroconf': '0.147.0'}, 'devices': {'broadlink_entities': 0, 'devices_by_entity_type': {}, 'devices_by_type': {}, 'smartir_devices': 0, 'total_devices': 0}, 'environment': {'PATH': 'C:\\Python313\\Scripts\\;C:\\Python313\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\NVIDIA Corpo...'}, 'errors': {'errors': [], 'log_file_found': False, 'note': 'Log file not found in common locations', 'warnings': []}, 'ha_connection': {'configured': False, 'connection_test': 'not tested', 'ha_url': 'not configured', 'ha_version': None, 'websocket_connected': False}, 'integrations': {'broadlink_integration': {'detected': False}, 'smartir': {'enabled': True, 'installed': False, 'version': None}}, 'permissions': {'config_path_readable': True, 'config_path_writable': True, 'storage_path_readable': True, 'storage_path_writable': True}, 'smartir_profiles': {'index_file_exists': True, 'index_last_updated': '2025-10-29T20:20:19.361849', 'index_size': 81253, 'profiles_by_platform': {}, 'total_custom_profiles': 0}, 'storage': {'command_files': {'directory_exists': False}, 'files': {'devices.json': {'exists': True, 'modified': '2025-10-24T13:23:43.615473', 'size': 467}, 'devices.json.backup': {'exists': False}, 'helpers.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.386800', 'size': 87}, 'metadata.json': {'exists': True, 'modified': '2025-10-13T17:50:26.654777', 'size': 401}, 'metadata.json.backup': {'exists': False}, 'package.yaml': {'exists': True, 'modified': '2025-12-26T08:41:54.385797', 'size': 156}}, 'storage_path_exists': True}, 'system': {'app_version': '0.3.0-beta.2', 'architecture': 'AMD64', 'hostname': 'DAD-PC', 'platform': 'Windows', 'platform_release': '11', 'platform_version': '10.0.26100', 'python_executable': 'C:\\Python313\\python.exe', 'python_full_version': '3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]', 'python_version': '3.13.1'}, 'timestamp': '2026-01-25T13:39:42.933748'}, 'success': True})
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestDiagnostics::test_get_diagnostics_markdown[0m - AssertionError: assert 'application/json' in ['text/plain', 'text/markdown', 'text/plain; charset=utf-8']
+ +  where 'application/json' = <WrapperTestResponse streamed [200 OK]>.content_type
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestConfigErrorHandling::test_invalid_json_payload[0m - assert 404 in [400, 500]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_config_api.py::[1mTestConfigErrorHandling::test_missing_required_fields[0m - assert 404 in [400, 500]
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_device_validation.py::[1mTestEntityTypeValidation::test_missing_entity_type[0m - assert 201 in [400, 500]
+ +  where 201 = <WrapperTestResponse streamed [201 CREATED]>.status_code
+[31mFAILED[0m tests/integration/test_device_validation.py::[1mTestAreaValidation::test_empty_area[0m - assert 409 in [200, 201]
+ +  where 409 = <WrapperTestResponse streamed [409 CONFLICT]>.status_code
+[31mFAILED[0m tests/integration/test_device_validation.py::[1mTestAreaValidation::test_missing_area[0m - assert 409 in [200, 201]
+ +  where 409 = <WrapperTestResponse streamed [409 CONFLICT]>.status_code
+[31mFAILED[0m tests/integration/test_full_workflow.py::[1mTestFullWorkflow::test_create_device_learn_commands_generate_entities[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/integration/test_full_workflow.py::[1mTestFullWorkflow::test_fan_workflow_with_multiple_speeds[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/integration/test_full_workflow.py::[1mTestMultiDeviceWorkflow::test_multiple_devices_same_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/integration/test_managed_device_endpoints.py::[1mTestManagedDeviceEndpoints::test_create_managed_device_smartir[0m - assert 400 in [200, 201]
+ +  where 400 = <WrapperTestResponse streamed [400 BAD REQUEST]>.status_code
+[31mFAILED[0m tests/integration/test_managed_device_endpoints.py::[1mTestManagedDeviceValidation::test_delete_nonexistent_device[0m - assert 500 in [404, 200, 204]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/integration/test_smartir_api.py::[1mTestSmartIRDeviceEndpoints::test_get_smartir_devices_empty[0m - assert 404 == 200
+ +  where 404 = <WrapperTestResponse streamed [404 NOT FOUND]>.status_code
+[31mFAILED[0m tests/integration/test_smartir_api.py::[1mTestSmartIRCodeRetrieval::test_get_manufacturers[0m - AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?
+[31mFAILED[0m tests/integration/test_smartir_api.py::[1mTestSmartIRCodeRetrieval::test_get_models_for_manufacturer[0m - AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?
+[31mFAILED[0m tests/integration/test_smartir_api.py::[1mTestSmartIRCodeRetrieval::test_get_device_code[0m - AttributeError: module 'app.api.smartir' has no attribute 'requests'. Did you mean: 'request'?
+[31mFAILED[0m tests/manual/test_speed_command_detection.py::[1mtest_named_speed_commands[0m - KeyError: 'fans'
+[31mFAILED[0m tests/manual/test_speed_command_detection.py::[1mtest_numeric_speed_commands[0m - KeyError: 'fans'
+[31mFAILED[0m tests/manual/test_speed_command_detection.py::[1mtest_mixed_speed_commands[0m - KeyError: 'fans'
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestLearnCommand::test_learn_command_success[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestLearnCommand::test_learn_command_derives_device_from_device_id[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestLearnCommand::test_learn_command_ha_api_failure[0m - assert 500 == 400
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestSendRawCommand::test_send_raw_command_success[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestSendRawCommand::test_send_raw_command_ha_api_failure[0m - assert 500 == 400
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestTestCommand::test_test_command_broadlink_success[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestTestCommand::test_test_command_derives_device_from_device_id[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestTestCommand::test_test_command_with_command_metadata[0m - assert 500 == 200
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestTestCommand::test_test_command_ha_api_failure[0m - assert 500 == 400
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestVerifyCommandInStorage::test_verify_command_found_immediately[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestVerifyCommandInStorage::test_verify_command_not_found[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestVerifyCommandInStorage::test_verify_command_found_after_retry[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_api_commands.py::[1mTestVerifyCommandInStorage::test_verify_command_exception_handling[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestAreaManagement::test_get_existing_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestAreaManagement::test_create_new_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestAreaManagement::test_assign_entity_to_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestAreaManagement::test_assign_nonexistent_entity[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestAreaManagement::test_check_entity_exists[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestBulkAreaAssignment::test_assign_multiple_entities[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestBulkAreaAssignment::test_assign_entities_creates_areas[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_assignment.py::[1mTestBulkAreaAssignment::test_skip_entities_without_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_get_or_create_area_existing[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_get_or_create_area_new[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_assign_entity_to_area[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_assign_entity_to_area_failure[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_check_entity_exists[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_check_entity_not_exists[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_area_manager.py::[1mTestAreaManager::test_reload_config[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_deletion.py::[1mTestCommandDeletion::test_delete_command_success[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_deletion.py::[1mTestCommandDeletion::test_delete_nonexistent_command[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_deletion.py::[1mTestCommandDeletion::test_delete_command_from_storage[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_deletion.py::[1mTestCommandDeletion::test_delete_multiple_commands[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_deletion.py::[1mTestCommandDeletionIntegration::test_delete_command_from_device[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearning::test_learn_command_success[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearning::test_learn_command_rf_type[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearning::test_learn_command_legacy_format[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearning::test_learn_multiple_commands[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearning::test_learn_command_creates_notification[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_command_learning.py::[1mTestCommandLearningIntegration::test_learn_and_store_command[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_deployment_modes.py::[1mTestAPICompatibilityStandaloneMode::test_all_endpoints_available_standalone[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_deployment_modes.py::[1mTestAPICompatibilitySupervisorMode::test_core_endpoints_work_in_supervisor[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_deployment_modes.py::[1mTestAPICompatibilitySupervisorMode::test_restricted_endpoints_in_supervisor_strict[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_deployment_modes.py::[1mTestAPICompatibilitySupervisorMode::test_restricted_endpoints_in_supervisor_graceful[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_deployment_modes.py::[1mTestAPICompatibilitySupervisorMode::test_access_attempt_logging[0m - RuntimeError: Runner.run() cannot be called from a running event loop
+[31mFAILED[0m tests/unit/test_diagnostics.py::[1mTestMarkdownReportGeneration::test_generate_markdown_report_with_checkmarks[0m - AssertionError: assert 'HA URL Configured:** \u2705' in '# Broadlink Manager Diagnostics\n\n**Generated:** 2024-01-01T00:00:00\n**App Version:** Unknown\n\n## System Information\n- **Platform:** Linux\n- **Python Version:** 3.9.0\n- **Architecture:** Unknown\n\n## Key Dependencies\n\n## Configuration\n- **Storage Path:** `/tmp/storage`\n- **Storage Exists:** \u274c\n- **Log Level:** info\n- **Web Port:** Unknown\n\n## Home Assistant Connection\n\n## Devices\n- **Total Devices:** 0\n- **Broadlink Entities:** 0\n- **SmartIR Devices:** 0\n\n## Storage\n- **Storage Path Exists:** \u2705\n'
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_multiple_media_players_single_platform[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_multiple_lights_single_platform[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_mixed_entity_types_separate_platforms[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_entity_id_without_type_prefix[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_fan_direction_helper_always_created[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_entity_generator.py::[1mTestEntityGenerator::test_fan_helpers_match_entity_config[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_regressions.py::[1mTestEntityIDPrefixRegression::test_light_entity_id_no_prefix[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_regressions.py::[1mTestEntityIDPrefixRegression::test_fan_entity_id_no_prefix[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mFAILED[0m tests/unit/test_regressions.py::[1mTestFanDirectionHelperRegression::test_fan_without_reverse_has_direction_helper[0m - assert 'fan_no_reverse_direction:' in "# Auto-generated by Broadlink Manager\n# Generated: 2026-01-25 13:39:57\n# DO NOT EDIT THIS FILE MANUALLY - Changes will be overwritten\n\ninput_boolean:\n  fan_no_reverse_state:\n    name: Fan Without Reverse State\n    initial: false\ninput_select:\n  fan_no_reverse_speed:\n    name: Fan Without Reverse Speed\n    options:\n    - 'off'\n    - '1'\n    - '2'\n    - '3'\n    initial: 'off'\n"
+[31mFAILED[0m tests/unit/test_regressions.py::[1mTestMultipleEntityGroupingRegression::test_multiple_lights_single_platform[0m - TypeError: expected str, bytes or os.PathLike object, not Mock
+[31mERROR[0m tests/e2e/test_ui_navigation.py::[1mTestUINavigation::test_responsive_layout[0m - AttributeError: 'Browser' object has no attribute 'devices'
+[31mERROR[0m tests/e2e/test_ui_navigation.py::[1mTestUINavigation::test_responsive_layout[0m - AttributeError: 'Function' object has no attribute 'rep_call'
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestBroadlinkCommandWorkflow::test_learn_command_returns_actual_code[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestBroadlinkCommandWorkflow::test_test_command_immediately_after_learn[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestBroadlinkCommandWorkflow::test_reject_pending_command_in_test[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestBroadlinkCommandWorkflow::test_delete_command[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestSmartIRCommandWorkflow::test_smartir_learn_returns_actual_code[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestSmartIRCommandWorkflow::test_smartir_test_command[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestSmartIRCommandWorkflow::test_smartir_reject_pending_command[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_command_workflows.py::[1mTestSmartIRCommandWorkflow::test_smartir_profile_deletion_blocked_when_in_use[0m - assert 500 in [200, 201]
+ +  where 500 = <WrapperTestResponse streamed [500 INTERNAL SERVER ERROR]>.status_code
+[31mERROR[0m tests/integration/test_managed_device_endpoints.py::[1mTestManagedDeviceWorkflow::test_full_device_lifecycle[0m - PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\perki\\AppData\\Local\\Temp\\tmpcwonp8e4\\broadlink_manager\\devices.json'
+[31mERROR[0m tests/manual/test_direct_learning.py::[1mtest_send_command[0m
+[31m= [31m[1m95 failed[0m, [32m350 passed[0m, [33m18 skipped[0m, [33m4 xfailed[0m, [33m50 warnings[0m, [31m[1m12 errors[0m[31m in 241.49s (0:04:01)[0m[31m =[0m

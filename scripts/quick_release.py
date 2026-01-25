@@ -46,7 +46,7 @@ def get_current_version(root_dir: Path) -> str:
 
 def parse_version(version: str) -> dict:
     """Parse version string into components"""
-    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-alpha\.(\d+))?$", version)
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?$", version)
     if not match:
         raise ValueError(f"Invalid version format: {version}")
 
@@ -54,7 +54,8 @@ def parse_version(version: str) -> dict:
         "major": int(match.group(1)),
         "minor": int(match.group(2)),
         "patch": int(match.group(3)),
-        "alpha": int(match.group(4)) if match.group(4) else None,
+        "prerelease_type": match.group(4) if match.group(4) else None,
+        "prerelease_num": int(match.group(5)) if match.group(5) else None,
     }
 
 
@@ -63,27 +64,30 @@ def bump_version(current: str, bump_type: str) -> str:
     parts = parse_version(current)
 
     if bump_type == "patch":
-        # Increment alpha number
-        if parts["alpha"] is None:
-            parts["alpha"] = 1
+        # Increment prerelease number
+        if parts["prerelease_num"] is None:
+            parts["prerelease_type"] = "beta"
+            parts["prerelease_num"] = 1
         else:
-            parts["alpha"] += 1
+            parts["prerelease_num"] += 1
     elif bump_type == "minor":
-        # Increment minor, reset patch and alpha
+        # Increment minor, reset patch and prerelease
         parts["minor"] += 1
         parts["patch"] = 0
-        parts["alpha"] = 1
+        parts["prerelease_type"] = "beta"
+        parts["prerelease_num"] = 1
     elif bump_type == "major":
-        # Increment major, reset minor, patch and alpha
+        # Increment major, reset minor, patch and prerelease
         parts["major"] += 1
         parts["minor"] = 0
         parts["patch"] = 0
-        parts["alpha"] = 1
+        parts["prerelease_type"] = "beta"
+        parts["prerelease_num"] = 1
 
     # Build version string
     version = f"{parts['major']}.{parts['minor']}.{parts['patch']}"
-    if parts["alpha"]:
-        version += f"-alpha.{parts['alpha']}"
+    if parts["prerelease_num"]:
+        version += f"-{parts['prerelease_type']}.{parts['prerelease_num']}"
 
     return version
 

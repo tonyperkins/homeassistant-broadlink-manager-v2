@@ -174,7 +174,6 @@ def learn_command():
                         entity_type = managed_device.get("entity_type", "climate")
                         if device_code:
                             config_path = current_app.config.get("config_path", "/config")
-                            from pathlib import Path
 
                             profile_path = (
                                 Path(config_path)
@@ -231,7 +230,8 @@ def learn_command():
                                                     "platform": platform,
                                                 }
                                                 logger.info(
-                                                    f"📋 SmartIR device detected by profile scan - will update profile {device_code}.json"
+                                                    f"📋 SmartIR device detected by profile scan - "
+                                                    f"will update profile {device_code}.json"
                                                 )
                                                 break
                                         except Exception as e:

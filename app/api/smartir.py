@@ -333,7 +333,8 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 # Update profile with merged commands
                 profile_json["commands"] = merged_commands
                 logger.info(
-                    f"📝 Merged {len(existing_commands)} existing + {len(new_commands)} new = {len(merged_commands)} total commands"
+                    f"📝 Merged {len(existing_commands)} existing + {len(new_commands)} new = "
+                    f"{len(merged_commands)} total commands"
                 )
             else:
                 logger.info(f"Creating new profile {filename} in custom_codes (persists through HACS updates)")

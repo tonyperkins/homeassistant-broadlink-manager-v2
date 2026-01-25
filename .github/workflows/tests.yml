@@ -42,9 +42,9 @@ jobs:
         flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
-    - name: Run core unit tests
+    - name: Run all tests
       run: |
-        pytest tests/unit/test_entity_generator.py tests/unit/test_device_manager.py -v --cov=app --cov-report=xml --cov-report=term-missing
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -56,7 +56,7 @@ jobs:
     
     - name: Generate coverage report
       run: |
-        pytest tests/unit/test_entity_generator.py tests/unit/test_device_manager.py --cov=app --cov-report=html
+        pytest tests/ --cov=app --cov-report=html
     
     - name: Upload coverage HTML
       uses: actions/upload-artifact@v4

@@ -50,9 +50,20 @@ jobs:
       run: |
         pytest tests/unit/ tests/integration/ -v --cov=app --cov-report=xml --cov-report=term-missing
     
+    - name: Start web server for E2E tests
+      run: |
+        python app/main.py &
+        sleep 5
+      env:
+        HA_URL: http://localhost:8123
+        HA_TOKEN: test_token
+        LOG_LEVEL: info
+    
     - name: Run E2E tests
       run: |
         pytest tests/e2e/ -v --cov=app --cov-append --cov-report=xml --cov-report=term-missing
+      env:
+        BASE_URL: http://localhost:8099
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

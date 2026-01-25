@@ -182,27 +182,45 @@ def learn_command():
                 device_manager = current_app.config.get("device_manager")
                 if device_manager and device_id:
                     managed_device = device_manager.get_device(device_id)
-                    if managed_device and managed_device.get("device_type") == "smartir":
+                    if (
+                        managed_device
+                        and managed_device.get("device_type") == "smartir"
+                    ):
                         # This is a SmartIR device - add metadata for profile update
                         device_code = managed_device.get("device_code")
                         entity_type = managed_device.get("entity_type", "climate")
                         if device_code:
-                            config_path = current_app.config.get("config_path", "/config")
+                            config_path = current_app.config.get(
+                                "config_path", "/config"
+                            )
                             from pathlib import Path
-                            profile_path = Path(config_path) / "custom_components" / "smartir" / "custom_codes" / entity_type / f"{device_code}.json"
+
+                            profile_path = (
+                                Path(config_path)
+                                / "custom_components"
+                                / "smartir"
+                                / "custom_codes"
+                                / entity_type
+                                / f"{device_code}.json"
+                            )
                             smartir_metadata = {
                                 "smartir_profile": str(profile_path),
                                 "device_code": device_code,
-                                "platform": entity_type
+                                "platform": entity_type,
                             }
-                            logger.info(f"📋 SmartIR device detected from devices.json - will update profile {device_code}.json")
+                            logger.info(
+                                f"📋 SmartIR device detected from devices.json - will update profile {device_code}.json"
+                            )
 
                 # If not found in devices.json, scan SmartIR profiles by device name
                 if not smartir_metadata:
                     try:
                         config_path = current_app.config.get("config_path", "/config")
                         from pathlib import Path
-                        smartir_path = Path(config_path) / "custom_components" / "smartir"
+
+                        smartir_path = (
+                            Path(config_path) / "custom_components" / "smartir"
+                        )
                         custom_codes_path = smartir_path / "custom_codes"
 
                         if custom_codes_path.exists():
@@ -213,28 +231,44 @@ def learn_command():
                                     for profile_file in platform_dir.glob("*.json"):
                                         try:
                                             import json
-                                            with open(profile_file, "r", encoding="utf-8") as f:
+
+                                            with open(
+                                                profile_file, "r", encoding="utf-8"
+                                            ) as f:
                                                 profile_data = json.load(f)
 
                                             # Generate device name from manufacturer/model
                                             import re
-                                            manufacturer = profile_data.get("manufacturer", "")
-                                            model = profile_data.get("supportedModels", [""])[0]
+
+                                            manufacturer = profile_data.get(
+                                                "manufacturer", ""
+                                            )
+                                            model = profile_data.get(
+                                                "supportedModels", [""]
+                                            )[0]
                                             profile_device_name = f"{manufacturer.lower()}_{model.lower()}"
-                                            profile_device_name = re.sub(r"[^a-z0-9]+", "_", profile_device_name)
+                                            profile_device_name = re.sub(
+                                                r"[^a-z0-9]+", "_", profile_device_name
+                                            )
 
                                             # Check if this profile matches the device being learned
                                             if profile_device_name == device.lower():
                                                 device_code = profile_file.stem
                                                 smartir_metadata = {
-                                                    "smartir_profile": str(profile_file),
+                                                    "smartir_profile": str(
+                                                        profile_file
+                                                    ),
                                                     "device_code": device_code,
-                                                    "platform": platform
+                                                    "platform": platform,
                                                 }
-                                                logger.info(f"📋 SmartIR device detected by profile scan - will update profile {device_code}.json")
+                                                logger.info(
+                                                    f"📋 SmartIR device detected by profile scan - will update profile {device_code}.json"
+                                                )
                                                 break
                                         except Exception as e:
-                                            logger.debug(f"Error checking profile {profile_file}: {e}")
+                                            logger.debug(
+                                                f"Error checking profile {profile_file}: {e}"
+                                            )
                                     if smartir_metadata:
                                         break
                     except Exception as e:

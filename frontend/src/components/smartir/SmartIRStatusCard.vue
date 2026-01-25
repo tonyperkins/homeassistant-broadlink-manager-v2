@@ -200,7 +200,7 @@
           :key="`${profile.platform}-${profile.code}`"
           :profile="profile"
           @edit="editProfile(profile.platform, profile)"
-          @commands="editProfile(profile.platform, profile, 2)"
+          @commands="editProfile(profile.platform, profile, 1)"
           @download="downloadProfile(profile.platform, profile)"
           @delete="deleteProfile(profile.platform, profile)"
         />
@@ -211,7 +211,7 @@
         v-else-if="viewMode === 'list' && !simulatingNotInstalled && filteredProfiles.length > 0"
         :profiles="filteredProfiles"
         @edit="(profile) => editProfile(profile.platform, profile)"
-        @commands="(profile) => editProfile(profile.platform, profile, 2)"
+        @commands="(profile) => editProfile(profile.platform, profile, 1)"
         @download="(profile) => downloadProfile(profile.platform, profile)"
         @delete="(profile) => deleteProfile(profile.platform, profile)"
       />

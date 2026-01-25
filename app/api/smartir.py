@@ -189,6 +189,95 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             logger.error(f"Error refreshing device index: {e}")
             return jsonify({"success": False, "error": str(e)}), 500
 
+    @smartir_bp.route("/profiles/initialize", methods=["POST"])
+    def initialize_profile():
+        """Initialize a new SmartIR profile file with placeholder data"""
+        try:
+            data = request.get_json()
+
+            # Extract profile data
+            platform = data.get("platform")
+            manufacturer = data.get("manufacturer")
+            model = data.get("model")
+            code_number = data.get("code_number")
+
+            if not all([platform, manufacturer, model, code_number]):
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Missing required fields: platform, manufacturer, model, or code_number",
+                        }
+                    ),
+                    400,
+                )
+
+            # Validate SmartIR is installed
+            if not smartir_detector.is_installed():
+                return (
+                    jsonify({"success": False, "error": "SmartIR is not installed"}),
+                    404,
+                )
+
+            # Get custom_codes directory
+            smartir_path = smartir_detector.smartir_path
+            custom_codes_dir = smartir_path / "custom_codes" / platform
+
+            # Create custom_codes directory if it doesn't exist
+            custom_codes_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create placeholder profile
+            filename = f"{code_number}.json"
+            file_path = custom_codes_dir / filename
+
+            # Check if file already exists
+            if file_path.exists():
+                logger.info(f"Profile file {filename} already exists, will be updated")
+                return (
+                    jsonify(
+                        {
+                            "success": True,
+                            "message": f"Profile {filename} already exists",
+                            "path": str(file_path),
+                            "filename": filename,
+                            "code_number": code_number,
+                            "already_exists": True,
+                        }
+                    ),
+                    200,
+                )
+
+            # Create minimal placeholder profile
+            placeholder_profile = {
+                "manufacturer": manufacturer,
+                "supportedModels": [model],
+                "commands": {},
+            }
+
+            # Write placeholder JSON file
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(placeholder_profile, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"✅ Initialized placeholder SmartIR profile: {file_path}")
+
+            return (
+                jsonify(
+                    {
+                        "success": True,
+                        "message": f"Profile initialized as {filename}",
+                        "path": str(file_path),
+                        "filename": filename,
+                        "code_number": code_number,
+                        "already_exists": False,
+                    }
+                ),
+                200,
+            )
+
+        except Exception as e:
+            logger.error(f"Error initializing profile: {e}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
     @smartir_bp.route("/profiles", methods=["POST"])
     def save_profile():
         """Save a SmartIR device profile"""
@@ -237,12 +326,12 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 # Load existing profile
                 with open(file_path, "r", encoding="utf-8") as f:
                     existing_profile = json.load(f)
-                
+
                 # Merge commands: existing + new (new commands override existing)
                 existing_commands = existing_profile.get("commands", {})
                 new_commands = profile_json.get("commands", {})
                 merged_commands = {**existing_commands, **new_commands}
-                
+
                 # Update profile with merged commands
                 profile_json["commands"] = merged_commands
                 logger.info(
@@ -1066,7 +1155,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     if device.get("unique_id") == unique_id:
                         device_index = i
                         break
-            
+
             # Update existing device or add new one
             if device_index is not None:
                 logger.info(f"Updating existing device with unique_id: {unique_id}")

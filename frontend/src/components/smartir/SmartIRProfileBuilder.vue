@@ -315,7 +315,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, inject } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
 import ClimateProfileForm from './ClimateProfileForm.vue'
 import CommandLearningWizard from './CommandLearningWizard.vue'
 import ProfilePreview from './ProfilePreview.vue'
@@ -359,6 +359,8 @@ const showCloseConfirm = ref(false)
 const pendingCommandType = ref('')
 const previousCommandType = ref('ir')
 const isInitialLoad = ref(false)
+const pendingCommandsPollInterval = ref(null)
+const initializedProfileCode = ref(null) // Track if we initialized a profile file for cleanup
 
 const steps = [
   { label: 'Device Info', key: 'info' },
@@ -373,7 +375,7 @@ const profile = ref({
   model: '',
   broadlinkDevice: '',
   commandType: 'ir', // Default to IR
-  config: {},
+  config: { features: ['turn_on'] }, // Initialize with default media_player features
   commands: {}
 })
 
@@ -385,14 +387,20 @@ const lightFeatures = ref(['turn_on'])
 
 // Watch for platform changes to update config
 watch(() => profile.value.platform, (newPlatform) => {
+  console.log('🎯 Platform changed to:', newPlatform, 'mediaPlayerFeatures:', mediaPlayerFeatures.value)
   if (newPlatform === 'media_player') {
     profile.value.config = { features: mediaPlayerFeatures.value }
+    console.log('📺 Set media_player config:', profile.value.config, 'features array:', profile.value.config.features)
   } else if (newPlatform === 'fan') {
     profile.value.config = { speedLevels: fanSpeedLevels.value, features: fanFeatures.value }
+    console.log('🌀 Set fan config:', profile.value.config)
   } else if (newPlatform === 'light') {
     profile.value.config = { features: lightFeatures.value }
+    console.log('💡 Set light config:', profile.value.config)
+  } else if (newPlatform === '') {
+    console.log('⚠️ Platform is empty string, skipping config initialization')
   }
-})
+}, { immediate: true }) // Trigger immediately on mount
 
 // Watch feature changes
 watch(mediaPlayerFeatures, (newFeatures) => {
@@ -582,6 +590,119 @@ watch(() => profile.value.commandType, (newType, oldType) => {
   }
 })
 
+// Watch for pending commands and poll to reload profile data from backend
+// Works for both edit mode and new profiles (since we initialize the file upfront)
+watch(() => profile.value.commands, (commands) => {
+  if (!commands) return
+  
+  // For new profiles, only start polling after we've initialized the file
+  if (!props.editMode && !initializedProfileCode.value) {
+    // File not initialized yet, can't poll
+    return
+  }
+  
+  // For edit mode, we need editData to know which profile to fetch
+  if (props.editMode && !props.editData) {
+    return
+  }
+  
+  // Check if there are any pending commands
+  const hasPending = Object.values(commands).some(cmd => {
+    if (typeof cmd === 'string') return cmd === 'pending'
+    if (typeof cmd === 'object') {
+      return Object.values(cmd).some(v => {
+        if (typeof v === 'string') return v === 'pending'
+        if (typeof v === 'object') return Object.values(v).some(vv => vv === 'pending')
+        return false
+      })
+    }
+    return false
+  })
+  
+  if (hasPending) {
+    // Start polling if not already running
+    if (!pendingCommandsPollInterval.value) {
+      console.log('🔄 Starting polling to reload profile data from backend')
+      startPendingCommandsPolling()
+    } else {
+      console.log('🔄 Polling already running, will pick up new pending commands')
+    }
+  } else if (!hasPending && pendingCommandsPollInterval.value) {
+    console.log('✅ All commands resolved, stopping polling')
+    stopPendingCommandsPolling()
+  }
+}, { deep: true })
+
+function startPendingCommandsPolling() {
+  if (pendingCommandsPollInterval.value) return
+  
+  // Get platform and code based on mode
+  let platform, code
+  if (props.editMode && props.editData) {
+    // Edit mode: use editData
+    platform = props.editData.platform
+    code = props.editData.code
+  } else if (!props.editMode && initializedProfileCode.value) {
+    // New profile: use initialized code
+    platform = profile.value.platform
+    code = initializedProfileCode.value
+  } else {
+    // Can't poll without platform/code
+    console.warn('Cannot start polling: missing platform or code')
+    return
+  }
+  
+  pendingCommandsPollInterval.value = setInterval(async () => {
+    try {
+      console.log(`🔄 Polling profile ${platform}/${code} for updated commands...`)
+      
+      // Fetch the profile from backend
+      const response = await api.get(`/api/smartir/platforms/${platform}/profiles/${code}`)
+      const profileData = response.data.profile
+      
+      // Check if any pending commands have been resolved
+      const updatedCommands = profileData.commands || {}
+      let anyResolved = false
+      
+      // Check all commands in our current profile
+      for (const [key, value] of Object.entries(profile.value.commands)) {
+        if (value === 'pending') {
+          // Check if this command has been resolved in the backend
+          if (updatedCommands[key] && updatedCommands[key] !== 'pending') {
+            console.log(`✅ Command '${key}' resolved in profile: ${updatedCommands[key].substring(0, 20)}...`)
+            profile.value.commands[key] = updatedCommands[key]
+            anyResolved = true
+          } else {
+            console.log(`⏳ Command '${key}' still pending in backend`)
+          }
+        }
+      }
+      
+      if (anyResolved) {
+        console.log('✅ Updated commands from backend')
+      }
+    } catch (error) {
+      console.error('Error polling for profile updates:', error)
+    }
+  }, 3000) // Poll every 3 seconds
+  
+  // Set timeout to stop polling after 60 seconds
+  setTimeout(() => {
+    if (pendingCommandsPollInterval.value) {
+      console.log('⏱️ Profile polling timeout reached (60s)')
+      stopPendingCommandsPolling()
+    }
+  }, 60000)
+}
+
+function stopPendingCommandsPolling() {
+  if (pendingCommandsPollInterval.value) {
+    clearInterval(pendingCommandsPollInterval.value)
+    pendingCommandsPollInterval.value = null
+    console.log('🛑 Stopped polling for profile updates')
+  }
+}
+
 // Watch for edit data and populate profile
 watch(() => props.editData, async (newData) => {
   if (newData && props.editMode) {
@@ -711,9 +832,25 @@ const canProceed = computed(() => {
       return true
     case 2:
       // Require device selection and at least some commands learned
+      // Also check that NO commands are still "pending"
+      // Now that we initialize the file upfront, polling works for new profiles too
+      const hasCommands = Object.keys(profile.value.commands).length > 0
+      const hasPending = Object.values(profile.value.commands).some(cmd => {
+        if (typeof cmd === 'string') return cmd === 'pending'
+        if (typeof cmd === 'object') {
+          return Object.values(cmd).some(v => {
+            if (typeof v === 'string') return v === 'pending'
+            if (typeof v === 'object') return Object.values(v).some(vv => vv === 'pending')
+            return false
+          })
+        }
+        return false
+      })
+      
       return profile.value.broadlinkDevice && 
              profile.value.commandType &&
-             Object.keys(profile.value.commands).length > 0
+             hasCommands &&
+             !hasPending  // Disable Next if any commands are pending
     case 3:
       return true
     default:
@@ -792,12 +929,61 @@ function cancelCommandTypeChange() {
 
 async function nextStep() {
   if (currentStep.value < steps.length - 1) {
+    // If moving from step 0 to step 1 (Device Info -> Configuration)
+    // Initialize the profile file for new profiles
+    if (currentStep.value === 0 && !props.editMode) {
+      await initializeProfileFile()
+    }
+    
+    // If moving from step 1 to step 2 (Configuration -> Learn Commands)
+    // Ensure config is properly set based on current feature selections
+    if (currentStep.value === 1) {
+      console.log('📋 Moving to Learn Commands - ensuring config is set')
+      if (profile.value.platform === 'media_player') {
+        profile.value.config = { features: mediaPlayerFeatures.value }
+        console.log('📺 Set media_player config:', profile.value.config)
+      } else if (profile.value.platform === 'fan') {
+        profile.value.config = { speedLevels: fanSpeedLevels.value, features: fanFeatures.value }
+        console.log('🌀 Set fan config:', profile.value.config)
+      } else if (profile.value.platform === 'light') {
+        profile.value.config = { features: lightFeatures.value }
+        console.log('💡 Set light config:', profile.value.config)
+      }
+    }
+    
     currentStep.value++
     
     // If moving to preview step, fetch learned commands
     if (currentStep.value === 3) {
       await updateGeneratedJson()
     }
+  }
+}
+
+async function initializeProfileFile() {
+  try {
+    // Get next available code
+    const codeResponse = await api.get(`/api/smartir/platforms/${profile.value.platform}/next-code`)
+    const codeNumber = codeResponse.data.next_code
+    
+    console.log(`🆕 Initializing profile file with code ${codeNumber}`)
+    
+    // Initialize the profile file
+    const response = await api.post('/api/smartir/profiles/initialize', {
+      platform: profile.value.platform,
+      manufacturer: profile.value.manufacturer,
+      model: profile.value.model,
+      code_number: codeNumber
+    })
+    
+    if (response.data.success) {
+      initializedProfileCode.value = codeNumber
+      console.log(`✅ Profile file initialized: ${response.data.filename}`)
+      toastRef.value?.success(`Profile file created: ${response.data.filename}`)
+    }
+  } catch (error) {
+    console.error('Error initializing profile file:', error)
+    toastRef.value?.error('Failed to initialize profile file')
   }
 }
 
@@ -814,12 +1000,25 @@ function handleOverlayClick() {
   }
 }
 
-function confirmClose() {
+async function confirmClose() {
   showCloseConfirm.value = false
-  close()
+  await close()
 }
 
-function close() {
+async function close() {
+  // If we initialized a profile file but didn't save, delete it
+  if (initializedProfileCode.value && !props.editMode) {
+    try {
+      console.log(`🗑️ Deleting initialized profile ${initializedProfileCode.value} (user cancelled)`)
+      await api.delete(`/api/smartir/profiles/${initializedProfileCode.value}`, {
+        data: { platform: profile.value.platform }
+      })
+      console.log('✅ Cleaned up initialized profile file')
+    } catch (error) {
+      console.error('Error cleaning up profile file:', error)
+    }
+  }
+  
   emit('close')
   // Reset after animation
   setTimeout(() => {
@@ -834,6 +1033,7 @@ function close() {
       commands: {}
     }
     previousCommandType.value = 'ir'
+    initializedProfileCode.value = null
   }, 300)
 }
 
@@ -868,17 +1068,21 @@ async function saveToSmartIR() {
       }
     }
     
-    // Get code number - use existing code if editing, otherwise get next available
+    // Get code number - use existing code if editing, use initialized code for new profiles
     let codeNumber
     if (props.editMode && props.editData?.code) {
       // Use existing code when editing
       codeNumber = parseInt(props.editData.code)
       console.log('📝 Edit mode: Using existing code', codeNumber)
+    } else if (initializedProfileCode.value) {
+      // Use the code we initialized at the start
+      codeNumber = initializedProfileCode.value
+      console.log('✨ New profile: Using initialized code', codeNumber)
     } else {
-      // Get next available code for new profile
+      // Fallback: Get next available code (shouldn't happen)
       const codeResponse = await api.get(`/api/smartir/platforms/${profile.value.platform}/next-code`)
       codeNumber = codeResponse.data.next_code
-      console.log('✨ New profile: Using next code', codeNumber)
+      console.log('⚠️ Fallback: Using next code', codeNumber)
     }
     
     // Save profile to SmartIR directory
@@ -940,6 +1144,9 @@ async function saveToSmartIR() {
       `✅ Profile saved to custom_codes/${profile.value.platform}/${result.filename}\n✅ Device added to smartir/${profile.value.platform}.yaml\n✅ Profile visible in Broadlink Manager immediately\n\n⚠️ Restart Home Assistant for SmartIR integration to use this profile`,
       '✅ Profile Saved Successfully!'
     )
+    
+    // Clear the initialized code so we don't delete it on close
+    initializedProfileCode.value = null
     
     close()
   } catch (error) {
@@ -1150,6 +1357,11 @@ onMounted(() => {
   if (props.show) {
     loadBroadlinkDevices()
   }
+})
+
+// Clean up polling on unmount
+onUnmounted(() => {
+  stopPendingCommandsPolling()
 })
 </script>
 

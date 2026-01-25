@@ -128,13 +128,13 @@
             {{ learningCommand === cmd.key ? 'Listening...' : 'Learn Command' }}
           </button>
           
-          <div v-else class="learned-status">
-            <i class="mdi mdi-check-circle"></i>
-            <span>Learned</span>
+          <div v-else class="learned-status" :class="{ 'pending': commands[cmd.key] === 'pending' }">
+            <i class="mdi" :class="commands[cmd.key] === 'pending' ? 'mdi-clock-outline' : 'mdi-check-circle'"></i>
+            <span>{{ commands[cmd.key] === 'pending' ? 'Pending' : 'Learned' }}</span>
             <span class="command-type-badge" :class="localCommandType">
               {{ localCommandType.toUpperCase() }}
             </span>
-            <button @click="testCommand(cmd.key)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.key" style="margin-left:auto">
+            <button @click="testCommand(cmd.key)" class="icon-btn" title="Test command" :disabled="testingCommand === cmd.key || commands[cmd.key] === 'pending'" style="margin-left:auto">
               <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.key }"></i>
             </button>
             <button @click="deleteCommand(cmd.key)" class="icon-btn danger" title="Delete and re-learn" >
@@ -193,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import api from '@/services/api'
@@ -249,8 +249,10 @@ const confirmDelete = ref({
   commandLabel: ''
 })
 const confirmClearAll = ref(false)
+const pendingPollInterval = ref(null)
 
 const commandList = computed(() => {
+  console.log('🎮 CommandList computed - platform:', props.platform, 'config:', props.config)
   const list = []
   
   if (props.platform === 'climate') {
@@ -332,6 +334,7 @@ const commandList = computed(() => {
     })
   } else if (props.platform === 'media_player') {
     const features = props.config.features || []
+    console.log('📺 Media player - config.features:', props.config.features, 'features array:', features, 'features length:', features.length)
     
     if (features.includes('turn_on')) {
       list.push({ key: 'turn_on', label: 'Power On', description: 'Turn on the device', icon: 'mdi mdi-power' })
@@ -464,6 +467,12 @@ async function learnCommand(cmd) {
         // Code is pending - backend polling thread will fetch it automatically
         // The backend polls every 3 seconds with 60-second timeout and fallback search
         console.log(`⏳ Command '${cmd.key}' learned, backend will fetch code from storage automatically`)
+        
+        // Explicitly start polling to check when backend resolves the pending command
+        if (!pendingPollInterval.value) {
+          console.log('🔄 Starting polling because command is pending')
+          startPendingCommandsPolling()
+        }
       }
       
       // If sequential learning, move to next
@@ -634,11 +643,103 @@ watch(() => props.commandType, (newVal) => {
   localCommandType.value = newVal
 })
 
+// Poll for pending commands and update when backend resolves them
+function startPendingCommandsPolling() {
+  if (pendingPollInterval.value) return
+  
+  console.log('🔄 Starting polling for pending commands')
+  pendingPollInterval.value = setInterval(async () => {
+    try {
+      // Check if there are any pending commands
+      const pendingCommands = Object.entries(commands.value).filter(([key, code]) => code === 'pending')
+      
+      if (pendingCommands.length === 0) {
+        stopPendingCommandsPolling()
+        return
+      }
+      
+      console.log(`🔄 Polling for ${pendingCommands.length} pending command(s)...`)
+      
+      // For SmartIR profiles, fetch the profile directly from the backend
+      // The backend polling thread updates the SmartIR JSON file
+      // We need to reload the profile to get the updated commands
+      
+      // Get the device code from the parent's editData prop
+      // For now, we'll use the modelValue prop which should be updated by the parent
+      // when it reloads the profile data
+      
+      // Check if any pending commands have been resolved by checking modelValue
+      let anyResolved = false
+      for (const [key, code] of pendingCommands) {
+        // Check if the parent has updated this command in modelValue
+        if (props.modelValue[key] && props.modelValue[key] !== 'pending') {
+          console.log(`✅ Command '${key}' resolved: ${props.modelValue[key].substring(0, 20)}...`)
+          commands.value[key] = props.modelValue[key]
+          anyResolved = true
+        }
+      }
+      
+      if (anyResolved) {
+        emit('update:modelValue', commands.value)
+        toast.success('Commands updated successfully!')
+      }
+    } catch (error) {
+      console.error('Error polling for pending commands:', error)
+    }
+  }, 3000) // Poll every 3 seconds
+  
+  // Set timeout to stop polling after 60 seconds
+  setTimeout(() => {
+    if (pendingPollInterval.value) {
+      console.log('⏱️ Pending commands polling timeout reached (60s)')
+      stopPendingCommandsPolling()
+      
+      // Warn about any remaining pending commands
+      Object.entries(commands.value).forEach(([key, code]) => {
+        if (code === 'pending') {
+          console.warn(`⚠️ Command '${key}' still pending after timeout`)
+        }
+      })
+    }
+  }, 60000)
+}
+
+function stopPendingCommandsPolling() {
+  if (pendingPollInterval.value) {
+    clearInterval(pendingPollInterval.value)
+    pendingPollInterval.value = null
+    console.log('🛑 Stopped polling for pending commands')
+  }
+}
+
+// Watch for pending commands and start polling
+// Note: Polling only works for existing profiles in edit mode
+// For new profiles, the JSON file doesn't exist yet, so we can't poll
+// The commands will remain "pending" until the user saves the profile
+watch(() => commands.value, (newCommands) => {
+  const hasPending = Object.values(newCommands).some(code => code === 'pending')
+  
+  // Don't start polling for new profiles - it won't work anyway
+  // The parent component (SmartIRProfileBuilder) will handle polling for edit mode
+  if (hasPending && !pendingPollInterval.value) {
+    // Only log that we detected pending commands
+    console.log(`⏳ ${Object.values(newCommands).filter(c => c === 'pending').length} command(s) pending - waiting for backend to resolve`)
+    // Don't start polling here - let the parent handle it
+  } else if (!hasPending && pendingPollInterval.value) {
+    stopPendingCommandsPolling()
+  }
+}, { deep: true })
+
 // Load devices on mount
 onMounted(async () => {
   await loadBroadlinkDevices()
   // Also try to load existing commands
   await loadExistingCommands()
+})
+
+// Clean up polling on unmount
+onUnmounted(() => {
+  stopPendingCommandsPolling()
 })
 </script>
 
@@ -907,6 +1008,11 @@ onMounted(async () => {
   color: #4caf50;
   font-weight: 600;
   font-size: 14px;
+}
+
+.learned-status.pending {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
 }
 
 .learned-status i {

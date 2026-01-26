@@ -1259,7 +1259,7 @@ function generateSmartIRJson(profile) {
     supportedController: "Broadlink",
     commandsEncoding: "Base64",
     commandType: profile.commandType || 'ir',  // Store IR or RF type
-    commands: profile.commands || {}  // Always include commands from profile
+    commands: {}
   }
   
   if (profile.platform === 'climate') {
@@ -1282,6 +1282,49 @@ function generateSmartIRJson(profile) {
     if (profile.config.presetModes && profile.config.presetModes.length > 0) {
       json.presetModes = profile.config.presetModes
     }
+    
+    // Convert flat commands to nested tree structure for climate
+    // SmartIR expects: commands[mode][temp][fan][swing][preset] = code
+    const flatCommands = profile.commands || {}
+    const nestedCommands = {}
+    
+    for (const [key, code] of Object.entries(flatCommands)) {
+      // Handle 'off' command separately (not nested)
+      if (key === 'off') {
+        nestedCommands.off = code
+        continue
+      }
+      
+      // Parse flat key: mode_temp_fan[_swing][_preset]
+      const parts = key.split('_')
+      if (parts.length < 3) continue // Skip invalid keys
+      
+      const mode = parts[0]
+      const temp = parts[1]
+      const fan = parts[2]
+      const swing = parts[3] || null
+      const preset = parts[4] || null
+      
+      // Build nested structure
+      if (!nestedCommands[mode]) nestedCommands[mode] = {}
+      if (!nestedCommands[mode][temp]) nestedCommands[mode][temp] = {}
+      
+      if (swing && preset) {
+        if (!nestedCommands[mode][temp][fan]) nestedCommands[mode][temp][fan] = {}
+        if (!nestedCommands[mode][temp][fan][swing]) nestedCommands[mode][temp][fan][swing] = {}
+        nestedCommands[mode][temp][fan][swing][preset] = code
+      } else if (swing) {
+        if (!nestedCommands[mode][temp][fan]) nestedCommands[mode][temp][fan] = {}
+        nestedCommands[mode][temp][fan][swing] = code
+      } else {
+        nestedCommands[mode][temp][fan] = code
+      }
+    }
+    
+    json.commands = nestedCommands
+  } else {
+    // For non-climate platforms, use flat structure as-is
+    json.commands = profile.commands || {}
   }
   
   return json

@@ -1,5 +1,5 @@
 name: Broadlink Manager v2 (Beta)
-version: "0.3.0-beta.3"
+version: "0.3.0-beta.4"
 slug: broadlink-manager-v2
 description: Next-generation Broadlink device manager with Vue 3 interface (Beta)
 arch:

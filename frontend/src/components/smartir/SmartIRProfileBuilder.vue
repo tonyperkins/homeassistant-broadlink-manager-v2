@@ -1266,7 +1266,9 @@ function generateSmartIRJson(profile) {
     json.minTemperature = profile.config.minTemp
     json.maxTemperature = profile.config.maxTemp
     json.precision = profile.config.precision || 1
-    json.operationModes = profile.config.modes || []
+    
+    // Exclude 'off' from operationModes - it's a standalone command
+    json.operationModes = (profile.config.modes || []).filter(mode => mode !== 'off')
     
     // SmartIR requires at least one fan mode - default to 'auto' if none selected
     json.fanModes = (profile.config.fanModes && profile.config.fanModes.length > 0) 
@@ -1284,7 +1286,8 @@ function generateSmartIRJson(profile) {
     }
     
     // Convert flat commands to nested tree structure for climate
-    // SmartIR expects: commands[mode][temp][fan][swing][preset] = code
+    // SmartIR expects: commands[mode][fan][temp][swing][preset] = code
+    // Note: The nesting order is mode → fan → temp (NOT mode → temp → fan)
     const flatCommands = profile.commands || {}
     const nestedCommands = {}
     
@@ -1305,19 +1308,19 @@ function generateSmartIRJson(profile) {
       const swing = parts[3] || null
       const preset = parts[4] || null
       
-      // Build nested structure
+      // Build nested structure: mode → fan → temp (correct SmartIR order)
       if (!nestedCommands[mode]) nestedCommands[mode] = {}
-      if (!nestedCommands[mode][temp]) nestedCommands[mode][temp] = {}
+      if (!nestedCommands[mode][fan]) nestedCommands[mode][fan] = {}
       
       if (swing && preset) {
-        if (!nestedCommands[mode][temp][fan]) nestedCommands[mode][temp][fan] = {}
-        if (!nestedCommands[mode][temp][fan][swing]) nestedCommands[mode][temp][fan][swing] = {}
-        nestedCommands[mode][temp][fan][swing][preset] = code
+        if (!nestedCommands[mode][fan][temp]) nestedCommands[mode][fan][temp] = {}
+        if (!nestedCommands[mode][fan][temp][swing]) nestedCommands[mode][fan][temp][swing] = {}
+        nestedCommands[mode][fan][temp][swing][preset] = code
       } else if (swing) {
-        if (!nestedCommands[mode][temp][fan]) nestedCommands[mode][temp][fan] = {}
-        nestedCommands[mode][temp][fan][swing] = code
+        if (!nestedCommands[mode][fan][temp]) nestedCommands[mode][fan][temp] = {}
+        nestedCommands[mode][fan][temp][swing] = code
       } else {
-        nestedCommands[mode][temp][fan] = code
+        nestedCommands[mode][fan][temp] = code
       }
     }
     

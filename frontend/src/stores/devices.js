@@ -113,15 +113,19 @@ export const useDeviceStore = defineStore('devices', {
       }
     },
     
-    async deleteDevice(deviceId, deleteCommands = false) {
+    async deleteDevice(deviceId, deleteCommands = false, regenerateEntities = false) {
       this.loading = true
       this.error = null
       
       try {
-        // Use managed devices endpoint for deletion with optional command deletion
-        await api.delete(`/api/devices/managed/${deviceId}`, {
-          data: { delete_commands: deleteCommands }
-        })
+        // Use managed devices endpoint for deletion with optional command deletion and entity regeneration
+        // Pass as query parameters (more RESTful for DELETE)
+        const params = new URLSearchParams()
+        if (deleteCommands) params.append('delete_commands', 'true')
+        if (regenerateEntities) params.append('regenerate_entities', 'true')
+        
+        const url = `/api/devices/managed/${deviceId}${params.toString() ? '?' + params.toString() : ''}`
+        await api.delete(url)
         this.devices = this.devices.filter(d => d.id !== deviceId)
       } catch (error) {
         this.error = error.message

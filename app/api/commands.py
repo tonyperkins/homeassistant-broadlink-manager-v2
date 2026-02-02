@@ -740,6 +740,7 @@ def delete_command(device_id, command_name):
     """Delete a command from a device"""
     try:
         device_manager = current_app.config.get("device_manager")
+        web_server = current_app.config.get("web_server")
         if not device_manager:
             return jsonify({"error": "Device manager not available"}), 500
 
@@ -757,17 +758,61 @@ def delete_command(device_id, command_name):
         logger.info(f"  device_id: {device_id}")
         logger.info(f"  command_name: {command_name}")
 
+        # Check if we should regenerate entities after deletion (from query parameter)
+        regenerate_entities = (
+            request.args.get("regenerate_entities", "false").lower() == "true"
+        )
+        logger.info(f"  regenerate_entities: {regenerate_entities}")
+
         # Delete from devices.json
-        if device_manager.delete_command(device_id, command_name):
-            logger.info(f"✅ Command '{command_name}' deleted successfully")
-            return jsonify(
-                {
-                    "success": True,
-                    "message": f"Command '{command_name}' deleted successfully",
-                }
-            )
-        else:
+        if not device_manager.delete_command(device_id, command_name):
             return jsonify({"success": False, "error": "Failed to delete command"}), 500
+
+        logger.info(f"✅ Command '{command_name}' deleted successfully")
+
+        # If requested, regenerate entities to update entity configurations
+        entities_regenerated = False
+        if regenerate_entities and web_server:
+            try:
+                logger.info(
+                    f"🔄 Regenerating entities after deleting command '{command_name}'..."
+                )
+                # Get all devices
+                all_devices = device_manager.get_all_devices()
+                broadlink_devices = {
+                    k: v
+                    for k, v in all_devices.items()
+                    if v.get("device_type", "broadlink") == "broadlink"
+                }
+
+                if broadlink_devices:
+                    from entity_generator_v2 import EntityGeneratorV2
+
+                    generator = EntityGeneratorV2(
+                        device_manager=device_manager,
+                        config_path=str(web_server.config_loader.get_config_path()),
+                    )
+                    result = generator.generate_all_devices(broadlink_devices)
+                    if result.get("success"):
+                        entities_regenerated = True
+                        logger.info(
+                            f"✅ Regenerated {result.get('entities_count', 0)} entities"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️ Entity regeneration failed: {result.get('message')}"
+                        )
+
+            except Exception as regen_error:
+                logger.error(f"Error regenerating entities: {regen_error}")
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Command '{command_name}' deleted successfully",
+                "entities_regenerated": entities_regenerated,
+            }
+        )
 
     except Exception as e:
         logger.error(f"Error deleting command: {e}")
@@ -1832,6 +1877,128 @@ def test_command_direct():
 
     except Exception as e:
         logger.error(f"Error testing command: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/paste", methods=["POST"])
+def paste_command():
+    """
+    Save a command by pasting its code directly (for importing existing RF/IR codes)
+    """
+    try:
+        data = request.json
+        logger.info(f"📋 Paste command request: {data.keys()}")
+
+        device_id = data.get("device_id")
+        command_name = data.get("command_name")
+        command_data = data.get("command_data")  # Base64 encoded IR/RF code
+        command_type = data.get("command_type", "ir")  # ir or rf
+
+        logger.info(
+            f"📋 Paste command: device_id={device_id}, command_name={command_name}, command_type={command_type}"
+        )
+        logger.info(
+            f"📋 Command data length: {len(command_data) if command_data else 0}"
+        )
+
+        if not all([device_id, command_name, command_data]):
+            missing = []
+            if not device_id:
+                missing.append("device_id")
+            if not command_name:
+                missing.append("command_name")
+            if not command_data:
+                missing.append("command_data")
+
+            error_msg = f'Missing required fields: {", ".join(missing)}'
+            logger.error(error_msg)
+            return jsonify({"success": False, "error": error_msg}), 400
+
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        # Get device
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({"error": f"Device '{device_id}' not found"}), 404
+
+        # Clean and validate command data format (should be base64)
+        # Strip whitespace, newlines, and common prefixes
+        import base64
+        import re
+
+        # Remove whitespace and newlines
+        cleaned_data = re.sub(r"\s+", "", command_data)
+
+        # Remove common prefixes if present
+        if cleaned_data.startswith("b64:"):
+            cleaned_data = cleaned_data[4:]
+        elif cleaned_data.startswith("base64:"):
+            cleaned_data = cleaned_data[7:]
+
+        # Fix base64 padding if needed
+        # Base64 strings must be a multiple of 4 characters
+        padding_needed = len(cleaned_data) % 4
+        if padding_needed:
+            cleaned_data += "=" * (4 - padding_needed)
+            logger.info(f"📋 Added {4 - padding_needed} padding character(s)")
+
+        logger.info(
+            f"📋 Cleaned data length: {len(cleaned_data)}, first 50 chars: {cleaned_data[:50]}"
+        )
+
+        try:
+            # Try to decode to validate it's valid base64
+            decoded = base64.b64decode(cleaned_data)
+            logger.info(
+                f"✅ Successfully decoded base64, decoded length: {len(decoded)} bytes"
+            )
+        except Exception as e:
+            logger.error(f"❌ Invalid base64 data: {e}")
+            logger.error(f"❌ Data preview: {cleaned_data[:100]}")
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Invalid command data format. Must be base64 encoded. Error: {str(e)}",
+                    }
+                ),
+                400,
+            )
+
+        # Use the cleaned data
+        command_data = cleaned_data
+
+        # Add command to device
+        commands = device.get("commands", {})
+        commands[command_name] = {
+            "data": command_data,
+            "type": command_type,
+            "command_type": command_type,
+            "name": command_name,
+            "storage_device": device.get("device", device_id),
+        }
+        device["commands"] = commands
+
+        # Save to device manager
+        if not device_manager.update_device(device_id, device):
+            return jsonify({"success": False, "error": "Failed to save command"}), 500
+
+        logger.info(
+            f"✅ Pasted command '{command_name}' ({command_type}) to device '{device_id}'"
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Command '{command_name}' saved successfully",
+                "command": {"name": command_name, "type": command_type},
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error pasting command: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
 

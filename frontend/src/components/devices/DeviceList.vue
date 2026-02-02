@@ -253,7 +253,7 @@
       confirmText="Delete"
       cancelText="Cancel"
       :dangerMode="true"
-      :checkboxLabel="deleteCheckboxLabel"
+      :checkboxOptions="deleteCheckboxOptions"
       @confirm="handleDeleteConfirm"
       @cancel="cancelDelete"
     />
@@ -590,11 +590,28 @@ const deleteMessage = computed(() => {
   return `This device has ${commandCount} learned command${commandCount > 1 ? 's' : ''}. What would you like to do?`
 })
 
-const deleteCheckboxLabel = computed(() => {
-  if (!deviceToDelete.value) return ''
+const deleteCheckboxOptions = computed(() => {
+  if (!deviceToDelete.value) return []
   const commandCount = Object.keys(deviceToDelete.value.commands || {}).length
-  if (commandCount === 0) return ''
-  return `Also delete all ${commandCount} command${commandCount > 1 ? 's' : ''} from Broadlink storage`
+  const options = []
+  
+  // Only show command deletion option if device has commands
+  if (commandCount > 0) {
+    options.push({
+      key: 'delete_commands',
+      label: `Also delete all ${commandCount} command${commandCount > 1 ? 's' : ''} from Broadlink storage`,
+      description: 'Removes IR/RF codes from Home Assistant storage'
+    })
+  }
+  
+  // Always show entity regeneration option
+  options.push({
+    key: 'regenerate_entities',
+    label: 'Regenerate entities after deletion',
+    description: 'Updates package.yaml and helpers.yaml to remove orphaned entity entries'
+  })
+  
+  return options
 })
 
 const confirmDelete = (device) => {
@@ -607,13 +624,25 @@ const cancelDelete = () => {
   deviceToDelete.value = null
 }
 
-const handleDeleteConfirm = async (deleteCommands) => {
+const handleDeleteConfirm = async (options) => {
   const device = deviceToDelete.value
   showDeleteConfirm.value = false
   
   try {
-    // Delete the device (backend will handle command deletion if requested)
-    await deviceStore.deleteDevice(device.id, deleteCommands)
+    // Extract options (handle both legacy boolean and new object format)
+    const deleteCommands = typeof options === 'boolean' ? options : (options.delete_commands || false)
+    const regenerateEntities = typeof options === 'object' ? (options.regenerate_entities || false) : false
+    
+    // Delete the device (backend will handle command deletion and entity regeneration if requested)
+    await deviceStore.deleteDevice(device.id, deleteCommands, regenerateEntities)
+    
+    // Show success message if entities were regenerated
+    if (regenerateEntities) {
+      const toastRef = inject('toast')
+      if (toastRef) {
+        toastRef.success('Device deleted and entities regenerated successfully')
+      }
+    }
     
     // Refresh discovery to show newly untracked device
     if (discoveryRef.value) {
@@ -980,6 +1009,7 @@ const generateEntities = async () => {
       const smartirCount = response.data.smartir_count || 0
       const totalCount = response.data.total_count || 0
       const errors = response.data.errors || []
+      const validationWarnings = response.data.validation_warnings || []
       
       let title = '✅ Entity Generation Successful'
       let messageParts = []
@@ -995,6 +1025,17 @@ const generateEntities = async () => {
       
       if (summaryParts.length > 0) {
         messageParts.push(`Generated ${summaryParts.join(' and ')} entity configuration${totalCount !== 1 ? 's' : ''}.`)
+      }
+      
+      // Show validation warnings if any (devices with missing required commands)
+      if (validationWarnings.length > 0) {
+        title = '⚠️ Entity Generation Completed with Warnings'
+        messageParts.push(`\n⚠️ ${validationWarnings.length} device${validationWarnings.length !== 1 ? 's' : ''} skipped due to missing required commands:`)
+        validationWarnings.forEach(warning => {
+          messageParts.push(`\n  📱 ${warning.device_name} (${warning.entity_type}):`)
+          messageParts.push(`     Missing: ${warning.missing_commands.join(', ')}`)
+        })
+        messageParts.push('\n💡 Learn the missing commands to generate entities for these devices.')
       }
       
       // File locations

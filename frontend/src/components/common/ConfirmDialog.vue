@@ -8,12 +8,23 @@
       <div class="modal-body">
         <p class="message-text">{{ message }}</p>
         
-        <!-- Optional checkbox for additional action -->
+        <!-- Optional checkbox for additional action (legacy single checkbox) -->
         <div v-if="checkboxLabel" class="checkbox-option">
           <label>
             <input type="checkbox" v-model="checkboxValue" />
             <span>{{ checkboxLabel }}</span>
           </label>
+        </div>
+        
+        <!-- Multiple checkboxes support -->
+        <div v-if="checkboxOptions && checkboxOptions.length > 0" class="checkbox-options">
+          <div v-for="(option, index) in checkboxOptions" :key="index" class="checkbox-option">
+            <label>
+              <input type="checkbox" v-model="checkboxValues[index]" />
+              <span>{{ option.label }}</span>
+            </label>
+            <p v-if="option.description" class="checkbox-description">{{ option.description }}</p>
+          </div>
         </div>
       </div>
       
@@ -74,22 +85,38 @@ const props = defineProps({
   checkboxLabel: {
     type: String,
     default: ''
+  },
+  checkboxOptions: {
+    type: Array,
+    default: () => []
   }
 })
 
 const emit = defineEmits(['confirm', 'cancel'])
 
 const checkboxValue = ref(false)
+const checkboxValues = ref([])
 
-// Reset checkbox when dialog opens
+// Reset checkboxes when dialog opens
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     checkboxValue.value = false
+    checkboxValues.value = props.checkboxOptions.map(() => false)
   }
 })
 
 const confirm = () => {
-  emit('confirm', checkboxValue.value)
+  // If using multiple checkboxes, return an object with named values
+  if (props.checkboxOptions && props.checkboxOptions.length > 0) {
+    const result = {}
+    props.checkboxOptions.forEach((option, index) => {
+      result[option.key] = checkboxValues.value[index]
+    })
+    emit('confirm', result)
+  } else {
+    // Legacy single checkbox support
+    emit('confirm', checkboxValue.value)
+  }
 }
 
 const cancel = () => {
@@ -175,6 +202,20 @@ const cancel = () => {
 
 .checkbox-option span {
   flex: 1;
+}
+
+.checkbox-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.checkbox-description {
+  margin: 4px 0 0 30px;
+  font-size: 12px;
+  color: var(--ha-text-secondary-color);
+  line-height: 1.4;
 }
 
 .modal-footer {

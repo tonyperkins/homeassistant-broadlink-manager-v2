@@ -126,16 +126,47 @@
           </div>
         </div>
 
-        <!-- Learn Button (inline with inputs) -->
+        <!-- Import Command Section -->
+        <div class="form-group">
+          <label>
+            Or Import Existing Code
+            <button type="button" class="help-btn" @click="showImportHelp = !showImportHelp" title="Learn more">
+              <i class="mdi mdi-help-circle-outline"></i>
+            </button>
+          </label>
+          <div v-if="showImportHelp" class="help-box">
+            <p>If you already have the RF/IR code, paste it here instead of learning it.</p>
+            <p>The code should be in base64 format (e.g., <code>JgBQAAABH5ASEhI1...</code>)</p>
+          </div>
+          <textarea
+            v-model="pastedCommandData"
+            placeholder="Paste base64 encoded command code here..."
+            rows="3"
+            :disabled="learning || importing"
+            class="command-paste-input"
+          ></textarea>
+        </div>
+
+        <!-- Action Buttons -->
         <div class="learn-action">
           <button 
             type="submit"
             class="btn btn-primary btn-large" 
-            :disabled="learning"
+            :disabled="!canLearn || learning || importing"
           >
             <i v-if="learning" class="mdi mdi-loading mdi-spin"></i>
             <i v-else class="mdi mdi-remote-tv"></i>
             {{ learning ? 'Learning...' : 'Learn Command' }}
+          </button>
+          <button
+            type="button"
+            @click="importCommand"
+            class="btn btn-secondary btn-large"
+            :disabled="!canImport || learning || importing"
+          >
+            <i v-if="importing" class="mdi mdi-loading mdi-spin"></i>
+            <i v-else class="mdi mdi-import"></i>
+            {{ importing ? 'Importing...' : 'Import Code' }}
           </button>
         </div>
 
@@ -329,6 +360,9 @@ const customCommandName = ref('')
 const commandType = ref('ir')
 const saveDestination = ref('manager_only') // manager_only, integration_only, both
 const showSaveDestinationHelp = ref(false)
+const showImportHelp = ref(false)
+const pastedCommandData = ref('')
+const importing = ref(false)
 const learning = ref(false)
 const learningPhase = ref('') // 'preparing', 'ready', 'learning', 'captured', or ''
 const learningStatusMessage = ref('') // Real-time status message from backend
@@ -355,6 +389,14 @@ const canLearn = computed(() => {
   
   const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
   return selectedBroadlink.value && actualCommand.trim()
+})
+
+const canImport = computed(() => {
+  // Can import if we have a command name and pasted data
+  if (isSmartIR.value) return false
+  
+  const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
+  return actualCommand.trim() && pastedCommandData.value.trim()
 })
 
 const clearCommandValidation = () => {
@@ -617,6 +659,66 @@ const loadLearnedCommands = async (forceReload = false) => {
     console.error('Error loading commands:', error)
   } finally {
     loadingCommands.value = false
+  }
+}
+
+const importCommand = async () => {
+  // Import a command by pasting its base64 code
+  importing.value = true
+  resultMessage.value = ''
+  resultType.value = ''
+
+  try {
+    const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
+    
+    if (!actualCommand.trim()) {
+      resultMessage.value = 'Please enter a command name'
+      resultType.value = 'error'
+      return
+    }
+
+    if (!pastedCommandData.value.trim()) {
+      resultMessage.value = 'Please paste a command code'
+      resultType.value = 'error'
+      return
+    }
+
+    // Call the paste API endpoint
+    const response = await api.post('/api/commands/paste', {
+      device_id: props.device.id,
+      command_name: actualCommand,
+      command_data: pastedCommandData.value.trim(),
+      command_type: commandType.value
+    })
+
+    if (response.data.success) {
+      // Reload commands from server to ensure sync
+      await loadLearnedCommands()
+
+      // Clear the form
+      commandName.value = ''
+      customCommandName.value = ''
+      pastedCommandData.value = ''
+
+      resultMessage.value = `✅ Command "${actualCommand}" imported successfully!`
+      resultType.value = 'success'
+
+      // Emit event to parent
+      emit('learned', {
+        device_id: props.device.id,
+        command: actualCommand,
+        type: commandType.value
+      })
+    } else {
+      resultMessage.value = response.data.error || 'Failed to import command'
+      resultType.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error importing command:', error)
+    resultMessage.value = error.response?.data?.error || 'Failed to import command. Please check the code format.'
+    resultType.value = 'error'
+  } finally {
+    importing.value = false
   }
 }
 
@@ -1595,6 +1697,39 @@ const handleImportConfirm = async () => {
   padding: 14px 24px;
   font-size: 16px;
   font-weight: 600;
+}
+
+.command-paste-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 4px;
+  background: var(--ha-card-background);
+  color: var(--ha-text-primary-color);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.command-paste-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.command-paste-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.learn-action {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.learn-action .btn {
+  flex: 1;
 }
 
 .section-divider {

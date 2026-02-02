@@ -728,6 +728,7 @@ class BroadlinkWebServer:
                     "smartir_count": 0,
                     "total_count": 0,
                     "errors": [],
+                    "validation_warnings": [],
                 }
 
                 # Generate Broadlink native entities
@@ -773,6 +774,17 @@ class BroadlinkWebServer:
                             results["broadlink_count"] = broadlink_result.get(
                                 "entities_count", 0
                             )
+                            # Include validation warnings from entity generator
+                            validation_warnings = broadlink_result.get(
+                                "validation_warnings", []
+                            )
+                            if validation_warnings:
+                                results["validation_warnings"].extend(
+                                    validation_warnings
+                                )
+                                logger.info(
+                                    f"⚠️ {len(validation_warnings)} device(s) skipped due to missing required commands"
+                                )
                             logger.info(
                                 f"✅ Generated {results['broadlink_count']} Broadlink entities"
                             )

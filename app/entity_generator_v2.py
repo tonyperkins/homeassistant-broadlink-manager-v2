@@ -113,6 +113,35 @@ class DeviceManagerAdapter:
         if command_names & light_patterns or "light" in device_id.lower():
             return "light"
 
+        # Check for media player patterns
+        media_player_patterns = {
+            "volume_up",
+            "volume_down",
+            "mute",
+            "unmute",
+            "play",
+            "pause",
+            "stop",
+            "play_pause",
+            "next",
+            "previous",
+            "next_track",
+            "prev_track",
+            "source",
+            "input",
+            "hdmi1",
+            "hdmi2",
+            "hdmi3",
+            "channel_up",
+            "channel_down",
+        }
+        if (
+            command_names & media_player_patterns
+            or "media" in device_id.lower()
+            or "tv" in device_id.lower()
+        ):
+            return "media_player"
+
         # Default to switch
         return "switch"
 

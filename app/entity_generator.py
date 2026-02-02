@@ -125,6 +125,7 @@ class EntityGenerator:
                 },
                 "timestamp": timestamp,
                 "instructions": self._get_setup_instructions(),
+                "validation_warnings": getattr(self, "validation_warnings", []),
             }
 
         except Exception as e:
@@ -161,6 +162,9 @@ class EntityGenerator:
             "cover": [],
             "button": [],
         }
+
+        # Track validation warnings for devices with missing required commands
+        self.validation_warnings = []
 
         for entity_id, entity_data in entities.items():
             if not entity_data.get("enabled", True):
@@ -884,12 +888,32 @@ class EntityGenerator:
             return None
 
         # Check for basic power commands
-        has_power = ("turn_on" in commands or "power_on" in commands) and (
+        # Accept either separate on/off commands OR a toggle command
+        has_separate_power = ("turn_on" in commands or "power_on" in commands) and (
             "turn_off" in commands or "power_off" in commands
         )
+        has_toggle = "toggle" in commands or "power_toggle" in commands
 
-        if not has_power:
-            logger.warning(f"Media player {entity_id} missing power on/off commands")
+        if not (has_separate_power or has_toggle):
+            logger.warning(f"Media player {entity_id} missing power commands")
+            # Add validation warning
+            missing_commands = []
+            if not has_toggle:
+                if "turn_on" not in commands and "power_on" not in commands:
+                    missing_commands.append("turn_on or power_on")
+                if "turn_off" not in commands and "power_off" not in commands:
+                    missing_commands.append("turn_off or power_off")
+                missing_commands.append("OR toggle/power_toggle")
+
+            self.validation_warnings.append(
+                {
+                    "device": entity_id,
+                    "device_name": entity_data.get("friendly_name", entity_id),
+                    "entity_type": "media_player",
+                    "missing_commands": missing_commands,
+                    "message": f"Media player requires power commands: {', '.join(missing_commands)}",
+                }
+            )
             return None
 
         # Build the universal media player configuration
@@ -1042,11 +1066,13 @@ class EntityGenerator:
         if not broadlink_entity:
             return None
 
-        # Get power commands
+        # Get power commands - support both separate on/off and toggle
         turn_on_cmd = commands.get("turn_on") or commands.get("power_on")
         turn_off_cmd = commands.get("turn_off") or commands.get("power_off")
+        toggle_cmd = commands.get("toggle") or commands.get("power_toggle")
 
-        if not (turn_on_cmd and turn_off_cmd):
+        # Need either separate commands OR toggle
+        if not ((turn_on_cmd and turn_off_cmd) or toggle_cmd):
             return None
 
         # Create switch entity ID (will be switch.{entity_id}_power)
@@ -1061,7 +1087,11 @@ class EntityGenerator:
             "unique_id": switch_entity_id,
             "name": f"{friendly_name} Power",
             "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
-            "turn_on": [
+        }
+
+        # If we have separate on/off commands, use them
+        if turn_on_cmd and turn_off_cmd:
+            config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
@@ -1071,8 +1101,8 @@ class EntityGenerator:
                     "service": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
-            ],
-            "turn_off": [
+            ]
+            config["turn_off"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
@@ -1082,8 +1112,31 @@ class EntityGenerator:
                     "service": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
-            ],
-        }
+            ]
+        # Otherwise use toggle command for both on and off
+        elif toggle_cmd:
+            config["turn_on"] = [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"device": device, "command": toggle_cmd},
+                },
+                {
+                    "service": "input_boolean.turn_on",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ]
+            config["turn_off"] = [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"device": device, "command": toggle_cmd},
+                },
+                {
+                    "service": "input_boolean.turn_off",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ]
 
         logger.info(f"Generated companion switch for media player {entity_id}")
         return config

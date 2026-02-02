@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0-beta.1] - 2026-02-02
+
+### Fixed
+- Add command import/paste feature, toggle support for media players, and entity generation validation warnings
+
+
 ## [0.3.0-beta.3] - 2026-01-25
 
 ### Fixed

@@ -784,11 +784,26 @@ watch(() => props.editData, async (newData) => {
       console.log('🔍 Inferred light features:', features)
     }
     
+    // For climate profiles, flatten nested commands back to flat structure for UI
+    let commandsToLoad = commands
+    if (newData.platform === 'climate' && commands && typeof commands === 'object') {
+      // Check if commands are in nested format (has mode objects)
+      const hasNestedStructure = Object.values(commands).some(v => 
+        v && typeof v === 'object' && !Array.isArray(v) && v !== null && Object.keys(v).length > 0
+      )
+      
+      if (hasNestedStructure) {
+        console.log('🔄 Converting nested climate commands to flat structure for editing')
+        commandsToLoad = flattenClimateCommands(commands)
+        console.log('✅ Flattened commands:', commandsToLoad)
+      }
+    }
+    
     // Fetch learned commands from Broadlink storage to replace "pending" placeholders
     const mergedCommands = await fetchLearnedCommandsForEdit(
       profileData.manufacturer,
       profileData.supportedModels?.[0],
-      commands
+      commandsToLoad
     )
     
     profile.value = {
@@ -1250,6 +1265,60 @@ async function fetchLearnedCommandsForEdit(manufacturer, model, commands) {
     console.error('Error fetching learned commands:', error)
     return commands // Return original commands if error
   }
+}
+
+function flattenClimateCommands(nestedCommands) {
+  // Convert nested SmartIR climate commands back to flat structure for UI
+  // SmartIR format: commands[mode][fan][temp] = code
+  // UI format: commands[mode_temp_fan] = code
+  const flatCommands = {}
+  
+  for (const [key, value] of Object.entries(nestedCommands)) {
+    // Handle 'off' command (not nested)
+    if (key === 'off' && typeof value === 'string') {
+      flatCommands.off = value
+      continue
+    }
+    
+    // Handle nested mode commands
+    if (typeof value === 'object' && value !== null) {
+      const mode = key
+      
+      // Iterate through fan modes
+      for (const [fanMode, fanValue] of Object.entries(value)) {
+        if (typeof fanValue === 'object' && fanValue !== null) {
+          // Iterate through temperatures
+          for (const [temp, tempValue] of Object.entries(fanValue)) {
+            if (typeof tempValue === 'string') {
+              // Simple case: mode_temp_fan
+              const flatKey = `${mode}_${temp}_${fanMode}`
+              flatCommands[flatKey] = tempValue
+            } else if (typeof tempValue === 'object' && tempValue !== null) {
+              // Has swing modes
+              for (const [swing, swingValue] of Object.entries(tempValue)) {
+                if (typeof swingValue === 'string') {
+                  // mode_temp_fan_swing
+                  const flatKey = `${mode}_${temp}_${fanMode}_${swing}`
+                  flatCommands[flatKey] = swingValue
+                } else if (typeof swingValue === 'object' && swingValue !== null) {
+                  // Has preset modes
+                  for (const [preset, presetValue] of Object.entries(swingValue)) {
+                    if (typeof presetValue === 'string') {
+                      // mode_temp_fan_swing_preset
+                      const flatKey = `${mode}_${temp}_${fanMode}_${swing}_${preset}`
+                      flatCommands[flatKey] = presetValue
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return flatCommands
 }
 
 function generateSmartIRJson(profile) {

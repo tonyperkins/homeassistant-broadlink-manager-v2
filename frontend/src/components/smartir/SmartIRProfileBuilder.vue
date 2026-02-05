@@ -784,7 +784,7 @@ watch(() => props.editData, async (newData) => {
       console.log('🔍 Inferred light features:', features)
     }
     
-    // For climate profiles, flatten nested commands back to flat structure for UI
+    // For climate and fan profiles, flatten nested commands back to flat structure for UI
     let commandsToLoad = commands
     if (newData.platform === 'climate' && commands && typeof commands === 'object') {
       // Check if commands are in nested format (has mode objects)
@@ -796,6 +796,13 @@ watch(() => props.editData, async (newData) => {
         console.log('🔄 Converting nested climate commands to flat structure for editing')
         commandsToLoad = flattenClimateCommands(commands)
         console.log('✅ Flattened commands:', commandsToLoad)
+      }
+    } else if (newData.platform === 'fan' && commands && typeof commands === 'object') {
+      // Check if commands have nested structure (has 'default' object)
+      if (commands.default && typeof commands.default === 'object') {
+        console.log('🔄 Converting nested fan commands to flat structure for editing')
+        commandsToLoad = flattenFanCommands(commands)
+        console.log('✅ Flattened fan commands:', commandsToLoad)
       }
     }
     
@@ -1321,6 +1328,43 @@ function flattenClimateCommands(nestedCommands) {
   return flatCommands
 }
 
+function flattenFanCommands(nestedCommands) {
+  // Convert nested SmartIR fan commands back to flat structure for UI
+  // SmartIR format: commands.default.low, commands.default.medium, commands.default.high
+  // UI format: commands.turn_on, commands.turn_off, commands.speed_1, commands.speed_2, commands.speed_3
+  const flatCommands = {}
+  
+  for (const [key, value] of Object.entries(nestedCommands)) {
+    if (key === 'default' && typeof value === 'object' && value !== null) {
+      // Map SmartIR speed names to UI speed names
+      const speedMapping = {
+        'low': 'speed_1',
+        'medium': 'speed_2',
+        'high': 'speed_3'
+      }
+      
+      for (const [speedName, code] of Object.entries(value)) {
+        const uiKey = speedMapping[speedName] || `speed_${speedName}`
+        flatCommands[uiKey] = code
+      }
+    } else if (key === 'off') {
+      // Map 'off' to 'turn_off'
+      flatCommands.turn_off = value
+    } else if (key === 'on') {
+      // Map 'on' to 'turn_on'
+      flatCommands.turn_on = value
+    } else if (key.startsWith('oscillate_') || key.startsWith('direction_')) {
+      // Keep oscillate and direction commands as-is
+      flatCommands[key] = value
+    } else {
+      // Keep any other commands as-is
+      flatCommands[key] = value
+    }
+  }
+  
+  return flatCommands
+}
+
 function generateSmartIRJson(profile) {
   const json = {
     manufacturer: profile.manufacturer,
@@ -1394,8 +1438,44 @@ function generateSmartIRJson(profile) {
     }
     
     json.commands = nestedCommands
+  } else if (profile.platform === 'fan') {
+    // Convert flat UI commands back to nested SmartIR structure for fan
+    // UI format: commands.turn_on, commands.turn_off, commands.speed_1, commands.speed_2, commands.speed_3
+    // SmartIR format: commands.default.low, commands.default.medium, commands.default.high
+    const flatCommands = profile.commands || {}
+    const nestedCommands = {}
+    
+    // Map UI speed names to SmartIR speed names
+    const speedMapping = {
+      'speed_1': 'low',
+      'speed_2': 'medium',
+      'speed_3': 'high'
+    }
+    
+    for (const [key, code] of Object.entries(flatCommands)) {
+      if (key === 'turn_off') {
+        // Map 'turn_off' to 'off'
+        nestedCommands.off = code
+      } else if (key === 'turn_on') {
+        // Map 'turn_on' to 'on'
+        nestedCommands.on = code
+      } else if (key.startsWith('speed_')) {
+        // Map speed commands to nested default structure
+        const smartirSpeed = speedMapping[key] || key.replace('speed_', '')
+        if (!nestedCommands.default) nestedCommands.default = {}
+        nestedCommands.default[smartirSpeed] = code
+      } else if (key.startsWith('oscillate_') || key.startsWith('direction_')) {
+        // Keep oscillate and direction commands as-is
+        nestedCommands[key] = code
+      } else {
+        // Keep any other commands as-is
+        nestedCommands[key] = code
+      }
+    }
+    
+    json.commands = nestedCommands
   } else {
-    // For non-climate platforms, use flat structure as-is
+    // For other platforms (media_player, light), use flat structure as-is
     json.commands = profile.commands || {}
   }
   

@@ -948,96 +948,135 @@ class EntityGenerator:
 
         # Volume up command
         if "volume_up" in commands:
-            config["commands"]["volume_up"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["volume_up"]},
-            }
+            volume_up_data = broadlink_commands.get(device, {}).get(
+                commands["volume_up"], ""
+            )
+            if volume_up_data:
+                config["commands"]["volume_up"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{volume_up_data}"},
+                }
 
         # Volume down command
         if "volume_down" in commands:
-            config["commands"]["volume_down"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["volume_down"]},
-            }
+            volume_down_data = broadlink_commands.get(device, {}).get(
+                commands["volume_down"], ""
+            )
+            if volume_down_data:
+                config["commands"]["volume_down"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{volume_down_data}"},
+                }
 
         # Mute command
         if "mute" in commands or "volume_mute" in commands:
             mute_cmd = commands.get("mute") or commands.get("volume_mute")
-            config["commands"]["volume_mute"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": mute_cmd},
-            }
+            mute_data = broadlink_commands.get(device, {}).get(mute_cmd, "")
+            if mute_data:
+                config["commands"]["volume_mute"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{mute_data}"},
+                }
 
         # Play command
         if "play" in commands:
-            config["commands"]["media_play"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["play"]},
-            }
+            play_data = broadlink_commands.get(device, {}).get(commands["play"], "")
+            if play_data:
+                config["commands"]["media_play"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{play_data}"},
+                }
 
         # Pause command
         if "pause" in commands:
-            config["commands"]["media_pause"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["pause"]},
-            }
+            pause_data = broadlink_commands.get(device, {}).get(commands["pause"], "")
+            if pause_data:
+                config["commands"]["media_pause"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{pause_data}"},
+                }
 
         # Play/Pause toggle command
         if "play_pause" in commands:
-            config["commands"]["media_play_pause"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["play_pause"]},
-            }
+            play_pause_data = broadlink_commands.get(device, {}).get(
+                commands["play_pause"], ""
+            )
+            if play_pause_data:
+                config["commands"]["media_play_pause"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{play_pause_data}"},
+                }
 
         # Stop command
         if "stop" in commands:
-            config["commands"]["media_stop"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["stop"]},
-            }
+            stop_data = broadlink_commands.get(device, {}).get(commands["stop"], "")
+            if stop_data:
+                config["commands"]["media_stop"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{stop_data}"},
+                }
 
         # Next track command
         if "next" in commands or "next_track" in commands:
             next_cmd = commands.get("next") or commands.get("next_track")
-            config["commands"]["media_next_track"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": next_cmd},
-            }
+            next_data = broadlink_commands.get(device, {}).get(next_cmd, "")
+            if next_data:
+                config["commands"]["media_next_track"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{next_data}"},
+                }
 
         # Previous track command
         if "previous" in commands or "previous_track" in commands:
             prev_cmd = commands.get("previous") or commands.get("previous_track")
-            config["commands"]["media_previous_track"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": prev_cmd},
-            }
+            prev_data = broadlink_commands.get(device, {}).get(prev_cmd, "")
+            if prev_data:
+                config["commands"]["media_previous_track"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{prev_data}"},
+                }
 
         # Source selection (if source commands exist)
         source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
         if source_commands:
-            config["commands"]["select_source"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {
-                    "device": device,
-                    "command": "{{ 'source_' + source.lower().replace(' ', '_') }}",
-                },
-            }
+            # Build a template that looks up the base64 data for the selected source
+            # We need to create a choose action that maps source names to base64 commands
+            source_actions = []
+            for source_cmd_name, source_cmd_ref in source_commands.items():
+                # Extract source name (e.g., "source_aux" -> "AUX")
+                source_name = source_cmd_name.replace("source_", "").upper()
+                source_data = broadlink_commands.get(device, {}).get(source_cmd_ref, "")
+                if source_data:
+                    source_actions.append(
+                        {
+                            "conditions": f"{{{{ source == '{source_name}' }}}}",
+                            "sequence": [
+                                {
+                                    "service": "remote.send_command",
+                                    "target": {"entity_id": broadlink_entity},
+                                    "data": {"command": f"b64:{source_data}"},
+                                }
+                            ],
+                        }
+                    )
 
-            # Add source list to attributes via input_select
-            config["attributes"]["source"] = f"input_select.{entity_id}_source"
-            config["attributes"][
-                "source_list"
-            ] = f"input_select.{entity_id}_source|options"
+            if source_actions:
+                config["commands"]["select_source"] = {"choose": source_actions}
+
+                # Add source list to attributes via input_select
+                config["attributes"]["source"] = f"input_select.{entity_id}_source"
+                config["attributes"][
+                    "source_list"
+                ] = f"input_select.{entity_id}_source|options"
 
         logger.info(
             f"Generated universal media player configuration for {entity_id} with {len(commands)} commands"
@@ -1091,11 +1130,21 @@ class EntityGenerator:
 
         # If we have separate on/off commands, use them
         if turn_on_cmd and turn_off_cmd:
+            # Get the actual base64 command data
+            turn_on_data = broadlink_commands.get(device, {}).get(turn_on_cmd, "")
+            turn_off_data = broadlink_commands.get(device, {}).get(turn_off_cmd, "")
+
+            if not turn_on_data or not turn_off_data:
+                logger.warning(
+                    f"Missing command data for {device}: turn_on={bool(turn_on_data)}, turn_off={bool(turn_off_data)}"
+                )
+                return None
+
             config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": turn_on_cmd},
+                    "data": {"command": f"b64:{turn_on_data}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -1106,7 +1155,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": turn_off_cmd},
+                    "data": {"command": f"b64:{turn_off_data}"},
                 },
                 {
                     "service": "input_boolean.turn_off",
@@ -1115,11 +1164,20 @@ class EntityGenerator:
             ]
         # Otherwise use toggle command for both on and off
         elif toggle_cmd:
+            # Get the actual base64 command data
+            toggle_data = broadlink_commands.get(device, {}).get(toggle_cmd, "")
+
+            if not toggle_data:
+                logger.warning(
+                    f"Missing command data for {device}: toggle={bool(toggle_data)}"
+                )
+                return None
+
             config["turn_on"] = [
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": toggle_cmd},
+                    "data": {"command": f"b64:{toggle_data}"},
                 },
                 {
                     "service": "input_boolean.turn_on",
@@ -1130,7 +1188,7 @@ class EntityGenerator:
                 {
                     "service": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": toggle_cmd},
+                    "data": {"command": f"b64:{toggle_data}"},
                 },
                 {
                     "service": "input_boolean.turn_off",
@@ -1199,46 +1257,60 @@ class EntityGenerator:
 
         # Add turn_on action
         if has_on:
-            climate_config["turn_on"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_on"]},
-                },
-                {
-                    "service": "input_boolean.turn_on",
-                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
-                },
-            ]
+            turn_on_data = broadlink_commands.get(device, {}).get(
+                commands["turn_on"], ""
+            )
+            if turn_on_data:
+                climate_config["turn_on"] = [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{turn_on_data}"},
+                    },
+                    {
+                        "service": "input_boolean.turn_on",
+                        "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                    },
+                ]
 
         # Add turn_off action
         if has_off:
-            climate_config["turn_off"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_off"]},
-                },
-                {
-                    "service": "input_boolean.turn_off",
-                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
-                },
-            ]
+            turn_off_data = broadlink_commands.get(device, {}).get(
+                commands["turn_off"], ""
+            )
+            if turn_off_data:
+                climate_config["turn_off"] = [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{turn_off_data}"},
+                    },
+                    {
+                        "service": "input_boolean.turn_off",
+                        "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                    },
+                ]
 
         # Add set_temperature action (uses turn_on for now)
         if has_on:
-            climate_config["set_temperature"] = [
-                {
-                    "service": "input_number.set_value",
-                    "target": {"entity_id": f"input_number.{entity_id}_target_temp"},
-                    "data": {"value": "{{ temperature }}"},
-                },
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["turn_on"]},
-                },
-            ]
+            turn_on_data = broadlink_commands.get(device, {}).get(
+                commands["turn_on"], ""
+            )
+            if turn_on_data:
+                climate_config["set_temperature"] = [
+                    {
+                        "service": "input_number.set_value",
+                        "target": {
+                            "entity_id": f"input_number.{entity_id}_target_temp"
+                        },
+                        "data": {"value": "{{ temperature }}"},
+                    },
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{turn_on_data}"},
+                    },
+                ]
 
         logger.info(f"Generated template climate configuration for {entity_id}")
 
@@ -1285,41 +1357,47 @@ class EntityGenerator:
 
         # Open cover command
         if has_open:
-            cover_config["open_cover"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["open"]},
-                },
-                {
-                    "service": "input_select.select_option",
-                    "target": {"entity_id": f"input_select.{entity_id}_position"},
-                    "data": {"option": "open"},
-                },
-            ]
+            open_data = broadlink_commands.get(device, {}).get(commands["open"], "")
+            if open_data:
+                cover_config["open_cover"] = [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{open_data}"},
+                    },
+                    {
+                        "service": "input_select.select_option",
+                        "target": {"entity_id": f"input_select.{entity_id}_position"},
+                        "data": {"option": "open"},
+                    },
+                ]
 
         # Close cover command
         if has_close:
-            cover_config["close_cover"] = [
-                {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["close"]},
-                },
-                {
-                    "service": "input_select.select_option",
-                    "target": {"entity_id": f"input_select.{entity_id}_position"},
-                    "data": {"option": "closed"},
-                },
-            ]
+            close_data = broadlink_commands.get(device, {}).get(commands["close"], "")
+            if close_data:
+                cover_config["close_cover"] = [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{close_data}"},
+                    },
+                    {
+                        "service": "input_select.select_option",
+                        "target": {"entity_id": f"input_select.{entity_id}_position"},
+                        "data": {"option": "closed"},
+                    },
+                ]
 
         # Stop cover command (optional but recommended)
         if has_stop:
-            cover_config["stop_cover"] = {
-                "service": "remote.send_command",
-                "target": {"entity_id": broadlink_entity},
-                "data": {"device": device, "command": commands["stop"]},
-            }
+            stop_data = broadlink_commands.get(device, {}).get(commands["stop"], "")
+            if stop_data:
+                cover_config["stop_cover"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{stop_data}"},
+                }
 
         # Check for position commands
         position_commands = {
@@ -1362,18 +1440,26 @@ class EntityGenerator:
 
         if has_open_tilt or has_close_tilt:
             if has_open_tilt:
-                cover_config["open_cover_tilt"] = {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["open_tilt"]},
-                }
+                open_tilt_data = broadlink_commands.get(device, {}).get(
+                    commands["open_tilt"], ""
+                )
+                if open_tilt_data:
+                    cover_config["open_cover_tilt"] = {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{open_tilt_data}"},
+                    }
 
             if has_close_tilt:
-                cover_config["close_cover_tilt"] = {
-                    "service": "remote.send_command",
-                    "target": {"entity_id": broadlink_entity},
-                    "data": {"device": device, "command": commands["close_tilt"]},
-                }
+                close_tilt_data = broadlink_commands.get(device, {}).get(
+                    commands["close_tilt"], ""
+                )
+                if close_tilt_data:
+                    cover_config["close_cover_tilt"] = {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{close_tilt_data}"},
+                    }
 
         logger.info(
             f"Generated cover configuration for {entity_id} with {len(commands)} commands"

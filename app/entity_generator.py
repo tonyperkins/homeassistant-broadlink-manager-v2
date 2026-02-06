@@ -1048,29 +1048,35 @@ class EntityGenerator:
         # Source selection (if source commands exist)
         source_commands = {k: v for k, v in commands.items() if k.startswith("source_")}
         if source_commands:
-            # Build a template that looks up the base64 data for the selected source
-            # We need to create a choose action that maps source names to base64 commands
-            source_actions = []
+            # Build a mapping of source names to base64 commands for template
+            # We'll use a Jinja2 template to select the right command based on source
+            source_map = {}
             for source_cmd_name, source_cmd_ref in source_commands.items():
                 # Extract source name (e.g., "source_aux" -> "AUX")
                 source_name = source_cmd_name.replace("source_", "").upper()
                 source_data = broadlink_commands.get(device, {}).get(source_cmd_ref, "")
                 if source_data:
-                    source_actions.append(
-                        {
-                            "conditions": f"{{{{ source == '{source_name}' }}}}",
-                            "sequence": [
-                                {
-                                    "service": "remote.send_command",
-                                    "target": {"entity_id": broadlink_entity},
-                                    "data": {"command": f"b64:{source_data}"},
-                                }
-                            ],
-                        }
-                    )
+                    source_map[source_name] = source_data
 
-            if source_actions:
-                config["commands"]["select_source"] = {"choose": source_actions}
+            if source_map:
+                # Create a template that maps source names to base64 commands
+                # Format: {% if source == 'AUX' %}b64:...{% elif source == 'TV' %}b64:...{% endif %}
+                template_parts = []
+                for idx, (source_name, source_data) in enumerate(source_map.items()):
+                    if idx == 0:
+                        template_parts.append(f"{{% if source == '{source_name}' %}}")
+                    else:
+                        template_parts.append(f"{{% elif source == '{source_name}' %}}")
+                    template_parts.append(f"b64:{source_data}")
+                template_parts.append("{% endif %}")
+
+                command_template = "\n  ".join(template_parts)
+
+                config["commands"]["select_source"] = {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": command_template},
+                }
 
                 # Add source list to attributes via input_select
                 config["attributes"]["source"] = f"input_select.{entity_id}_source"

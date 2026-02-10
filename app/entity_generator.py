@@ -265,6 +265,9 @@ class EntityGenerator:
             )
             return None
 
+        # Get configurable brightness steps (default 100 for backward compatibility)
+        brightness_steps = entity_data.get("brightness_steps", 100)
+
         # Check if we have the required commands
         has_on_off = "turn_on" in commands and "turn_off" in commands
         has_toggle = "toggle" in commands
@@ -291,9 +294,9 @@ class EntityGenerator:
 
         # Add brightness support if brightness commands exist
         if has_brightness:
-            # Convert helper's 0-100 percentage to HA's 0-255 brightness scale
+            # Convert helper's 0-N steps to HA's 0-255 brightness scale
             light_config["level"] = (
-                f"{{{{ (states('input_number.{sanitized_id}_brightness') | int * 255 / 100) | int }}}}"
+                f"{{{{ (states('input_number.{sanitized_id}_brightness') | int * 255 / {brightness_steps}) | int }}}}"
             )
 
         # Add color temperature support if color temp commands exist
@@ -418,12 +421,14 @@ class EntityGenerator:
                 )
 
             # Update the brightness helper
-            # Convert HA's 0-255 brightness to 0-100 percentage for the helper
+            # Convert HA's 0-255 brightness to 0-N steps for the helper
             brightness_actions.append(
                 {
                     "service": "input_number.set_value",
                     "target": {"entity_id": f"input_number.{sanitized_id}_brightness"},
-                    "data": {"value": "{{ (brightness * 100 / 255) | int }}"},
+                    "data": {
+                        "value": f"{{{{ (brightness * {brightness_steps} / 255) | int }}}}"
+                    },
                 }
             )
 
@@ -1620,6 +1625,9 @@ class EntityGenerator:
             if entity_type == "light":
                 commands = entity_data.get("commands", {})
 
+                # Get configurable brightness steps (default 100)
+                brightness_steps = entity_data.get("brightness_steps", 100)
+
                 # Add brightness helper if brightness commands exist
                 has_brightness = any(
                     k in commands
@@ -1631,10 +1639,12 @@ class EntityGenerator:
                     helpers["input_number"][f"{sanitized_id}_brightness"] = {
                         "name": f"{display_name} Brightness",
                         "min": 0,
-                        "max": 100,
+                        "max": brightness_steps,
                         "step": 1,
-                        "initial": 50,
-                        "unit_of_measurement": "%",
+                        "initial": brightness_steps // 2,
+                        "unit_of_measurement": (
+                            "%" if brightness_steps == 100 else "steps"
+                        ),
                     }
 
                 # Add color temperature helper if color temp commands exist

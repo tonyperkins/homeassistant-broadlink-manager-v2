@@ -149,6 +149,21 @@
           <small>Optional: Material Design Icon name</small>
         </div>
 
+        <!-- Brightness Steps (for Light entities with Broadlink type) -->
+        <div v-if="formData.entity_type === 'light' && formData.device_type === 'broadlink'" class="form-group">
+          <label for="brightness-steps">Brightness Steps</label>
+          <input
+            id="brightness-steps"
+            v-model.number="formData.brightness_steps"
+            type="number"
+            min="2"
+            max="100"
+            step="1"
+            placeholder="100"
+          />
+          <small>Number of discrete brightness levels your light supports (default: 100). Set to 10 or 11 for LED controllers with limited steps.</small>
+        </div>
+
         <!-- Remote Device Selection (for Broadlink type) -->
         <div v-if="formData.device_type === 'broadlink'" class="form-group" :class="{ 'has-error': validationErrors.broadlink_entity }">
           <label for="broadlink-entity">Remote Device *</label>
@@ -279,6 +294,7 @@ const formData = ref({
   device: '', // Storage name for Broadlink devices
   area: '',
   icon: '',
+  brightness_steps: 100, // Default brightness levels for light entities
   broadlink_entity: '',
   enabled: true,
   commands: {}

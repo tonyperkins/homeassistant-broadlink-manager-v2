@@ -66,7 +66,7 @@ class DeviceManagerAdapter:
 
             # Create entity metadata in v1 format
             entity_id = device_id
-            entities[entity_id] = {
+            entity_metadata = {
                 "entity_type": entity_type,
                 "device": device_id,  # Device name for Broadlink commands
                 "commands": self._convert_commands_to_v1_format(commands),
@@ -74,6 +74,14 @@ class DeviceManagerAdapter:
                 "friendly_name": device_name,
                 "enabled": True,
             }
+
+            # Pass through optional per-device settings
+            if device_data.get("brightness_steps"):
+                entity_metadata["brightness_steps"] = int(
+                    device_data["brightness_steps"]
+                )
+
+            entities[entity_id] = entity_metadata
 
         logger.info(f"Converted {len(entities)} devices to entity metadata")
         return entities

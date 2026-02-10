@@ -71,7 +71,8 @@ export const useDeviceStore = defineStore('devices', {
           icon: deviceData.icon,
           broadlink_entity: deviceData.broadlink_entity,
           device_type: deviceData.device_type || 'broadlink',
-          commands: deviceData.commands || {}
+          commands: deviceData.commands || {},
+          brightness_steps: deviceData.brightness_steps
         }
         
         // Add SmartIR config if it's a SmartIR device

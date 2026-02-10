@@ -650,6 +650,12 @@ def create_managed_device():
 
             device_data["broadlink_entity"] = broadlink_entity
 
+            # Store brightness_steps for light entities (default 100)
+            if entity_type == "light":
+                device_data["brightness_steps"] = int(
+                    data.get("brightness_steps") or 100
+                )
+
             # Store the Broadlink storage device name (normalized name without area)
             # This is used for looking up commands in Broadlink storage files
             if storage_name:

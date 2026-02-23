@@ -44,7 +44,7 @@
 
           <!-- Controller -->
           <td class="profile-controller">
-            {{ profile.controller_brand || 'N/A' }}
+            {{ profile.controllerBrand || profile.controller_brand || 'N/A' }}
           </td>
 
           <!-- Commands -->
@@ -52,11 +52,11 @@
             <div class="command-stats">
               <span class="stat-item">
                 <i class="mdi mdi-remote"></i>
-                {{ profile.command_count || 0 }}
+                {{ profile.commandCount || profile.command_count || 0 }}
               </span>
-              <span v-if="profile.learned_count > 0" class="stat-item learned">
+              <span v-if="(profile.learnedCount || profile.learned_count || 0) > 0" class="stat-item learned">
                 <i class="mdi mdi-school"></i>
-                {{ profile.learned_count }}
+                {{ profile.learnedCount || profile.learned_count }}
               </span>
             </div>
           </td>

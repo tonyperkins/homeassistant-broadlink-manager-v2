@@ -172,6 +172,7 @@ Broadlink Manager integrates with [SmartIR](https://github.com/smartHomeHub/Smar
 
 ### 🏠 Home Assistant Integration
 - **Entity Auto-Generation**: Create lights, fans, switches, and climate entities automatically
+- **Color Temperature Variants**: Automatic detection and creation of multiple light entities for CCT lights (warm/cool/daylight presets)
 - **Helper Generation**: Auto-create input helpers for advanced control
 - **Template Support**: Generate ready-to-use entity templates
 - **Configuration Integration**: Seamless YAML configuration generation

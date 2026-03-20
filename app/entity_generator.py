@@ -50,6 +50,93 @@ class EntityGenerator:
         self.storage = storage_manager
         self.default_device_id = broadlink_device_id
 
+    def _detect_color_temp_variants(
+        self, commands: Dict[str, Any]
+    ) -> Optional[Dict[str, List[str]]]:
+        """
+        Detect color temperature variant commands with shared turn_off.
+
+        Pattern: Multiple color temp commands (warm, cold, etc.) + shared turn_off
+        Common in CCT LED lights with multiple color temperature presets.
+
+        Args:
+            commands: Dictionary of command names
+
+        Returns:
+            Dict with 'variants' (list of variant command names) and 'default' (default variant)
+            Returns None if pattern not detected
+
+        Example:
+            Commands: {warm, cold, mid_tone, turn_off, turn_on}
+            Returns: {'variants': ['warm', 'cold', 'mid_tone'], 'default': 'mid_tone'}
+        """
+        command_names = set(commands.keys())
+
+        # Must have turn_off command
+        if "turn_off" not in command_names:
+            return None
+
+        # Common color temperature variant names
+        color_temp_patterns = {
+            "warm",
+            "warm_white",
+            "warm_tone",
+            "cold",
+            "cool",
+            "cool_white",
+            "cold_white",
+            "cool_tone",
+            "mid",
+            "mid_tone",
+            "mid_white",
+            "middle",
+            "neutral",
+            "natural",
+            "daylight",
+            "day",
+            "bright",
+            "soft",
+            "soft_white",
+        }
+
+        # Find variant commands (color temp commands that exist)
+        variants = []
+        for cmd in command_names:
+            # Skip standard control commands
+            if cmd in {
+                "turn_on",
+                "turn_off",
+                "toggle",
+                "brightness_up",
+                "brightness_down",
+                "bright",
+                "dim",
+            }:
+                continue
+            # Check if it matches color temp patterns
+            if cmd.lower() in color_temp_patterns:
+                variants.append(cmd)
+
+        # Need at least 2 variants to create variant entities
+        # (If only 1, it's just the standard turn_on command)
+        if len(variants) < 2:
+            return None
+
+        # Determine default variant (prefer mid_tone, neutral, or first alphabetically)
+        default_variant = None
+        for preferred in ["mid_tone", "mid", "neutral", "natural", "middle"]:
+            if preferred in variants:
+                default_variant = preferred
+                break
+        if not default_variant:
+            default_variant = sorted(variants)[0]
+
+        logger.info(
+            f"Detected color temp variants: {variants} (default: {default_variant})"
+        )
+
+        return {"variants": variants, "default": default_variant}
+
     def _get_broadlink_entity(self, entity_data: Dict[str, Any]) -> Optional[str]:
         """
         Get the Broadlink entity ID from entity data.
@@ -173,9 +260,23 @@ class EntityGenerator:
             entity_type = entity_data["entity_type"]
 
             if entity_type == "light":
-                config = self._generate_light(
-                    entity_id, entity_data, broadlink_commands
-                )
+                # Check for color temperature variants
+                commands = entity_data.get("commands", {})
+                variant_info = self._detect_color_temp_variants(commands)
+
+                if variant_info:
+                    # Generate master light + variant lights
+                    light_configs = self._generate_light_with_variants(
+                        entity_id, entity_data, broadlink_commands, variant_info
+                    )
+                    if light_configs:
+                        template_entities["light"].extend(light_configs)
+                    config = None  # Already added
+                else:
+                    # Standard light generation
+                    config = self._generate_light(
+                        entity_id, entity_data, broadlink_commands
+                    )
             elif entity_type == "fan":
                 config = self._generate_fan(entity_id, entity_data, broadlink_commands)
             elif entity_type == "switch":
@@ -243,6 +344,144 @@ class EntityGenerator:
             yaml_structure["template"] = template_list
 
         return yaml_structure
+
+    def _generate_light_with_variants(
+        self,
+        entity_id: str,
+        entity_data: Dict[str, Any],
+        broadlink_commands: Dict[str, Dict[str, str]],
+        variant_info: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate master light entity + color temperature variant entities.
+        All variants share the same state helper for synchronized state tracking.
+
+        Args:
+            entity_id: Base entity ID
+            entity_data: Entity configuration
+            broadlink_commands: Command data
+            variant_info: Dict with 'variants' list and 'default' variant name
+
+        Returns:
+            List of light entity configurations (master + variants)
+        """
+        device = entity_data["device"]
+        commands = entity_data["commands"]
+        variants = variant_info["variants"]
+        default_variant = variant_info["default"]
+
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
+
+        # Get the Broadlink entity to use
+        broadlink_entity = self._get_broadlink_entity(entity_data)
+        if not broadlink_entity:
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
+            return []
+
+        # Get turn_off command (shared by all variants)
+        turn_off_cmd = broadlink_commands.get(device, {}).get(
+            commands.get("turn_off", ""), ""
+        )
+        if not turn_off_cmd:
+            logger.warning(f"Light {entity_id} missing turn_off command")
+            return []
+
+        light_configs = []
+
+        # 1. Generate MASTER light entity (uses default variant for turn_on)
+        default_cmd = broadlink_commands.get(device, {}).get(
+            commands.get(default_variant, ""), ""
+        )
+
+        master_config = {
+            "unique_id": entity_id,
+            "name": entity_data.get("name")
+            or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
+            "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
+            "turn_on": [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{default_cmd}"},
+                },
+                {
+                    "service": "input_boolean.turn_on",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ],
+            "turn_off": [
+                {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{turn_off_cmd}"},
+                },
+                {
+                    "service": "input_boolean.turn_off",
+                    "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                },
+            ],
+        }
+
+        # Add icon if specified
+        if entity_data.get("icon"):
+            master_config["icon_template"] = entity_data["icon"]
+
+        light_configs.append(master_config)
+        logger.info(f"Generated master light: {entity_id} (default: {default_variant})")
+
+        # 2. Generate VARIANT light entities (one for each color temp)
+        for variant in variants:
+            variant_cmd = broadlink_commands.get(device, {}).get(
+                commands.get(variant, ""), ""
+            )
+            if not variant_cmd:
+                logger.warning(f"Skipping variant {variant}: no command data")
+                continue
+
+            # Create variant entity ID and name
+            variant_entity_id = f"{entity_id}_{variant}"
+            variant_name_base = entity_data.get("name") or entity_data.get(
+                "friendly_name", entity_id.replace("_", " ").title()
+            )
+            variant_display_name = variant.replace("_", " ").title()
+            variant_name = f"{variant_name_base} {variant_display_name}"
+
+            variant_config = {
+                "unique_id": variant_entity_id,
+                "name": variant_name,
+                # Share the same state helper as master light
+                "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
+                "turn_on": [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{variant_cmd}"},
+                    },
+                    {
+                        "service": "input_boolean.turn_on",
+                        "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                    },
+                ],
+                "turn_off": [
+                    {
+                        "service": "remote.send_command",
+                        "target": {"entity_id": broadlink_entity},
+                        "data": {"command": f"b64:{turn_off_cmd}"},
+                    },
+                    {
+                        "service": "input_boolean.turn_off",
+                        "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
+                    },
+                ],
+            }
+
+            light_configs.append(variant_config)
+            logger.info(f"Generated variant light: {variant_entity_id}")
+
+        return light_configs
 
     def _generate_light(
         self,
@@ -1541,9 +1780,17 @@ class EntityGenerator:
             "source_usb",
         }
 
+        # Detect color temp variants to exclude them from buttons
+        variant_info = self._detect_color_temp_variants(commands)
+        variant_commands = set()
+        if variant_info:
+            variant_commands = set(variant_info["variants"])
+
         # Also exclude speed/position commands (handled by main entity)
         def is_standard_command(cmd_name):
             if cmd_name in standard_commands:
+                return True
+            if cmd_name in variant_commands:  # Exclude color temp variants
                 return True
             if cmd_name.startswith("speed_") or cmd_name.startswith("fan_speed_"):
                 return True

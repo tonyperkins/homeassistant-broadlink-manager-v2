@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0-beta.7] - 2026-03-20
+
+### Fixed
+- Add color temperature variant support for lights with multiple presets
+
+
 ## [0.4.0-beta.6] - 2026-02-10
 
 ### Fixed

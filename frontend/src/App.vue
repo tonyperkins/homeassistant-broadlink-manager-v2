@@ -293,7 +293,10 @@ const toggleSmartIR = () => {
 const updateSmartIRIndex = async () => {
   updatingIndex.value = true
   try {
-    const response = await api.post('/api/smartir/refresh-index')
+    // Increase timeout to 3 minutes for large index downloads
+    const response = await api.post('/api/smartir/refresh-index', {}, {
+      timeout: 180000  // 3 minutes
+    })
     
     if (response.data.success) {
       toastRef.value?.success(

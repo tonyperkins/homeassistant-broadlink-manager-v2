@@ -158,7 +158,7 @@
 
     <div class="form-section">
       <h4>Fan Modes</h4>
-      <p class="help-text">Select all fan speeds your device supports</p>
+      <p class="help-text">Select common fan speeds or add custom modes</p>
       
       <div class="checkbox-grid">
         <label class="checkbox-item">
@@ -192,18 +192,81 @@
             High
           </span>
         </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="silent" v-model="config.fanModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-volume-off"></i>
+            Silent
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="turbo" v-model="config.fanModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-rocket-launch"></i>
+            Turbo
+          </span>
+        </label>
+      </div>
+      
+      <!-- Custom Fan Mode Input -->
+      <div class="custom-mode-input">
+        <div class="form-group">
+          <label>Add Custom Fan Mode</label>
+          <div class="input-with-button">
+            <input 
+              v-model="customFanMode" 
+              type="text" 
+              placeholder="e.g., mid, mid_low, mid_high, quiet"
+              @keyup.enter="addCustomFanMode"
+            />
+            <button 
+              type="button" 
+              class="add-button"
+              @click="addCustomFanMode"
+              :disabled="!customFanMode.trim()"
+            >
+              <i class="mdi mdi-plus"></i>
+              Add
+            </button>
+          </div>
+          <small>Press Enter or click Add to include custom fan modes not listed above</small>
+        </div>
+      </div>
+      
+      <!-- Selected Fan Modes Display -->
+      <div v-if="config.fanModes.length > 0" class="selected-modes">
+        <label>Selected Fan Modes ({{ config.fanModes.length }}):</label>
+        <div class="mode-chips">
+          <span 
+            v-for="mode in config.fanModes" 
+            :key="mode" 
+            class="mode-chip"
+          >
+            {{ mode }}
+            <button 
+              type="button" 
+              class="remove-chip"
+              @click="removeFanMode(mode)"
+              :title="'Remove ' + mode"
+            >
+              <i class="mdi mdi-close"></i>
+            </button>
+          </span>
+        </div>
       </div>
     </div>
 
     <div class="form-section">
       <h4>Swing Modes (Optional)</h4>
-      <p class="help-text">Select if your device has swing/oscillation</p>
+      <p class="help-text">Select common swing modes or add custom positions</p>
       
       <div class="checkbox-grid">
         <label class="checkbox-item">
           <input type="checkbox" value="off" v-model="config.swingModes" />
           <span class="checkbox-label">
-            <i class="mdi mdi-swap-horizontal"></i>
+            <i class="mdi mdi-close-circle-outline"></i>
             Off
           </span>
         </label>
@@ -231,6 +294,69 @@
             Both
           </span>
         </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="swing" v-model="config.swingModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-arrow-oscillating"></i>
+            Swing
+          </span>
+        </label>
+        
+        <label class="checkbox-item">
+          <input type="checkbox" value="stop" v-model="config.swingModes" />
+          <span class="checkbox-label">
+            <i class="mdi mdi-stop"></i>
+            Stop
+          </span>
+        </label>
+      </div>
+      
+      <!-- Custom Swing Mode Input -->
+      <div class="custom-mode-input">
+        <div class="form-group">
+          <label>Add Custom Swing Mode</label>
+          <div class="input-with-button">
+            <input 
+              v-model="customSwingMode" 
+              type="text" 
+              placeholder="e.g., position_1, position_2, auto"
+              @keyup.enter="addCustomSwingMode"
+            />
+            <button 
+              type="button" 
+              class="add-button"
+              @click="addCustomSwingMode"
+              :disabled="!customSwingMode.trim()"
+            >
+              <i class="mdi mdi-plus"></i>
+              Add
+            </button>
+          </div>
+          <small>Press Enter or click Add to include custom swing positions</small>
+        </div>
+      </div>
+      
+      <!-- Selected Swing Modes Display -->
+      <div v-if="config.swingModes.length > 0" class="selected-modes">
+        <label>Selected Swing Modes ({{ config.swingModes.length }}):</label>
+        <div class="mode-chips">
+          <span 
+            v-for="mode in config.swingModes" 
+            :key="mode" 
+            class="mode-chip"
+          >
+            {{ mode }}
+            <button 
+              type="button" 
+              class="remove-chip"
+              @click="removeSwingMode(mode)"
+              :title="'Remove ' + mode"
+            >
+              <i class="mdi mdi-close"></i>
+            </button>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -351,6 +477,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const learningMode = ref('quick')
+const customFanMode = ref('')
+const customSwingMode = ref('')
 
 const config = ref({
   minTemp: 16,
@@ -454,6 +582,40 @@ const validationErrors = computed(() => {
 watch(learningMode, (newValue) => {
   config.value.learningMode = newValue
 })
+
+// Add custom fan mode
+const addCustomFanMode = () => {
+  const mode = customFanMode.value.trim().toLowerCase()
+  if (mode && !config.value.fanModes.includes(mode)) {
+    config.value.fanModes.push(mode)
+    customFanMode.value = ''
+  }
+}
+
+// Remove fan mode
+const removeFanMode = (mode) => {
+  const index = config.value.fanModes.indexOf(mode)
+  if (index > -1) {
+    config.value.fanModes.splice(index, 1)
+  }
+}
+
+// Add custom swing mode
+const addCustomSwingMode = () => {
+  const mode = customSwingMode.value.trim().toLowerCase()
+  if (mode && !config.value.swingModes.includes(mode)) {
+    config.value.swingModes.push(mode)
+    customSwingMode.value = ''
+  }
+}
+
+// Remove swing mode
+const removeSwingMode = (mode) => {
+  const index = config.value.swingModes.indexOf(mode)
+  if (index > -1) {
+    config.value.swingModes.splice(index, 1)
+  }
+}
 
 watch(config, (newValue) => {
   emit('update:modelValue', newValue)
@@ -817,5 +979,130 @@ watch(config, (newValue) => {
   .help-text {
     font-size: 12px;
   }
+}
+
+/* Custom Mode Input Styles */
+.custom-mode-input {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(3, 169, 244, 0.05);
+  border: 1px dashed rgba(3, 169, 244, 0.3);
+  border-radius: 8px;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.add-button:hover:not(:disabled) {
+  background: var(--primary-color-dark, #0277bd);
+  transform: translateY(-1px);
+}
+
+.add-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-button i {
+  font-size: 18px;
+}
+
+/* Selected Modes Display */
+.selected-modes {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--ha-card-background);
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+}
+
+.selected-modes label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: var(--primary-text-color);
+  font-size: 14px;
+}
+
+.mode-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(3, 169, 244, 0.1);
+  border: 1px solid rgba(3, 169, 244, 0.3);
+  border-radius: 16px;
+  color: var(--primary-text-color);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.remove-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-chip:hover {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.remove-chip i {
+  font-size: 14px;
+}
+
+/* Dark mode adjustments */
+:global(.dark-mode) .custom-mode-input {
+  background: rgba(3, 169, 244, 0.08);
+}
+
+:global(.dark-mode) .mode-chip {
+  background: rgba(3, 169, 244, 0.15);
+  border-color: rgba(3, 169, 244, 0.4);
+}
+
+:global(.dark-mode) .remove-chip {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark-mode) .remove-chip:hover {
+  background: rgba(244, 67, 54, 0.3);
 }
 </style>

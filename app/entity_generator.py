@@ -258,6 +258,16 @@ class EntityGenerator:
                 continue
 
             entity_type = entity_data["entity_type"]
+            is_stateless = entity_data.get("stateless", False)
+
+            # For stateless devices, generate buttons instead of stateful entities
+            if is_stateless:
+                button_configs = self._generate_stateless_buttons(
+                    entity_id, entity_data, broadlink_commands
+                )
+                if button_configs:
+                    template_entities["button"].extend(button_configs)
+                continue
 
             if entity_type == "light":
                 # Check for color temperature variants
@@ -1716,6 +1726,73 @@ class EntityGenerator:
         )
         return cover_config
 
+    def _generate_stateless_buttons(
+        self,
+        entity_id: str,
+        entity_data: Dict[str, Any],
+        broadlink_commands: Dict[str, Dict[str, str]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate button entities for stateless devices (no state tracking).
+        This is useful for devices like IR blinds, RF garage doors, etc. that
+        cannot report their state back to Home Assistant.
+        
+        Instead of creating a stateful entity (cover, light, etc.) with incorrect
+        state tracking, we create simple buttons that are always available.
+        """
+        device = entity_data["device"]
+        commands = entity_data["commands"]
+        
+        # Get the Broadlink entity to use
+        broadlink_entity = self._get_broadlink_entity(entity_data)
+        if not broadlink_entity:
+            logger.error(
+                f"No broadlink_entity specified for {entity_id} and no default device_id"
+            )
+            return []
+        
+        button_configs = []
+        display_name = entity_data.get("name") or entity_data.get(
+            "friendly_name", entity_id.replace("_", " ").title()
+        )
+        
+        # Generate a button for each command
+        for command_name, command_key in commands.items():
+            # Get the IR/RF code for this command
+            command_data = broadlink_commands.get(device, {}).get(command_key, "")
+            if not command_data:
+                logger.warning(
+                    f"No command data found for {entity_id}.{command_name}"
+                )
+                continue
+            
+            # Create a unique button ID
+            button_id = f"{entity_id}_{command_name}"
+            
+            # Format the command name for display
+            button_name = f"{display_name} {command_name.replace('_', ' ').title()}"
+            
+            button_config = {
+                "unique_id": button_id,
+                "name": button_name,
+                "press": {
+                    "service": "remote.send_command",
+                    "target": {"entity_id": broadlink_entity},
+                    "data": {"command": f"b64:{command_data}"},
+                },
+            }
+            
+            # Add icon if specified (use same icon for all buttons)
+            if entity_data.get("icon"):
+                button_config["icon"] = entity_data["icon"]
+            
+            button_configs.append(button_config)
+        
+        logger.info(
+            f"Generated {len(button_configs)} stateless buttons for {entity_id}"
+        )
+        return button_configs
+
     def _generate_custom_command_buttons(
         self,
         entity_id: str,
@@ -1851,6 +1928,10 @@ class EntityGenerator:
 
         for entity_id, entity_data in entities.items():
             if not entity_data.get("enabled", True):
+                continue
+
+            # Skip helpers for stateless devices (they use buttons, no state tracking)
+            if entity_data.get("stateless", False):
                 continue
 
             entity_type = entity_data["entity_type"]

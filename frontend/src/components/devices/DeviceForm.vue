@@ -105,6 +105,27 @@
           <small v-else>Choose how to configure this device</small>
         </div>
 
+        <!-- Stateless Mode Toggle (for Broadlink devices only) -->
+        <div v-if="formData.device_type === 'broadlink'" class="form-group">
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="formData.stateless"
+                id="stateless-toggle"
+              />
+              <span class="checkbox-text">
+                <strong>Stateless Device (No State Tracking)</strong>
+              </span>
+            </label>
+          </div>
+          <small class="help-text">
+            <i class="mdi mdi-information-outline"></i>
+            Enable for devices that cannot report their state (e.g., IR blinds, RF garage doors). 
+            Creates simple buttons instead of stateful entities, preventing incorrect state display.
+          </small>
+        </div>
+
         <!-- Area field removed from creation - will be set in HA after entity generation -->
         <div v-if="isEdit" class="form-group">
           <label for="device-area">Area</label>
@@ -297,6 +318,7 @@ const formData = ref({
   brightness_steps: 100, // Default brightness levels for light entities
   broadlink_entity: '',
   enabled: true,
+  stateless: false, // Stateless mode (no state tracking)
   commands: {}
 })
 
@@ -923,6 +945,48 @@ const handleSmartIRChange = (data) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Checkbox Group Styling */
+.checkbox-group {
+  margin-bottom: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--ha-primary-color, #03a9f4);
+}
+
+.checkbox-text {
+  font-size: 14px;
+  color: var(--ha-text-primary-color);
+}
+
+.help-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ha-text-secondary-color);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.help-text i {
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--ha-primary-color, #03a9f4);
 }
 
 @media (max-width: 768px) {

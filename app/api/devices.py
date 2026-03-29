@@ -108,6 +108,7 @@ def get_device(device_id):
             "broadlink_entity": entity_data.get("broadlink_entity", ""),
             "commands": entity_data.get("commands", {}),
             "enabled": entity_data.get("enabled", True),
+            "stateless": entity_data.get("stateless", False),
         }
 
         return jsonify({"device": device})
@@ -155,6 +156,9 @@ def create_device():
             "icon": data.get("icon", ""),
             "commands": data.get("commands", {}),  # Include commands if provided
             "enabled": True,
+            "stateless": data.get(
+                "stateless", False
+            ),  # Stateless mode (no state tracking)
         }
 
         # Save to storage
@@ -229,6 +233,8 @@ def update_device(device_id):
             entity_data["enabled"] = data["enabled"]
         if "commands" in data:
             entity_data["commands"] = data["commands"]
+        if "stateless" in data:
+            entity_data["stateless"] = data["stateless"]
 
         # Update SmartIR-specific fields
         device_type = entity_data.get("device_type", "broadlink")

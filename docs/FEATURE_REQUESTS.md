@@ -4,10 +4,10 @@ This document tracks user-requested features for future implementation.
 
 ## SmartIR Extra Modes as Selectable Buttons
 
-**Status:** Proposed  
+**Status:** 📋 Pending  
 **Priority:** Medium  
 **Requested By:** mansf-1 (GitHub Issue/Discussion)  
-**Date:** 2026-03-29
+**Date Requested:** 2026-03-29
 
 ### Description
 Currently, extra modes defined in SmartIR JSON files (beyond the standard modes like cool, heat, fan_only, etc.) can be learned during the command learning phase. However, they are only accessible during learning and not exposed in the device control interface.

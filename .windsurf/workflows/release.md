@@ -39,31 +39,21 @@ python -m pytest tests/unit/ -v
 
 **Expected:** All tests pass
 
-## Step 3: Build Frontend
-
-```bash
-cd frontend
-npm run build
-cd ..
-```
-
-**Expected:** Build completes successfully, `app/static/` updated
-
-## Step 4: Commit Outstanding Changes
+## Step 3: Commit Outstanding Changes
 
 ```bash
 git add -A
 git commit -m "chore: prepare for release"
 ```
 
-## Step 5: Determine Version Bump Type
+## Step 4: Determine Version Bump Type
 
 Choose the appropriate version bump:
 - `patch` - Bug fixes, minor changes (0.4.0-beta.9 → 0.4.0-beta.10)
 - `minor` - New features, backward compatible (0.4.0-beta.9 → 0.5.0-beta.1)
 - `major` - Breaking changes (0.4.0-beta.9 → 1.0.0-beta.1)
 
-## Step 6: Run Release Script
+## Step 5: Run Release Script
 
 ```bash
 python scripts/quick_release.py <patch|minor|major> -m "Release description"
@@ -78,21 +68,78 @@ python scripts/quick_release.py patch -m "Add stateless device mode for one-way 
 1. Updates version in `config.yaml`
 2. Updates version in `frontend/package.json`
 3. Updates `CHANGELOG.md` with new version section
-4. Commits changes to `develop`
-5. Pushes `develop` to GitHub
-6. Merges `develop` into `main`
-7. Pushes `main` to GitHub (required for HA add-on updates)
-8. Creates and pushes Git tag (e.g., `v0.4.0-beta.10`)
-9. Creates GitHub release with auto-generated notes
 
-## Step 7: Verify GitHub Release
+## Step 6: Rebuild Frontend with New Version
+
+**CRITICAL:** The frontend must be rebuilt AFTER the version bump to ensure the version string is correctly embedded in the compiled JavaScript.
+
+```bash
+cd frontend
+npm run build
+cd ..
+```
+
+**Expected:** Build completes successfully with new version number
+
+**Verify the version is correct:**
+```bash
+# Check that the new version is in the built assets
+grep -o "0\.4\.0-beta\.[0-9]*" app/static/assets/index-*.js | uniq
+```
+
+## Step 7: Commit Frontend Build
+
+```bash
+git add app/static/
+git commit -m "chore: rebuild frontend with v<VERSION> version string"
+```
+
+**Why this step is critical:**
+- The release script updates `frontend/package.json` version
+- But the compiled JavaScript still has the OLD version embedded
+- We must rebuild AFTER version bump to get the correct version in the UI
+- This prevents version mismatch between add-on info page and web UI footer
+
+## Step 8: Push Changes to GitHub
+
+```bash
+git push origin develop
+```
+
+The release script already pushed develop and created the tag, but we need to push our frontend rebuild:
+
+```bash
+# Merge to main
+git checkout main
+git pull origin main
+git merge develop
+git push origin main
+
+# Update the tag to point to the new commit with correct frontend
+git tag -d v<VERSION>
+git tag v<VERSION>
+git push origin v<VERSION> --force
+```
+
+**What was already done by the release script:**
+- ✅ Committed changes to `develop`
+- ✅ Pushed `develop` to GitHub
+- ✅ Merged `develop` into `main`
+- ✅ Created Git tag
+- ✅ Created GitHub release
+
+**What we're doing now:**
+- Pushing the frontend rebuild commit
+- Updating the tag to include the correct frontend version
+
+## Step 9: Verify GitHub Release
 
 1. Go to https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/releases
 2. Verify the new release is created
 3. Check that release notes are correct
-4. Verify tag is created
+4. Verify tag is created and points to latest commit
 
-## Step 8: Trigger Docker Builds
+## Step 10: Trigger Docker Builds
 
 The GitHub release automatically triggers Docker builds via GitHub Actions:
 
@@ -109,7 +156,7 @@ gh run list --workflow="docker-publish-standalone.yml" --limit 1
 **Or visit:**
 https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/actions
 
-## Step 9: Verify Docker Images
+## Step 11: Verify Docker Images
 
 Wait for builds to complete (~20 minutes), then verify:
 
@@ -123,7 +170,7 @@ docker run --rm ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalon
 
 **Expected:** Should show the new version number
 
-## Step 10: Verify Home Assistant Add-on Update
+## Step 12: Verify Home Assistant Add-on Update
 
 For HA add-on users:
 
@@ -134,7 +181,7 @@ For HA add-on users:
 
 **Note:** HA reads from `main` branch, which is why step 6 merges to main.
 
-## Step 11: Post-Release Tasks
+## Step 13: Post-Release Tasks
 
 - [ ] Test the new version in a development environment
 - [ ] Update any related documentation
@@ -186,19 +233,35 @@ git push origin main --force
 ## Quick Reference
 
 ```bash
-# Complete release in one go (after pre-checks)
+# Complete release process
 python -m black app/
 python -m flake8 app/ --count --show-source --statistics
 python -m pytest tests/unit/ -v
-cd frontend && npm run build && cd ..
 git add -A
 git commit -m "chore: prepare for release"
+
+# Run release script (bumps version)
 python scripts/quick_release.py patch -m "Description"
+
+# CRITICAL: Rebuild frontend with new version
+cd frontend && npm run build && cd ..
+git add app/static/
+git commit -m "chore: rebuild frontend with v<VERSION> version string"
+git push origin develop
+
+# Update main and tag
+git checkout main
+git pull origin main
+git merge develop
+git push origin main
+git tag -d v<VERSION>
+git tag v<VERSION>
+git push origin v<VERSION> --force
 
 # Monitor Docker build
 gh run list --workflow="docker-publish-standalone.yml" --limit 1
 
-# Verify Docker image
+# Verify Docker image has correct version
 docker pull ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone
-docker run --rm ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone cat /app/static/index.html | grep "index-"
+docker run --rm ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2:standalone sh -c "grep -o '0\.4\.0-beta\.[0-9]*' /app/static/assets/index-*.js | uniq"
 ```

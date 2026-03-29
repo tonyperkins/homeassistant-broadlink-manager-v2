@@ -156,7 +156,9 @@ def create_device():
             "icon": data.get("icon", ""),
             "commands": data.get("commands", {}),  # Include commands if provided
             "enabled": True,
-            "stateless": data.get("stateless", False),  # Stateless mode (no state tracking)
+            "stateless": data.get(
+                "stateless", False
+            ),  # Stateless mode (no state tracking)
         }
 
         # Save to storage

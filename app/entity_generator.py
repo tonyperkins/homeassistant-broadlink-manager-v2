@@ -1736,13 +1736,13 @@ class EntityGenerator:
         Generate button entities for stateless devices (no state tracking).
         This is useful for devices like IR blinds, RF garage doors, etc. that
         cannot report their state back to Home Assistant.
-        
+
         Instead of creating a stateful entity (cover, light, etc.) with incorrect
         state tracking, we create simple buttons that are always available.
         """
         device = entity_data["device"]
         commands = entity_data["commands"]
-        
+
         # Get the Broadlink entity to use
         broadlink_entity = self._get_broadlink_entity(entity_data)
         if not broadlink_entity:
@@ -1750,28 +1750,26 @@ class EntityGenerator:
                 f"No broadlink_entity specified for {entity_id} and no default device_id"
             )
             return []
-        
+
         button_configs = []
         display_name = entity_data.get("name") or entity_data.get(
             "friendly_name", entity_id.replace("_", " ").title()
         )
-        
+
         # Generate a button for each command
         for command_name, command_key in commands.items():
             # Get the IR/RF code for this command
             command_data = broadlink_commands.get(device, {}).get(command_key, "")
             if not command_data:
-                logger.warning(
-                    f"No command data found for {entity_id}.{command_name}"
-                )
+                logger.warning(f"No command data found for {entity_id}.{command_name}")
                 continue
-            
+
             # Create a unique button ID
             button_id = f"{entity_id}_{command_name}"
-            
+
             # Format the command name for display
             button_name = f"{display_name} {command_name.replace('_', ' ').title()}"
-            
+
             button_config = {
                 "unique_id": button_id,
                 "name": button_name,
@@ -1781,13 +1779,13 @@ class EntityGenerator:
                     "data": {"command": f"b64:{command_data}"},
                 },
             }
-            
+
             # Add icon if specified (use same icon for all buttons)
             if entity_data.get("icon"):
                 button_config["icon"] = entity_data["icon"]
-            
+
             button_configs.append(button_config)
-        
+
         logger.info(
             f"Generated {len(button_configs)} stateless buttons for {entity_id}"
         )

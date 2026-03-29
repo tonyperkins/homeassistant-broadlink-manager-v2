@@ -44,6 +44,56 @@ def _count_commands(commands_obj):
     return count
 
 
+def _reorder_climate_commands(commands_obj):
+    """
+    Recursively reorder climate commands to match SmartIR expected key order.
+
+    SmartIR climate.py expects: [operation_mode][fan_mode][swing_mode][target_temperature]
+    Reference: https://github.com/smartHomeHub/SmartIR/blob/master/custom_components/smartir/climate.py#318
+
+    This function ensures that at each nesting level:
+    1. Keys are sorted alphabetically (for consistent ordering)
+    2. Temperature keys (numeric) are sorted numerically
+    3. The nesting hierarchy is preserved correctly
+
+    Args:
+        commands_obj: The commands object from SmartIR climate profile
+
+    Returns:
+        dict: Reordered commands with proper key order
+    """
+    if not isinstance(commands_obj, dict):
+        return commands_obj
+
+    from collections import OrderedDict
+
+    ordered = OrderedDict()
+
+    # Check if this level contains temperature values (all string values = leaf nodes)
+    all_strings = all(isinstance(v, str) for v in commands_obj.values())
+
+    if all_strings:
+        # This is the temperature level - sort numerically
+        def temp_sort_key(k):
+            try:
+                return float(k)
+            except (ValueError, TypeError):
+                return k
+
+        for key in sorted(commands_obj.keys(), key=temp_sort_key):
+            ordered[key] = commands_obj[key]
+    else:
+        # This is a mode level - sort alphabetically and recurse
+        for key in sorted(commands_obj.keys()):
+            value = commands_obj[key]
+            if isinstance(value, dict):
+                ordered[key] = _reorder_climate_commands(value)
+            else:
+                ordered[key] = value
+
+    return dict(ordered)
+
+
 def _extract_command_names(commands_obj, prefix=""):
     """
     Extract all command names from a SmartIR commands structure.
@@ -341,6 +391,14 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             else:
                 logger.info(
                     f"Creating new profile {filename} in custom_codes (persists through HACS updates)"
+                )
+
+            # Reorder commands for climate profiles to match SmartIR expected key order
+            # SmartIR expects: [operation_mode][fan_mode][swing_mode][target_temperature]
+            if platform == "climate" and "commands" in profile_json:
+                logger.debug(f"Reordering climate commands for profile {code_number}")
+                profile_json["commands"] = _reorder_climate_commands(
+                    profile_json["commands"]
                 )
 
             # Write JSON file with proper formatting

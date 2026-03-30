@@ -137,6 +137,21 @@ def update_changelog(version: str, root_dir: Path, message: str = None) -> bool:
     return True
 
 
+def rebuild_frontend(root_dir: Path) -> bool:
+    """Rebuild frontend with updated version"""
+    frontend_dir = root_dir / "frontend"
+    
+    print(f"🔨 Building frontend...")
+    success, output = run_command(["npm", "run", "build"], cwd=frontend_dir)
+    
+    if not success:
+        print(f"❌ Failed to build frontend: {output}")
+        return False
+    
+    print(f"✅ Frontend built successfully")
+    return True
+
+
 def run_command(cmd: list, cwd: Path = None) -> tuple:
     """Run shell command and return (success, output)"""
     try:
@@ -204,12 +219,18 @@ def main():
     update_package_json(new_version, root_dir)
     update_changelog(new_version, root_dir, args.message)
 
+    # Rebuild frontend with new version
+    print(f"\n🔨 Rebuilding frontend...")
+    if not rebuild_frontend(root_dir):
+        print(f"❌ Frontend build failed")
+        sys.exit(1)
+
     # Git operations
     print(f"\n📦 Committing changes...")
 
-    # Stage files
+    # Stage files (including built frontend)
     success, output = run_command(
-        ["git", "add", "config.yaml", "frontend/package.json", "CHANGELOG.md"],
+        ["git", "add", "config.yaml", "frontend/package.json", "CHANGELOG.md", "app/static/"],
         cwd=root_dir,
     )
     if not success:

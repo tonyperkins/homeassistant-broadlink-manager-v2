@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0-beta.15] - 2026-04-02
+
+### Fixed
+- Fix HA 2024.8+ compatibility by replacing service with action in YAML generation
+
+
+
+### Fixed
+- Replace 'service:' with 'action:' in generated YAML for Home Assistant 2024.8+ compatibility
+
 ## [0.4.0-beta.14] - 2026-03-30
 
 ### Fixed

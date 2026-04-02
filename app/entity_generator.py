@@ -413,23 +413,23 @@ class EntityGenerator:
             "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
             "turn_on": [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{default_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ],
             "turn_off": [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_off_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ],
@@ -466,23 +466,23 @@ class EntityGenerator:
                 "state": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                 "turn_on": [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{variant_cmd}"},
                     },
                     {
-                        "service": "input_boolean.turn_on",
+                        "action": "input_boolean.turn_on",
                         "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                     },
                 ],
                 "turn_off": [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{turn_off_cmd}"},
                     },
                     {
-                        "service": "input_boolean.turn_off",
+                        "action": "input_boolean.turn_off",
                         "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                     },
                 ],
@@ -565,24 +565,24 @@ class EntityGenerator:
 
             light_config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_on_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
             light_config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_off_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -592,24 +592,24 @@ class EntityGenerator:
 
             light_config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
             light_config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -630,7 +630,7 @@ class EntityGenerator:
 
                 brightness_actions.append(
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {
                             "command": (
@@ -653,7 +653,7 @@ class EntityGenerator:
 
                 brightness_actions.append(
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {
                             "command": (
@@ -673,7 +673,7 @@ class EntityGenerator:
             # Convert HA's 0-255 brightness to 0-N steps for the helper
             brightness_actions.append(
                 {
-                    "service": "input_number.set_value",
+                    "action": "input_number.set_value",
                     "target": {"entity_id": f"input_number.{sanitized_id}_brightness"},
                     "data": {
                         "value": f"{{{{ (brightness * {brightness_steps} / 255) | int }}}}"
@@ -697,7 +697,7 @@ class EntityGenerator:
             if cooler_cmd and warmer_cmd:
                 color_temp_actions.append(
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {
                             "command": (
@@ -716,7 +716,7 @@ class EntityGenerator:
                 # Update the color temp helper
                 color_temp_actions.append(
                     {
-                        "service": "input_number.set_value",
+                        "action": "input_number.set_value",
                         "target": {
                             "entity_id": f"input_number.{sanitized_id}_color_temp"
                         },
@@ -843,16 +843,16 @@ class EntityGenerator:
 
         fan_config["turn_on"] = [
             {
-                "service": "remote.send_command",
+                "action": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"command": f"b64:{default_speed_cmd}"},
             },
             {
-                "service": "input_boolean.turn_on",
+                "action": "input_boolean.turn_on",
                 "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
             },
             {
-                "service": "input_select.select_option",
+                "action": "input_select.select_option",
                 "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {"option": str(default_speed_idx)},
             },
@@ -867,16 +867,16 @@ class EntityGenerator:
 
         fan_config["turn_off"] = [
             {
-                "service": "remote.send_command",
+                "action": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {"command": f"b64:{turn_off_cmd}"},
             },
             {
-                "service": "input_boolean.turn_off",
+                "action": "input_boolean.turn_off",
                 "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
             },
             {
-                "service": "input_select.select_option",
+                "action": "input_select.select_option",
                 "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {"option": "off"},
             },
@@ -912,7 +912,7 @@ class EntityGenerator:
 
         fan_config["set_percentage"] = [
             {
-                "service": "input_select.select_option",
+                "action": "input_select.select_option",
                 "target": {"entity_id": f"input_select.{sanitized_id}_speed"},
                 "data": {
                     "option": (
@@ -924,7 +924,7 @@ class EntityGenerator:
                 },
             },
             {
-                "service": "remote.send_command",
+                "action": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {
                     "command": (
@@ -941,7 +941,7 @@ class EntityGenerator:
                         "conditions": "{{ percentage == 0 }}",
                         "sequence": [
                             {
-                                "service": "input_boolean.turn_off",
+                                "action": "input_boolean.turn_off",
                                 "target": {
                                     "entity_id": f"input_boolean.{sanitized_id}_state"
                                 },
@@ -952,7 +952,7 @@ class EntityGenerator:
                         "conditions": "{{ percentage > 0 }}",
                         "sequence": [
                             {
-                                "service": "input_boolean.turn_on",
+                                "action": "input_boolean.turn_on",
                                 "target": {
                                     "entity_id": f"input_boolean.{sanitized_id}_state"
                                 },
@@ -987,7 +987,7 @@ class EntityGenerator:
                 )
                 set_direction_actions.append(
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{direction_cmd_data}"},
                     }
@@ -996,7 +996,7 @@ class EntityGenerator:
             # Always update the input_select to track direction state
             set_direction_actions.append(
                 {
-                    "service": "input_select.select_option",
+                    "action": "input_select.select_option",
                     "target": {"entity_id": f"input_select.{sanitized_id}_direction"},
                     "data": {
                         "option": (
@@ -1066,24 +1066,24 @@ class EntityGenerator:
 
             switch_config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_on_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
             switch_config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_off_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -1093,24 +1093,24 @@ class EntityGenerator:
 
             switch_config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
 
             switch_config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_cmd}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -1191,12 +1191,12 @@ class EntityGenerator:
 
         # Power commands (via companion switch)
         config["commands"]["turn_on"] = {
-            "service": "switch.turn_on",
+            "action": "switch.turn_on",
             "target": {"entity_id": switch_entity_id},
         }
 
         config["commands"]["turn_off"] = {
-            "service": "switch.turn_off",
+            "action": "switch.turn_off",
             "target": {"entity_id": switch_entity_id},
         }
 
@@ -1207,7 +1207,7 @@ class EntityGenerator:
             )
             if volume_up_data:
                 config["commands"]["volume_up"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{volume_up_data}"},
                 }
@@ -1219,7 +1219,7 @@ class EntityGenerator:
             )
             if volume_down_data:
                 config["commands"]["volume_down"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{volume_down_data}"},
                 }
@@ -1230,7 +1230,7 @@ class EntityGenerator:
             mute_data = broadlink_commands.get(device, {}).get(mute_cmd, "")
             if mute_data:
                 config["commands"]["volume_mute"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{mute_data}"},
                 }
@@ -1240,7 +1240,7 @@ class EntityGenerator:
             play_data = broadlink_commands.get(device, {}).get(commands["play"], "")
             if play_data:
                 config["commands"]["media_play"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{play_data}"},
                 }
@@ -1250,7 +1250,7 @@ class EntityGenerator:
             pause_data = broadlink_commands.get(device, {}).get(commands["pause"], "")
             if pause_data:
                 config["commands"]["media_pause"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{pause_data}"},
                 }
@@ -1262,7 +1262,7 @@ class EntityGenerator:
             )
             if play_pause_data:
                 config["commands"]["media_play_pause"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{play_pause_data}"},
                 }
@@ -1272,7 +1272,7 @@ class EntityGenerator:
             stop_data = broadlink_commands.get(device, {}).get(commands["stop"], "")
             if stop_data:
                 config["commands"]["media_stop"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{stop_data}"},
                 }
@@ -1283,7 +1283,7 @@ class EntityGenerator:
             next_data = broadlink_commands.get(device, {}).get(next_cmd, "")
             if next_data:
                 config["commands"]["media_next_track"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{next_data}"},
                 }
@@ -1294,7 +1294,7 @@ class EntityGenerator:
             prev_data = broadlink_commands.get(device, {}).get(prev_cmd, "")
             if prev_data:
                 config["commands"]["media_previous_track"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{prev_data}"},
                 }
@@ -1327,7 +1327,7 @@ class EntityGenerator:
                 command_template = "\n  ".join(template_parts)
 
                 config["commands"]["select_source"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": command_template},
                 }
@@ -1402,23 +1402,23 @@ class EntityGenerator:
 
             config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_on_data}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
             config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{turn_off_data}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -1435,23 +1435,23 @@ class EntityGenerator:
 
             config["turn_on"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_data}"},
                 },
                 {
-                    "service": "input_boolean.turn_on",
+                    "action": "input_boolean.turn_on",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
             config["turn_off"] = [
                 {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{toggle_data}"},
                 },
                 {
-                    "service": "input_boolean.turn_off",
+                    "action": "input_boolean.turn_off",
                     "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                 },
             ]
@@ -1523,12 +1523,12 @@ class EntityGenerator:
             if turn_on_data:
                 climate_config["turn_on"] = [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{turn_on_data}"},
                     },
                     {
-                        "service": "input_boolean.turn_on",
+                        "action": "input_boolean.turn_on",
                         "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                     },
                 ]
@@ -1541,12 +1541,12 @@ class EntityGenerator:
             if turn_off_data:
                 climate_config["turn_off"] = [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{turn_off_data}"},
                     },
                     {
-                        "service": "input_boolean.turn_off",
+                        "action": "input_boolean.turn_off",
                         "target": {"entity_id": f"input_boolean.{sanitized_id}_state"},
                     },
                 ]
@@ -1559,14 +1559,14 @@ class EntityGenerator:
             if turn_on_data:
                 climate_config["set_temperature"] = [
                     {
-                        "service": "input_number.set_value",
+                        "action": "input_number.set_value",
                         "target": {
                             "entity_id": f"input_number.{entity_id}_target_temp"
                         },
                         "data": {"value": "{{ temperature }}"},
                     },
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{turn_on_data}"},
                     },
@@ -1621,12 +1621,12 @@ class EntityGenerator:
             if open_data:
                 cover_config["open_cover"] = [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{open_data}"},
                     },
                     {
-                        "service": "input_select.select_option",
+                        "action": "input_select.select_option",
                         "target": {"entity_id": f"input_select.{entity_id}_position"},
                         "data": {"option": "open"},
                     },
@@ -1638,12 +1638,12 @@ class EntityGenerator:
             if close_data:
                 cover_config["close_cover"] = [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{close_data}"},
                     },
                     {
-                        "service": "input_select.select_option",
+                        "action": "input_select.select_option",
                         "target": {"entity_id": f"input_select.{entity_id}_position"},
                         "data": {"option": "closed"},
                     },
@@ -1654,7 +1654,7 @@ class EntityGenerator:
             stop_data = broadlink_commands.get(device, {}).get(commands["stop"], "")
             if stop_data:
                 cover_config["stop_cover"] = {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{stop_data}"},
                 }
@@ -1679,7 +1679,7 @@ class EntityGenerator:
                 )
 
             cover_config["set_cover_position"] = {
-                "service": "remote.send_command",
+                "action": "remote.send_command",
                 "target": {"entity_id": broadlink_entity},
                 "data": {
                     "device": device,
@@ -1705,7 +1705,7 @@ class EntityGenerator:
                 )
                 if open_tilt_data:
                     cover_config["open_cover_tilt"] = {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{open_tilt_data}"},
                     }
@@ -1716,7 +1716,7 @@ class EntityGenerator:
                 )
                 if close_tilt_data:
                     cover_config["close_cover_tilt"] = {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{close_tilt_data}"},
                     }
@@ -1774,7 +1774,7 @@ class EntityGenerator:
                 "unique_id": button_id,
                 "name": button_name,
                 "press": {
-                    "service": "remote.send_command",
+                    "action": "remote.send_command",
                     "target": {"entity_id": broadlink_entity},
                     "data": {"command": f"b64:{command_data}"},
                 },
@@ -1906,7 +1906,7 @@ class EntityGenerator:
                 "name": f"{parent_name} {friendly_cmd_name}",
                 "press": [
                     {
-                        "service": "remote.send_command",
+                        "action": "remote.send_command",
                         "target": {"entity_id": broadlink_entity},
                         "data": {"command": f"b64:{cmd_code}"},
                     }

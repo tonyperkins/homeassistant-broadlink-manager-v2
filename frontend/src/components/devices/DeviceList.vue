@@ -246,6 +246,28 @@
       @cancel="closeCommandLearner"
     />
 
+    <!-- Area Sync Progress Dialog -->
+    <div v-if="syncProgress.show" class="modal-overlay">
+      <div class="progress-dialog">
+        <div class="progress-header">
+          <i class="mdi mdi-sync mdi-spin"></i>
+          <h3>Syncing Areas</h3>
+        </div>
+        <div class="progress-body">
+          <div class="progress-info">
+            <span class="progress-count">{{ syncProgress.current }} / {{ syncProgress.total }}</span>
+            <span class="progress-device">{{ syncProgress.deviceName }}</span>
+          </div>
+          <div class="progress-bar">
+            <div 
+              class="progress-fill" 
+              :style="{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <ConfirmDialog
       :isOpen="showDeleteConfirm"
       :title="`Delete ${deviceToDelete?.name}?`"
@@ -985,13 +1007,36 @@ const adoptDevice = async (discoveredDevice) => {
   }
 }
 
+const syncProgress = ref({
+  show: false,
+  current: 0,
+  total: 0,
+  deviceName: ''
+})
+
 const syncAllAreas = async () => {
   syncingAreas.value = true
+  syncProgress.value.show = true
+  syncProgress.value.current = 0
+  syncProgress.value.total = 0
+  
   try {
-    await deviceStore.syncAllAreas()
-    toast.success('Areas synced from Home Assistant')
+    const result = await deviceStore.syncAllAreas((progress) => {
+      syncProgress.value.current = progress.current
+      syncProgress.value.total = progress.total
+      syncProgress.value.deviceName = progress.deviceName
+    })
+    
+    syncProgress.value.show = false
+    
+    if (result.synced > 0) {
+      toast.success(`Synced ${result.synced} of ${result.total} devices`)
+    } else {
+      toast.info('No areas to sync')
+    }
   } catch (error) {
     console.error('Error syncing areas:', error)
+    syncProgress.value.show = false
     toast.error('Failed to sync areas')
   } finally {
     syncingAreas.value = false
@@ -1992,6 +2037,97 @@ const handleSendCommand = async ({ device, command }) => {
 
   .filter-group {
     min-width: 200px;
+  }
+}
+
+/* Progress Dialog */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.progress-dialog {
+  background: var(--ha-card-background);
+  border-radius: 8px;
+  padding: 24px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.progress-header i {
+  font-size: 24px;
+  color: var(--ha-primary-color);
+}
+
+.progress-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ha-text-primary-color);
+}
+
+.progress-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ha-primary-color);
+}
+
+.progress-device {
+  font-size: 14px;
+  color: var(--ha-text-secondary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--ha-hover-background);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--ha-primary-color);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+@media (max-width: 767px) {
+  .progress-dialog {
+    min-width: 90vw;
+    max-width: 90vw;
   }
 }
 </style>

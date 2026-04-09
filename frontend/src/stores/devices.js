@@ -167,56 +167,83 @@ export const useDeviceStore = defineStore('devices', {
       }
     },
     
-    async syncAllAreas() {
-      // Sync areas from Home Assistant for all devices
-      if (!this.devices || this.devices.length === 0) {
-        console.log('⚠️ No devices to sync')
-        return // Silent return if no devices
-      }
-      
-      console.log(`🔄 Syncing areas from Home Assistant for ${this.devices.length} devices...`)
+    async syncAllAreas(progressCallback = null) {
+      console.log('🔄 Starting bulk area sync...')
       
       try {
-        // Sync each device's area (in parallel)
-        const results = await Promise.all(
-          this.devices.map(device => {
-            console.log(`🔄 Syncing device: ${device.id} (${device.name})`)
-            return api.post(`/api/devices/${device.id}/sync-area`)
-              .then(response => {
-                if (response.data.success && response.data.area) {
-                  console.log(`✅ Synced area for ${device.name}: ${response.data.area}`)
-                  return { status: 'synced', device: device.name }
-                }
-                return { status: 'no_area' }
-              })
-              .catch(err => {
-                // Check if it's a 404 (entity not found in HA)
-                if (err.response?.status === 404) {
-                  console.log(`❌ Device not found in HA: ${device.id}`)
-                  return { status: 'not_found' }
-                } else {
-                  console.warn(`⚠️ Failed to sync area for ${device.id}:`, err.message)
-                  return { status: 'error', error: err.message }
-                }
-              })
-          })
-        )
+        // Fetch all managed devices (includes both Broadlink and SmartIR devices)
+        const response = await api.get('/api/devices/managed')
+        const allDevices = response.data.devices || []
+        
+        if (allDevices.length === 0) {
+          console.log('⚠️ No devices to sync')
+          return { synced: 0, total: 0, results: [] }
+        }
+        
+        console.log(`🔄 Syncing areas for ${allDevices.length} devices...`)
+        
+        // Sync each device's area SEQUENTIALLY to avoid file locking conflicts
+        // Network shares can't handle parallel writes to the same file
+        const results = []
+        for (let i = 0; i < allDevices.length; i++) {
+          const device = allDevices[i]
+          console.log(`🔄 Syncing device: ${device.id} (${device.name})`)
+          
+          // Report progress
+          if (progressCallback) {
+            progressCallback({
+              current: i + 1,
+              total: allDevices.length,
+              deviceName: device.name,
+              deviceId: device.id
+            })
+          }
+          
+          try {
+            const response = await api.post(`/api/devices/${device.id}/sync-area`)
+            if (response.data.success && response.data.area) {
+              console.log(`✅ Synced area for ${device.name}: ${response.data.area}`)
+              results.push({ status: 'synced', device: device.name, area: response.data.area })
+            } else {
+              results.push({ status: 'no_area', device: device.name })
+            }
+          } catch (err) {
+            // Check if it's a 404 (entity not found in HA)
+            if (err.response?.status === 404) {
+              console.log(`❌ Device not found in HA: ${device.id}`)
+              results.push({ status: 'not_found', device: device.name })
+            } else {
+              console.warn(`⚠️ Failed to sync area for ${device.id}:`, err.message)
+              results.push({ status: 'error', device: device.name, error: err.message })
+            }
+          }
+        }
         
         // Count results
         const syncedCount = results.filter(r => r.status === 'synced').length
         const notFoundCount = results.filter(r => r.status === 'not_found').length
+        const errorCount = results.filter(r => r.status === 'error').length
+        
+        // Wait for file writes to complete (especially important for network shares)
+        // The backend writes to devices.json which may be on a network share with write lag
+        // Network file system caches can take time to synchronize
+        await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Reload to show updated areas with cache busting
         await this.loadDevices(true)
         
-        if (syncedCount > 0) {
-          console.log(`✅ Area sync complete: ${syncedCount} synced, ${notFoundCount} not found in HA`)
-        } else if (notFoundCount > 0) {
-          console.log(`ℹ️ No areas synced - ${notFoundCount} entities not found in HA registry (generate entities first)`)
+        console.log(`✅ Area sync complete: ${syncedCount} synced, ${notFoundCount} not found in HA, ${errorCount} errors`)
+        
+        return {
+          synced: syncedCount,
+          notFound: notFoundCount,
+          errors: errorCount,
+          total: allDevices.length,
+          results
         }
       } catch (error) {
-        // Silent failure - this is a background operation
-        console.debug('Area sync error:', error)
+        console.error('Area sync error:', error)
+        throw error
       }
     }
   }

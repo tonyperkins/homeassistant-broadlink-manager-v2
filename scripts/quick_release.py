@@ -283,33 +283,42 @@ def main():
         sys.exit(1)
     print(f"✅ Created and pushed tag v{new_version}")
 
-    # GitHub release
+    # GitHub release (REQUIRED to trigger Docker builds)
     if not args.no_github:
         print(f"\n📢 Creating GitHub release...")
+        print(f"   ⚠️  This step is REQUIRED to trigger Docker builds!")
+        
+        # Build release notes
+        release_notes = f"## Changes\n\n{args.message}\n\n**Full Changelog**: https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/compare/v{current_version}...v{new_version}"
         
         # Try to use GitHub CLI first
         success, output = run_command(
             ["gh", "release", "create", f"v{new_version}", 
              "--prerelease", 
-             "--generate-notes",
-             "--title", f"v{new_version}"],
+             "--title", f"v{new_version} - {args.message}",
+             "--notes", release_notes],
             cwd=root_dir
         )
         
         if success:
             print(f"✅ GitHub release created successfully!")
             print(f"   View at: https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/releases/tag/v{new_version}")
+            print(f"   🐳 Docker builds will start automatically")
+            print(f"   Monitor: https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/actions")
         else:
             # Fallback to manual instructions
-            print(f"⚠️  GitHub CLI not available or failed")
-            print(f"   Install: https://cli.github.com/")
-            print(f"   Or create manually:")
-            print(f"   Visit: https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/releases/new?tag=v{new_version}")
+            print(f"❌ GitHub CLI failed: {output}")
+            print(f"\n⚠️  IMPORTANT: You must create the GitHub release manually to trigger Docker builds!")
+            print(f"   1. Install GitHub CLI: https://cli.github.com/")
+            print(f"   2. Or create manually at:")
+            print(f"      https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/releases/new?tag=v{new_version}")
+            print(f"\n   Without the release, Docker images will NOT be built!")
 
     print(f"\n✅ Release {new_version} complete!")
     print(f"\n📋 Next steps:")
-    print(f"   1. Test installation in Home Assistant")
-    print(f"   2. Update Reddit/forum posts if needed")
+    print(f"   1. Monitor Docker builds: https://github.com/tonyperkins/homeassistant-broadlink-manager-v2/actions")
+    print(f"   2. Test installation in Home Assistant")
+    print(f"   3. Update Reddit/forum posts if needed")
 
 
 if __name__ == "__main__":

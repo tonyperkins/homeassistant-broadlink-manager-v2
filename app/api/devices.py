@@ -978,9 +978,22 @@ def sync_device_area(device_id):
             logger.info(f"Using provided entity_id: {full_entity_id}")
         else:
             # Just the device ID, need to add entity type
+            # Sanitize device_id for HA entity ID format (lowercase, underscores only)
+            import re
+
+            sanitized_id = re.sub(r"[^a-z0-9_]", "_", device_id.lower())
+            sanitized_id = re.sub(
+                r"_+", "_", sanitized_id
+            )  # Remove duplicate underscores
+            sanitized_id = sanitized_id.strip(
+                "_"
+            )  # Remove leading/trailing underscores
+
             entity_type = device_data.get("entity_type", "switch")
-            full_entity_id = f"{entity_type}.{device_id}"
-            logger.info(f"Built entity_id: {full_entity_id}")
+            full_entity_id = f"{entity_type}.{sanitized_id}"
+            logger.info(
+                f"Built entity_id: {full_entity_id} (from device_id: {device_id})"
+            )
 
         # Get entity details from HA (includes area_id)
         loop = asyncio.new_event_loop()

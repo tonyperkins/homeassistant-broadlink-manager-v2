@@ -88,6 +88,44 @@
           </div>
         </div>
 
+        <!-- RF Frequency Override (shown only for RF type) -->
+        <div v-if="commandType === 'rf'" class="form-group rf-frequency-group">
+          <label for="rf-frequency">
+            RF Frequency Override
+            <button type="button" class="help-btn" @click="showRfFrequencyHelp = !showRfFrequencyHelp" title="Learn more">
+              <i class="mdi mdi-help-circle-outline"></i>
+            </button>
+          </label>
+          <div v-if="showRfFrequencyHelp" class="help-box">
+            <p><strong>Leave blank for automatic frequency detection (recommended for most devices).</strong></p>
+            <p>Only set this if auto-detection returns the wrong frequency (e.g. detects 433.00 MHz but your device needs 433.92 MHz). Common fixed frequencies:</p>
+            <ul>
+              <li><strong>433.92 MHz</strong> – Common for ceiling fans, garage doors, and other 433 MHz devices</li>
+              <li><strong>315.00 MHz</strong> – Common in North America for remotes and sensors</li>
+              <li><strong>868.35 MHz</strong> – Common in Europe for smart home devices</li>
+            </ul>
+            <p>When set, the frequency sweep step is skipped and learning goes straight to capture mode.</p>
+          </div>
+          <div class="rf-frequency-input-row">
+            <input
+              id="rf-frequency"
+              v-model="rfFrequencyInput"
+              type="number"
+              step="0.01"
+              min="300"
+              max="960"
+              placeholder="Auto-detect (leave blank)"
+              :disabled="learning"
+              class="rf-frequency-input"
+            />
+            <span class="rf-frequency-unit">MHz</span>
+          </div>
+          <small v-if="rfFrequencyInput" class="rf-frequency-notice">
+            <i class="mdi mdi-information"></i>
+            Fixed frequency mode: sweep phase will be skipped. Uses direct device connection.
+          </small>
+        </div>
+
         <!-- Save Destination -->
         <div class="form-group">
           <label>
@@ -186,7 +224,14 @@
             <small>This may take up to 30 seconds</small>
           </div>
           
-          <!-- RF Learning Instructions -->
+          <!-- RF Fixed Frequency Learning (real-time SSE status) -->
+          <div v-else-if="commandType === 'rf' && rfFrequencyInput">
+            <p><strong>Fixed frequency {{ rfFrequencyInput }} MHz</strong></p>
+            <p v-if="learningStatusMessage">{{ learningStatusMessage }}</p>
+            <small v-else>Press your remote button now...</small>
+          </div>
+
+          <!-- RF Auto-detect Learning Instructions -->
           <div v-else-if="commandType === 'rf'">
             <p><strong>Learning RF command...</strong></p>
             <small>Check Home Assistant notifications (🔔) for instructions</small>
@@ -358,6 +403,8 @@ const selectedBroadlink = ref('')
 const commandName = ref('')
 const customCommandName = ref('')
 const commandType = ref('ir')
+const rfFrequencyInput = ref('')
+const showRfFrequencyHelp = ref(false)
 const saveDestination = ref('manager_only') // manager_only, integration_only, both
 const showSaveDestinationHelp = ref(false)
 const showImportHelp = ref(false)
@@ -734,8 +781,19 @@ const startLearning = async () => {
   try {
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
+
+    // If a fixed RF frequency is specified, use the direct SSE stream endpoint
+    // which talks to the Broadlink device directly (skips the HA sweep phase)
+    const fixedFrequency = commandType.value === 'rf' && rfFrequencyInput.value
+      ? parseFloat(rfFrequencyInput.value)
+      : null
+
+    if (fixedFrequency !== null) {
+      await startDirectRfLearning(actualCommand, fixedFrequency)
+      return
+    }
     
-    // For RF commands, show instructional message immediately
+    // For RF commands (auto-detect), show instructional message immediately
     if (commandType.value === 'rf') {
       learningPhase.value = 'learning'
       resultMessage.value = '⚠️ Learning request sent to device. Check Home Assistant notifications (🔔) for instructions. Note: If the device is offline or times out, you will see a notification but this dialog will still show success.'
@@ -808,6 +866,94 @@ const startLearning = async () => {
     console.error('Learning error:', error)
     resultMessage.value = error.message || 'Error learning command'
     resultType.value = 'error'
+    learning.value = false
+    learningPhase.value = ''
+  }
+}
+
+const startDirectRfLearning = async (actualCommand, frequency) => {
+  learningPhase.value = 'learning'
+  resultMessage.value = ''
+  resultType.value = ''
+
+  try {
+    const entityId = selectedBroadlink.value || props.device.broadlink_entity
+
+    const response = await fetch('/api/commands/learn/direct/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_id: props.device.id,
+        entity_id: entityId,
+        command_name: actualCommand.trim(),
+        command_type: 'rf',
+        rf_frequency: frequency
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let succeeded = false
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        let event
+        try { event = JSON.parse(line.slice(6)) } catch { continue }
+
+        learningStatusMessage.value = event.message || ''
+
+        if (event.status === 'error') {
+          throw new Error(event.message || 'Learning failed')
+        }
+
+        if (event.status === 'complete') {
+          succeeded = true
+          learningPhase.value = 'complete'
+          resultMessage.value = ''
+          resultType.value = ''
+
+          // Add to learned commands list
+          const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+          if (!existingCommand) {
+            learnedCommands.value.push({ name: actualCommand, type: 'rf' })
+          }
+          const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
+          if (untrackedIndex > -1) untrackedCommands.value.splice(untrackedIndex, 1)
+
+          commandName.value = ''
+          customCommandName.value = ''
+          rfFrequencyInput.value = ''
+
+          emit('learned', {
+            deviceId: props.device.id,
+            commandName: actualCommand,
+            commandType: 'rf'
+          })
+        }
+      }
+    }
+
+    if (!succeeded) {
+      throw new Error('Stream ended without confirmation')
+    }
+  } catch (error) {
+    console.error('Direct RF learning error:', error)
+    resultMessage.value = error.message || 'Error learning RF command'
+    resultType.value = 'error'
+  } finally {
     learning.value = false
     learningPhase.value = ''
   }
@@ -1960,5 +2106,47 @@ const handleImportConfirm = async () => {
 
 .help-box strong {
   color: var(--ha-primary-text-color, #e1e1e1);
+}
+
+/* RF Frequency Override */
+.rf-frequency-group {
+  border-left: 3px solid var(--ha-primary-color, #03a9f4);
+  padding-left: 12px;
+}
+
+.rf-frequency-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rf-frequency-input {
+  width: 160px;
+  padding: 8px 12px;
+  border: 1px solid var(--ha-border-color, #444);
+  border-radius: 6px;
+  background: var(--ha-card-background, #1c1c1c);
+  color: var(--ha-primary-text-color, #e1e1e1);
+  font-size: 14px;
+}
+
+.rf-frequency-input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color, #03a9f4);
+}
+
+.rf-frequency-unit {
+  font-size: 13px;
+  color: var(--ha-text-secondary-color, #9e9e9e);
+  white-space: nowrap;
+}
+
+.rf-frequency-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--ha-primary-color, #03a9f4);
+  font-size: 12px;
 }
 </style>

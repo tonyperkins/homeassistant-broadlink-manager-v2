@@ -1413,6 +1413,12 @@ def learn_command_direct_stream():
     entity_id = data.get("entity_id")
     command_name = data.get("command_name")
     command_type = data.get("command_type", "ir")
+    rf_frequency = data.get("rf_frequency")  # Optional fixed RF frequency in MHz
+    if rf_frequency is not None:
+        try:
+            rf_frequency = float(rf_frequency)
+        except (ValueError, TypeError):
+            rf_frequency = None
 
     def generate():
         try:
@@ -1478,10 +1484,23 @@ def learn_command_direct_stream():
 
                 result_container = [None]
 
-                def learn_thread():
-                    result_container[0] = learner.learn_rf_command_with_progress(
-                        timeout=30, progress_callback=progress_handler
-                    )
+                if rf_frequency is not None:
+                    msg = f"Using fixed frequency {rf_frequency} MHz - press your remote button now..."
+                    yield f"data: {json.dumps({'status': 'learning', 'message': msg, 'step': 'capture'})}\n\n"
+
+                    def learn_thread():
+                        result_container[0] = learner.learn_rf_command_fixed_frequency(
+                            frequency=rf_frequency,
+                            timeout=30,
+                            progress_callback=progress_handler,
+                        )
+
+                else:
+
+                    def learn_thread():
+                        result_container[0] = learner.learn_rf_command_with_progress(
+                            timeout=30, progress_callback=progress_handler
+                        )
 
                 thread = threading.Thread(target=learn_thread)
                 thread.start()

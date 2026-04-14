@@ -243,6 +243,82 @@ class BroadlinkLearner:
             logger.error(f"Error during RF learning: {e}")
             return None
 
+    def learn_rf_command_fixed_frequency(
+        self,
+        frequency: float,
+        timeout: int = 30,
+        progress_callback: Callable[[str, str], None] = None,
+    ) -> Optional[Tuple[str, float]]:
+        """
+        Learn an RF command at a fixed (manually specified) frequency.
+
+        Skips the sweep phase entirely by passing the frequency directly to
+        find_rf_packet().  This is the workaround for devices whose frequency
+        is mis-detected during auto-sweep (e.g. 433.92 MHz reported as 433.00).
+
+        Args:
+            frequency: RF frequency in MHz (e.g. 433.92)
+            timeout: Maximum seconds to wait for the capture step
+            progress_callback: Optional callback(message, step)
+
+        Returns:
+            Tuple of (base64 data, frequency in MHz), or None if timeout/error
+        """
+        if not self._authenticated:
+            logger.error("Device not authenticated")
+            return None
+
+        try:
+            logger.info(f"Starting RF learning at fixed frequency {frequency} MHz")
+            if progress_callback:
+                progress_callback(
+                    f"Fixed frequency {frequency} MHz set. Press your remote button now...",
+                    "capture",
+                )
+
+            # Pass frequency directly - skips the sweep phase entirely
+            self.device.find_rf_packet(frequency)
+
+            start_time = time.time()
+            storage_errors = 0
+
+            while time.time() - start_time < timeout:
+                time.sleep(1)
+
+                try:
+                    packet = self.device.check_data()
+                except (
+                    broadlink.exceptions.ReadError,
+                    broadlink.exceptions.StorageError,
+                ):
+                    storage_errors += 1
+                    if storage_errors == 1:
+                        logger.debug(
+                            "Ignoring storage errors from old commands in buffer"
+                        )
+                    continue
+
+                if packet:
+                    logger.info(f"RF command captured ({len(packet)} bytes)")
+                    if progress_callback:
+                        progress_callback("RF command captured!", "captured")
+                    if storage_errors > 0:
+                        logger.debug(f"Ignored {storage_errors} storage errors")
+
+                    base64_data = base64.b64encode(packet).decode("utf-8")
+                    logger.info(f"Command encoded to base64 ({len(base64_data)} chars)")
+                    return (base64_data, frequency)
+
+            logger.warning(
+                f"Timeout - no RF signal detected after {timeout} seconds "
+                f"at fixed frequency {frequency} MHz"
+            )
+            return None
+
+        except Exception as e:
+            logger.error(f"Error during fixed-frequency RF learning: {e}")
+            return None
+
     def learn_rf_command(self, timeout: int = 30) -> Optional[Tuple[str, float]]:
         """
         Learn an RF command (without progress callbacks)

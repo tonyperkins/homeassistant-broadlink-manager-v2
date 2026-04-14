@@ -112,12 +112,12 @@
           </div>
           <small v-if="showRfFrequencyHelp" class="text-muted help-text">
             <strong>Fixed Frequency Learning:</strong> Skip frequency sweep and learn at a specific frequency.
-            This is faster and more reliable when you know the frequency of your device.
+            Uses direct device communication for real-time progress and faster learning.
             Common frequencies: 433.92 MHz (EU/Asia), 315 MHz (North America), 434 MHz (some remotes).
           </small>
           <small v-if="rfFrequencyInput" class="text-muted">
-            <i class="mdi mdi-information"></i>
-            Fixed frequency mode: sweep phase will be skipped. Uses direct device connection.
+            <i class="mdi mdi-wifi"></i>
+            Direct mode enabled - Real-time progress via direct device connection
           </small>
         </div>
 
@@ -252,9 +252,13 @@
           
           <!-- RF Fixed Frequency Learning (real-time SSE status) -->
           <div v-else-if="commandType === 'rf' && rfFrequencyInput">
+            <p><strong>Direct Communication Mode</strong></p>
             <p><strong>Fixed frequency {{ rfFrequencyInput }} MHz</strong></p>
             <p v-if="learningStatusMessage">{{ learningStatusMessage }}</p>
-            <small v-else>Press your remote button now...</small>
+            <small v-else>
+              <i class="mdi mdi-wifi"></i>
+              Connected directly to device - Press your remote button now...
+            </small>
           </div>
 
           <!-- RF Auto-detect Learning Instructions -->

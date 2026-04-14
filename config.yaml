@@ -18,6 +18,8 @@ options:
   log_level: info
   web_port: 8099
   ha_url: "http://supervisor/core"
+  # IMPORTANT: Keep ha_token empty for security
+  # Users will set this in the add-on configuration UI
   ha_token: ""
   force_legacy_learning: false
   auto_discover: true

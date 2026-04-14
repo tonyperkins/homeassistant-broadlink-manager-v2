@@ -1,5 +1,5 @@
 name: Broadlink Manager v2 (Beta)
-version: "0.4.0-beta.17"
+version: "0.4.0-beta.19"
 slug: broadlink-manager-v2
 description: Next-generation Broadlink device manager with Vue 3 interface (Beta)
 arch:
@@ -16,13 +16,19 @@ ports:
   8099/tcp: null
 options:
   log_level: info
+  web_port: 8099
+  ha_url: "http://supervisor/core"
+  ha_token: ""
+  force_legacy_learning: false
   auto_discover: true
 schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
   auto_discover: bool?
+  force_legacy_learning: bool?
 homeassistant_api: true
 hassio_api: true
 hassio_role: default
+host_network: true
 apparmor: false
 image: ghcr.io/tonyperkins/homeassistant-broadlink-manager-v2
 map:

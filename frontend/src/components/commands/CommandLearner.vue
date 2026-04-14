@@ -96,17 +96,7 @@
               <i class="mdi mdi-help-circle-outline"></i>
             </button>
           </label>
-          <div v-if="showRfFrequencyHelp" class="help-box">
-            <p><strong>Leave blank for automatic frequency detection (recommended for most devices).</strong></p>
-            <p>Only set this if auto-detection returns the wrong frequency (e.g. detects 433.00 MHz but your device needs 433.92 MHz). Common fixed frequencies:</p>
-            <ul>
-              <li><strong>433.92 MHz</strong> – Common for ceiling fans, garage doors, and other 433 MHz devices</li>
-              <li><strong>315.00 MHz</strong> – Common in North America for remotes and sensors</li>
-              <li><strong>868.35 MHz</strong> – Common in Europe for smart home devices</li>
-            </ul>
-            <p>When set, the frequency sweep step is skipped and learning goes straight to capture mode.</p>
-          </div>
-          <div class="rf-frequency-input-row">
+          <div class="input-group">
             <input
               id="rf-frequency"
               v-model="rfFrequencyInput"
@@ -116,14 +106,50 @@
               max="960"
               placeholder="Auto-detect (leave blank)"
               :disabled="learning"
-              class="rf-frequency-input"
+              class="form-control"
             />
-            <span class="rf-frequency-unit">MHz</span>
+            <span class="input-group-text">MHz</span>
           </div>
-          <small v-if="rfFrequencyInput" class="rf-frequency-notice">
+          <small v-if="showRfFrequencyHelp" class="text-muted help-text">
+            <strong>Fixed Frequency Learning:</strong> Skip frequency sweep and learn at a specific frequency.
+            This is faster and more reliable when you know the frequency of your device.
+            Common frequencies: 433.92 MHz (EU/Asia), 315 MHz (North America), 434 MHz (some remotes).
+          </small>
+          <small v-if="rfFrequencyInput" class="text-muted">
             <i class="mdi mdi-information"></i>
             Fixed frequency mode: sweep phase will be skipped. Uses direct device connection.
           </small>
+        </div>
+
+        <!-- Learning Method -->
+        <div class="form-group">
+          <label>
+            Learning Method
+            <button type="button" class="help-btn" @click="showLegacyHelp = !showLegacyHelp" title="Learn more">
+              <i class="mdi mdi-help-circle-outline"></i>
+            </button>
+          </label>
+          <div class="radio-card-group">
+            <label class="radio-card" :class="{ active: !useLegacyLearning, disabled: learning }">
+              <input type="radio" :checked="!useLegacyLearning" @change="useLegacyLearning = false" :disabled="learning" />
+              <i class="mdi radio-indicator" :class="!useLegacyLearning ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-rocket card-icon"></i>
+              <span class="card-text">Direct (Recommended)</span>
+            </label>
+            <label class="radio-card" :class="{ active: useLegacyLearning, disabled: learning }">
+              <input type="radio" :checked="useLegacyLearning" @change="useLegacyLearning = true" :disabled="learning" />
+              <i class="mdi radio-indicator" :class="useLegacyLearning ? 'mdi-radiobox-marked' : 'mdi-radiobox-blank'"></i>
+              <i class="mdi mdi-history card-icon"></i>
+              <span class="card-text">Legacy</span>
+            </label>
+          </div>
+          <div v-if="showLegacyHelp" class="help-box">
+            <h4>Learning Methods</h4>
+            <ul>
+              <li><strong>Direct (Recommended):</strong> Communicates directly with the device for faster, real-time progress. Requires network access (host_network mode).</li>
+              <li><strong>Legacy:</strong> Uses Home Assistant's built-in Broadlink integration with notification-based progress. Works without network access but has slower progress updates.</li>
+            </ul>
+          </div>
         </div>
 
         <!-- Save Destination -->
@@ -405,6 +431,8 @@ const customCommandName = ref('')
 const commandType = ref('ir')
 const rfFrequencyInput = ref('')
 const showRfFrequencyHelp = ref(false)
+const useLegacyLearning = ref(false)
+const showLegacyHelp = ref(false)
 const saveDestination = ref('manager_only') // manager_only, integration_only, both
 const showSaveDestinationHelp = ref(false)
 const showImportHelp = ref(false)
@@ -879,79 +907,63 @@ const startDirectRfLearning = async (actualCommand, frequency) => {
   try {
     const entityId = selectedBroadlink.value || props.device.broadlink_entity
 
-    const response = await fetch('/api/commands/learn/direct/stream', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        device_id: props.device.id,
-        entity_id: entityId,
-        command_name: actualCommand.trim(),
-        command_type: 'rf',
-        rf_frequency: frequency
-      })
-    })
+    // Use axios with responseType 'stream' to get SSE events
+    const response = await api.post('/api/commands/learn/direct/stream', {
+      device_id: props.device.id,
+      entity_id: entityId,
+      command_name: actualCommand.trim(),
+      command_type: 'rf',
+      rf_frequency: frequency
+    }, {
+      responseType: 'text',
+      onDownloadProgress: (progressEvent) => {
+        const text = progressEvent.event.target.responseText
+        const lines = text.split('\n')
+        
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          let event
+          try { event = JSON.parse(line.slice(6)) } catch { continue }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
+          learningStatusMessage.value = event.message || ''
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-    let succeeded = false
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() // keep incomplete line
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue
-        let event
-        try { event = JSON.parse(line.slice(6)) } catch { continue }
-
-        learningStatusMessage.value = event.message || ''
-
-        if (event.status === 'error') {
-          throw new Error(event.message || 'Learning failed')
-        }
-
-        if (event.status === 'complete') {
-          succeeded = true
-          learningPhase.value = 'complete'
-          resultMessage.value = ''
-          resultType.value = ''
-
-          // Add to learned commands list
-          const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
-          if (!existingCommand) {
-            learnedCommands.value.push({ name: actualCommand, type: 'rf' })
+          if (event.status === 'error') {
+            throw new Error(event.message || 'Learning failed')
           }
-          const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
-          if (untrackedIndex > -1) untrackedCommands.value.splice(untrackedIndex, 1)
 
-          commandName.value = ''
-          customCommandName.value = ''
-          rfFrequencyInput.value = ''
+          if (event.status === 'complete') {
+            learningPhase.value = 'complete'
+            resultMessage.value = ''
+            resultType.value = ''
 
-          emit('learned', {
-            deviceId: props.device.id,
-            commandName: actualCommand,
-            commandType: 'rf'
-          })
+            // Add to learned commands list
+            const existingCommand = learnedCommands.value.find(cmd => cmd.name === actualCommand)
+            if (!existingCommand) {
+              learnedCommands.value.push({ name: actualCommand, type: 'rf' })
+            }
+            const untrackedIndex = untrackedCommands.value.indexOf(actualCommand)
+            if (untrackedIndex > -1) untrackedCommands.value.splice(untrackedIndex, 1)
+
+            commandName.value = ''
+            customCommandName.value = ''
+            rfFrequencyInput.value = ''
+
+            emit('learned', {
+              deviceId: props.device.id,
+              commandName: actualCommand,
+              commandType: 'rf'
+            })
+          }
         }
       }
-    }
+    })
 
-    if (!succeeded) {
-      throw new Error('Stream ended without confirmation')
+    if (response.status !== 200) {
+      throw new Error(`HTTP ${response.status}`)
     }
   } catch (error) {
     console.error('Direct RF learning error:', error)
-    resultMessage.value = error.message || 'Error learning RF command'
+    resultMessage.value = error.response?.data?.error || error.message || 'Error learning RF command'
     resultType.value = 'error'
   } finally {
     learning.value = false

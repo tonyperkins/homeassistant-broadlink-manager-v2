@@ -6,6 +6,7 @@ Home Assistant entities and physical Broadlink devices.
 """
 
 import broadlink
+import json
 import logging
 import requests
 from typing import List, Dict, Optional
@@ -101,6 +102,213 @@ class BroadlinkDeviceManager:
             logger.error("Error discovering devices", exc_info=True)
             return []
 
+    def get_ha_config_entry(self, entity_id: str) -> Optional[Dict]:
+        """
+        Get Broadlink config entry from HA storage
+
+        Args:
+            entity_id: Entity ID (e.g., "remote.living_room_rm4_pro")
+
+        Returns:
+            Config entry dict with host, mac, type, or None if error
+        """
+        try:
+            # Try multiple possible file locations
+            config_files = [
+                "/config/.storage/core.config_entries",
+                "/config/core.config_entries",  # Fallback location
+            ]
+            
+            entries = None
+            for config_file in config_files:
+                try:
+                    with open(config_file, 'r') as f:
+                        config_data = json.load(f)
+                    entries = config_data.get("data", {}).get("entries", [])
+                    logger.debug(f"Successfully read {len(entries)} entries from {config_file}")
+                    break
+                except (FileNotFoundError, json.JSONDecodeError) as e:
+                    logger.debug(f"Could not read {config_file}: {e}")
+                    continue
+            
+            if not entries:
+                logger.warning("Could not read config entries from any location")
+                return None
+            
+            # Extract device name from entity_id
+            device_name = entity_id.replace("remote.", "").replace("_", " ").title()
+            entity_parts = entity_id.lower().replace("remote.", "").split("_")
+            
+            # Look for matching Broadlink config entry with multiple strategies
+            for entry in entries:
+                if entry.get("domain") != "broadlink":
+                    continue
+                
+                entry_title = entry.get("title", "").lower()
+                entry_data = entry.get("data", {})
+                
+                # Strategy 1: Exact match on normalized name
+                if device_name.lower() == entry_title:
+                    logger.info(f"Found exact match: {entry.get('title')}")
+                    return self._extract_config_data(entry, entry_data)
+                
+                # Strategy 2: Check if all entity parts are in the title
+                if all(part in entry_title for part in entity_parts if part):
+                    logger.info(f"Found partial match: {entry.get('title')}")
+                    return self._extract_config_data(entry, entry_data)
+                
+                # Strategy 3: Check for common patterns
+                if ("rm4" in entry_title and "office" in entry_title and "tony" in entry_title) or \
+                   ("rm4" in entry_title and "bedroom" in entry_title and "master" in entry_title):
+                    logger.info(f"Found pattern match: {entry.get('title')}")
+                    return self._extract_config_data(entry, entry_data)
+            
+            logger.warning(f"No matching Broadlink config entry found for {entity_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error reading config entries: {e}")
+            return None
+
+    def _extract_config_data(self, entry: Dict, entry_data: Dict) -> Optional[Dict]:
+        """Extract connection data from config entry with validation"""
+        try:
+            # Validate required fields
+            if not all(key in entry_data for key in ["host", "mac", "type"]):
+                logger.warning(f"Config entry missing required fields: {list(entry_data.keys())}")
+                return None
+            
+            # Validate MAC format
+            mac = entry_data["mac"]
+            if isinstance(mac, str):
+                # Remove colons if present
+                mac = mac.replace(":", "")
+                # Validate hex format
+                try:
+                    int(mac, 16)
+                except ValueError:
+                    logger.warning(f"Invalid MAC format: {mac}")
+                    return None
+            
+            # Validate type
+            device_type = entry_data["type"]
+            if isinstance(device_type, str):
+                device_type = int(device_type)
+            
+            logger.info(f"Found config entry: {entry.get('title')}")
+            logger.info(f"  Host: {entry_data['host']}")
+            logger.info(f"  MAC: {mac}")
+            logger.info(f"  Type: {device_type}")
+            
+            return {
+                "host": entry_data["host"],
+                "mac": mac,
+                "type": device_type,
+                "title": entry.get("title", "Unknown")
+            }
+            
+        except Exception as e:
+            logger.error(f"Error extracting config data: {e}")
+            return None
+
+    def get_ha_device_info(self, entity_id: str) -> Optional[Dict]:
+        """
+        Get device information from HA device registry
+
+        Args:
+            entity_id: Entity ID (e.g., "remote.living_room_rm4_pro")
+
+        Returns:
+            Device info dict with MAC address in connections, or None if error
+        """
+        try:
+            # First get the entity to find its device ID
+            entity_url = f"{self.ha_url}/api/states/{entity_id}"
+            entity_response = requests.get(entity_url, headers=self._get_headers(), timeout=10)
+            
+            if entity_response.status_code != 200:
+                logger.error(f"Failed to get entity: HTTP {entity_response.status_code}")
+                return None
+                
+            entity_data = entity_response.json()
+            
+            # Debug: Log what we got
+            logger.debug(f"Entity data keys: {list(entity_data.keys())}")
+            logger.debug(f"Entity attributes keys: {list(entity_data.get('attributes', {}).keys())}")
+            if entity_data.get('context'):
+                logger.debug(f"Entity context keys: {list(entity_data['context'].keys())}")
+            
+            # Try multiple ways to get the device ID
+            device_id = None
+            
+            # Method 1: Check attributes for device_id
+            device_id = entity_data.get("attributes", {}).get("device_id")
+            if device_id:
+                logger.debug(f"Found device_id in attributes: {device_id}")
+            
+            # Method 2: Check context if available
+            if not device_id and entity_data.get("context"):
+                device_id = entity_data["context"].get("device_id")
+                if device_id:
+                    logger.debug(f"Found device_id in context: {device_id}")
+                
+            # Method 3: Use the entity registry to find the device
+            if not device_id:
+                # Get entity registry entry - HA uses GET for single entity
+                entity_registry_url = f"{self.ha_url}/api/config/entity_registry/{entity_id}"
+                logger.info(f"Trying entity registry: {entity_registry_url}")
+                registry_response = requests.get(
+                    entity_registry_url,
+                    headers=self._get_headers(),
+                    timeout=10
+                )
+                
+                if registry_response.status_code == 200:
+                    registry_data = registry_response.json()
+                    logger.info(f"Registry data keys: {list(registry_data.keys())}")
+                    device_id = registry_data.get("device_id")
+                    if device_id:
+                        logger.info(f"Found device_id in registry: {device_id}")
+                else:
+                    logger.info(f"Registry response: {registry_response.status_code}")
+                    # Try the list endpoint as fallback
+                    list_url = f"{self.ha_url}/api/config/entity_registry/list"
+                    list_response = requests.get(
+                        list_url,
+                        headers=self._get_headers(),
+                        timeout=10
+                    )
+                    if list_response.status_code == 200:
+                        entities = list_response.json()
+                        for entity in entities:
+                            if entity.get("entity_id") == entity_id:
+                                device_id = entity.get("device_id")
+                                if device_id:
+                                    logger.info(f"Found device_id via list: {device_id}")
+                                break
+            
+            if not device_id:
+                logger.warning(f"No device_id found for entity {entity_id}")
+                logger.info(f"Entity data keys: {list(entity_data.keys())}")
+                logger.info(f"Entity attributes keys: {list(entity_data.get('attributes', {}).keys())}")
+                if entity_data.get('context'):
+                    logger.info(f"Entity context keys: {list(entity_data['context'].keys())}")
+                return None
+            
+            # Get device info from device registry
+            device_url = f"{self.ha_url}/api/devices/{device_id}"
+            device_response = requests.get(device_url, headers=self._get_headers(), timeout=10)
+            
+            if device_response.status_code != 200:
+                logger.error(f"Failed to get device: HTTP {device_response.status_code}")
+                return None
+                
+            return device_response.json()
+            
+        except Exception as e:
+            logger.error(f"Error getting device info: {e}")
+            return None
+
     def get_ha_entity_info(self, entity_id: str) -> Optional[Dict]:
         """
         Get entity information from Home Assistant
@@ -151,27 +359,24 @@ class BroadlinkDeviceManager:
         mac_str = attributes.get("mac")
         device_type = attributes.get("type")
 
-        # If not in attributes, try network discovery
+        logger.info(f"Entity attributes check: host={host}, mac={mac_str}, type={device_type}")
+
+        # If not in attributes, try config entry
         if not all([host, mac_str, device_type]):
             logger.info(
-                f"Connection info not in entity attributes, trying network discovery"
+                f"Connection info not in entity attributes, trying config entry"
             )
-            discovered = self.discover_devices(timeout=5)
-
-            if not discovered:
-                logger.error(f"No devices found via network discovery")
-                return None
-
-            # Use the first discovered device (assumes single Broadlink device on network)
-            # TODO: Match by friendly name or other identifier
-            if len(discovered) > 0:
-                device = discovered[0]
-                host = device["host"]
-                mac_str = device["mac"]
-                device_type = device["type"]
-                logger.info(f"Found device via discovery: {device['model']} at {host}")
+            
+            # Try to get connection info from HA config entry
+            config_entry = self.get_ha_config_entry(entity_id)
+            
+            if config_entry:
+                host = config_entry.get("host")
+                mac_str = config_entry.get("mac")
+                device_type = config_entry.get("type")
+                logger.info(f"Found connection info in config entry: {config_entry.get('title')}")
             else:
-                logger.error(f"No suitable device found")
+                logger.warning(f"No config entry found and no connection info in attributes")
                 return None
 
         # Convert MAC string to bytes

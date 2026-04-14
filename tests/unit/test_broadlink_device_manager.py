@@ -253,9 +253,9 @@ class TestGetDeviceConnectionInfo:
         assert conn_info["friendly_name"] == "Living Room RM4"
 
     @patch.object(BroadlinkDeviceManager, 'get_ha_entity_info')
-    @patch.object(BroadlinkDeviceManager, 'discover_devices')
-    def test_get_connection_info_from_discovery(self, mock_discover, mock_get_entity, device_manager):
-        """Test getting connection info from network discovery when not in attributes"""
+    @patch.object(BroadlinkDeviceManager, 'get_ha_config_entry')
+    def test_get_connection_info_no_config_entry(self, mock_config_entry, mock_get_entity, device_manager):
+        """Test getting connection info when no config entry exists"""
         mock_get_entity.return_value = {
             "entity_id": "remote.living_room_rm4",
             "state": "idle",
@@ -265,20 +265,12 @@ class TestGetDeviceConnectionInfo:
             }
         }
         
-        mock_discover.return_value = [{
-            "host": "192.168.1.100",
-            "port": 80,
-            "mac": "aa:bb:cc:dd:ee:ff",
-            "type": 0x2787,
-            "type_hex": "0x2787",
-            "model": "RM4 Pro"
-        }]
+        mock_config_entry.return_value = None
         
         conn_info = device_manager.get_device_connection_info("remote.living_room_rm4")
         
-        assert conn_info is not None
-        assert conn_info["host"] == "192.168.1.100"
-        mock_discover.assert_called_once_with(timeout=5)
+        assert conn_info is None
+        mock_config_entry.assert_called_once_with("remote.living_room_rm4")
 
     @patch.object(BroadlinkDeviceManager, 'get_ha_entity_info')
     def test_get_connection_info_invalid_mac(self, mock_get_entity, device_manager):

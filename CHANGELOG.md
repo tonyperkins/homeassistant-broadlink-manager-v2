@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0-beta.19] - 2026-04-14
+
+### Fixed
+- Fix device selection with HA config entries and add RF frequency override
+
+
+## [0.4.0-beta.18] - 2026-04-14
+
+### Added
+- **RF Frequency Override** - Fixed frequency RF learning option to skip sweep phase
+- **Robust Device Selection** - Reads HA config entries for exact device connection info
+- **Real-time Learning Progress** - SSE streaming for fixed-frequency RF learning
+- **Host Network Access** - Direct LAN communication for reliable device control
+
+### Fixed
+- **Device Selection Issue** - No more random device selection, always connects to correct device
+- **UI Consistency** - Learning Method toggle now uses radio cards matching UI style
+- **MAC Address Resolution** - Reliable MAC address lookup from HA storage
+- **Network Discovery Fallback** - Graceful fallback when config entries unavailable
+
+### Changed
+- **Direct Communication** - Primary learning path uses direct device communication
+- **Config Entry Reading** - Reads from `/config/.storage/core.config_entries` for device info
+- **Multiple Matching Strategies** - Robust entity-to-device matching with fallbacks
+- **Enhanced Logging** - Detailed info-level logging for device selection debugging
+
+### Technical Details
+- Fixed frequency learning bypasses HA notification system for direct control
+- Device selection now uses exact host/MAC/type from HA config entries
+- SSE streaming provides real-time progress updates during learning
+- Backward compatible with existing HA API learning path
+
 ## [0.4.0-beta.17] - 2026-04-11
 
 ### Fixed

@@ -17,7 +17,7 @@ from pathlib import Path
 
 # Configuration
 HA_URL = "http://homeassistant.local:8123"
-HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJlMzcyYmFiYmIyNjQ0YzVkOTI3MTFhNTFjZTcxMTJkNCIsImlhdCI6MTc1NzQ0NDMwOCwiZXhwIjoyMDcyODA0MzA4fQ.hakvxq-vSfZMnBX7dUfVLClx8riDuA4QPxokHz9-x08"
+HA_TOKEN = "your_long_lived_access_token_here"
 STORAGE_PATH = Path("h:/.storage")
 
 

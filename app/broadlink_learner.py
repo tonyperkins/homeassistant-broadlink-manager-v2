@@ -202,10 +202,10 @@ class BroadlinkLearner:
                 progress_callback(
                     "Frequency locked! Now PRESS the button again to capture", "capture"
                 )
-            
+
             # Give user time to see the message and prepare
             time.sleep(2)
-            
+
             self.device.find_rf_packet()
 
             start_time = time.time()

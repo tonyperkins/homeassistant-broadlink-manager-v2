@@ -117,9 +117,12 @@ class BroadlinkDeviceManager:
         try:
             # Try multiple possible file locations using the configured config path
             import os
+
             config_files = [
                 os.path.join(self.config_path, ".storage", "core.config_entries"),
-                os.path.join(self.config_path, "core.config_entries"),  # Fallback location
+                os.path.join(
+                    self.config_path, "core.config_entries"
+                ),  # Fallback location
             ]
 
             entries = None

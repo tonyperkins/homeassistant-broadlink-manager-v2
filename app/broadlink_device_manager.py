@@ -19,16 +19,18 @@ class BroadlinkDeviceManager:
     Manage Broadlink device connections and discovery
     """
 
-    def __init__(self, ha_url: str, ha_token: str):
+    def __init__(self, ha_url: str, ha_token: str, config_path: str = "/config"):
         """
         Initialize device manager
 
         Args:
             ha_url: Home Assistant URL (e.g., "http://homeassistant.local:8123")
             ha_token: Long-lived access token
+            config_path: Path to HA config directory (e.g., "/config" or "\\\\192.168.1.1\\config")
         """
         self.ha_url = ha_url.rstrip("/")
         self.ha_token = ha_token
+        self.config_path = config_path
 
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for HA API requests"""
@@ -113,10 +115,11 @@ class BroadlinkDeviceManager:
             Config entry dict with host, mac, type, or None if error
         """
         try:
-            # Try multiple possible file locations
+            # Try multiple possible file locations using the configured config path
+            import os
             config_files = [
-                "/config/.storage/core.config_entries",
-                "/config/core.config_entries",  # Fallback location
+                os.path.join(self.config_path, ".storage", "core.config_entries"),
+                os.path.join(self.config_path, "core.config_entries"),  # Fallback location
             ]
 
             entries = None

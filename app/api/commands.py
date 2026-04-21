@@ -1442,7 +1442,7 @@ def learn_command_direct_stream():
 
             if not connection_info:
                 yield f"data: {json.dumps({'status': 'connecting', 'message': 'Connecting to device...'})}\n\n"
-                device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+                device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token, str(web_server.config_loader.get_config_path()))
                 connection_info = device_manager_bl.get_device_connection_info(
                     entity_id
                 )
@@ -1653,7 +1653,7 @@ def learn_command_direct():
         connection_info = web_server.get_cached_connection_info(entity_id)
 
         if not connection_info:
-            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token)
+            device_manager_bl = BroadlinkDeviceManager(ha_url, ha_token, str(web_server.config_loader.get_config_path()))
             connection_info = device_manager_bl.get_device_connection_info(entity_id)
 
             if connection_info:
@@ -1845,7 +1845,7 @@ def test_command_direct():
                 # Fall back to discovery
                 logger.info(f"No stored connection, discovering device for {entity_id}")
                 device_manager_bl = BroadlinkDeviceManager(
-                    web_server.ha_url, web_server.ha_token
+                    web_server.ha_url, web_server.ha_token, str(web_server.config_loader.get_config_path())
                 )
                 connection_info = device_manager_bl.get_device_connection_info(
                     entity_id

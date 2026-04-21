@@ -263,8 +263,14 @@
 
           <!-- RF Auto-detect Learning Instructions -->
           <div v-else-if="commandType === 'rf'">
+            <p v-if="!useLegacyLearning"><strong>Direct Communication Mode</strong></p>
             <p><strong>Learning RF command...</strong></p>
-            <small>Check Home Assistant notifications (🔔) for instructions</small>
+            <p v-if="learningStatusMessage">{{ learningStatusMessage }}</p>
+            <small v-if="!useLegacyLearning">
+              <i class="mdi mdi-wifi"></i>
+              Connected directly to device - Auto-detecting frequency...
+            </small>
+            <small v-else>Check Home Assistant notifications (🔔) for instructions</small>
           </div>
         </div>
 
@@ -814,17 +820,18 @@ const startLearning = async () => {
     // Get the actual command name (either selected or custom)
     const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
 
-    // If a fixed RF frequency is specified, use the direct SSE stream endpoint
-    // which talks to the Broadlink device directly (skips the HA sweep phase)
-    const fixedFrequency = commandType.value === 'rf' && rfFrequencyInput.value
-      ? parseFloat(rfFrequencyInput.value)
-      : null
-
-    if (fixedFrequency !== null) {
-      await startDirectRfLearning(actualCommand, fixedFrequency)
+    // If Direct mode is selected, use the direct SSE stream endpoint
+    // which talks to the Broadlink device directly with real-time progress
+    if (!useLegacyLearning.value) {
+      const fixedFrequency = commandType.value === 'rf' && rfFrequencyInput.value
+        ? parseFloat(rfFrequencyInput.value)
+        : null
+      
+      await startDirectLearning(actualCommand, commandType.value, fixedFrequency)
       return
     }
     
+    // Legacy mode: Use HA API method
     // For RF commands (auto-detect), show instructional message immediately
     if (commandType.value === 'rf') {
       learningPhase.value = 'learning'
@@ -836,10 +843,6 @@ const startLearning = async () => {
     } else {
       learningPhase.value = 'learning'
     }
-    
-    // Use HA API method (works in both standalone and add-on modes)
-    // Note: Direct learning endpoint (/commands/learn/direct/stream) is kept in backend
-    // but not used to avoid network isolation issues in add-on mode
     
     const response = await api.post('/api/commands/learn', {
       device_id: props.device.id,
@@ -903,7 +906,7 @@ const startLearning = async () => {
   }
 }
 
-const startDirectRfLearning = async (actualCommand, frequency) => {
+const startDirectLearning = async (actualCommand, commandType, frequency) => {
   learningPhase.value = 'learning'
   resultMessage.value = ''
   resultType.value = ''
@@ -911,14 +914,21 @@ const startDirectRfLearning = async (actualCommand, frequency) => {
   try {
     const entityId = selectedBroadlink.value || props.device.broadlink_entity
 
-    // Use axios with responseType 'stream' to get SSE events
-    const response = await api.post('/api/commands/learn/direct/stream', {
+    // Build request payload
+    const payload = {
       device_id: props.device.id,
       entity_id: entityId,
       command_name: actualCommand.trim(),
-      command_type: 'rf',
-      rf_frequency: frequency
-    }, {
+      command_type: commandType
+    }
+    
+    // Add frequency for RF commands if specified
+    if (commandType === 'rf' && frequency) {
+      payload.rf_frequency = frequency
+    }
+
+    // Use axios with responseType 'stream' to get SSE events
+    const response = await api.post('/api/commands/learn/direct/stream', payload, {
       responseType: 'text',
       onDownloadProgress: (progressEvent) => {
         const text = progressEvent.event.target.responseText

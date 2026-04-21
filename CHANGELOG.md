@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.4.0-beta.20] - 2026-04-21
+
+### Fixed
+- Improve RF learning UX and fix standalone mode config path
+
+
 ## [0.4.0-beta.19] - 2026-04-14
 
 ### Fixed

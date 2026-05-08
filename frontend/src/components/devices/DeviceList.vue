@@ -1097,12 +1097,18 @@ const generateEntities = async () => {
       }
       
       // Configuration instructions
+      const packageOutputPath = response.data.package_output_path
       messageParts.push('\n📝 Next steps:')
-      messageParts.push('1. Add to configuration.yaml:')
-      messageParts.push('   homeassistant:')
-      messageParts.push('     packages:')
-      messageParts.push('       broadlink_manager: !include broadlink_manager/package.yaml')
-      messageParts.push('2. Restart Home Assistant to load the new entities')
+      if (packageOutputPath) {
+        messageParts.push(`1. Package file written to:\n   ${packageOutputPath}`)
+        messageParts.push('2. Restart Home Assistant to load the new entities')
+      } else {
+        messageParts.push('1. Add to configuration.yaml:')
+        messageParts.push('   homeassistant:')
+        messageParts.push('     packages:')
+        messageParts.push('       broadlink_manager: !include broadlink_manager/package.yaml')
+        messageParts.push('2. Restart Home Assistant to load the new entities')
+      }
       
       // Show errors if any
       if (errors.length > 0) {

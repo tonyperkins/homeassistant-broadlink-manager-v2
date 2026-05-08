@@ -23,10 +23,12 @@ options:
   ha_token: ""
   force_legacy_learning: false
   auto_discover: true
+  package_output_path: ""
 schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
   auto_discover: bool?
   force_legacy_learning: bool?
+  package_output_path: str?
 homeassistant_api: true
 hassio_api: true
 hassio_role: default

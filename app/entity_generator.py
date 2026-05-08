@@ -189,6 +189,14 @@ class EntityGenerator:
             self._write_yaml_file(self.storage.helpers_file, helpers_yaml)
             self._write_yaml_file(self.storage.package_file, package_yaml)
 
+            # If an alternate output path is configured, write package.yaml there too
+            package_output_path = getattr(self.storage, "package_output_path", None)
+            if package_output_path:
+                self._write_yaml_file(package_output_path, package_yaml)
+                logger.info(
+                    f"Written package.yaml to alternate path: {package_output_path}"
+                )
+
             # Update last generated timestamp
             timestamp = datetime.now().isoformat()
             self.storage.set_last_generated(timestamp)

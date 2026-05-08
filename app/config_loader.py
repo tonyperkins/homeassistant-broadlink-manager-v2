@@ -100,6 +100,28 @@ class ConfigLoader:
         """
         return self.get_config_path() / "broadlink_manager"
 
+    def get_package_output_path(self) -> Optional[Path]:
+        """
+        Get optional alternate output path for package.yaml.
+
+        When set, the generated package.yaml is also written to this path,
+        making it easy to integrate with an existing !include_dir_named packages
+        setup without modifying configuration.yaml.
+
+        The target file will be overwritten if it already exists.
+
+        Returns:
+            Path to write the package file to, or None to use the default location only.
+        """
+        options = self.load_options()
+        raw = options.get("package_output_path") or os.environ.get(
+            "PACKAGE_OUTPUT_PATH", ""
+        )
+        raw = raw.strip() if raw else ""
+        if not raw:
+            return None
+        return Path(raw)
+
     def load_options(self) -> Dict[str, Any]:
         """
         Load application configuration options.

@@ -885,6 +885,7 @@ def delete_managed_device(device_id):
                     generator = EntityGeneratorV2(
                         device_manager=device_manager,
                         config_path=str(web_server.config_loader.get_config_path()),
+                        package_output_path=web_server.config_loader.get_package_output_path(),
                     )
                     result = generator.generate_all_devices(broadlink_devices)
                     if result.get("success"):

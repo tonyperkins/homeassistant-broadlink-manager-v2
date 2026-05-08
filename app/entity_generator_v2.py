@@ -23,11 +23,14 @@ logger = logging.getLogger(__name__)
 class DeviceManagerAdapter:
     """Adapter to make device_manager work with v1 EntityGenerator"""
 
-    def __init__(self, device_manager, config_path: Path):
+    def __init__(
+        self, device_manager, config_path: Path, package_output_path: Path = None
+    ):
         self.device_manager = device_manager
         self.config_path = Path(config_path)
         self.helpers_file = self.config_path / "broadlink_manager" / "helpers.yaml"
         self.package_file = self.config_path / "broadlink_manager" / "package.yaml"
+        self.package_output_path = package_output_path
 
     def get_all_entities(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -174,20 +177,26 @@ class DeviceManagerAdapter:
 class EntityGeneratorV2:
     """Generate Home Assistant entity YAML configurations from devices.json using v1 logic"""
 
-    def __init__(self, device_manager, config_path: str):
+    def __init__(
+        self, device_manager, config_path: str, package_output_path: Path = None
+    ):
         """
         Initialize the entity generator
 
         Args:
             device_manager: DeviceManager instance with access to devices.json
             config_path: Path to Home Assistant config directory
+            package_output_path: Optional alternate path to also write package.yaml to.
+                                 The file will be overwritten if it already exists.
         """
         self.device_manager = device_manager
         self.config_path = Path(config_path)
         self.broadlink_manager_dir = self.config_path / "broadlink_manager"
 
         # Create adapter and v1 generator
-        self.adapter = DeviceManagerAdapter(device_manager, config_path)
+        self.adapter = DeviceManagerAdapter(
+            device_manager, config_path, package_output_path
+        )
         self.v1_generator = EntityGenerator(self.adapter)
 
     def generate_all_devices(self, devices: Dict[str, Any]) -> Dict[str, Any]:

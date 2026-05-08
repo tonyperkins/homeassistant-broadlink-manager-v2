@@ -229,10 +229,23 @@ Learned commands found in storage
    - Files created in `/config/broadlink_manager/`
 
 5. **Add to Configuration** (2 min)
+
+   **Option A** — Add directly to `configuration.yaml`:
    ```yaml
    homeassistant:
      packages:
        broadlink_manager: !include broadlink_manager/package.yaml
+   ```
+
+   **Option B** — If you already use `!include_dir_named packages`, set `package_output_path` in the add-on configuration instead (no `configuration.yaml` change needed):
+   ```
+   package_output_path: /config/packages/broadlink_manager.yaml
+   ```
+   Whenever entities are generated or regenerated, the file will be written to this path automatically. **The target file will be overwritten if it already exists.**
+
+   Alternatively, you can create a symlink manually:
+   ```bash
+   ln -s /config/broadlink_manager/package.yaml /config/packages/broadlink_manager.yaml
    ```
 
 6. **Restart Home Assistant** (1-2 min)

@@ -722,6 +722,7 @@ class BroadlinkWebServer:
                     if v.get("device_type") == "smartir"
                 }
 
+                package_output_path = self.config_loader.get_package_output_path()
                 results = {
                     "success": True,
                     "broadlink_count": 0,
@@ -729,6 +730,9 @@ class BroadlinkWebServer:
                     "total_count": 0,
                     "errors": [],
                     "validation_warnings": [],
+                    "package_output_path": (
+                        str(package_output_path) if package_output_path else None
+                    ),
                 }
 
                 # Generate Broadlink native entities
@@ -765,6 +769,7 @@ class BroadlinkWebServer:
                         generator = EntityGeneratorV2(
                             device_manager=self.device_manager,
                             config_path=str(self.config_loader.get_config_path()),
+                            package_output_path=self.config_loader.get_package_output_path(),
                         )
                         broadlink_result = generator.generate_all_devices(
                             broadlink_devices

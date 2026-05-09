@@ -1183,8 +1183,8 @@ class EntityGenerator:
             "friendly_name", entity_id.replace("_", " ").title()
         )
 
-        # The companion switch entity ID
-        switch_entity_id = f"switch.{entity_id}_power"
+        # The companion switch entity ID (must use sanitized ID for valid HA entity ID)
+        switch_entity_id = f"switch.{sanitize_slug(entity_id)}_power"
 
         config = {
             "platform": "universal",
@@ -1341,10 +1341,11 @@ class EntityGenerator:
                 }
 
                 # Add source list to attributes via input_select
-                config["attributes"]["source"] = f"input_select.{entity_id}_source"
+                sanitized_id = sanitize_slug(entity_id)
+                config["attributes"]["source"] = f"input_select.{sanitized_id}_source"
                 config["attributes"][
                     "source_list"
-                ] = f"input_select.{entity_id}_source|options"
+                ] = f"input_select.{sanitized_id}_source|options"
 
         logger.info(
             f"Generated universal media player configuration for {entity_id} with {len(commands)} commands"
@@ -1382,8 +1383,8 @@ class EntityGenerator:
         if not ((turn_on_cmd and turn_off_cmd) or toggle_cmd):
             return None
 
-        # Create switch entity ID (will be switch.{entity_id}_power)
-        switch_entity_id = f"{entity_id}_power"
+        # Create switch entity ID (will be switch.{sanitized_id}_power)
+        switch_entity_id = f"{sanitized_id}_power"
 
         friendly_name = entity_data.get("name") or entity_data.get(
             "friendly_name", entity_id.replace("_", " ").title()
@@ -1611,12 +1612,15 @@ class EntityGenerator:
             logger.warning(f"Cover {entity_id} missing open or close commands")
             return None
 
+        # Sanitize entity_id for use in helper references
+        sanitized_id = sanitize_slug(entity_id)
+
         # Modern template syntax (HA 2021.4+) - return cover config directly
         cover_config = {
             "unique_id": entity_id,
             "name": entity_data.get("name")
             or entity_data.get("friendly_name", entity_id.replace("_", " ").title()),
-            "state": f"{{{{ is_state('input_select.{entity_id}_position', 'open') }}}}",
+            "state": f"{{{{ is_state('input_select.{sanitized_id}_position', 'open') }}}}",
         }
 
         # Add icon if specified
@@ -1635,7 +1639,9 @@ class EntityGenerator:
                     },
                     {
                         "action": "input_select.select_option",
-                        "target": {"entity_id": f"input_select.{entity_id}_position"},
+                        "target": {
+                            "entity_id": f"input_select.{sanitized_id}_position"
+                        },
                         "data": {"option": "open"},
                     },
                 ]
@@ -1652,7 +1658,9 @@ class EntityGenerator:
                     },
                     {
                         "action": "input_select.select_option",
-                        "target": {"entity_id": f"input_select.{entity_id}_position"},
+                        "target": {
+                            "entity_id": f"input_select.{sanitized_id}_position"
+                        },
                         "data": {"option": "closed"},
                     },
                 ]

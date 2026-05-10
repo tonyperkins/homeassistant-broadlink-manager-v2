@@ -26,6 +26,7 @@ options:
   package_output_path: ""
 schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
+  web_port: int?
   auto_discover: bool?
   force_legacy_learning: bool?
   package_output_path: str?

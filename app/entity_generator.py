@@ -1510,7 +1510,7 @@ class EntityGenerator:
                     "value_template": f"{{{{ is_state('input_boolean.{sanitized_id}_state', 'on') }}}}",
                     "current_temperature_template": "{{ 22 }}",  # Static temperature since IR/RF has no feedback
                     "target_temperature_template": "{{ states('input_number.{}_target_temp'.format('"
-                    + entity_id
+                    + sanitized_id
                     + "')) | float }}",
                     "min_temp": 16,
                     "max_temp": 30,
@@ -1570,7 +1570,7 @@ class EntityGenerator:
                     {
                         "action": "input_number.set_value",
                         "target": {
-                            "entity_id": f"input_number.{entity_id}_target_temp"
+                            "entity_id": f"input_number.{sanitized_id}_target_temp"
                         },
                         "data": {"value": "{{ temperature }}"},
                     },
@@ -1682,7 +1682,7 @@ class EntityGenerator:
         if position_commands:
             # Add position template (modern syntax uses 'position' not 'position_template')
             cover_config["position"] = (
-                f"{{{{ states('input_number.{entity_id}_position') | int }}}}"
+                f"{{{{ states('input_number.{sanitized_id}_position') | int }}}}"
             )
 
             # Add set position action

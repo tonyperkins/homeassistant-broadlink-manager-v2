@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.5.0-beta.5] - 2026-05-14
+
+### Fixed
+- Fix web server ignoring web_port config: read port from config instead of hardcoding 8099
+
+
 ## [0.5.0-beta.4] - 2026-05-10
 
 ### Fixed

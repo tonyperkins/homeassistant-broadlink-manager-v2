@@ -67,8 +67,8 @@ class BroadlinkManager:
     def _start_web_server(self):
         """Start the web server in a separate thread"""
         try:
-            # Use fixed ingress port for Home Assistant add-on
-            port = 8099
+            # Read web_port from configuration
+            port = self.config.get("web_port", 8099)
             self.web_server = BroadlinkWebServer(
                 port=port, config_loader=self.config_loader
             )

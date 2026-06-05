@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.5.0-beta.8] - 2026-06-05
+
+### Fixed
+- Fix stateless light mode - pass stateless flag through entity generation pipeline and hide brightness steps UI when stateless is enabled
+
+
+## [0.5.0-beta.7] - 2026-06-05
+
+### Fixed
+- Fix stateless light mode - pass stateless flag through entity generation pipeline and hide brightness steps UI when stateless is enabled
+
+
 ## [0.5.0-beta.6] - 2026-06-05
 
 ### Fixed

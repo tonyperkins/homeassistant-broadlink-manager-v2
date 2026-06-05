@@ -170,8 +170,8 @@
           <small>Optional: Material Design Icon name</small>
         </div>
 
-        <!-- Brightness Steps (for Light entities with Broadlink type) -->
-        <div v-if="formData.entity_type === 'light' && formData.device_type === 'broadlink'" class="form-group">
+        <!-- Brightness Steps (for Light entities with Broadlink type, not stateless) -->
+        <div v-if="formData.entity_type === 'light' && formData.device_type === 'broadlink' && !formData.stateless" class="form-group">
           <label for="brightness-steps">Brightness Steps</label>
           <input
             id="brightness-steps"

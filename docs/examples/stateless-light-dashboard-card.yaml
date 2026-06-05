@@ -1,0 +1,219 @@
+title: Stateless Light Test
+views:
+  - title: Main
+    path: main
+    type: sections
+    max_columns: 2
+    sections:
+      - icon: mdi:star
+        cards:
+          - type: heading
+            heading: Premium Mushroom Layouts
+          - type: markdown
+            content: |
+              ## 💡 Stateless Light Controls
+              A refined showcase for button-based stateless light entities.
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(var(--rgb-primary-color), 0.15) 0%, rgba(var(--rgb-primary-color), 0.02) 100%);
+                  border-left: 5px solid var(--primary-color);
+                  padding: 8px;
+                }
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Turn On
+                secondary: Office Light
+                icon: mdi:lightbulb-on
+                icon_color: amber
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_on
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: linear-gradient(135deg, rgba(255, 193, 7, 0.12) 0%, rgba(255, 193, 7, 0.02) 100%);
+                      border: 1px solid rgba(255, 193, 7, 0.2);
+                    }
+              - type: custom:mushroom-template-card
+                primary: Turn Off
+                secondary: Office Light
+                icon: mdi:lightbulb-off
+                icon_color: blue-grey
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_off
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: linear-gradient(135deg, rgba(96, 125, 139, 0.12) 0%, rgba(96, 125, 139, 0.02) 100%);
+                      border: 1px solid rgba(96, 125, 139, 0.2);
+                    }
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:mushroom-template-card
+                primary: Brightness +
+                secondary: Increase
+                icon: mdi:brightness-7
+                icon_color: orange
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_up
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.02) 100%);
+                    }
+              - type: custom:mushroom-template-card
+                primary: Brightness -
+                secondary: Decrease
+                icon: mdi:brightness-5
+                icon_color: deep-orange
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_down
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: linear-gradient(135deg, rgba(255, 87, 34, 0.1) 0%, rgba(255, 87, 34, 0.02) 100%);
+                    }
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              - type: template
+                icon: mdi:lightbulb-on
+                icon_color: amber
+                content: "On"
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_on
+              - type: template
+                icon: mdi:lightbulb-off
+                icon_color: grey
+                content: "Off"
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_off
+              - type: template
+                icon: mdi:plus
+                icon_color: orange
+                content: Up
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_up
+              - type: template
+                icon: mdi:minus
+                icon_color: deep-orange
+                content: Down
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_down
+      - icon: mdi:view-dashboard-variant
+        cards:
+          - type: heading
+            heading: Native & Clean Layouts
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: tile
+                entity: button.tony_s_office_ceiling_fan_light_turn_on
+                name: "Light: On"
+                color: amber
+                icon: mdi:lightbulb-on
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_on
+              - type: tile
+                entity: button.tony_s_office_ceiling_fan_light_turn_off
+                name: "Light: Off"
+                color: blue-grey
+                icon: mdi:lightbulb-off
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_off
+              - type: tile
+                entity: button.tony_s_office_ceiling_fan_light_brightness_up
+                name: Bright Up
+                color: orange
+                icon: mdi:brightness-7
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_up
+              - type: tile
+                entity: button.tony_s_office_ceiling_fan_light_brightness_down
+                name: Bright Down
+                color: deep-orange
+                icon: mdi:brightness-5
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_down
+          - type: entities
+            title: Combined Controller Row
+            show_header_toggle: false
+            entities:
+              - type: button
+                entity: button.tony_s_office_ceiling_fan_light_turn_on
+                name: Turn On Light
+                icon: mdi:lightbulb-on
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_on
+              - type: button
+                entity: button.tony_s_office_ceiling_fan_light_turn_off
+                name: Turn Off Light
+                icon: mdi:lightbulb-off
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_turn_off
+              - type: button
+                entity: button.tony_s_office_ceiling_fan_light_brightness_up
+                name: Increase Brightness
+                icon: mdi:brightness-7
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_up
+              - type: button
+                entity: button.tony_s_office_ceiling_fan_light_brightness_down
+                name: Decrease Brightness
+                icon: mdi:brightness-5
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tony_s_office_ceiling_fan_light_brightness_down

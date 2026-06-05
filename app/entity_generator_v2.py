@@ -83,6 +83,8 @@ class DeviceManagerAdapter:
                 entity_metadata["brightness_steps"] = int(
                     device_data["brightness_steps"]
                 )
+            if device_data.get("stateless") is not None:
+                entity_metadata["stateless"] = device_data["stateless"]
 
             entities[entity_id] = entity_metadata
 

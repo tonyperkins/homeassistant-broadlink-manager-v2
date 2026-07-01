@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2026-06-01T03:42:17.957694+00:00",
+  "last_updated": "2026-07-01T03:30:50.360558+00:00",
   "source": "https://github.com/tonyperkins/smartir-code-aggregator",
   "description": "Aggregated IR/RF codes from SmartIR, IRDB, and other sources in SmartIR format",
   "platforms": {
@@ -520,6 +520,13 @@
                 "FTXV35AV1B"
               ],
               "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1113.json"
+            },
+            {
+              "code": "1114",
+              "models": [
+                "FTXM35UVMZ"
+              ],
+              "url": "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main/codes/climate/1114.json"
             },
             {
               "code": "1115",
@@ -3251,7 +3258,7 @@
           ]
         }
       },
-      "total_devices": 355
+      "total_devices": 356
     },
     "media_player": {
       "manufacturers": {

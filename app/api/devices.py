@@ -234,7 +234,9 @@ def update_device(device_id):
             # If blaster changed, clear stale connection info so it refreshes for the new blaster
             if old_entity and new_entity and old_entity != new_entity:
                 entity_data.pop("connection", None)
-                logger.info(f"Blaster changed for '{device_id}': {old_entity} -> {new_entity}, cleared stale connection info")
+                logger.info(
+                    f"Blaster changed for '{device_id}': {old_entity} -> {new_entity}, cleared stale connection info"
+                )
         if "enabled" in data:
             entity_data["enabled"] = data["enabled"]
         if "commands" in data:
@@ -262,13 +264,21 @@ def update_device(device_id):
                 ) or smartir_config.get("code_id", "")
             if "controller_device" in data or "controller_device" in smartir_config:
                 old_controller = entity_data.get("controller_device", "")
-                new_controller = data.get(
-                    "controller_device"
-                ) or smartir_config.get("controller_device", "")
+                new_controller = data.get("controller_device") or smartir_config.get(
+                    "controller_device", ""
+                )
                 entity_data["controller_device"] = new_controller
-                if old_controller and new_controller and old_controller != new_controller:
+                if (
+                    old_controller
+                    and new_controller
+                    and old_controller != new_controller
+                ):
                     entity_data.pop("connection", None)
-                    logger.info(f"Controller changed for SmartIR device '{device_id}': {old_controller} -> {new_controller}, cleared stale connection info")
+                    logger.info(
+                        f"Controller changed for SmartIR device '{device_id}': "
+                        f"{old_controller} -> {new_controller}, "
+                        "cleared stale connection info"
+                    )
 
             # Optional climate-specific fields
             if "temperature_sensor" in data:
@@ -780,7 +790,10 @@ def update_managed_device(device_id):
         new_broadlink = data.get("broadlink_entity", old_broadlink)
         if old_broadlink and new_broadlink and old_broadlink != new_broadlink:
             updated_data.pop("connection", None)
-            logger.info(f"Blaster changed for managed device '{device_id}': {old_broadlink} -> {new_broadlink}, cleared stale connection info")
+            logger.info(
+                f"Blaster changed for managed device '{device_id}': "
+                f"{old_broadlink} -> {new_broadlink}, cleared stale connection info"
+            )
 
         # Handle SmartIR config if present
         if "smartir_config" in data and existing_device.get("device_type") == "smartir":
@@ -796,9 +809,17 @@ def update_managed_device(device_id):
                 old_controller = existing_device.get("controller_device", "")
                 new_controller = smartir_config["controller_device"]
                 updated_data["controller_device"] = new_controller
-                if old_controller and new_controller and old_controller != new_controller:
+                if (
+                    old_controller
+                    and new_controller
+                    and old_controller != new_controller
+                ):
                     updated_data.pop("connection", None)
-                    logger.info(f"Controller changed for SmartIR managed device '{device_id}': {old_controller} -> {new_controller}, cleared stale connection info")
+                    logger.info(
+                        f"Controller changed for SmartIR managed device "
+                        f"'{device_id}': {old_controller} -> "
+                        f"{new_controller}, cleared stale connection info"
+                    )
             # Remove the nested config object
             del updated_data["smartir_config"]
 

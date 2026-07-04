@@ -22,7 +22,7 @@
           </div>
         </div>
 
-        <form v-else @submit.prevent="startLearning">
+        <form v-else ref="commandForm" @submit.prevent="startLearning">
           <!-- Broadlink Device (Read-only) -->
           <div class="form-group">
             <label for="broadlink-entity">Broadlink Device</label>
@@ -208,6 +208,8 @@
             rows="3"
             :disabled="learning || importing"
             class="command-paste-input"
+            required
+            @input="clearPasteValidation"
           ></textarea>
         </div>
 
@@ -216,7 +218,7 @@
           <button 
             type="submit"
             class="btn btn-primary btn-large" 
-            :disabled="!canLearn || learning || importing"
+            :disabled="learning || importing"
           >
             <i v-if="learning" class="mdi mdi-loading mdi-spin"></i>
             <i v-else class="mdi mdi-remote-tv"></i>
@@ -226,7 +228,7 @@
             type="button"
             @click="importCommand"
             class="btn btn-secondary btn-large"
-            :disabled="!canImport || learning || importing"
+            :disabled="learning || importing"
           >
             <i v-if="importing" class="mdi mdi-loading mdi-spin"></i>
             <i v-else class="mdi mdi-import"></i>
@@ -274,7 +276,7 @@
           </div>
         </div>
 
-        <!-- Result Message (success only, warning removed) -->
+        <!-- Result Message (success only) -->
         <!-- Test command success is shown inline on the command row -->
         <!-- Hide during learning to prevent showing old success message -->
         <div v-if="resultMessage && resultType === 'success' && !resultMessage.includes('sent successfully') && !learning" class="result-message success">
@@ -294,38 +296,17 @@
           </div>
         </div>
 
-        <!-- Export/Import Toolbar -->
-        <div v-if="!isSmartIR && (learnedCommands.length > 0 || untrackedCommands.length > 0)" class="export-import-toolbar">
-          <button
-            type="button"
-            @click="exportCommands"
-            class="btn btn-secondary btn-sm"
-            :disabled="learnedCommands.length === 0"
-            title="Export this device's commands as JSON"
-          >
-            <i class="mdi mdi-download"></i>
-            Export JSON
-          </button>
-          <button
-            type="button"
-            @click="triggerImportFile"
-            class="btn btn-secondary btn-sm"
-            title="Import commands from a JSON file"
-          >
-            <i class="mdi mdi-upload"></i>
-            Import JSON
-          </button>
-          <input
-            ref="importFileInput"
-            type="file"
-            accept=".json,application/json"
-            style="display: none"
-            @change="handleImportFile"
-          />
-        </div>
+        <!-- Hidden file input for JSON import -->
+        <input
+          ref="importFileInput"
+          type="file"
+          accept=".json,application/json"
+          style="display: none"
+          @change="handleImportFile"
+        />
 
         <!-- Learned Commands List -->
-        <div v-else-if="learnedCommands.length > 0" class="learned-commands">
+        <div v-if="learnedCommands.length > 0" class="learned-commands">
           <div class="commands-header">
             <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
             <div class="commands-header-actions">
@@ -443,6 +424,19 @@
             Import All Untracked Commands
           </button>
         </div>
+
+        <!-- Import JSON button when no commands exist at all -->
+        <div v-if="!isSmartIR && learnedCommands.length === 0 && untrackedCommands.length === 0 && !loadingCommands" class="no-commands-import">
+          <button
+            type="button"
+            @click="triggerImportFile"
+            class="btn btn-secondary btn-sm"
+            title="Import commands from a JSON file"
+          >
+            <i class="mdi mdi-upload"></i>
+            Import JSON
+          </button>
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -519,6 +513,7 @@ const commandToDelete = ref('')
 const showImportConfirm = ref(false)
 const commandSelect = ref(null)
 const customCommandInput = ref(null)
+const commandForm = ref(null)
 const testedCommand = ref('') // Track which command was just tested
 const testingCommand = ref('') // Track which command is currently being tested
 const copiedCommand = ref('') // Track which command was just copied
@@ -554,6 +549,13 @@ const clearCommandValidation = () => {
 const clearCustomCommandValidation = () => {
   if (customCommandInput.value) {
     customCommandInput.value.setCustomValidity('')
+  }
+}
+
+const clearPasteValidation = () => {
+  const textarea = commandForm.value?.querySelector('.command-paste-input')
+  if (textarea) {
+    textarea.setCustomValidity('')
   }
 }
 
@@ -632,6 +634,15 @@ onMounted(async () => {
     commandSelect.value.setCustomValidity('')
     commandSelect.value.oninvalid = () => {
       commandSelect.value.setCustomValidity('Command name is required')
+    }
+  }
+
+  // Set validation for paste textarea
+  const pasteTextarea = commandForm.value?.querySelector('.command-paste-input')
+  if (pasteTextarea) {
+    pasteTextarea.setCustomValidity('')
+    pasteTextarea.oninvalid = () => {
+      pasteTextarea.setCustomValidity('Please paste a valid base64 encoded command code')
     }
   }
   
@@ -815,19 +826,13 @@ const importCommand = async () => {
   resultType.value = ''
 
   try {
-    const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
-    
-    if (!actualCommand.trim()) {
-      resultMessage.value = 'Please enter a command name'
-      resultType.value = 'error'
+    // Trigger native form validation (same style as Learn Command)
+    if (commandForm.value && !commandForm.value.reportValidity()) {
+      importing.value = false
       return
     }
 
-    if (!pastedCommandData.value.trim()) {
-      resultMessage.value = 'Please paste a command code'
-      resultType.value = 'error'
-      return
-    }
+    const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
 
     // Call the paste API endpoint
     const response = await api.post('/api/commands/paste', {
@@ -839,7 +844,7 @@ const importCommand = async () => {
 
     if (response.data.success) {
       // Reload commands from server to ensure sync
-      await loadLearnedCommands()
+      await loadLearnedCommands(true)
 
       // Clear the form
       commandName.value = ''
@@ -851,6 +856,7 @@ const importCommand = async () => {
 
       // Emit event to parent
       emit('learned', {
+        deviceId: props.device.id,
         device_id: props.device.id,
         command: actualCommand,
         type: commandType.value
@@ -873,14 +879,19 @@ const startLearning = async () => {
   resultMessage.value = ''
   resultType.value = ''
   learningStatusMessage.value = ''
-  
+
+  // Validate command name before proceeding
+  const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
+  if (!actualCommand || !actualCommand.trim()) {
+    resultMessage.value = 'Please enter a command name'
+    resultType.value = 'error'
+    return
+  }
+
   learning.value = true
   learningPhase.value = 'preparing'
   
   try {
-    // Get the actual command name (either selected or custom)
-    const actualCommand = commandName.value === '__custom__' ? customCommandName.value : commandName.value
-
     // If Direct mode is selected, use the direct SSE stream endpoint
     // which talks to the Broadlink device directly with real-time progress
     if (!useLegacyLearning.value) {

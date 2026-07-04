@@ -1276,8 +1276,8 @@ async function fetchLearnedCommandsForEdit(manufacturer, model, commands) {
 
 function flattenClimateCommands(nestedCommands) {
   // Convert nested SmartIR climate commands back to flat structure for UI
-  // SmartIR format: commands[mode][fan][temp] = code
-  // UI format: commands[mode_temp_fan] = code
+  // SmartIR format: commands[mode][fan][swing][temp] = code
+  // UI format: commands[mode_temp_fan] = code (or mode_temp_fan_swing, mode_temp_fan_swing_preset)
   const flatCommands = {}
   
   for (const [key, value] of Object.entries(nestedCommands)) {
@@ -1294,22 +1294,23 @@ function flattenClimateCommands(nestedCommands) {
       // Iterate through fan modes
       for (const [fanMode, fanValue] of Object.entries(value)) {
         if (typeof fanValue === 'object' && fanValue !== null) {
-          // Iterate through temperatures
-          for (const [temp, tempValue] of Object.entries(fanValue)) {
-            if (typeof tempValue === 'string') {
-              // Simple case: mode_temp_fan
-              const flatKey = `${mode}_${temp}_${fanMode}`
-              flatCommands[flatKey] = tempValue
-            } else if (typeof tempValue === 'object' && tempValue !== null) {
-              // Has swing modes
-              for (const [swing, swingValue] of Object.entries(tempValue)) {
-                if (typeof swingValue === 'string') {
+          // Iterate through swing modes (or temp if no swing)
+          for (const [swingOrTemp, swingOrTempValue] of Object.entries(fanValue)) {
+            if (typeof swingOrTempValue === 'string') {
+              // No swing mode: mode → fan → temp (temp is leaf string)
+              const flatKey = `${mode}_${swingOrTemp}_${fanMode}`
+              flatCommands[flatKey] = swingOrTempValue
+            } else if (typeof swingOrTempValue === 'object' && swingOrTempValue !== null) {
+              // Has swing mode: swingOrTemp is the swing mode name
+              const swing = swingOrTemp
+              for (const [temp, tempValue] of Object.entries(swingOrTempValue)) {
+                if (typeof tempValue === 'string') {
                   // mode_temp_fan_swing
                   const flatKey = `${mode}_${temp}_${fanMode}_${swing}`
-                  flatCommands[flatKey] = swingValue
-                } else if (typeof swingValue === 'object' && swingValue !== null) {
-                  // Has preset modes
-                  for (const [preset, presetValue] of Object.entries(swingValue)) {
+                  flatCommands[flatKey] = tempValue
+                } else if (typeof tempValue === 'object' && tempValue !== null) {
+                  // Has preset modes: temp → preset → code
+                  for (const [preset, presetValue] of Object.entries(tempValue)) {
                     if (typeof presetValue === 'string') {
                       // mode_temp_fan_swing_preset
                       const flatKey = `${mode}_${temp}_${fanMode}_${swing}_${preset}`
@@ -1399,8 +1400,8 @@ function generateSmartIRJson(profile) {
     }
     
     // Convert flat commands to nested tree structure for climate
-    // SmartIR expects: commands[mode][fan][temp][swing][preset] = code
-    // Note: The nesting order is mode → fan → temp (NOT mode → temp → fan)
+    // SmartIR expects: commands[mode][fan][swing][temp] = code
+    // Temperature is always the leaf value (string), not an intermediate object
     const flatCommands = profile.commands || {}
     const nestedCommands = {}
     
@@ -1421,18 +1422,20 @@ function generateSmartIRJson(profile) {
       const swing = parts[3] || null
       const preset = parts[4] || null
       
-      // Build nested structure: mode → fan → temp (correct SmartIR order)
+      // Build nested structure: mode → fan → swing → temp
+      // Temperature is always the leaf string value
       if (!nestedCommands[mode]) nestedCommands[mode] = {}
       if (!nestedCommands[mode][fan]) nestedCommands[mode][fan] = {}
       
       if (swing && preset) {
-        if (!nestedCommands[mode][fan][temp]) nestedCommands[mode][fan][temp] = {}
-        if (!nestedCommands[mode][fan][temp][swing]) nestedCommands[mode][fan][temp][swing] = {}
-        nestedCommands[mode][fan][temp][swing][preset] = code
+        if (!nestedCommands[mode][fan][swing]) nestedCommands[mode][fan][swing] = {}
+        if (!nestedCommands[mode][fan][swing][temp]) nestedCommands[mode][fan][swing][temp] = {}
+        nestedCommands[mode][fan][swing][temp][preset] = code
       } else if (swing) {
-        if (!nestedCommands[mode][fan][temp]) nestedCommands[mode][fan][temp] = {}
-        nestedCommands[mode][fan][temp][swing] = code
+        if (!nestedCommands[mode][fan][swing]) nestedCommands[mode][fan][swing] = {}
+        nestedCommands[mode][fan][swing][temp] = code
       } else {
+        // No swing mode: mode → fan → temp (temp is leaf)
         nestedCommands[mode][fan][temp] = code
       }
     }

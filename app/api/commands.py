@@ -569,52 +569,86 @@ def test_command():
                 # Extract the raw code for this command
                 commands_data = code_data.get("commands", {})
 
-                # Check if command is in format "mode_temp_fan" (e.g., "cool_24_auto") or "mode_temp" (e.g., "cool_24")
+                # Check if command is in format "mode_temp_fan[_swing][_preset]"
                 if "_" in command:
                     parts = command.split("_")
                     if len(parts) >= 2:
                         mode = parts[0]
                         temp = parts[1] if parts[1].isdigit() else None
                         fan = parts[2] if len(parts) > 2 else None
+                        swing = parts[3] if len(parts) > 3 else None
 
                         logger.info(
-                            f"Parsing command: mode='{mode}', temp='{temp}', fan='{fan}'"
+                            f"Parsing command: mode='{mode}', temp='{temp}', "
+                            f"fan='{fan}', swing='{swing}'"
                         )
 
-                        # Try to find the command in nested structure
+                        # SmartIR nesting: mode → fan → swing → temp
+                        # Temperature is always the leaf string value
                         mode_data = commands_data.get(mode)
                         if isinstance(mode_data, dict):
-                            if temp and temp in mode_data:
-                                temp_data = mode_data[temp]
-                                if isinstance(temp_data, dict) and fan:
-                                    # Nested by fan mode: cool -> 24 -> auto
-                                    raw_code = temp_data.get(fan)
-                                    logger.info(
-                                        f"Found code for {mode} at {temp}°C, fan {fan}"
-                                    )
+                            if fan and fan in mode_data:
+                                fan_data = mode_data[fan]
+                                if isinstance(fan_data, dict):
+                                    if swing and swing in fan_data:
+                                        # mode → fan → swing → temp
+                                        swing_data = fan_data[swing]
+                                        if isinstance(swing_data, dict) and temp:
+                                            raw_code = swing_data.get(temp)
+                                            logger.info(
+                                                f"Found code for {mode}/{fan}/"
+                                                f"{swing}/{temp}°C"
+                                            )
+                                        elif isinstance(swing_data, str):
+                                            raw_code = swing_data
+                                            logger.info(
+                                                f"Found code for {mode}/{fan}/"
+                                                f"{swing}"
+                                            )
+                                        else:
+                                            # No temp match, try first
+                                            raw_code = (
+                                                next(iter(swing_data.values()))
+                                                if swing_data
+                                                else None
+                                            )
+                                    elif temp and temp in fan_data:
+                                        # mode → fan → temp (no swing)
+                                        raw_code = fan_data[temp]
+                                        logger.info(
+                                            f"Found code for {mode}/{fan}/" f"{temp}°C"
+                                        )
+                                    else:
+                                        # No specific temp, use default
+                                        default_temp = "24"
+                                        if default_temp in fan_data:
+                                            raw_code = fan_data[default_temp]
+                                        else:
+                                            raw_code = (
+                                                next(iter(fan_data.values()))
+                                                if fan_data
+                                                else None
+                                            )
+                                        logger.info(
+                                            f"Using default/first temp "
+                                            f"for {mode}/{fan}"
+                                        )
                                 else:
-                                    # Just temperature nested: cool -> 24
-                                    raw_code = temp_data
-                                    logger.info(f"Found code for {mode} at {temp}°C")
+                                    raw_code = fan_data
                             else:
-                                # No specific temp, use default or first available
-                                default_temp = "24"
-                                if default_temp in mode_data:
-                                    temp_data = mode_data[default_temp]
+                                # No fan match, try first fan mode
+                                if mode_data:
+                                    first_fan = next(iter(mode_data.values()))
+                                    if isinstance(first_fan, dict):
+                                        raw_code = (
+                                            next(iter(first_fan.values()))
+                                            if first_fan
+                                            else None
+                                        )
+                                    else:
+                                        raw_code = first_fan
                                 else:
-                                    temp_data = (
-                                        next(iter(mode_data.values()))
-                                        if mode_data
-                                        else None
-                                    )
-
-                                if isinstance(temp_data, dict) and fan:
-                                    raw_code = temp_data.get(fan)
-                                else:
-                                    raw_code = temp_data
-                                logger.info(
-                                    f"Using default/first temperature for {mode}"
-                                )
+                                    raw_code = None
                         else:
                             raw_code = mode_data
                     else:
@@ -623,20 +657,18 @@ def test_command():
                     # Direct command lookup
                     raw_code = commands_data.get(command)
 
-                # For climate devices, commands may still be nested by temperature
-                # e.g., {"cool": {"16": "code1", "17": "code2"}}
+                # For climate devices, commands may still be nested
                 if isinstance(raw_code, dict):
-                    # Still nested - might have fan modes or other parameters
-                    # Try to get the first available value (usually the default fan mode)
                     logger.info(
-                        f"Command '{command}' has additional nesting (fan modes?), extracting first value"
+                        f"Command '{command}' has additional nesting, "
+                        f"extracting first value"
                     )
                     raw_code = next(iter(raw_code.values())) if raw_code else None
 
-                    # If still a dict, try one more level
                     if isinstance(raw_code, dict):
                         logger.info(
-                            f"Command '{command}' has multiple levels of nesting, extracting first value again"
+                            f"Command '{command}' has multiple levels of "
+                            f"nesting, extracting first value again"
                         )
                         raw_code = next(iter(raw_code.values())) if raw_code else None
 

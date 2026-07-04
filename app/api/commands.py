@@ -7,7 +7,8 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from flask import jsonify, request, current_app
+from datetime import datetime
+from flask import jsonify, request, current_app, Response
 from . import api_bp
 
 logger = logging.getLogger(__name__)
@@ -2120,4 +2121,263 @@ def test_command_ha():
 
     except Exception as e:
         logger.error(f"Error testing command via HA: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/export/<device_id>", methods=["GET"])
+def export_device_commands(device_id):
+    """Export a device's commands as a JSON file for backup/transfer"""
+    try:
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({"error": f"Device '{device_id}' not found"}), 404
+
+        commands = device.get("commands", {})
+        if not commands:
+            return jsonify({"error": "No commands to export"}), 400
+
+        export_data = {
+            "export_format": "broadlink_manager_v2",
+            "export_version": 1,
+            "exported_at": datetime.now().isoformat(),
+            "device": {
+                "id": device_id,
+                "name": device.get("name", ""),
+                "entity_type": device.get("entity_type", ""),
+                "device_type": device.get("device_type", "broadlink"),
+                "broadlink_entity": device.get("broadlink_entity", ""),
+                "area": device.get("area", ""),
+                "icon": device.get("icon", ""),
+            },
+            "commands": {},
+        }
+
+        for cmd_name, cmd_data in commands.items():
+            if isinstance(cmd_data, dict):
+                export_data["commands"][cmd_name] = {
+                    "data": cmd_data.get("data", ""),
+                    "type": cmd_data.get("type", cmd_data.get("command_type", "ir")),
+                }
+                if cmd_data.get("frequency"):
+                    export_data["commands"][cmd_name]["frequency"] = cmd_data[
+                        "frequency"
+                    ]
+            else:
+                export_data["commands"][cmd_name] = {
+                    "data": cmd_data,
+                    "type": "ir",
+                }
+
+        json_str = json.dumps(export_data, indent=2)
+        filename = f"{device_id}_commands.json"
+
+        return Response(
+            json_str,
+            mimetype="application/json",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting commands: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/export-all", methods=["GET"])
+def export_all_commands():
+    """Export all devices and their commands as a single JSON file"""
+    try:
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        all_devices = device_manager.get_all_devices()
+
+        export_data = {
+            "export_format": "broadlink_manager_v2",
+            "export_version": 1,
+            "exported_at": datetime.now().isoformat(),
+            "devices": [],
+        }
+
+        for device_id, device in all_devices.items():
+            commands = device.get("commands", {})
+            if not commands:
+                continue
+
+            device_export = {
+                "id": device_id,
+                "name": device.get("name", ""),
+                "entity_type": device.get("entity_type", ""),
+                "device_type": device.get("device_type", "broadlink"),
+                "broadlink_entity": device.get("broadlink_entity", ""),
+                "area": device.get("area", ""),
+                "icon": device.get("icon", ""),
+                "commands": {},
+            }
+
+            for cmd_name, cmd_data in commands.items():
+                if isinstance(cmd_data, dict):
+                    device_export["commands"][cmd_name] = {
+                        "data": cmd_data.get("data", ""),
+                        "type": cmd_data.get(
+                            "type", cmd_data.get("command_type", "ir")
+                        ),
+                    }
+                    if cmd_data.get("frequency"):
+                        device_export["commands"][cmd_name]["frequency"] = cmd_data[
+                            "frequency"
+                        ]
+                else:
+                    device_export["commands"][cmd_name] = {
+                        "data": cmd_data,
+                        "type": "ir",
+                    }
+
+            export_data["devices"].append(device_export)
+
+        json_str = json.dumps(export_data, indent=2)
+
+        return Response(
+            json_str,
+            mimetype="application/json",
+            headers={
+                "Content-Disposition": "attachment; filename=broadlink_manager_export.json"
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting all commands: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/import-json", methods=["POST"])
+def import_json_commands():
+    """Import commands from a JSON file (single device or multi-device export)"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        # Determine if this is a single-device or multi-device export
+        is_multi = "devices" in data
+        is_single = "device" in data and "commands" in data
+
+        if not is_multi and not is_single:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Invalid export format. Expected 'device' + 'commands' or 'devices' array.",
+                    }
+                ),
+                400,
+            )
+
+        results = {"imported": 0, "skipped": 0, "errors": [], "devices": []}
+
+        if is_single:
+            devices_to_import = [data]
+        else:
+            devices_to_import = data["devices"]
+
+        for entry in devices_to_import:
+            dev_info = entry.get("device", entry)
+            commands = entry.get("commands", {})
+            device_id = dev_info.get("id", "")
+
+            if not device_id:
+                results["errors"].append("Missing device ID in export entry")
+                results["skipped"] += 1
+                continue
+
+            if not commands:
+                results["errors"].append(
+                    f"Device '{device_id}' has no commands to import"
+                )
+                results["skipped"] += 1
+                continue
+
+            existing = device_manager.get_device(device_id)
+
+            if existing:
+                # Merge commands into existing device
+                existing_commands = existing.get("commands", {})
+                for cmd_name, cmd_data in commands.items():
+                    existing_commands[cmd_name] = {
+                        "data": cmd_data.get("data", ""),
+                        "type": cmd_data.get("type", "ir"),
+                        "command_type": cmd_data.get("type", "ir"),
+                        "name": cmd_name,
+                    }
+                    if cmd_data.get("frequency"):
+                        existing_commands[cmd_name]["frequency"] = cmd_data["frequency"]
+
+                existing["commands"] = existing_commands
+                device_manager.update_device(device_id, existing)
+                results["imported"] += len(commands)
+                results["devices"].append(
+                    {
+                        "id": device_id,
+                        "name": existing.get("name", device_id),
+                        "commands_imported": len(commands),
+                        "action": "merged",
+                    }
+                )
+                logger.info(
+                    f"Imported {len(commands)} commands into existing device '{device_id}'"
+                )
+            else:
+                # Create new device with imported commands
+                new_commands = {}
+                for cmd_name, cmd_data in commands.items():
+                    new_commands[cmd_name] = {
+                        "data": cmd_data.get("data", ""),
+                        "type": cmd_data.get("type", "ir"),
+                        "command_type": cmd_data.get("type", "ir"),
+                        "name": cmd_name,
+                    }
+                    if cmd_data.get("frequency"):
+                        new_commands[cmd_name]["frequency"] = cmd_data["frequency"]
+
+                device_data = {
+                    "name": dev_info.get("name", device_id),
+                    "entity_type": dev_info.get("entity_type", "switch"),
+                    "device_type": dev_info.get("device_type", "broadlink"),
+                    "broadlink_entity": dev_info.get("broadlink_entity", ""),
+                    "area": dev_info.get("area", ""),
+                    "icon": dev_info.get("icon", ""),
+                    "commands": new_commands,
+                }
+
+                success = device_manager.create_device(device_id, device_data)
+                if success:
+                    results["imported"] += len(commands)
+                    results["devices"].append(
+                        {
+                            "id": device_id,
+                            "name": device_data["name"],
+                            "commands_imported": len(commands),
+                            "action": "created",
+                        }
+                    )
+                    logger.info(
+                        f"Created new device '{device_id}' with {len(commands)} imported commands"
+                    )
+                else:
+                    results["errors"].append(f"Failed to create device '{device_id}'")
+                    results["skipped"] += 1
+
+        results["success"] = True
+        return jsonify(results)
+
+    except Exception as e:
+        logger.error(f"Error importing commands: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500

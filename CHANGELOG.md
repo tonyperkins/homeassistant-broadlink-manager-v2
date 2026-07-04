@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Export device commands as JSON (single device or all devices) for backup and transfer between Broadlink blasters
+- Import commands from JSON file (supports single-device and multi-device formats, auto-creates missing devices)
+- Per-command copy-to-clipboard for base64 codes in the command learner dialog
+- Allow changing the associated Broadlink blaster after device creation (previously locked once commands existed)
+
+### Fixed
+- Commands not displaying in CommandLearner dialog due to v-if/v-else-if chain conflict
+- Missing form validation messages for learn/import command actions (buttons were disabled before validation could fire)
+- Imported command not appearing in dialog without reopening (loadLearnedCommands not using force reload)
+- Device card command count not updating after importing a command (emit property name mismatch)
 ## [0.5.0-beta.8] - 2026-06-05
 
 ### Fixed

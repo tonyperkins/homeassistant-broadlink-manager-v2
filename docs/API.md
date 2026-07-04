@@ -550,6 +550,155 @@ Import untracked commands into a device's metadata.
 
 ---
 
+### Paste Command
+
+Import a single command by pasting its base64-encoded code.
+
+**Endpoint:** `POST /api/commands/paste`
+
+**Request Body:**
+```json
+{
+  "device_id": "samsung_model1",
+  "command_name": "turn_on",
+  "command_data": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+  "command_type": "ir"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Command 'turn_on' saved successfully"
+}
+```
+
+---
+
+### Export Device Commands
+
+Export a single device's commands as a downloadable JSON file for backup or transfer to another Broadlink blaster.
+
+**Endpoint:** `GET /api/commands/export/<device_id>`
+
+**Response:** JSON file download with `Content-Disposition: attachment; filename=<device_id>_commands.json`
+
+```json
+{
+  "export_format": "broadlink_manager_v2",
+  "export_version": 1,
+  "exported_at": "2026-07-04T09:00:00.000000",
+  "device": {
+    "id": "samsung_model1",
+    "name": "Samsung TV",
+    "entity_type": "switch",
+    "device_type": "broadlink",
+    "broadlink_entity": "remote.master_bedroom_rm4_pro",
+    "area": "Master Bedroom",
+    "icon": "mdi:television"
+  },
+  "commands": {
+    "turn_on": {
+      "data": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+      "type": "ir"
+    },
+    "turn_off": {
+      "data": "JgBQAAABKZIUEhQSFBIUEhQ6FBIUEhQSFBIU...",
+      "type": "ir"
+    }
+  }
+}
+```
+
+---
+
+### Export All Commands
+
+Export all devices and their commands as a single downloadable JSON file.
+
+**Endpoint:** `GET /api/commands/export-all`
+
+**Response:** JSON file download with `Content-Disposition: attachment; filename=broadlink_manager_export.json`
+
+```json
+{
+  "export_format": "broadlink_manager_v2",
+  "export_version": 1,
+  "exported_at": "2026-07-04T09:00:00.000000",
+  "devices": [
+    {
+      "id": "samsung_model1",
+      "name": "Samsung TV",
+      "device_type": "broadlink",
+      "broadlink_entity": "remote.master_bedroom_rm4_pro",
+      "area": "Master Bedroom",
+      "commands": {
+        "turn_on": { "data": "JgBQ...", "type": "ir" }
+      }
+    }
+  ]
+}
+```
+
+---
+
+### Import Commands from JSON
+
+Import commands from a JSON file (supports both single-device and multi-device export formats). If a device already exists, commands are merged. If it doesn't exist, a new device is created automatically.
+
+**Endpoint:** `POST /api/commands/import-json`
+
+**Request Body (single device):**
+```json
+{
+  "export_format": "broadlink_manager_v2",
+  "device": {
+    "id": "samsung_model1",
+    "name": "Samsung TV",
+    "device_type": "broadlink",
+    "broadlink_entity": "remote.master_bedroom_rm4_pro"
+  },
+  "commands": {
+    "turn_on": { "data": "JgBQ...", "type": "ir" }
+  }
+}
+```
+
+**Request Body (multi-device):**
+```json
+{
+  "export_format": "broadlink_manager_v2",
+  "devices": [
+    {
+      "id": "samsung_model1",
+      "name": "Samsung TV",
+      "commands": { "turn_on": { "data": "JgBQ...", "type": "ir" } }
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "imported": 3,
+  "skipped": 0,
+  "errors": [],
+  "devices": [
+    {
+      "id": "samsung_model1",
+      "name": "Samsung TV",
+      "commands_imported": 3,
+      "action": "merged"
+    }
+  ]
+}
+```
+
+---
+
 ## Area Management
 
 ### List Areas

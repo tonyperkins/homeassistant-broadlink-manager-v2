@@ -189,38 +189,32 @@
         <div v-if="formData.device_type === 'broadlink'" class="form-group" :class="{ 'has-error': validationErrors.broadlink_entity }">
           <label for="broadlink-entity">Remote Device *</label>
           <div class="input-wrapper">
-            <select 
-              v-if="!isEdit || !hasCommands"
+            <select
               id="broadlink-entity"
               ref="broadlinkSelect"
               v-model="formData.broadlink_entity"
               @change="clearValidationError('broadlink_entity')"
             >
               <option value="">-- Select Remote Device --</option>
-              <option 
-                v-for="device in broadlinkDevices" 
-                :key="device.entity_id" 
+              <option
+                v-for="device in broadlinkDevices"
+                :key="device.entity_id"
                 :value="device.entity_id"
               >
                 {{ device.name || device.entity_id }}
                 <template v-if="device.area_name"> - {{ device.area_name }}</template>
               </option>
             </select>
-            <input
-              v-else
-              id="broadlink-entity"
-              :value="broadlinkFriendlyName"
-              type="text"
-              readonly
-              disabled
-            />
             <div v-if="validationErrors.broadlink_entity" class="validation-tooltip">
               <i class="mdi mdi-alert"></i>
               {{ validationErrors.broadlink_entity }}
             </div>
           </div>
-          <small v-if="!isEdit || !hasCommands">Required: Select which remote device to use for sending commands</small>
-          <small v-else>Cannot change remote device after commands are learned</small>
+          <small>Required: Select which remote device to use for sending commands</small>
+          <small v-if="isEdit && hasCommands" class="warning-note">
+            <i class="mdi mdi-alert-outline"></i>
+            Changing the remote device will update which blaster is used for sending/testing commands. Existing learned codes will still work with the new blaster.
+          </small>
         </div>
 
         <!-- SmartIR Device Configuration (for SmartIR type) -->
@@ -987,6 +981,21 @@ const handleSmartIRChange = (data) => {
   margin-top: 2px;
   flex-shrink: 0;
   color: var(--ha-primary-color, #03a9f4);
+}
+
+.warning-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--ha-warning-color, #ff9800);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.warning-note i {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

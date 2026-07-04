@@ -33,7 +33,7 @@
               readonly
               disabled
             />
-            <small>Commands will be learned using this device (set when device was created)</small>
+            <small>Commands will be learned using this device. To change it, edit the device.</small>
           </div>
 
         <!-- Command Name Input -->
@@ -294,19 +294,68 @@
           </div>
         </div>
 
+        <!-- Export/Import Toolbar -->
+        <div v-if="!isSmartIR && (learnedCommands.length > 0 || untrackedCommands.length > 0)" class="export-import-toolbar">
+          <button
+            type="button"
+            @click="exportCommands"
+            class="btn btn-secondary btn-sm"
+            :disabled="learnedCommands.length === 0"
+            title="Export this device's commands as JSON"
+          >
+            <i class="mdi mdi-download"></i>
+            Export JSON
+          </button>
+          <button
+            type="button"
+            @click="triggerImportFile"
+            class="btn btn-secondary btn-sm"
+            title="Import commands from a JSON file"
+          >
+            <i class="mdi mdi-upload"></i>
+            Import JSON
+          </button>
+          <input
+            ref="importFileInput"
+            type="file"
+            accept=".json,application/json"
+            style="display: none"
+            @change="handleImportFile"
+          />
+        </div>
+
         <!-- Learned Commands List -->
         <div v-else-if="learnedCommands.length > 0" class="learned-commands">
           <div class="commands-header">
             <h3>Tracked Commands ({{ learnedCommands.length }})</h3>
-            <button 
-              type="button" 
-              @click="loadLearnedCommands(true)" 
-              class="icon-btn refresh-btn" 
-              title="Refresh commands"
-              :disabled="loadingCommands"
-            >
-              <i class="mdi mdi-refresh" :class="{ 'mdi-spin': loadingCommands }"></i>
-            </button>
+            <div class="commands-header-actions">
+              <button
+                type="button"
+                @click="exportCommands"
+                class="icon-btn"
+                title="Export commands as JSON"
+                :disabled="learnedCommands.length === 0"
+              >
+                <i class="mdi mdi-download"></i>
+              </button>
+              <button
+                type="button"
+                @click="triggerImportFile"
+                class="icon-btn"
+                title="Import commands from JSON"
+              >
+                <i class="mdi mdi-upload"></i>
+              </button>
+              <button
+                type="button"
+                @click="loadLearnedCommands(true)"
+                class="icon-btn refresh-btn"
+                title="Refresh commands"
+                :disabled="loadingCommands"
+              >
+                <i class="mdi mdi-refresh" :class="{ 'mdi-spin': loadingCommands }"></i>
+              </button>
+            </div>
           </div>
           <div class="command-list">
             <div v-for="cmd in learnedCommands" :key="cmd.name" class="command-item" :class="{ 'error-state': cmd.hasError, 'pending-state': cmd.isPending }">
@@ -340,6 +389,15 @@
                 
                 <!-- Action buttons -->
                 <div class="command-actions">
+                  <button
+                    type="button"
+                    @click="copyCommandCode(cmd.name)"
+                    class="icon-btn"
+                    :title="cmd.hasError ? 'Cannot copy - command failed to learn' : cmd.isPending ? 'Cannot copy - waiting for code' : 'Copy base64 code to clipboard'"
+                    :disabled="cmd.hasError || cmd.isPending"
+                  >
+                    <i class="mdi" :class="copiedCommand === cmd.name ? 'mdi-check' : 'mdi-content-copy'"></i>
+                  </button>
                   <button 
                     type="button" 
                     @click="testCommand(cmd.name)" 
@@ -463,6 +521,9 @@ const commandSelect = ref(null)
 const customCommandInput = ref(null)
 const testedCommand = ref('') // Track which command was just tested
 const testingCommand = ref('') // Track which command is currently being tested
+const copiedCommand = ref('') // Track which command was just copied
+const importFileInput = ref(null)
+const importingJson = ref(false)
 
 const isSmartIR = computed(() => {
   return props.device.device_type === 'smartir'
@@ -1246,6 +1307,107 @@ const handleImportConfirm = async () => {
     resultType.value = 'error'
   }
 }
+
+const exportCommands = async () => {
+  try {
+    const response = await api.get(`/api/commands/export/${props.device.id}`, {
+      responseType: 'blob',
+    })
+
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `${props.device.id}_commands.json`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    resultMessage.value = 'Commands exported successfully'
+    resultType.value = 'success'
+  } catch (error) {
+    console.error('Export error:', error)
+    const errorMsg = error.response?.data?.error || error.message || 'Failed to export'
+    resultMessage.value = `Export failed: ${errorMsg}`
+    resultType.value = 'error'
+  }
+}
+
+const triggerImportFile = () => {
+  if (importFileInput.value) {
+    importFileInput.value.click()
+  }
+}
+
+const handleImportFile = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  importingJson.value = true
+  resultMessage.value = ''
+  resultType.value = ''
+
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+
+    const response = await api.post('/api/commands/import-json', data)
+    const result = response.data
+
+    if (result.success) {
+      const deviceResults = result.devices || []
+      const summary = deviceResults.map(d =>
+        `${d.action === 'created' ? 'Created' : 'Merged'} "${d.name}" (${d.commands_imported} commands)`
+      ).join(', ')
+
+      resultMessage.value = `Import complete: ${result.imported} commands imported. ${summary}`
+      resultType.value = 'success'
+
+      await loadLearnedCommands(true)
+      await loadUntrackedCommands()
+
+      emit('learned', {
+        deviceId: props.device.id,
+        action: 'json_imported',
+        count: result.imported,
+      })
+    } else {
+      resultMessage.value = result.error || 'Import failed'
+      resultType.value = 'error'
+    }
+  } catch (error) {
+    console.error('JSON import error:', error)
+    resultMessage.value = error.response?.data?.error || error.message || 'Failed to import JSON'
+    resultType.value = 'error'
+  } finally {
+    importingJson.value = false
+    if (importFileInput.value) {
+      importFileInput.value.value = ''
+    }
+  }
+}
+
+const copyCommandCode = async (commandName) => {
+  try {
+    const deviceCommands = props.device.commands || {}
+    const cmdData = deviceCommands[commandName]
+    const code = cmdData?.data || (typeof cmdData === 'string' ? cmdData : '')
+
+    if (!code || code === 'pending' || code === 'error') {
+      resultMessage.value = 'No valid code available to copy'
+      resultType.value = 'error'
+      return
+    }
+
+    await navigator.clipboard.writeText(code)
+    copiedCommand.value = commandName
+    setTimeout(() => { copiedCommand.value = '' }, 2000)
+  } catch (error) {
+    console.error('Copy error:', error)
+    resultMessage.value = 'Failed to copy code to clipboard'
+    resultType.value = 'error'
+  }
+}
 </script>
 
 <style scoped>
@@ -1604,6 +1766,27 @@ const handleImportConfirm = async () => {
 .commands-header h3 {
   margin: 0;
   font-size: 18px;
+}
+
+.commands-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.export-import-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .refresh-btn {

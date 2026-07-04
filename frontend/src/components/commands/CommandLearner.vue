@@ -208,7 +208,6 @@
             rows="3"
             :disabled="learning || importing"
             class="command-paste-input"
-            required
             @input="clearPasteValidation"
           ></textarea>
         </div>
@@ -637,14 +636,7 @@ onMounted(async () => {
     }
   }
 
-  // Set validation for paste textarea
-  const pasteTextarea = commandForm.value?.querySelector('.command-paste-input')
-  if (pasteTextarea) {
-    pasteTextarea.setCustomValidity('')
-    pasteTextarea.oninvalid = () => {
-      pasteTextarea.setCustomValidity('Please paste a valid base64 encoded command code')
-    }
-  }
+  // Paste textarea validation is set dynamically in importCommand only
   
   // Pre-select broadlink device if set on device
   if (props.device.broadlink_entity) {
@@ -826,8 +818,20 @@ const importCommand = async () => {
   resultType.value = ''
 
   try {
+    // Set required validation on paste textarea for import only
+    const pasteTextarea = commandForm.value?.querySelector('.command-paste-input')
+    if (pasteTextarea) {
+      pasteTextarea.required = true
+      pasteTextarea.setCustomValidity('')
+      if (!pastedCommandData.value.trim()) {
+        pasteTextarea.setCustomValidity('Please paste a valid base64 encoded command code')
+      }
+    }
+
     // Trigger native form validation (same style as Learn Command)
     if (commandForm.value && !commandForm.value.reportValidity()) {
+      // Remove required so it doesn't block Learn Command
+      if (pasteTextarea) pasteTextarea.required = false
       importing.value = false
       return
     }
@@ -870,6 +874,9 @@ const importCommand = async () => {
     resultMessage.value = error.response?.data?.error || 'Failed to import command. Please check the code format.'
     resultType.value = 'error'
   } finally {
+    // Remove required so it doesn't block Learn Command
+    const pasteTextarea = commandForm.value?.querySelector('.command-paste-input')
+    if (pasteTextarea) pasteTextarea.required = false
     importing.value = false
   }
 }

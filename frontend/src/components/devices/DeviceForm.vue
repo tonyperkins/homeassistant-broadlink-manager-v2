@@ -94,14 +94,14 @@
             :disabled="isEdit"
           >
             <option value="">-- Select Device Type --</option>
-            <option value="broadlink">📡 Broadlink Device (Learn IR Codes)</option>
+            <option value="broadlink">📡 Broadlink Device (Learn IR and RF Codes)</option>
             <option v-if="smartirEnabled" value="smartir" :disabled="!smartirInstalled || !isSmartIRSupported">
               🌐 SmartIR Device {{ getSmartIROptionLabel }}
             </option>
           </select>
           <small v-if="isEdit">Cannot change device type after creation</small>
           <small v-else-if="formData.device_type === 'smartir'">Using pre-configured codes from SmartIR repository</small>
-          <small v-else-if="formData.device_type === 'broadlink'">Learn and store your own IR codes</small>
+          <small v-else-if="formData.device_type === 'broadlink'">Learn and store your own IR and RF codes</small>
           <small v-else>Choose how to configure this device</small>
         </div>
 
@@ -373,6 +373,10 @@ const loadBroadlinkDevices = async () => {
     const devices = response.data.devices || []
     broadlinkDevices.value = devices
     console.log('Loaded remote devices:', devices)
+    // Auto-select if only one remote device and none selected yet
+    if (devices.length === 1 && !formData.value.broadlink_entity) {
+      formData.value.broadlink_entity = devices[0].entity_id
+    }
   } catch (error) {
     console.error('Error loading remote devices:', error)
     broadlinkDevices.value = []

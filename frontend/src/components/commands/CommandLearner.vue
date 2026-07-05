@@ -642,6 +642,12 @@ onMounted(async () => {
   if (props.device.broadlink_entity) {
     selectedBroadlink.value = props.device.broadlink_entity
   }
+
+  // Restore saved RF frequency from localStorage
+  const savedFreq = localStorage.getItem('rf_frequency_override')
+  if (savedFreq) {
+    rfFrequencyInput.value = savedFreq
+  }
 })
 
 // Watch for custom command input to appear and set validation
@@ -654,6 +660,15 @@ watch(commandName, async (newVal) => {
         customCommandInput.value.setCustomValidity('Custom command name is required')
       }
     }
+  }
+})
+
+// Save RF frequency to localStorage when changed
+watch(rfFrequencyInput, (newVal) => {
+  if (newVal) {
+    localStorage.setItem('rf_frequency_override', newVal)
+  } else {
+    localStorage.removeItem('rf_frequency_override')
   }
 })
 
@@ -1039,7 +1054,7 @@ const startDirectLearning = async (actualCommand, commandType, frequency) => {
 
             commandName.value = ''
             customCommandName.value = ''
-            rfFrequencyInput.value = ''
+            // Keep RF frequency for next command (don't clear)
 
             emit('learned', {
               deviceId: props.device.id,

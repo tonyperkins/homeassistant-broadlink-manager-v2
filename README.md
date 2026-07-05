@@ -392,14 +392,22 @@ The add-on can automatically create Home Assistant entities from your learned co
    - The add-on will auto-detect entity types based on command names
    - You can manually adjust entity types and command roles
 3. **Generate entity files** by clicking the "Generate Entities" button
-4. **Add to configuration.yaml** (if not already using the package method):
+4. **Add to configuration.yaml** — choose one of two methods:
 
-   Add to your `configuration.yaml`:
+   **Option A** — Direct include (default):
    ```yaml
    homeassistant:
      packages:
        broadlink_manager: !include broadlink_manager/package.yaml
    ```
+
+   **Option B** — If you already use `!include_dir_named packages`, set `package_output_path` in the add-on configuration (Settings → Add-ons → Broadlink Manager → Configuration):
+   ```yaml
+   package_output_path: /config/packages/broadlink_manager.yaml
+   ```
+   No `configuration.yaml` change needed. The file will be written to this path automatically every time you generate entities. Make sure the `packages` directory already exists.
+
+   **Standalone / Docker mode:** Add `PACKAGE_OUTPUT_PATH=/path/to/your/ha/config/packages/broadlink_manager.yaml` to your `.env` file.
 
 5. **Restart Home Assistant** and your entities will appear!
 

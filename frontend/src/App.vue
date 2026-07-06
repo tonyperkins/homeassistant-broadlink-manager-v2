@@ -110,6 +110,7 @@ import Toast from './components/Toast.vue'
 import { smartirService } from './services/smartir'
 import api from './services/api'
 import packageJson from '../package.json'
+import { copyToClipboard as copyToClipboardUtil, downloadFile } from './utils/clipboard'
 
 const toastRef = ref(null)
 
@@ -188,34 +189,13 @@ const copyDiagnostics = async () => {
     const response = await api.get('/api/diagnostics/markdown')
     const markdown = response.data.markdown
     
-    // Try modern clipboard API first
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(markdown)
+    const success = await copyToClipboardUtil(markdown)
+    if (success) {
       toastRef.value?.success('Diagnostic summary copied to clipboard!')
+      showSettingsMenu.value = false
     } else {
-      // Fallback for browsers/contexts without clipboard API
-      const textArea = document.createElement('textarea')
-      textArea.value = markdown
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      
-      try {
-        const successful = document.execCommand('copy')
-        if (successful) {
-          toastRef.value?.success('Diagnostic summary copied to clipboard!')
-        } else {
-          throw new Error('execCommand failed')
-        }
-      } finally {
-        document.body.removeChild(textArea)
-      }
+      throw new Error('Clipboard copy failed')
     }
-    
-    showSettingsMenu.value = false
   } catch (error) {
     console.error('Error copying diagnostics:', error)
     toastRef.value?.error('Failed to copy diagnostics: ' + error.message)
@@ -231,11 +211,6 @@ const downloadDiagnostics = async () => {
       responseType: 'blob'
     })
     
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    
     // Extract filename from content-disposition header or use default
     const contentDisposition = response.headers['content-disposition']
     let filename = 'broadlink_manager_diagnostics.zip'
@@ -246,11 +221,7 @@ const downloadDiagnostics = async () => {
       }
     }
     
-    link.setAttribute('download', filename)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
+    await downloadFile(response.data, filename, 'application/zip')
     
     toastRef.value?.success('Diagnostic bundle downloaded!')
     showSettingsMenu.value = false

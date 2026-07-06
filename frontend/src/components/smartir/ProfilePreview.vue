@@ -156,6 +156,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { copyToClipboard as copyToClipboardUtil } from '@/utils/clipboard'
 
 const toast = useToast()
 
@@ -187,27 +188,25 @@ const formattedJson = computed(() => {
 })
 
 async function copyJson() {
-  try {
-    await navigator.clipboard.writeText(formattedJson.value)
+  const success = await copyToClipboardUtil(formattedJson.value)
+  if (success) {
     jsonCopied.value = true
     setTimeout(() => {
       jsonCopied.value = false
     }, 2000)
-  } catch (error) {
-    console.error('Failed to copy JSON:', error)
+  } else {
     toast.error('Failed to copy to clipboard')
   }
 }
 
 async function copyYaml() {
-  try {
-    await navigator.clipboard.writeText(props.yamlConfig)
+  const success = await copyToClipboardUtil(props.yamlConfig)
+  if (success) {
     yamlCopied.value = true
     setTimeout(() => {
       yamlCopied.value = false
     }, 2000)
-  } catch (error) {
-    console.error('Failed to copy YAML:', error)
+  } else {
     toast.error('Failed to copy to clipboard')
   }
 }

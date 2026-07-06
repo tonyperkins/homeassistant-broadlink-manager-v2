@@ -475,6 +475,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import api from '@/services/api'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
+import { copyToClipboard, downloadFile } from '@/utils/clipboard'
 
 const props = defineProps({
   device: {
@@ -1347,14 +1348,7 @@ const exportCommands = async () => {
       responseType: 'blob',
     })
 
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `${props.device.id}_commands.json`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
+    await downloadFile(response.data, `${props.device.id}_commands.json`)
 
     resultMessage.value = 'Commands exported successfully'
     resultType.value = 'success'
@@ -1432,9 +1426,14 @@ const copyCommandCode = async (commandName) => {
       return
     }
 
-    await navigator.clipboard.writeText(code)
-    copiedCommand.value = commandName
-    setTimeout(() => { copiedCommand.value = '' }, 2000)
+    const success = await copyToClipboard(code)
+    if (success) {
+      copiedCommand.value = commandName
+      setTimeout(() => { copiedCommand.value = '' }, 2000)
+    } else {
+      resultMessage.value = 'Failed to copy code to clipboard'
+      resultType.value = 'error'
+    }
   } catch (error) {
     console.error('Copy error:', error)
     resultMessage.value = 'Failed to copy code to clipboard'

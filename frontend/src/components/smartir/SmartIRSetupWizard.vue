@@ -124,6 +124,7 @@
 
 <script setup>
 import { ref, computed, inject } from 'vue'
+import { copyToClipboard as copyToClipboardUtil } from '@/utils/clipboard'
 
 const props = defineProps({
   show: {
@@ -158,14 +159,14 @@ const canContinue = computed(() => {
   return setupCompleted.value
 })
 
-function copyToClipboard() {
+async function copyToClipboard() {
   const text = `${props.platform}: !include smartir/${props.platform}.yaml`
-  navigator.clipboard.writeText(text).then(() => {
+  const success = await copyToClipboardUtil(text)
+  if (success) {
     toastRef.value?.success('Include line copied to clipboard!', '✅ Copied')
-  }).catch(err => {
-    console.error('Failed to copy:', err)
+  } else {
     toastRef.value?.error('Failed to copy to clipboard', '❌ Copy Failed')
-  })
+  }
 }
 
 function complete() {

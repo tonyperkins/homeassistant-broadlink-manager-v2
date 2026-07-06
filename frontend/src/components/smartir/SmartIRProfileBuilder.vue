@@ -322,6 +322,7 @@ import ProfilePreview from './ProfilePreview.vue'
 import SmartIRSetupWizard from './SmartIRSetupWizard.vue'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import api from '@/services/api'
+import { downloadFile } from '@/utils/clipboard'
 
 const props = defineProps({
   show: {
@@ -1190,29 +1191,14 @@ async function completeSetup() {
   }
 }
 
-function downloadLocally() {
+async function downloadLocally() {
   try {
-    // Create blob from JSON
     const jsonString = JSON.stringify(generatedJson.value, null, 2)
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    
-    // Create download link
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    
-    // Generate filename
     const manufacturer = profile.value.manufacturer.toLowerCase().replace(/\s+/g, '_')
     const model = profile.value.model.toLowerCase().replace(/\s+/g, '_')
-    link.download = `smartir_${profile.value.platform}_${manufacturer}_${model}.json`
+    const filename = `smartir_${profile.value.platform}_${manufacturer}_${model}.json`
     
-    // Trigger download
-    document.body.appendChild(link)
-    link.click()
-    
-    // Cleanup
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    await downloadFile(jsonString, filename)
     
     toastRef.value?.success(
       'You can manually upload this file to your SmartIR codes directory.',

@@ -26,6 +26,7 @@
 import { ref } from 'vue'
 import api from '@/services/api'
 import { useToast } from '@/composables/useToast'
+import { copyToClipboard as copyToClipboardUtil, downloadFile } from '@/utils/clipboard'
 
 const toast = useToast()
 const showMenu = ref(false)
@@ -37,9 +38,13 @@ const copyToClipboard = async () => {
     const response = await api.get('/api/diagnostics/markdown')
     const markdown = response.data.markdown
     
-    await navigator.clipboard.writeText(markdown)
-    toast.success('Diagnostic summary copied to clipboard!')
-    showMenu.value = false
+    const success = await copyToClipboardUtil(markdown)
+    if (success) {
+      toast.success('Diagnostic summary copied to clipboard!')
+      showMenu.value = false
+    } else {
+      toast.error('Failed to copy diagnostics')
+    }
   } catch (error) {
     console.error('Error copying diagnostics:', error)
     toast.error('Failed to copy diagnostics')
@@ -55,11 +60,6 @@ const downloadBundle = async () => {
       responseType: 'blob'
     })
     
-    // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    
     // Extract filename from content-disposition header or use default
     const contentDisposition = response.headers['content-disposition']
     let filename = 'broadlink_manager_diagnostics.zip'
@@ -70,11 +70,7 @@ const downloadBundle = async () => {
       }
     }
     
-    link.setAttribute('download', filename)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
+    await downloadFile(response.data, filename, 'application/zip')
     
     toast.success('Diagnostic bundle downloaded!')
     showMenu.value = false

@@ -74,6 +74,7 @@
 
 <script setup>
 import { ref, watch, computed, inject } from 'vue'
+import { copyToClipboard as copyToClipboardUtil, downloadFile } from '@/utils/clipboard'
 
 const props = defineProps({
   isOpen: {
@@ -175,27 +176,18 @@ const debugInfo = computed(() => {
 
 const copyDebugInfo = async () => {
   const debugText = generateDebugReport()
-  try {
-    await navigator.clipboard.writeText(debugText)
+  const success = await copyToClipboardUtil(debugText)
+  if (success) {
     toast?.success('Debug information copied to clipboard', '✅ Copied')
-  } catch (err) {
-    console.error('Failed to copy:', err)
+  } else {
     toast?.error('Failed to copy to clipboard', '❌ Copy Failed')
   }
 }
 
-const downloadDebugInfo = () => {
+const downloadDebugInfo = async () => {
   const debugText = generateDebugReport()
-  const blob = new Blob([debugText], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
-  link.download = `broadlink-manager-error-${timestamp}.txt`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  await downloadFile(debugText, `broadlink-manager-error-${timestamp}.txt`, 'text/plain')
   toast?.success('Debug report downloaded', '✅ Downloaded')
 }
 

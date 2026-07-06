@@ -286,6 +286,7 @@ import SmartIRProfileListView from './SmartIRProfileListView.vue'
 import SmartIRCodeTester from './SmartIRCodeTester.vue'
 import smartirLogo from '@/assets/images/smartir-logo.png'
 import api from '@/services/api'
+import { downloadFile } from '@/utils/clipboard'
 
 const emit = defineEmits(['create-profile', 'edit-profile'])
 
@@ -547,17 +548,10 @@ async function downloadProfile(platform, profile) {
     const response = await api.get(`/api/smartir/platforms/${platform}/profiles/${profile.code}`)
     const data = response.data
     
-    // Create blob and download
     const jsonString = JSON.stringify(data.profile, null, 2)
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `smartir_${platform}_${profile.manufacturer}_${profile.model}_${profile.code}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const filename = `smartir_${platform}_${profile.manufacturer}_${profile.model}_${profile.code}.json`
+    
+    await downloadFile(jsonString, filename)
     
     const toastRef = inject('toast')
     toastRef.value?.success(`Downloaded ${profile.manufacturer} ${profile.model}`, '✅ Profile Downloaded')

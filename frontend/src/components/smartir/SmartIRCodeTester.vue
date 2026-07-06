@@ -223,6 +223,7 @@
 import { ref, computed, watch, inject } from 'vue'
 import SearchableDropdown from '../common/SearchableDropdown.vue'
 import api from '@/services/api'
+import { downloadFile } from '@/utils/clipboard'
 
 const props = defineProps({
   isOpen: {
@@ -503,7 +504,7 @@ async function testCommand(commandName) {
   }
 }
 
-function downloadJson() {
+async function downloadJson() {
   if (!codeData.value) {
     toast.value?.error('No profile data to download', '❌ Error')
     return
@@ -515,18 +516,9 @@ function downloadJson() {
     const model = codeData.value.supportedModels?.[0] || selectedCode.value
     const filename = `${manufacturer.toLowerCase().replace(/\s+/g, '_')}_${model.toLowerCase().replace(/\s+/g, '_')}.json`
     
-    // Create blob and download
     const jsonString = JSON.stringify(codeData.value, null, 2)
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
     
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    await downloadFile(jsonString, filename)
     
     toast.value?.success(
       `Downloaded ${filename}`,

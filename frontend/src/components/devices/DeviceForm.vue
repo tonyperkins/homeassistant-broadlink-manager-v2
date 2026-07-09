@@ -103,6 +103,15 @@
           <small v-else-if="formData.device_type === 'smartir'">Using pre-configured codes from SmartIR repository</small>
           <small v-else-if="formData.device_type === 'broadlink'">Learn and store your own IR and RF codes</small>
           <small v-else>Choose how to configure this device</small>
+          
+          <!-- Warn about unsupported Broadlink + Climate combination -->
+          <div v-if="formData.device_type === 'broadlink' && formData.entity_type === 'climate'" class="notice-warning" style="margin-top: 8px;">
+            <i class="mdi mdi-alert"></i>
+            <div>
+              <strong>Climate is not supported for Broadlink devices</strong>
+              <p>Home Assistant removed the template climate platform, so Broadlink native entity generation cannot create climate entities. Please select "SmartIR Device" instead, or choose a different entity type.</p>
+            </div>
+          </div>
         </div>
 
         <!-- Stateless Mode Toggle (for Broadlink devices only) -->
@@ -529,6 +538,12 @@ const validateForm = () => {
   // Validate entity type
   if (!formData.value.entity_type) {
     validationErrors.value.entity_type = 'Entity type is required'
+    isValid = false
+  }
+  
+  // Block unsupported Broadlink + Climate combination
+  if (formData.value.device_type === 'broadlink' && formData.value.entity_type === 'climate') {
+    validationErrors.value.entity_type = 'Climate is not supported for Broadlink devices. Use SmartIR instead.'
     isValid = false
   }
   

@@ -313,6 +313,18 @@ class EntityGenerator:
                     "Use SmartIR custom integration for AC control: "
                     "https://github.com/smartHomeHub/SmartIR"
                 )
+                self.validation_warnings.append(
+                    {
+                        "device": entity_id,
+                        "device_name": entity_data.get("friendly_name", entity_id),
+                        "entity_type": "climate",
+                        "missing_commands": [],
+                        "message": (
+                            "Climate entities are not supported via Broadlink native generation. "
+                            "Use the SmartIR Profile Builder for AC/heater devices."
+                        ),
+                    }
+                )
                 continue
             elif entity_type == "cover":
                 config = self._generate_cover(

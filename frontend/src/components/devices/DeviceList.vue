@@ -1072,15 +1072,25 @@ const generateEntities = async () => {
         messageParts.push(`Generated ${summaryParts.join(' and ')} entity configuration${totalCount !== 1 ? 's' : ''}.`)
       }
       
-      // Show validation warnings if any (devices with missing required commands)
+      // Show validation warnings if any (devices skipped during generation)
       if (validationWarnings.length > 0) {
         title = '⚠️ Entity Generation Completed with Warnings'
-        messageParts.push(`\n⚠️ ${validationWarnings.length} device${validationWarnings.length !== 1 ? 's' : ''} skipped due to missing required commands:`)
+        messageParts.push(`\n⚠️ ${validationWarnings.length} device${validationWarnings.length !== 1 ? 's' : ''} skipped during entity generation:`)
         validationWarnings.forEach(warning => {
           messageParts.push(`\n  📱 ${warning.device_name} (${warning.entity_type}):`)
-          messageParts.push(`     Missing: ${warning.missing_commands.join(', ')}`)
+          if (warning.missing_commands && warning.missing_commands.length > 0) {
+            messageParts.push(`     Missing: ${warning.missing_commands.join(', ')}`)
+          } else if (warning.message) {
+            messageParts.push(`     ${warning.message}`)
+          }
         })
-        messageParts.push('\n💡 Learn the missing commands to generate entities for these devices.')
+        // Context-aware tip based on warning type
+        const hasClimateWarning = validationWarnings.some(w => w.entity_type === 'climate')
+        if (hasClimateWarning) {
+          messageParts.push('\n💡 Climate/AC devices require SmartIR. Use the SmartIR Profile Builder to create a SmartIR device instead.')
+        } else {
+          messageParts.push('\n💡 Learn the missing commands to generate entities for these devices.')
+        }
       }
       
       // File locations

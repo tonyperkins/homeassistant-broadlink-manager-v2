@@ -597,6 +597,21 @@ def create_managed_device():
         if not name:
             return jsonify({"error": "Device name is required"}), 400
 
+        # Block unsupported Broadlink + Climate combination
+        if device_type == "broadlink" and entity_type == "climate":
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "Climate entities are not supported for Broadlink devices. "
+                            "Home Assistant removed the template climate platform. "
+                            "Please create a SmartIR device instead."
+                        )
+                    }
+                ),
+                400,
+            )
+
         # Use storage name as device ID if provided (adopted device)
         # Otherwise generate new ID from area + device name
         if storage_name:

@@ -198,11 +198,12 @@ class DiagnosticsCollector:
                 "total_devices": 0,
                 "devices_by_type": {},
                 "devices_by_entity_type": {},
-                "broadlink_entities": 0,
+                "broadlink_devices": 0,
                 "smartir_devices": 0,
+                "unsupported_combinations": [],
             }
 
-            # Get devices from device_manager
+            # Get devices from device_manager (primary source in v2)
             if self.device_manager:
                 devices = self.device_manager.get_all_devices()
                 info["total_devices"] = len(devices)
@@ -220,14 +221,23 @@ class DiagnosticsCollector:
                         info["devices_by_entity_type"].get(entity_type, 0) + 1
                     )
 
-                    # Count SmartIR devices
+                    # Count by device type
                     if device_type == "smartir":
                         info["smartir_devices"] += 1
+                    else:
+                        info["broadlink_devices"] += 1
 
-            # Get entities from storage_manager
-            if self.storage_manager:
-                entities = self.storage_manager.get_all_entities()
-                info["broadlink_entities"] = len(entities)
+                    # Detect unsupported combinations
+                    if device_type == "broadlink" and entity_type == "climate":
+                        info["unsupported_combinations"].append(
+                            {
+                                "device_id": device_id,
+                                "device_name": device_data.get("name", device_id),
+                                "device_type": device_type,
+                                "entity_type": entity_type,
+                                "reason": "Climate is not supported for Broadlink devices. Use SmartIR instead.",
+                            }
+                        )
 
             return info
         except Exception as e:
@@ -308,25 +318,16 @@ class DiagnosticsCollector:
             return {"error": str(e)}
 
     def _collect_broadlink_devices(self) -> Dict[str, Any]:
-        """Collect Broadlink device information"""
+        """Collect Broadlink remote device information"""
         try:
             devices_info = {"discovered_count": 0, "devices": []}
 
-            # Get Broadlink devices from storage if available
-            if self.storage_manager:
-                entities = self.storage_manager.get_all_entities()
-                broadlink_entities = [
-                    e for e in entities.values() if e.get("broadlink_entity")
-                ]
-
-                devices_info["discovered_count"] = len(
-                    set(e.get("broadlink_entity") for e in broadlink_entities)
-                )
-
-                # Collect unique Broadlink entities
+            # Get Broadlink remote entities from device_manager (v2 primary source)
+            if self.device_manager:
+                devices = self.device_manager.get_all_devices()
                 seen_entities = set()
-                for entity in broadlink_entities:
-                    broadlink_entity = entity.get("broadlink_entity")
+                for device_id, device_data in devices.items():
+                    broadlink_entity = device_data.get("broadlink_entity", "")
                     if broadlink_entity and broadlink_entity not in seen_entities:
                         seen_entities.add(broadlink_entity)
                         # Extract device type from entity_id (e.g., remote.bedroom_rm4 -> RM4)
@@ -338,19 +339,19 @@ class DiagnosticsCollector:
                         elif "rm" in broadlink_entity.lower():
                             device_type = "RM Device"
 
+                        # Count managed devices using this remote
+                        commands_count = len(device_data.get("commands", {}))
+
                         devices_info["devices"].append(
                             {
                                 "entity_id": broadlink_entity,
                                 "type": device_type,
-                                "commands_count": len(
-                                    [
-                                        e
-                                        for e in broadlink_entities
-                                        if e.get("broadlink_entity") == broadlink_entity
-                                    ]
-                                ),
+                                "managed_device": device_id,
+                                "commands_count": commands_count,
                             }
                         )
+
+                devices_info["discovered_count"] = len(seen_entities)
 
             return devices_info
         except Exception as e:
@@ -371,8 +372,6 @@ class DiagnosticsCollector:
                 files_to_check = [
                     "devices.json",
                     "devices.json.backup",
-                    "metadata.json",
-                    "metadata.json.backup",
                     "package.yaml",
                     "helpers.yaml",
                 ]
@@ -389,6 +388,38 @@ class DiagnosticsCollector:
                         }
                     else:
                         info["files"][filename] = {"exists": False}
+
+                # Check legacy metadata.json (not used in v2, but may exist from v1)
+                legacy_files = ["metadata.json", "metadata.json.backup"]
+                for filename in legacy_files:
+                    file_path = self.storage_path / filename
+                    if file_path.exists():
+                        info["files"][filename] = {
+                            "exists": True,
+                            "size": file_path.stat().st_size,
+                            "legacy": True,
+                        }
+                    else:
+                        info["files"][filename] = {"exists": False, "legacy": True}
+
+                # Check entity generation status
+                package_file = self.storage_path / "package.yaml"
+                if package_file.exists():
+                    try:
+                        with open(package_file, "r") as pf:
+                            content = pf.read().strip()
+                        info["entity_generation"] = {
+                            "package_yaml_exists": True,
+                            "package_yaml_size": len(content),
+                            "package_yaml_empty": len(content) == 0,
+                        }
+                    except Exception:
+                        info["entity_generation"] = {
+                            "package_yaml_exists": True,
+                            "error": "Could not read package.yaml",
+                        }
+                else:
+                    info["entity_generation"] = {"package_yaml_exists": False}
 
                 # Check commands directory
                 commands_dir = self.storage_path / "commands"
@@ -421,7 +452,8 @@ class DiagnosticsCollector:
         try:
             backups = {}
 
-            backup_files = ["devices.json.backup", "metadata.json.backup"]
+            backup_files = ["devices.json.backup"]
+            legacy_backups = ["metadata.json.backup"]
 
             for backup_file in backup_files:
                 backup_path = self.storage_path / backup_file
@@ -438,6 +470,23 @@ class DiagnosticsCollector:
                     }
                 else:
                     backups[backup_file] = {"exists": False}
+
+            # Check legacy metadata.json.backup
+            for backup_file in legacy_backups:
+                backup_path = self.storage_path / backup_file
+                if backup_path.exists():
+                    stat = backup_path.stat()
+                    modified = datetime.fromtimestamp(stat.st_mtime)
+                    age = datetime.now() - modified
+                    backups[backup_file] = {
+                        "exists": True,
+                        "size": stat.st_size,
+                        "modified": modified.isoformat(),
+                        "age_hours": round(age.total_seconds() / 3600, 2),
+                        "legacy": True,
+                    }
+                else:
+                    backups[backup_file] = {"exists": False, "legacy": True}
 
             return backups
         except Exception as e:
@@ -509,35 +558,8 @@ class DiagnosticsCollector:
                                     "value": str(cmd_data),
                                 }
 
-            # Get commands from storage_manager (metadata.json)
-            if self.storage_manager:
-                entities = self.storage_manager.get_all_entities()
-                for entity_id, entity_data in entities.items():
-                    commands = entity_data.get("commands", {})
-                    if commands:
-                        structure[entity_id] = {
-                            "source": "storage_manager",
-                            "command_count": len(commands),
-                            "commands": {},
-                        }
-
-                        for cmd_name, cmd_data in commands.items():
-                            if isinstance(cmd_data, dict):
-                                structure[entity_id]["commands"][cmd_name] = {
-                                    "type": cmd_data.get("command_type", "unknown"),
-                                    "imported": cmd_data.get("imported", False),
-                                    "learned_at": cmd_data.get("learned_at")
-                                    is not None,
-                                }
-                            else:
-                                # Handle simple string values (command references)
-                                structure[entity_id]["commands"][cmd_name] = {
-                                    "type": "reference",
-                                    "value": str(cmd_data),
-                                }
-
             if not structure:
-                return {"note": "No commands found in devices or metadata"}
+                return {"note": "No commands found in devices"}
 
             return structure
         except Exception as e:
@@ -683,9 +705,9 @@ class DiagnosticsCollector:
         if data.get("dependencies") and not data["dependencies"].get("error"):
             deps = data["dependencies"]
             for dep in ["broadlink", "flask", "aiohttp", "pyyaml"]:
-                version = deps.get(dep, "not installed")
-                lines.append(f"- **{dep}:** {version}")
-            lines.append(f"- **Total Packages:** {deps.get('total_packages', 0)}")
+                dep_version = deps.get(dep, "not installed")
+                lines.append(f"- **{dep}:** {dep_version}")
+            lines.append(f"- **Total Packages:** {len(deps)}")
         lines.append("")
 
         # Configuration
@@ -699,6 +721,20 @@ class DiagnosticsCollector:
                 "",
             ]
         )
+
+        # Integration Status
+        if data.get("integrations"):
+            integrations = data["integrations"]
+            lines.append("## Integrations")
+            if integrations.get("smartir"):
+                smartir = integrations["smartir"]
+                installed = smartir.get("installed", False)
+                lines.append(
+                    f"- **SmartIR:** {'✅ Installed' if installed else '❌ Not installed'}"
+                )
+                if smartir.get("version"):
+                    lines.append(f"  - **Version:** {smartir['version']}")
+            lines.append("")
 
         # Home Assistant Connection
         lines.append("## Home Assistant Connection")
@@ -723,17 +759,27 @@ class DiagnosticsCollector:
             [
                 "## Devices",
                 f"- **Total Devices:** {data['devices'].get('total_devices', 0)}",
-                f"- **Broadlink Entities:** {data['devices'].get('broadlink_entities', 0)}",
+                f"- **Broadlink Devices:** {data['devices'].get('broadlink_devices', 0)}",
                 f"- **SmartIR Devices:** {data['devices'].get('smartir_devices', 0)}",
                 "",
             ]
         )
 
-        # Device breakdown
+        # Device breakdown by entity type
         if data["devices"].get("devices_by_entity_type"):
             lines.append("### Devices by Type")
             for entity_type, count in data["devices"]["devices_by_entity_type"].items():
                 lines.append(f"- **{entity_type}:** {count}")
+            lines.append("")
+
+        # Unsupported combinations
+        unsupported = data["devices"].get("unsupported_combinations", [])
+        if unsupported:
+            lines.append("### ⚠️ Unsupported Device Configurations")
+            for combo in unsupported:
+                lines.append(
+                    f"- **{combo['device_name']}** ({combo['device_type']}/{combo['entity_type']}): {combo['reason']}"
+                )
             lines.append("")
 
         # Broadlink Devices
@@ -779,9 +825,27 @@ class DiagnosticsCollector:
             lines.append("### Files")
             for filename, file_info in data["storage"]["files"].items():
                 if file_info.get("exists"):
-                    lines.append(f"- **{filename}:** {file_info.get('size', 0)} bytes")
+                    legacy_tag = " (legacy)" if file_info.get("legacy") else ""
+                    lines.append(
+                        f"- **{filename}:** {file_info.get('size', 0)} bytes{legacy_tag}"
+                    )
                 else:
-                    lines.append(f"- **{filename}:** ❌ Missing")
+                    legacy_tag = " (legacy)" if file_info.get("legacy") else ""
+                    lines.append(f"- **{filename}:** ❌ Missing{legacy_tag}")
+            lines.append("")
+
+        # Entity generation status
+        entity_gen = data["storage"].get("entity_generation")
+        if entity_gen:
+            lines.append("### Entity Generation")
+            if entity_gen.get("package_yaml_exists"):
+                size = entity_gen.get("package_yaml_size", 0)
+                is_empty = entity_gen.get("package_yaml_empty", size == 0)
+                lines.append(
+                    f"- **package.yaml:** {'⚠️ Empty' if is_empty else f'✅ {size} bytes'}"
+                )
+            else:
+                lines.append("- **package.yaml:** ❌ Not generated")
             lines.append("")
 
         # Backups
@@ -790,9 +854,13 @@ class DiagnosticsCollector:
             for backup_name, backup_info in data["backups"].items():
                 if backup_info.get("exists"):
                     age = backup_info.get("age_hours", 0)
-                    lines.append(f"- **{backup_name}:** ✅ ({age:.1f} hours old)")
+                    legacy_tag = " (legacy)" if backup_info.get("legacy") else ""
+                    lines.append(
+                        f"- **{backup_name}:** ✅ ({age:.1f} hours old){legacy_tag}"
+                    )
                 else:
-                    lines.append(f"- **{backup_name}:** ❌ Missing")
+                    legacy_tag = " (legacy)" if backup_info.get("legacy") else ""
+                    lines.append(f"- **{backup_name}:** ❌ Missing{legacy_tag}")
             lines.append("")
 
         # Permissions

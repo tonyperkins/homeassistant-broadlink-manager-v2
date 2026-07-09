@@ -122,7 +122,7 @@ class TestDeviceInfoCollection:
         info = collector._collect_device_info()
         
         assert info["total_devices"] == 0
-        assert info["broadlink_entities"] == 0
+        assert info["broadlink_devices"] == 0
         assert info["smartir_devices"] == 0
         assert "error" not in info
 
@@ -154,9 +154,11 @@ class TestDeviceInfoCollection:
         assert info["devices_by_entity_type"]["climate"] == 1
         assert info["devices_by_entity_type"]["fan"] == 1
         assert info["smartir_devices"] == 1
+        assert info["broadlink_devices"] == 2
+        assert info["unsupported_combinations"] == []
 
     def test_collect_device_info_with_storage_manager(self):
-        """Test device info collection with storage manager"""
+        """Test device info collection with storage manager only (no device manager)"""
         mock_storage_mgr = Mock()
         mock_storage_mgr.get_all_entities.return_value = {
             "entity1": {"name": "Light 1"},
@@ -166,7 +168,9 @@ class TestDeviceInfoCollection:
         collector = DiagnosticsCollector("/tmp/storage", storage_manager=mock_storage_mgr)
         info = collector._collect_device_info()
         
-        assert info["broadlink_entities"] == 2
+        # storage_manager is no longer used for device counts in v2
+        assert info["total_devices"] == 0
+        assert info["broadlink_devices"] == 0
 
     def test_collect_device_info_error_handling(self):
         """Test device info collection error handling"""
@@ -177,6 +181,27 @@ class TestDeviceInfoCollection:
         info = collector._collect_device_info()
         
         assert "error" in info
+
+    def test_collect_device_info_unsupported_combination(self):
+        """Test that Broadlink + Climate is flagged as unsupported"""
+        mock_device_mgr = Mock()
+        mock_device_mgr.get_all_devices.return_value = {
+            "device1": {
+                "device_type": "broadlink",
+                "entity_type": "climate",
+                "name": "Living Room AC",
+            },
+        }
+        
+        collector = DiagnosticsCollector("/tmp/storage", device_manager=mock_device_mgr)
+        info = collector._collect_device_info()
+        
+        assert info["total_devices"] == 1
+        assert len(info["unsupported_combinations"]) == 1
+        combo = info["unsupported_combinations"][0]
+        assert combo["device_id"] == "device1"
+        assert combo["device_name"] == "Living Room AC"
+        assert combo["entity_type"] == "climate"
 
 
 class TestIntegrationStatusCollection:
@@ -293,7 +318,7 @@ class TestCommandStructureCollection:
         assert structure["device1"]["commands"]["volume_up"]["imported"] is True
 
     def test_collect_command_structure_with_storage_manager(self):
-        """Test command structure collection with storage manager"""
+        """Test command structure collection with storage manager only (legacy, no longer used)"""
         mock_storage_mgr = Mock()
         mock_storage_mgr.get_all_entities.return_value = {
             "entity1": {
@@ -309,9 +334,8 @@ class TestCommandStructureCollection:
         collector = DiagnosticsCollector("/tmp/storage", storage_manager=mock_storage_mgr)
         structure = collector._collect_command_structure()
         
-        assert "entity1" in structure
-        assert structure["entity1"]["source"] == "storage_manager"
-        assert structure["entity1"]["command_count"] == 1
+        # storage_manager is no longer used for command structure in v2
+        assert "note" in structure
 
     def test_collect_command_structure_with_string_commands(self):
         """Test command structure collection with string command values"""
@@ -408,7 +432,7 @@ class TestMarkdownReportGeneration:
             },
             "devices": {
                 "total_devices": 5,
-                "broadlink_entities": 3,
+                "broadlink_devices": 3,
                 "smartir_devices": 2,
                 "devices_by_entity_type": {
                     "light": 2,
@@ -441,7 +465,7 @@ class TestMarkdownReportGeneration:
         assert "2024-01-01T00:00:00" in report
         assert "Linux" in report
         assert "Total Devices:** 5" in report
-        assert "Broadlink Entities:** 3" in report
+        assert "Broadlink Devices:** 3" in report
         assert "SmartIR Devices:** 2" in report
         assert "light:** 2" in report
         assert "devices.json:** 1024 bytes" in report
@@ -462,7 +486,7 @@ class TestMarkdownReportGeneration:
             },
             "devices": {
                 "total_devices": 0,
-                "broadlink_entities": 0,
+                "broadlink_devices": 0,
                 "smartir_devices": 0
             },
             "storage": {
@@ -519,7 +543,7 @@ class TestCollectAll:
         data = collector.collect_all()
         
         assert data["devices"]["total_devices"] == 1
-        assert data["devices"]["broadlink_entities"] == 1
+        assert data["devices"]["broadlink_devices"] == 1
 
     def test_collect_all_timestamp_format(self):
         """Test that collect_all generates valid ISO timestamp"""

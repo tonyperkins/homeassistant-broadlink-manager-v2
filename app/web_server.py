@@ -855,6 +855,10 @@ class BroadlinkWebServer:
                     results["message"] = (
                         f"Generated {' and '.join(messages)} entity configuration(s)"
                     )
+                elif results["validation_warnings"]:
+                    # Devices were processed but all were skipped (e.g. climate)
+                    # Keep success=True so frontend shows warnings, not a failure
+                    results["message"] = "No entities generated"
                 else:
                     results["success"] = False
                     results["message"] = "No entities configured"

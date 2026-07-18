@@ -231,52 +231,60 @@ class SmartIRDetector:
         return result
 
     def get_code_save_path(self, platform: str, code_number: int) -> Path:
-        """Get the correct path to save a code file
+        """Get the primary path to save a code file (custom_codes directory)
 
-        Custom codes (10000+) or any edits go to custom_codes directory.
-        This ensures user customizations persist through HACS updates.
+        Note: write_code_file() saves to both codes/ and custom_codes/.
+        This method returns the custom_codes path for backward compatibility.
         """
-        # Always use custom_codes for saves to avoid HACS overwriting
         return self.custom_codes_path / platform / f"{code_number}.json"
 
     def write_code_file(
         self, platform: str, code_number: int, data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Write a SmartIR code file to custom_codes directory
+        """Write a SmartIR code file to both codes/ and custom_codes/ directories
 
-        All saves go to custom_codes to persist through HACS updates.
+        Saving to codes/ ensures the original SmartIR fork (smartHomeHub) can find
+        the profile. Saving to custom_codes/ ensures persistence through HACS updates
+        for the litinoveweedle fork.
         """
-        # Use custom_codes path for all saves
-        platform_path = self.custom_codes_path / platform
-
         result = {"success": False, "file": None, "error": None}
+        written_paths = []
 
-        # Ensure platform directory exists
-        try:
-            platform_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            result["error"] = f"Could not create platform directory: {e}"
-            return result
+        # Write to both directories
+        for base_path, label in [
+            (self.codes_path, "codes"),
+            (self.custom_codes_path, "custom_codes"),
+        ]:
+            platform_path = base_path / platform
 
-        code_file = platform_path / f"{code_number}.json"
+            # Ensure platform directory exists
+            try:
+                platform_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                logger.warning(f"Could not create {label} platform directory: {e}")
+                continue
 
-        # Check if file already exists
-        if code_file.exists():
-            result["error"] = f"Code file already exists: {code_number}"
-            return result
+            code_file = platform_path / f"{code_number}.json"
 
-        # Write file
-        try:
-            with open(code_file, "w") as f:
-                json.dump(data, f, indent=2)
+            # Check if file already exists in this directory
+            if code_file.exists():
+                logger.info(f"Code file already exists in {label}: {code_number}")
+                continue
 
+            # Write file
+            try:
+                with open(code_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                written_paths.append(str(code_file))
+                logger.info(f"Created SmartIR code file in {label}: {code_file}")
+            except Exception as e:
+                logger.error(f"Failed to write SmartIR code file to {label}: {e}")
+
+        if written_paths:
             result["success"] = True
-            result["file"] = str(code_file)
-            logger.info(f"Created SmartIR code file in custom_codes: {code_file}")
-
-        except Exception as e:
-            result["error"] = f"Could not write code file: {e}"
-            logger.error(f"Failed to write SmartIR code file: {e}")
+            result["file"] = written_paths[0]
+        else:
+            result["error"] = f"Code file already exists: {code_number}"
 
         return result
 

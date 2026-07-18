@@ -268,26 +268,29 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get custom_codes directory
+            # Get SmartIR paths
             smartir_path = smartir_detector.smartir_path
             custom_codes_dir = smartir_path / "custom_codes" / platform
+            codes_dir = smartir_path / "codes" / platform
 
-            # Create custom_codes directory if it doesn't exist
+            # Create directories if they don't exist
             custom_codes_dir.mkdir(parents=True, exist_ok=True)
+            codes_dir.mkdir(parents=True, exist_ok=True)
 
             # Create placeholder profile
             filename = f"{code_number}.json"
-            file_path = custom_codes_dir / filename
+            custom_file_path = custom_codes_dir / filename
+            codes_file_path = codes_dir / filename
 
             # Check if file already exists
-            if file_path.exists():
+            if custom_file_path.exists():
                 logger.info(f"Profile file {filename} already exists, will be updated")
                 return (
                     jsonify(
                         {
                             "success": True,
                             "message": f"Profile {filename} already exists",
-                            "path": str(file_path),
+                            "path": str(custom_file_path),
                             "filename": filename,
                             "code_number": code_number,
                             "already_exists": True,
@@ -303,18 +306,28 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                 "commands": {},
             }
 
-            # Write placeholder JSON file
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(placeholder_profile, f, indent=2, ensure_ascii=False)
-
-            logger.info(f"✅ Initialized placeholder SmartIR profile: {file_path}")
+            # Write placeholder JSON file to both directories
+            for write_path, label in [
+                (custom_file_path, "custom_codes"),
+                (codes_file_path, "codes"),
+            ]:
+                try:
+                    with open(write_path, "w", encoding="utf-8") as f:
+                        json.dump(placeholder_profile, f, indent=2, ensure_ascii=False)
+                    logger.info(
+                        f"✅ Initialized placeholder SmartIR profile in {label}: {write_path}"
+                    )
+                except Exception as write_err:
+                    logger.warning(
+                        f"Failed to write placeholder to {label}: {write_err}"
+                    )
 
             return (
                 jsonify(
                     {
                         "success": True,
                         "message": f"Profile initialized as {filename}",
-                        "path": str(file_path),
+                        "path": str(custom_file_path),
                         "filename": filename,
                         "code_number": code_number,
                         "already_exists": False,
@@ -356,24 +369,38 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     404,
                 )
 
-            # Get custom_codes directory (persists through HACS updates)
+            # Get SmartIR paths
             smartir_path = smartir_detector.smartir_path
             custom_codes_dir = smartir_path / "custom_codes" / platform
+            codes_dir = smartir_path / "codes" / platform
 
-            # Create custom_codes directory if it doesn't exist
+            # Create directories if they don't exist
             custom_codes_dir.mkdir(parents=True, exist_ok=True)
+            codes_dir.mkdir(parents=True, exist_ok=True)
 
             # Save the JSON file
             filename = f"{code_number}.json"
-            file_path = custom_codes_dir / filename
+            custom_file_path = custom_codes_dir / filename
+            codes_file_path = codes_dir / filename
 
-            # Check if file already exists and merge commands
-            if file_path.exists():
+            # Check if file already exists (check custom_codes first, then codes) and merge commands
+            existing_file = None
+            if custom_file_path.exists():
+                existing_file = custom_file_path
                 logger.info(
                     f"Profile file {filename} already exists in custom_codes, merging commands"
                 )
+            elif codes_file_path.exists():
+                existing_file = codes_file_path
+                logger.info(
+                    f"Profile file {filename} already exists in codes, merging commands"
+                )
+            else:
+                logger.info(f"Creating new profile {filename}")
+
+            if existing_file:
                 # Load existing profile
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(existing_file, "r", encoding="utf-8") as f:
                     existing_profile = json.load(f)
 
                 # Merge commands: existing + new (new commands override existing)
@@ -387,10 +414,6 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     f"📝 Merged {len(existing_commands)} existing + {len(new_commands)} new = "
                     f"{len(merged_commands)} total commands"
                 )
-            else:
-                logger.info(
-                    f"Creating new profile {filename} in custom_codes (persists through HACS updates)"
-                )
 
             # Reorder commands for climate profiles to match SmartIR expected key order
             # SmartIR expects: [operation_mode][fan_mode][swing_mode][target_temperature]
@@ -400,18 +423,24 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     profile_json["commands"]
                 )
 
-            # Write JSON file with proper formatting
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(profile_json, f, indent=2, ensure_ascii=False)
-
-            logger.info(f"✅ Saved SmartIR profile to custom_codes: {file_path}")
+            # Write JSON file to both directories with proper formatting
+            for write_path, label in [
+                (custom_file_path, "custom_codes"),
+                (codes_file_path, "codes"),
+            ]:
+                try:
+                    with open(write_path, "w", encoding="utf-8") as f:
+                        json.dump(profile_json, f, indent=2, ensure_ascii=False)
+                    logger.info(f"✅ Saved SmartIR profile to {label}: {write_path}")
+                except Exception as write_err:
+                    logger.warning(f"Failed to write to {label}: {write_err}")
 
             return (
                 jsonify(
                     {
                         "success": True,
                         "message": f"Profile saved successfully as {filename}",
-                        "path": str(file_path),
+                        "path": str(custom_file_path),
                         "filename": filename,
                         "code_number": code_number,
                     }
@@ -791,12 +820,13 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             custom_file_path = smartir_path / "custom_codes" / platform / f"{code}.json"
             builtin_file_path = smartir_path / "codes" / platform / f"{code}.json"
 
-            file_path = None
+            # A profile is "custom" (deletable) if it exists in custom_codes.
+            # If it only exists in codes/ and not custom_codes/, it's a builtin
+            # shipped with SmartIR and should not be deleted.
+            is_custom = custom_file_path.exists()
+            is_builtin_only = not is_custom and builtin_file_path.exists()
 
-            if custom_file_path.exists():
-                file_path = custom_file_path
-            elif builtin_file_path.exists():
-                # Don't allow deleting builtin profiles
+            if is_builtin_only:
                 return (
                     jsonify(
                         {
@@ -806,7 +836,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                     ),
                     400,
                 )
-            else:
+            elif not is_custom and not builtin_file_path.exists():
                 return (
                     jsonify({"success": False, "error": f"Profile {code} not found"}),
                     404,
@@ -870,7 +900,7 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
 
             # Read the profile to get manufacturer/model for Broadlink storage cleanup
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(custom_file_path, "r", encoding="utf-8") as f:
                     import json
 
                     profile_data = json.load(f)
@@ -929,9 +959,16 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
             except Exception as e:
                 logger.warning(f"Could not clean up Broadlink storage: {e}")
 
-            # Delete the file
-            file_path.unlink()
-            logger.info(f"✅ Deleted SmartIR profile: {file_path}")
+            # Delete the file from both directories
+            for file_to_delete, label in [
+                (custom_file_path, "custom_codes"),
+                (builtin_file_path, "codes"),
+            ]:
+                if file_to_delete.exists():
+                    file_to_delete.unlink()
+                    logger.info(
+                        f"✅ Deleted SmartIR profile from {label}: {file_to_delete}"
+                    )
 
             # Remove from smartir/{platform}.yaml config file
             from flask import current_app

@@ -465,12 +465,18 @@ class TestCodeFileWriting:
             assert saved_data["manufacturer"] == "Custom"
 
     def test_write_code_file_already_exists(self):
-        """Test that writing fails if file already exists"""
+        """Test that writing fails if file already exists in both directories"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir)
-            climate_path = config_path / "custom_components" / "smartir" / "custom_codes" / "climate"
-            climate_path.mkdir(parents=True)
-            (climate_path / "10000.json").write_text('{}')
+            # Create the file in both codes/ and custom_codes/ to simulate
+            # a profile that was already saved by the dual-write logic
+            custom_climate_path = config_path / "custom_components" / "smartir" / "custom_codes" / "climate"
+            custom_climate_path.mkdir(parents=True)
+            (custom_climate_path / "10000.json").write_text('{}')
+            
+            codes_climate_path = config_path / "custom_components" / "smartir" / "codes" / "climate"
+            codes_climate_path.mkdir(parents=True)
+            (codes_climate_path / "10000.json").write_text('{}')
             
             detector = SmartIRDetector(str(config_path))
             result = detector.write_code_file("climate", 10000, {})

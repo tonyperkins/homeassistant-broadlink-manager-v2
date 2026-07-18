@@ -735,7 +735,12 @@ watch(() => props.editData, async (newData) => {
     let config = {}
     
     if (newData.platform === 'climate') {
-      const inferredModes = profileData.operationModes || inferModesFromCommands(commands)
+      // Start with operationModes from the saved profile, or infer from commands
+      let inferredModes = profileData.operationModes || inferModesFromCommands(commands)
+      // 'off' is stored as a standalone command, not in operationModes - re-add it for the UI
+      if (commands.off && !inferredModes.includes('off')) {
+        inferredModes = ['off', ...inferredModes]
+      }
       const inferredFanModes = profileData.fanModes || inferFanModesFromCommands(commands)
       const inferredSwingModes = profileData.swingModes || inferSwingModesFromCommands(commands)
       const inferredPresetModes = profileData.presetModes || inferPresetModesFromCommands(commands)
@@ -752,7 +757,10 @@ watch(() => props.editData, async (newData) => {
         modes: inferredModes,
         fanModes: inferredFanModes,
         swingModes: inferredSwingModes,
-        presetModes: inferredPresetModes
+        presetModes: inferredPresetModes,
+        tempSensor: profileData.temperature_sensor || '',
+        humiditySensor: profileData.humidity_sensor || '',
+        powerSensor: profileData.power_sensor || ''
       }
     } else if (newData.platform === 'media_player') {
       // Infer features from commands
@@ -1126,16 +1134,23 @@ async function saveToSmartIR() {
       controller_data: profile.value.broadlinkDevice
     }
     
+    // Add climate-specific sensor fields
+    if (profile.value.platform === 'climate') {
+      if (profile.value.config.tempSensor) {
+        deviceConfig.temperature_sensor = profile.value.config.tempSensor
+      }
+      if (profile.value.config.humiditySensor) {
+        deviceConfig.humidity_sensor = profile.value.config.humiditySensor
+      }
+      if (profile.value.config.powerSensor) {
+        deviceConfig.power_sensor = profile.value.config.powerSensor
+      }
+    }
+    
     try {
       await api.post('/api/smartir/config/add-device', {
         platform: profile.value.platform,
-        device_config: {
-          platform: 'smartir',
-          name: deviceConfig.name,
-          unique_id: deviceConfig.unique_id,
-          device_code: deviceConfig.device_code,
-          controller_data: deviceConfig.controller_data
-        }
+        device_config: deviceConfig
       })
     } catch (configError) {
       console.error('Failed to add device to config:', configError)

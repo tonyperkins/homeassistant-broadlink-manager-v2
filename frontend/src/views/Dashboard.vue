@@ -99,14 +99,21 @@ async function handleEditProfile({ platform, profile, startStep }) {
     
     const data = await response.json()
     
-    // Try to find controller_data from YAML config
+    // Try to find controller_data and sensor config from YAML config
     let controllerData = ''
+    let sensorConfig = {}
     try {
       const configResponse = await fetch(`api/smartir/config/get-device?platform=${platform}&code=${profile.code}`)
       if (configResponse.ok) {
         const configData = await configResponse.json()
         controllerData = configData.controller_data || ''
+        sensorConfig = {
+          temperature_sensor: configData.temperature_sensor || '',
+          humidity_sensor: configData.humidity_sensor || '',
+          power_sensor: configData.power_sensor || '',
+        }
         console.log('✅ Found controller_data from YAML:', controllerData)
+        console.log('✅ Found sensor config from YAML:', sensorConfig)
       } else {
         console.warn('⚠️ No YAML entry found for this profile (this is OK for profiles not yet added to config)')
       }
@@ -121,7 +128,8 @@ async function handleEditProfile({ platform, profile, startStep }) {
       code: profile.code,
       profile: {
         ...data.profile,
-        controller_data: controllerData // Add controller_data from YAML
+        controller_data: controllerData, // Add controller_data from YAML
+        ...sensorConfig // Add sensor fields from YAML
       }
     }
     showProfileBuilder.value = true

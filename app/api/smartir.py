@@ -1061,6 +1061,9 @@ def init_smartir_routes(smartir_detector, smartir_code_service=None):
                         "controller_data": device.get("controller_data", ""),
                         "name": device.get("name", ""),
                         "unique_id": device.get("unique_id", ""),
+                        "temperature_sensor": device.get("temperature_sensor", ""),
+                        "humidity_sensor": device.get("humidity_sensor", ""),
+                        "power_sensor": device.get("power_sensor", ""),
                     }
                 ),
                 200,

@@ -54,35 +54,44 @@
       <p class="help-text" v-else>
         Define the temperature range. All temperatures in this range will be learned.
       </p>
-      
+
       <div class="form-row">
         <div class="form-group">
-          <label>Minimum Temperature (°C) *</label>
-          <input 
-            v-model.number="config.minTemp" 
-            type="number" 
-            min="10" 
+          <label>Temperature Unit *</label>
+          <select v-model="config.temperatureUnit">
+            <option value="C">Celsius (°C)</option>
+            <option value="F">Fahrenheit (°F)</option>
+          </select>
+          <small>Required by the active SmartIR fork (litinoveweedle). Defaults to Celsius.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Minimum Temperature (°{{ config.temperatureUnit }}) *</label>
+          <input
+            v-model.number="config.minTemp"
+            type="number"
+            min="10"
             max="35"
             placeholder="16"
           />
         </div>
-        
+
         <div class="form-group">
-          <label>Maximum Temperature (°C) *</label>
-          <input 
-            v-model.number="config.maxTemp" 
-            type="number" 
-            min="10" 
+          <label>Maximum Temperature (°{{ config.temperatureUnit }}) *</label>
+          <input
+            v-model.number="config.maxTemp"
+            type="number"
+            min="10"
             max="35"
             placeholder="30"
           />
         </div>
-        
+
         <div class="form-group">
           <label>Precision</label>
           <select v-model.number="config.precision">
-            <option :value="1">1°C (Whole degrees)</option>
-            <option :value="0.5">0.5°C (Half degrees)</option>
+            <option :value="1">1°{{ config.temperatureUnit }} (Whole degrees)</option>
+            <option :value="0.5">0.5°{{ config.temperatureUnit }} (Half degrees)</option>
           </select>
         </div>
       </div>
@@ -93,10 +102,10 @@
           <label>Representative Temperature to Learn *</label>
           <select v-model.number="config.representativeTemp">
             <option v-for="temp in availableTemps" :key="temp" :value="temp">
-              {{ temp }}°C
+              {{ temp }}°{{ config.temperatureUnit }}
             </option>
           </select>
-          <small>This temperature will be learned for all mode combinations. The device profile will still show the full range ({{ config.minTemp }}°C - {{ config.maxTemp }}°C).</small>
+          <small>This temperature will be learned for all mode combinations. The device profile will still show the full range ({{ config.minTemp }}°{{ config.temperatureUnit }} - {{ config.maxTemp }}°{{ config.temperatureUnit }}).</small>
         </div>
       </div>
     </div>
@@ -481,6 +490,7 @@ const customFanMode = ref('')
 const customSwingMode = ref('')
 
 const config = ref({
+  temperatureUnit: 'C',
   minTemp: 16,
   maxTemp: 30,
   precision: 1,

@@ -20,7 +20,7 @@ class SmartIRCodeService:
 
     # Using aggregated code database from multiple sources
     # Aggregator: https://github.com/tonyperkins/smartir-code-aggregator
-    # Original SmartIR: https://github.com/smartHomeHub/SmartIR
+    # Original SmartIR: https://github.com/litinoveweedle/SmartIR
     GITHUB_API_BASE = "https://api.github.com/repos/tonyperkins/smartir-code-aggregator"
     GITHUB_RAW_BASE = (
         "https://raw.githubusercontent.com/tonyperkins/smartir-code-aggregator/main"

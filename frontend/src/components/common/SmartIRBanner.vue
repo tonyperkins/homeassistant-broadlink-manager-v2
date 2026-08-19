@@ -62,7 +62,7 @@ const message = computed(() => {
 })
 
 function showGuide() {
-  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
+  window.open('https://github.com/litinoveweedle/SmartIR', '_blank')
 }
 
 function dismiss() {

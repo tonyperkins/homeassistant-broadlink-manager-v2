@@ -82,5 +82,5 @@ To verify the fix:
 ## References
 
 - GitHub Issue: #32
-- SmartIR climate.py: https://github.com/smartHomeHub/SmartIR/blob/master/custom_components/smartir/climate.py#318
+- SmartIR climate.py: https://github.com/litinoveweedle/SmartIR/blob/master/custom_components/smartir/climate.py#318
 - SmartIR expects: `self._commands[operation_mode][fan_mode][swing_mode][target_temperature]`

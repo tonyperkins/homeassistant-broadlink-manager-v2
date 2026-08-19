@@ -32,7 +32,7 @@
                   <div class="toggle-slider"></div>
                 </div>
               </div>
-              <a v-if="smartirEnabled" href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="menu-item menu-link menu-subitem">
+              <a v-if="smartirEnabled" href="https://github.com/litinoveweedle/SmartIR" target="_blank" class="menu-item menu-link menu-subitem">
                 <i class="mdi mdi-github"></i>
                 <span>SmartIR on GitHub</span>
               </a>

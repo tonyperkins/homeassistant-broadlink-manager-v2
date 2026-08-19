@@ -6,7 +6,7 @@
  * https://github.com/tonyperkins/smartir-device-database
  * 
  * Original SmartIR project:
- * https://github.com/smartHomeHub/SmartIR
+ * https://github.com/litinoveweedle/SmartIR
  */
 
 // Use relative path for ingress compatibility

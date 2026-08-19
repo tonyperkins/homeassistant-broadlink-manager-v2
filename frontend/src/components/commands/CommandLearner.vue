@@ -36,39 +36,6 @@
             <small>Commands will be learned using this device. To change it, edit the device.</small>
           </div>
 
-        <!-- Command Name Input -->
-        <div class="form-group">
-          <label for="command-name">Command Name *</label>
-          <select
-            id="command-name"
-            ref="commandSelect"
-            v-model="commandName"
-            :disabled="learning"
-            required
-            @change="clearCommandValidation"
-          >
-            <option value="">-- Select or type command --</option>
-            <optgroup label="Suggested Commands">
-              <option v-for="cmd in suggestedCommands" :key="cmd" :value="cmd">
-                {{ cmd }}
-              </option>
-            </optgroup>
-            <option value="__custom__">Custom command...</option>
-          </select>
-          <input
-            v-if="commandName === '__custom__'"
-            ref="customCommandInput"
-            v-model="customCommandName"
-            type="text"
-            placeholder="Enter custom command name"
-            :disabled="learning"
-            required
-            class="custom-command-input"
-            @input="clearCustomCommandValidation"
-          />
-          <small>Select a suggested command for {{ device.entity_type || 'this device' }}, or enter a custom one.</small>
-        </div>
-
         <!-- Command Type -->
         <div class="form-group">
           <label>Command Type</label>
@@ -210,6 +177,39 @@
             class="command-paste-input"
             @input="clearPasteValidation"
           ></textarea>
+        </div>
+
+        <!-- Command Name Input (placed near action buttons to minimize scrolling) -->
+        <div class="form-group">
+          <label for="command-name">Command Name *</label>
+          <select
+            id="command-name"
+            ref="commandSelect"
+            v-model="commandName"
+            :disabled="learning"
+            required
+            @change="clearCommandValidation"
+          >
+            <option value="">-- Select or type command --</option>
+            <optgroup label="Suggested Commands">
+              <option v-for="cmd in suggestedCommands" :key="cmd" :value="cmd">
+                {{ cmd }}
+              </option>
+            </optgroup>
+            <option value="__custom__">Custom command...</option>
+          </select>
+          <input
+            v-if="commandName === '__custom__'"
+            ref="customCommandInput"
+            v-model="customCommandName"
+            type="text"
+            placeholder="Enter custom command name"
+            :disabled="learning"
+            required
+            class="custom-command-input"
+            @input="clearCustomCommandValidation"
+          />
+          <small>Select a suggested command for {{ device.entity_type || 'this device' }}, or enter a custom one.</small>
         </div>
 
         <!-- Action Buttons -->

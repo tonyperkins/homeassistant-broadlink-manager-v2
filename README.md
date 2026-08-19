@@ -160,7 +160,7 @@ Tired of juggling multiple remotes? Want to control your TV, AC, fans, and legac
 
 ### 🌟 SmartIR Integration (Optional)
 
-Broadlink Manager integrates with [SmartIR](https://github.com/smartHomeHub/SmartIR), a Home Assistant integration for managing climate devices, media players, fans, and lights using IR/RF controllers. SmartIR is a separate project developed by Vassilis Panos and contributors.
+Broadlink Manager integrates with [SmartIR](https://github.com/litinoveweedle/SmartIR), a Home Assistant integration for managing climate devices, media players, fans, and lights using IR/RF controllers. SmartIR is a separate project developed by Vassilis Panos and contributors.
 
 - **1000+ Device Profiles**: Access pre-configured codes for popular devices
 - **Profile Builder**: Create custom climate profiles with step-by-step wizard
@@ -505,11 +505,11 @@ For a full list of all authors and contributors, check [the contributor's page][
 
 ### SmartIR
 
-This project integrates with [SmartIR](https://github.com/smartHomeHub/SmartIR), a Home Assistant custom integration for controlling IR/RF devices. SmartIR is an independent project and is not included with Broadlink Manager.
+This project integrates with [SmartIR](https://github.com/litinoveweedle/SmartIR), a Home Assistant custom integration for controlling IR/RF devices. SmartIR is an independent project and is not included with Broadlink Manager.
 
 **SmartIR License**: MIT License  
 **Copyright**: (c) 2019 Vassilis Panos  
-**Repository**: https://github.com/smartHomeHub/SmartIR
+**Repository**: https://github.com/litinoveweedle/SmartIR
 
 Broadlink Manager provides optional integration features to work alongside SmartIR, including profile creation, command learning, and YAML configuration generation. SmartIR must be installed separately via HACS or manually.
 

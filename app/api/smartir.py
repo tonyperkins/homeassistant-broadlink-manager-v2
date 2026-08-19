@@ -49,7 +49,7 @@ def _reorder_climate_commands(commands_obj):
     Recursively reorder climate commands to match SmartIR expected key order.
 
     SmartIR climate.py expects: [operation_mode][fan_mode][swing_mode][target_temperature]
-    Reference: https://github.com/smartHomeHub/SmartIR/blob/master/custom_components/smartir/climate.py#318
+    Reference: https://github.com/litinoveweedle/SmartIR/blob/master/custom_components/smartir/climate.py#318
 
     Temperature is always the leaf string value. This function sorts keys
     at each nesting level: alphabetically for mode/fan/swing levels,

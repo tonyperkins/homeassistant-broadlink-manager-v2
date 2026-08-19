@@ -180,7 +180,7 @@ This ensures proper validation and consistency.
 
 ## Related Documentation
 
-- [SmartIR Climate Documentation](https://github.com/smartHomeHub/SmartIR/blob/master/docs/CLIMATE.md)
+- [SmartIR Climate Documentation](https://github.com/litinoveweedle/SmartIR/blob/master/docs/CLIMATE.md)
 - [SmartIR Code Aggregator](https://github.com/tonyperkins/smartir-code-aggregator)
 - [Climate Profile Builder Guide](./SMARTIR_CLIMATE_BUILDER.md)
 

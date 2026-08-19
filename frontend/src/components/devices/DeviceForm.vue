@@ -64,7 +64,7 @@
               <div>
                 <strong>SmartIR Required</strong>
                 <p>Climate entities (AC, heaters) require SmartIR integration.</p>
-                <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="smartir-link">
+                <a href="https://github.com/litinoveweedle/SmartIR" target="_blank" class="smartir-link">
                   Install SmartIR →
                 </a>
               </div>
@@ -80,7 +80,7 @@
           </div>
           
           <small v-else-if="!smartirInstalled && formData.entity_type">
-            💡 Tip: Install <a href="https://github.com/smartHomeHub/SmartIR" target="_blank" class="inline-link">SmartIR</a> for pre-configured {{ formData.entity_type === 'climate' ? 'climate' : formData.entity_type }} device codes
+            💡 Tip: Install <a href="https://github.com/litinoveweedle/SmartIR" target="_blank" class="inline-link">SmartIR</a> for pre-configured {{ formData.entity_type === 'climate' ? 'climate' : formData.entity_type }} device codes
           </small>
         </div>
 

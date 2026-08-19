@@ -311,7 +311,7 @@ class EntityGenerator:
                 logger.warning(
                     f"Climate entity type not supported for {entity_id}. "
                     "Use SmartIR custom integration for AC control: "
-                    "https://github.com/smartHomeHub/SmartIR"
+                    "https://github.com/litinoveweedle/SmartIR"
                 )
                 self.validation_warnings.append(
                     {

@@ -506,7 +506,7 @@ function openCodeTester() {
 
 function openSmartIRGitHub() {
   // Open SmartIR GitHub repository for installation instructions
-  window.open('https://github.com/smartHomeHub/SmartIR', '_blank')
+  window.open('https://github.com/litinoveweedle/SmartIR', '_blank')
 }
 
 async function loadAllProfiles() {

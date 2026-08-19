@@ -154,7 +154,7 @@ class SmartIRDetector:
             status["recommendation"] = {
                 "message": "SmartIR not detected. Install it to unlock climate device support!",
                 "action": "install_smartir",
-                "url": "https://github.com/smartHomeHub/SmartIR",
+                "url": "https://github.com/litinoveweedle/SmartIR",
                 "benefits": [
                     "Full climate entity support (AC, heaters)",
                     "120+ pre-configured device profiles",
@@ -243,9 +243,9 @@ class SmartIRDetector:
     ) -> Dict[str, Any]:
         """Write a SmartIR code file to both codes/ and custom_codes/ directories
 
-        Saving to codes/ ensures the original SmartIR fork (smartHomeHub) can find
-        the profile. Saving to custom_codes/ ensures persistence through HACS updates
-        for the litinoveweedle fork.
+        Saving to codes/ ensures the SmartIR integration can find the profile.
+        Saving to custom_codes/ ensures persistence through HACS updates for the
+        actively maintained litinoveweedle fork.
         """
         result = {"success": False, "file": None, "error": None}
         written_paths = []
@@ -300,7 +300,7 @@ class SmartIRDetector:
                         "Open HACS in Home Assistant",
                         "Go to Integrations",
                         "Click the 3 dots menu → Custom repositories",
-                        "Add: https://github.com/smartHomeHub/SmartIR",
+                        "Add: https://github.com/litinoveweedle/SmartIR",
                         "Category: Integration",
                         "Click 'Install'",
                         "Restart Home Assistant",
@@ -309,7 +309,7 @@ class SmartIRDetector:
                 {
                     "name": "Manual Installation",
                     "steps": [
-                        "Download from: https://github.com/smartHomeHub/SmartIR",
+                        "Download from: https://github.com/litinoveweedle/SmartIR",
                         "Extract the 'smartir' folder",
                         "Copy to /config/custom_components/smartir",
                         "Restart Home Assistant",
@@ -318,8 +318,8 @@ class SmartIRDetector:
             ],
             "verification": "After installation, refresh this page to enable SmartIR features.",
             "links": {
-                "github": "https://github.com/smartHomeHub/SmartIR",
-                "documentation": "https://github.com/smartHomeHub/SmartIR#readme",
+                "github": "https://github.com/litinoveweedle/SmartIR",
+                "documentation": "https://github.com/litinoveweedle/SmartIR#readme",
                 "community": (
                     "https://community.home-assistant.io/t/"
                     "smartir-control-your-climate-tv-and-fan-devices-via-ir-rf-controllers/100798"

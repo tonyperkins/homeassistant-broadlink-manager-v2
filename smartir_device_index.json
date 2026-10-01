@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2026-09-01T03:25:09.449704+00:00",
+  "last_updated": "2026-10-01T03:58:37.981558+00:00",
   "source": "https://github.com/tonyperkins/smartir-code-aggregator",
   "description": "Aggregated IR/RF codes from SmartIR, IRDB, and other sources in SmartIR format",
   "platforms": {

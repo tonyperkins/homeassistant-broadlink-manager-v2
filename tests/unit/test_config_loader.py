@@ -446,5 +446,41 @@ class TestEnvironmentInfo:
             assert Path(info["storage_path"]) == Path("/custom/config/.storage")
 
 
+@pytest.mark.unit
+class TestGetPackageOutputPath:
+    """Test package_output_path handling (regression tests for issue #54)"""
+
+    def test_returns_none_when_unset(self):
+        """No option set means default location only"""
+        with patch.dict(os.environ, {}, clear=True):
+            loader = ConfigLoader()
+            assert loader.get_package_output_path() is None
+
+    def test_plain_absolute_path(self):
+        """A normal absolute path is returned as-is"""
+        with patch.dict(os.environ, {"PACKAGE_OUTPUT_PATH": "/config/packages/broadlink_manager.yaml"}, clear=True):
+            loader = ConfigLoader()
+            assert loader.get_package_output_path() == Path("/config/packages/broadlink_manager.yaml")
+
+    def test_strips_pasted_key_value_line(self):
+        """A pasted 'key: value' YAML line is normalized to just the path"""
+        pasted = "package_output_path: /config/packages/broadlink_manager.yaml"
+        with patch.dict(os.environ, {"PACKAGE_OUTPUT_PATH": pasted}, clear=True):
+            loader = ConfigLoader()
+            assert loader.get_package_output_path() == Path("/config/packages/broadlink_manager.yaml")
+
+    def test_strips_surrounding_quotes(self):
+        """Quoted values are unquoted"""
+        with patch.dict(os.environ, {"PACKAGE_OUTPUT_PATH": "'/config/packages/bm.yaml'"}, clear=True):
+            loader = ConfigLoader()
+            assert loader.get_package_output_path() == Path("/config/packages/bm.yaml")
+
+    def test_whitespace_only_returns_none(self):
+        """Whitespace-only values are treated as unset"""
+        with patch.dict(os.environ, {"PACKAGE_OUTPUT_PATH": "   "}, clear=True):
+            loader = ConfigLoader()
+            assert loader.get_package_output_path() is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

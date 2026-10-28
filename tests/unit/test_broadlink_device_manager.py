@@ -2,6 +2,7 @@
 Unit tests for BroadlinkDeviceManager
 """
 
+import json
 import pytest
 import sys
 from pathlib import Path
@@ -388,3 +389,155 @@ class TestMatchDiscoveredToHAEntity:
         )
         
         assert matched is None
+
+@pytest.mark.unit
+class TestGetHaConfigEntry:
+    """Test config entry matching (regression tests for issue #54)"""
+
+    @staticmethod
+    def _write_ha_storage(tmp_path, files):
+        """Write HA .storage files into a fake config directory"""
+        storage = tmp_path / ".storage"
+        storage.mkdir(exist_ok=True)
+        for name, data in files.items():
+            (storage / name).write_text(json.dumps(data))
+
+    @pytest.fixture
+    def config_entries(self):
+        return {
+            "data": {
+                "entries": [
+                    {
+                        "entry_id": "entry-1",
+                        "domain": "broadlink",
+                        "title": "RM PRO MAX",
+                        "data": {
+                            "host": "192.168.100.152",
+                            "mac": "b4430d9bd90f",
+                            "type": 10002,
+                        },
+                    },
+                    {
+                        "entry_id": "entry-2",
+                        "domain": "broadlink",
+                        "title": "broadlink remote",
+                        "data": {
+                            "host": "192.168.100.10",
+                            "mac": "aabbccddeeff",
+                            "type": 10048,
+                        },
+                    },
+                ]
+            }
+        }
+
+    def test_matches_via_registries_after_entity_rename(self, tmp_path, config_entries):
+        """Entity renamed in HA should still resolve via entity/device registries"""
+        self._write_ha_storage(
+            tmp_path,
+            {
+                "core.config_entries": config_entries,
+                "core.entity_registry": {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "remote.maquinas_rm_pro",
+                                "device_id": "dev-1",
+                            }
+                        ]
+                    }
+                },
+                "core.device_registry": {
+                    "data": {
+                        "devices": [
+                            {
+                                "id": "dev-1",
+                                "config_entries": ["entry-1"],
+                                "identifiers": [["mac", "b4430d9bd90f"]],
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+        manager = BroadlinkDeviceManager(
+            "http://localhost:8123", "token", str(tmp_path)
+        )
+
+        entry = manager.get_ha_config_entry("remote.maquinas_rm_pro")
+
+        assert entry is not None
+        assert entry["host"] == "192.168.100.152"
+        assert entry["mac"] == "b4430d9bd90f"
+
+    def test_matches_by_mac_when_entry_not_linked(self, tmp_path, config_entries):
+        """Fall back to MAC identifier when device has no linked config entries"""
+        self._write_ha_storage(
+            tmp_path,
+            {
+                "core.config_entries": config_entries,
+                "core.entity_registry": {
+                    "data": {
+                        "entities": [
+                            {
+                                "entity_id": "remote.maquinas_rm_pro",
+                                "device_id": "dev-1",
+                            }
+                        ]
+                    }
+                },
+                "core.device_registry": {
+                    "data": {
+                        "devices": [
+                            {
+                                "id": "dev-1",
+                                "config_entries": [],
+                                "identifiers": [["mac", "b4430d9bd90f"]],
+                            }
+                        ]
+                    }
+                },
+            },
+        )
+        manager = BroadlinkDeviceManager(
+            "http://localhost:8123", "token", str(tmp_path)
+        )
+
+        entry = manager.get_ha_config_entry("remote.maquinas_rm_pro")
+
+        assert entry is not None
+        assert entry["host"] == "192.168.100.152"
+
+    def test_no_registry_no_name_match_returns_none(self, tmp_path, config_entries):
+        """Without registries, an entity sharing no name parts finds no match"""
+        self._write_ha_storage(tmp_path, {"core.config_entries": config_entries})
+        manager = BroadlinkDeviceManager(
+            "http://localhost:8123", "token", str(tmp_path)
+        )
+
+        assert manager.get_ha_config_entry("remote.unknown_blaster") is None
+
+    def test_hardcoded_pattern_no_longer_matches(self, tmp_path):
+        """Old hardcoded personal patterns must not match unrelated entities"""
+        entries = {
+            "data": {
+                "entries": [
+                    {
+                        "entry_id": "entry-1",
+                        "domain": "broadlink",
+                        "title": "RM4 Office Tony",
+                        "data": {
+                            "host": "192.168.1.50",
+                            "mac": "112233445566",
+                            "type": 10048,
+                        },
+                    }
+                ]
+            }
+        }
+        self._write_ha_storage(tmp_path, {"core.config_entries": entries})
+        manager = BroadlinkDeviceManager(
+            "http://localhost:8123", "token", str(tmp_path)
+        )
+
+        assert manager.get_ha_config_entry("remote.living_room") is None

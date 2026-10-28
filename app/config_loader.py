@@ -7,6 +7,7 @@ Supports both Home Assistant Supervisor add-on and standalone Docker modes
 import os
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -120,6 +121,33 @@ class ConfigLoader:
         raw = raw.strip() if raw else ""
         if not raw:
             return None
+
+        # Strip surrounding quotes
+        raw = raw.strip("'\"")
+
+        # Handle pasted "key: value" YAML lines (e.g. the user pasted
+        # "package_output_path: /config/packages/broadlink_manager.yaml"
+        # into the option's value field)
+        key_value_match = re.match(
+            r"^package_output_path\s*[:=]\s*(.+)$", raw, re.IGNORECASE
+        )
+        if key_value_match:
+            raw = key_value_match.group(1).strip().strip("'\"")
+            logger.warning(
+                "package_output_path option contained a pasted 'key: value' "
+                f"line; using '{raw}' as the path"
+            )
+            if not raw:
+                return None
+
+        if not raw.startswith(("/", "\\")) and not re.match(
+            r"^[A-Za-z]:[\\/]", raw
+        ):
+            logger.warning(
+                f"package_output_path '{raw}' is not an absolute path; "
+                "it will resolve relative to the add-on's working directory"
+            )
+
         return Path(raw)
 
     def load_options(self) -> Dict[str, Any]:

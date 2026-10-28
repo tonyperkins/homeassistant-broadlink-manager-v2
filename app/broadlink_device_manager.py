@@ -8,6 +8,7 @@ Home Assistant entities and physical Broadlink devices.
 import broadlink
 import json
 import logging
+import os
 import requests
 from typing import List, Dict, Optional
 
@@ -104,6 +105,106 @@ class BroadlinkDeviceManager:
             logger.error("Error discovering devices", exc_info=True)
             return []
 
+    def _read_ha_storage(self, filename: str) -> Optional[Dict]:
+        """
+        Read a Home Assistant .storage file (read-only).
+
+        Args:
+            filename: Storage file name (e.g., "core.entity_registry")
+
+        Returns:
+            The "data" dict from the storage file, or None if unavailable
+        """
+        for base in (os.path.join(self.config_path, ".storage"), self.config_path):
+            path = os.path.join(base, filename)
+            try:
+                with open(path, "r") as f:
+                    return json.load(f).get("data", {})
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                logger.debug(f"Could not read {path}: {e}")
+            except Exception as e:
+                logger.debug(f"Error reading {path}: {e}")
+        return None
+
+    def _find_config_entry_via_registries(
+        self, entity_id: str, entries: List[Dict]
+    ) -> Optional[Dict]:
+        """
+        Resolve an entity to its Broadlink config entry via HA registries.
+
+        Walks entity registry -> device registry -> config entries, which is
+        immune to entity/device renames (unlike name-based matching).
+
+        Args:
+            entity_id: Entity ID (e.g., "remote.living_room_rm4_pro")
+            entries: Broadlink config entries from core.config_entries
+
+        Returns:
+            Matching config entry dict, or None if not resolvable
+        """
+        try:
+            entity_registry = self._read_ha_storage("core.entity_registry")
+            entities = (entity_registry or {}).get("entities", [])
+            device_id = next(
+                (
+                    e.get("device_id")
+                    for e in entities
+                    if e.get("entity_id") == entity_id and e.get("device_id")
+                ),
+                None,
+            )
+            if not device_id:
+                logger.debug(f"No device_id in entity registry for {entity_id}")
+                return None
+
+            device_registry = self._read_ha_storage("core.device_registry")
+            devices = (device_registry or {}).get("devices", [])
+            device = next(
+                (d for d in devices if d.get("id") == device_id), None
+            )
+            if not device:
+                logger.debug(f"Device {device_id} not found in device registry")
+                return None
+
+            # Primary: match config entries linked to the device by entry_id
+            linked_entry_ids = set(device.get("config_entries", []))
+            for entry in entries:
+                if (
+                    entry.get("domain") == "broadlink"
+                    and entry.get("entry_id") in linked_entry_ids
+                ):
+                    logger.info(
+                        f"Matched {entity_id} to config entry "
+                        f"'{entry.get('title')}' via HA registries"
+                    )
+                    return entry
+
+            # Fallback: match Broadlink config entries by MAC identifier
+            macs = {
+                str(value).replace(":", "").lower()
+                for domain, value in device.get("identifiers", [])
+                if str(domain).lower() == "mac"
+            }
+            for entry in entries:
+                if entry.get("domain") != "broadlink":
+                    continue
+                entry_mac = (
+                    str(entry.get("data", {}).get("mac", "") or "")
+                    .replace(":", "")
+                    .lower()
+                )
+                if entry_mac and entry_mac in macs:
+                    logger.info(
+                        f"Matched {entity_id} to config entry "
+                        f"'{entry.get('title')}' by MAC {entry_mac}"
+                    )
+                    return entry
+
+            return None
+        except Exception as e:
+            logger.debug(f"Registry-based config entry lookup failed: {e}")
+            return None
+
     def get_ha_config_entry(self, entity_id: str) -> Optional[Dict]:
         """
         Get Broadlink config entry from HA storage
@@ -116,8 +217,6 @@ class BroadlinkDeviceManager:
         """
         try:
             # Try multiple possible file locations using the configured config path
-            import os
-
             config_files = [
                 os.path.join(self.config_path, ".storage", "core.config_entries"),
                 os.path.join(
@@ -143,39 +242,28 @@ class BroadlinkDeviceManager:
                 logger.warning("Could not read config entries from any location")
                 return None
 
-            # Extract device name from entity_id
+            broadlink_entries = [e for e in entries if e.get("domain") == "broadlink"]
+
+            # Strategy 1: Resolve via HA entity/device registries (rename-proof)
+            entry = self._find_config_entry_via_registries(entity_id, broadlink_entries)
+            if entry:
+                return self._extract_config_data(entry, entry.get("data", {}))
+
+            # Strategy 2: Exact match on normalized name
             device_name = entity_id.replace("remote.", "").replace("_", " ").title()
             entity_parts = entity_id.lower().replace("remote.", "").split("_")
 
-            # Look for matching Broadlink config entry with multiple strategies
-            for entry in entries:
-                if entry.get("domain") != "broadlink":
-                    continue
-
+            for entry in broadlink_entries:
                 entry_title = entry.get("title", "").lower()
                 entry_data = entry.get("data", {})
 
-                # Strategy 1: Exact match on normalized name
                 if device_name.lower() == entry_title:
                     logger.info(f"Found exact match: {entry.get('title')}")
                     return self._extract_config_data(entry, entry_data)
 
-                # Strategy 2: Check if all entity parts are in the title
+                # Strategy 3: Check if all entity parts are in the title
                 if all(part in entry_title for part in entity_parts if part):
                     logger.info(f"Found partial match: {entry.get('title')}")
-                    return self._extract_config_data(entry, entry_data)
-
-                # Strategy 3: Check for common patterns
-                if (
-                    "rm4" in entry_title
-                    and "office" in entry_title
-                    and "tony" in entry_title
-                ) or (
-                    "rm4" in entry_title
-                    and "bedroom" in entry_title
-                    and "master" in entry_title
-                ):
-                    logger.info(f"Found pattern match: {entry.get('title')}")
                     return self._extract_config_data(entry, entry_data)
 
             logger.warning(f"No matching Broadlink config entry found for {entity_id}")

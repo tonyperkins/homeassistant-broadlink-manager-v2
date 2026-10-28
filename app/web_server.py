@@ -215,9 +215,6 @@ class BroadlinkWebServer:
         self.ws_message_id = 0
         self.ws_notifications = []
 
-        # Automatic migration disabled - user preference
-        # self._schedule_migration_check()
-
         # Check for pending commands on startup and start polling if needed
         self._check_and_start_polling_on_startup()
 
@@ -962,63 +959,6 @@ class BroadlinkWebServer:
 
             except Exception as e:
                 logger.error(f"Error reloading config: {e}")
-                return jsonify({"error": str(e)}), 500
-
-        # Migration Management Routes
-
-        @self.app.route("/api/migration/status")
-        def get_migration_status():
-            """Get current migration status"""
-            try:
-                status = self.migration_manager.get_migration_status()
-                return jsonify(status)
-            except Exception as e:
-                logger.error(f"Error getting migration status: {e}")
-                return jsonify({"error": str(e)}), 500
-
-        @self.app.route("/api/migration/check", methods=["POST"])
-        def check_migration():
-            """Check if migration is needed and perform it"""
-            try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                devices = loop.run_until_complete(
-                    self._get_broadlink_devices("POST /api/migration/check")
-                )
-                result = loop.run_until_complete(
-                    self.migration_manager.check_and_migrate(devices)
-                )
-
-                loop.close()
-
-                return jsonify(result)
-            except Exception as e:
-                logger.error(f"Error checking migration: {e}")
-                return jsonify({"error": str(e)}), 500
-
-        @self.app.route("/api/migration/force", methods=["POST"])
-        def force_migration():
-            """Force migration even if metadata exists"""
-            try:
-                data = request.get_json() or {}
-                overwrite = data.get("overwrite", False)
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                devices = loop.run_until_complete(
-                    self._get_broadlink_devices("POST /api/migration/force")
-                )
-                result = loop.run_until_complete(
-                    self.migration_manager.force_migration(devices, overwrite)
-                )
-
-                loop.close()
-
-                return jsonify(result)
-            except Exception as e:
-                logger.error(f"Error forcing migration: {e}")
                 return jsonify({"error": str(e)}), 500
 
         # Device Management Endpoints
@@ -3750,101 +3690,6 @@ class BroadlinkWebServer:
         except Exception as e:
             logger.error(f"Error deleting command: {e}")
             return {"success": False, "error": str(e)}
-
-    def _schedule_migration_check(self):
-        """Schedule automatic migration check on startup"""
-
-        def run_migration_check():
-            try:
-                logger.info("=" * 60)
-                logger.info("🔍 Broadlink Manager - Checking installation type...")
-                logger.info("=" * 60)
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                # Get Broadlink devices
-                devices = loop.run_until_complete(
-                    self._get_broadlink_devices("startup_migration")
-                )
-                logger.info(f"Found {len(devices)} Broadlink device(s)")
-
-                # Check and perform migration if needed
-                result = loop.run_until_complete(
-                    self.migration_manager.check_and_migrate(devices)
-                )
-
-                loop.close()
-
-                # Log results based on scenario
-                scenario = result.get("scenario", "unknown")
-
-                if scenario == "existing_broadlink_user" and result.get("success"):
-                    logger.info("=" * 60)
-                    logger.info("✅ AUTOMATIC MIGRATION COMPLETED")
-                    logger.info("=" * 60)
-                    logger.info(
-                        f"📊 Migrated: {result.get('migrated_entities', 0)} entities"
-                    )
-                    logger.info(f"📁 From: {len(result.get('entities', []))} devices")
-                    if result.get("skipped_devices"):
-                        logger.info(
-                            f"⚠️  Skipped: {len(result.get('skipped_devices', []))} devices (no valid entities)"
-                        )
-                    logger.info("🎯 Next steps:")
-                    logger.info("   1. Review entities in the web interface")
-                    logger.info("   2. Adjust areas if needed")
-                    logger.info("   3. Generate YAML entities")
-                    logger.info("   4. Restart Home Assistant")
-                    logger.info("=" * 60)
-
-                elif scenario == "existing_bl_manager_user":
-                    logger.info("=" * 60)
-                    logger.info("📋 EXISTING INSTALLATION DETECTED")
-                    logger.info("=" * 60)
-                    logger.info(
-                        f"Found {result.get('existing_entities', 0)} existing entities"
-                    )
-                    logger.info("No migration needed - your configuration is preserved")
-                    logger.info("=" * 60)
-
-                elif scenario == "first_time_user":
-                    logger.info("=" * 60)
-                    logger.info("👋 WELCOME TO BROADLINK MANAGER!")
-                    logger.info("=" * 60)
-                    logger.info("No learned commands found yet")
-                    logger.info("🎯 Get started:")
-                    logger.info("   1. Open the web interface")
-                    logger.info("   2. Select a Broadlink device")
-                    logger.info("   3. Learn IR/RF commands")
-                    logger.info("   4. Auto-generate entities")
-                    logger.info("=" * 60)
-
-                elif result.get("error"):
-                    logger.error("=" * 60)
-                    logger.error("❌ MIGRATION CHECK ERROR")
-                    logger.error("=" * 60)
-                    logger.error(f"Error: {result.get('error')}")
-                    logger.error(
-                        "The add-on will continue to run, but automatic migration failed"
-                    )
-                    logger.error("=" * 60)
-
-            except Exception as e:
-                logger.error("=" * 60)
-                logger.error("❌ MIGRATION CHECK FAILED")
-                logger.error("=" * 60)
-                logger.error(
-                    f"Error during automatic migration check: {e}", exc_info=True
-                )
-                logger.error("The add-on will continue to run")
-                logger.error("=" * 60)
-
-        # Run in background thread to not block startup
-        import threading
-
-        migration_thread = threading.Thread(target=run_migration_check, daemon=True)
-        migration_thread.start()
 
     def get_cached_connection_info(self, entity_id: str):
         """Get cached device connection info if available and not expired"""

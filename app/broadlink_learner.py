@@ -25,6 +25,18 @@ class BroadlinkLearner:
     - Returns base64 encoded command data
     """
 
+    RF_LEARNING_BLOCKED_MESSAGE = (
+        "This Broadlink device rejected RF learning (error -4: Command not "
+        "supported). Newer Broadlink firmware blocks RF learning from "
+        "third-party clients like this add-on and Home Assistant - only the "
+        "official Broadlink app can learn RF codes on this device, and those "
+        "codes cannot be exported back to Home Assistant. IR learning may "
+        "still work. Note that RF codes learned on a different Broadlink "
+        "device/model may transmit but not be received correctly - RF codes "
+        "should be re-learned on the device that will transmit them, which "
+        "this firmware unfortunately prevents."
+    )
+
     def __init__(self, host: str, mac: bytes, device_type: str):
         """
         Initialize learner with device connection info
@@ -39,6 +51,16 @@ class BroadlinkLearner:
         self.device_type = device_type
         self.device = None
         self._authenticated = False
+        self.last_error = None
+
+    def _classify_learn_error(self, context: str, e: Exception) -> str:
+        """Build a user-facing error message from a learning failure"""
+        msg = str(e)
+        if "-4" in msg or "Command not supported" in msg:
+            logger.error(f"{context}: device rejected the command ({msg})")
+            return self.RF_LEARNING_BLOCKED_MESSAGE
+        logger.error(f"{context}: {e}")
+        return f"{context}: {e}"
 
     def authenticate(self) -> bool:
         """
@@ -159,6 +181,8 @@ class BroadlinkLearner:
             logger.error("Device not authenticated")
             return None
 
+        self.last_error = None
+
         try:
             # Step 1: Sweep frequency
             logger.info("Starting RF frequency sweep")
@@ -244,7 +268,9 @@ class BroadlinkLearner:
             return None
 
         except Exception as e:
-            logger.error(f"Error during RF learning: {e}")
+            self.last_error = self._classify_learn_error(
+                "Error during RF learning", e
+            )
             return None
 
     def learn_rf_command_fixed_frequency(
@@ -271,6 +297,8 @@ class BroadlinkLearner:
         if not self._authenticated:
             logger.error("Device not authenticated")
             return None
+
+        self.last_error = None
 
         try:
             logger.info(f"Starting RF learning at fixed frequency {frequency} MHz")
@@ -320,7 +348,9 @@ class BroadlinkLearner:
             return None
 
         except Exception as e:
-            logger.error(f"Error during fixed-frequency RF learning: {e}")
+            self.last_error = self._classify_learn_error(
+                "Error during fixed-frequency RF learning", e
+            )
             return None
 
     def learn_rf_command(self, timeout: int = 30) -> Optional[Tuple[str, float]]:

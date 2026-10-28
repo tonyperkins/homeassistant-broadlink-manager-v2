@@ -1602,7 +1602,10 @@ def learn_command_direct_stream():
                     }
                     yield f"data: {json.dumps(data)}\n\n"
                 else:
-                    yield f"data: {json.dumps({'status': 'error', 'message': 'Timeout - no RF signal detected'})}\n\n"
+                    error_message = (
+                        learner.last_error or "Timeout - no RF signal detected"
+                    )
+                    yield f"data: {json.dumps({'status': 'error', 'message': error_message, 'error_type': 'learn_failed' if learner.last_error else 'timeout'})}\n\n"
                     return
             else:
                 data = {
@@ -1790,6 +1793,11 @@ def learn_command_direct():
             if result:
                 base64_data, frequency = result
             else:
+                if learner.last_error:
+                    return (
+                        jsonify({"success": False, "error": learner.last_error}),
+                        500,
+                    )
                 return (
                     jsonify(
                         {

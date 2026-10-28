@@ -159,9 +159,7 @@ class BroadlinkDeviceManager:
 
             device_registry = self._read_ha_storage("core.device_registry")
             devices = (device_registry or {}).get("devices", [])
-            device = next(
-                (d for d in devices if d.get("id") == device_id), None
-            )
+            device = next((d for d in devices if d.get("id") == device_id), None)
             if not device:
                 logger.debug(f"Device {device_id} not found in device registry")
                 return None

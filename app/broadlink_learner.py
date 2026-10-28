@@ -268,9 +268,7 @@ class BroadlinkLearner:
             return None
 
         except Exception as e:
-            self.last_error = self._classify_learn_error(
-                "Error during RF learning", e
-            )
+            self.last_error = self._classify_learn_error("Error during RF learning", e)
             return None
 
     def learn_rf_command_fixed_frequency(

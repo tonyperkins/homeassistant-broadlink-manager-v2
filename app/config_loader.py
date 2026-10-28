@@ -140,9 +140,7 @@ class ConfigLoader:
             if not raw:
                 return None
 
-        if not raw.startswith(("/", "\\")) and not re.match(
-            r"^[A-Za-z]:[\\/]", raw
-        ):
+        if not raw.startswith(("/", "\\")) and not re.match(r"^[A-Za-z]:[\\/]", raw):
             logger.warning(
                 f"package_output_path '{raw}' is not an absolute path; "
                 "it will resolve relative to the add-on's working directory"

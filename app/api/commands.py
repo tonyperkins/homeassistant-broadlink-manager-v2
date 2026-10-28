@@ -1605,7 +1605,14 @@ def learn_command_direct_stream():
                     error_message = (
                         learner.last_error or "Timeout - no RF signal detected"
                     )
-                    yield f"data: {json.dumps({'status': 'error', 'message': error_message, 'error_type': 'learn_failed' if learner.last_error else 'timeout'})}\n\n"
+                    error_data = {
+                        "status": "error",
+                        "message": error_message,
+                        "error_type": (
+                            "learn_failed" if learner.last_error else "timeout"
+                        ),
+                    }
+                    yield f"data: {json.dumps(error_data)}\n\n"
                     return
             else:
                 data = {

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.5.1-beta.8] - 2026-10-28
+
+### Fixed
+- Surface blocked RF learning (firmware error -4) with an actionable learn UI message, resolve Broadlink devices via HA registries so entity renames no longer break learning/testing, remove dead migration endpoints returning 500s, and harden package_output_path handling (fixes #54)
+
+
 ## [0.5.1-beta.7] - 2026-08-20
 
 ### Fixed

@@ -394,6 +394,58 @@ class DeviceManager:
             logger.error(f"Error deleting command from device {device_id}: {e}")
             return False
 
+    def rename_command(self, device_id: str, old_name: str, new_name: str) -> bool:
+        """
+        Rename a command on a device, preserving its learned data
+
+        Args:
+            device_id: Device identifier
+            old_name: Current command name
+            new_name: New command name
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            devices = self._load_devices()
+
+            if device_id not in devices:
+                logger.warning(f"Device {device_id} not found")
+                return False
+
+            commands = devices[device_id].get("commands", {})
+            if old_name not in commands:
+                logger.warning(f"Command {old_name} not found on device {device_id}")
+                return False
+
+            if new_name == old_name:
+                return True
+
+            if new_name in commands:
+                logger.warning(
+                    f"Command {new_name} already exists on device {device_id}"
+                )
+                return False
+
+            # Rebuild the dict to keep the command's original position
+            devices[device_id]["commands"] = {
+                (new_name if name == old_name else name): data
+                for name, data in commands.items()
+            }
+            devices[device_id]["updated_at"] = datetime.now().isoformat()
+
+            if self._save_devices(devices):
+                logger.info(
+                    f"Renamed command {old_name} to {new_name} on device {device_id}"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error renaming command on device {device_id}: {e}")
+            return False
+
     def get_device_commands(self, device_id: str) -> Dict[str, Any]:
         """
         Get all commands for a device

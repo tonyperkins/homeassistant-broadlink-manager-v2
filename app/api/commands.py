@@ -5,6 +5,7 @@ Command API endpoints
 import logging
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
 from datetime import datetime
@@ -891,6 +892,70 @@ def delete_command(device_id, command_name):
     except Exception as e:
         logger.error(f"Error deleting command: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@api_bp.route("/commands/<device_id>/<command_name>/rename", methods=["POST"])
+def rename_command(device_id, command_name):
+    """Rename a tracked command on a device (fixes typos without relearning)"""
+    try:
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        data = request.json or {}
+        new_name = (data.get("new_name") or "").strip()
+
+        # Get device
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({"error": "Device not found"}), 404
+
+        # Check command exists
+        commands = device.get("commands", {})
+        if command_name not in commands:
+            return jsonify({"error": "Command not found"}), 404
+
+        # Validate the new name
+        if not new_name:
+            return jsonify({"error": "New command name is required"}), 400
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", new_name):
+            return (
+                jsonify(
+                    {
+                        "error": "Command name may only contain letters, numbers, underscores, and dashes"
+                    }
+                ),
+                400,
+            )
+        if new_name == command_name:
+            return jsonify(
+                {"success": True, "message": "Command name unchanged", "renamed": False}
+            )
+        if new_name in commands:
+            return (
+                jsonify(
+                    {
+                        "error": f"A command named '{new_name}' already exists on this device"
+                    }
+                ),
+                409,
+            )
+
+        if not device_manager.rename_command(device_id, command_name, new_name):
+            return jsonify({"error": "Failed to rename command"}), 500
+
+        logger.info(f"✅ Command '{command_name}' renamed to '{new_name}'")
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Command '{command_name}' renamed to '{new_name}'",
+                "renamed": True,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error renaming command: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @api_bp.route("/commands/delete-from-storage", methods=["POST"])

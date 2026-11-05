@@ -196,6 +196,11 @@
                 {{ cmd }}
               </option>
             </optgroup>
+            <optgroup v-if="otherDeviceCommands.length" label="From Your Other Devices">
+              <option v-for="cmd in otherDeviceCommands" :key="cmd" :value="cmd">
+                {{ cmd }}
+              </option>
+            </optgroup>
             <option value="__custom__">Custom command...</option>
           </select>
           <input
@@ -387,6 +392,15 @@
                   >
                     <i class="mdi mdi-play" :class="{ 'mdi-spin': testingCommand === cmd.name }"></i>
                   </button>
+                  <button
+                    type="button"
+                    @click="startRenameCommand(cmd.name)"
+                    class="icon-btn"
+                    :title="cmd.hasError ? 'Cannot rename - command failed to learn' : cmd.isPending ? 'Cannot rename - waiting for code' : 'Rename command'"
+                    :disabled="cmd.hasError || cmd.isPending"
+                  >
+                    <i class="mdi mdi-pencil"></i>
+                  </button>
                   <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" :title="cmd.hasError ? 'Delete and re-learn' : 'Delete command'">
                     <i class="mdi mdi-delete"></i>
                   </button>
@@ -468,6 +482,45 @@
       @confirm="handleImportConfirm"
       @cancel="showImportConfirm = false"
     />
+
+    <!-- Rename Command Dialog -->
+    <div v-if="showRenameDialog" class="rename-overlay" @click.self="cancelRenameCommand">
+      <div class="rename-dialog">
+        <div class="rename-header">
+          <h3><i class="mdi mdi-pencil"></i> Rename Command</h3>
+        </div>
+        <div class="rename-body">
+          <p class="rename-message">
+            Rename <strong>{{ commandToRename }}</strong> on this device.
+            The learned code is kept as-is — no relearning needed.
+          </p>
+          <div class="rename-form-group">
+            <label for="rename-command-input">New Command Name *</label>
+            <input
+              id="rename-command-input"
+              ref="renameInputRef"
+              v-model="renameInput"
+              type="text"
+              :disabled="renaming"
+              @keyup.enter="handleRenameConfirm"
+              @keyup.esc="cancelRenameCommand"
+              @input="renameError = ''"
+            />
+            <small v-if="renameError" class="rename-error">{{ renameError }}</small>
+            <small v-else class="rename-hint">Letters, numbers, underscores, and dashes</small>
+          </div>
+        </div>
+        <div class="rename-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRenameCommand" :disabled="renaming">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" @click="handleRenameConfirm" :disabled="renaming || !renameInput.trim()">
+            <i v-if="renaming" class="mdi mdi-loading mdi-spin"></i>
+            <template v-else>Save</template>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -476,6 +529,8 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import api from '@/services/api'
 import ConfirmDialog from '../common/ConfirmDialog.vue'
 import { copyToClipboard, downloadFile } from '@/utils/clipboard'
+import { useDeviceStore } from '@/stores/devices'
+import { getOtherDeviceCommands } from '@/utils/commandSuggestions'
 
 const props = defineProps({
   device: {
@@ -485,6 +540,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['cancel', 'learned'])
+
+const deviceStore = useDeviceStore()
 
 const broadlinkDevices = ref([])
 const selectedBroadlink = ref('')
@@ -511,6 +568,12 @@ const loadingCommands = ref(false)
 const showDeleteConfirm = ref(false)
 const commandToDelete = ref('')
 const showImportConfirm = ref(false)
+const showRenameDialog = ref(false)
+const commandToRename = ref('')
+const renameInput = ref('')
+const renameError = ref('')
+const renaming = ref(false)
+const renameInputRef = ref(null)
 const commandSelect = ref(null)
 const customCommandInput = ref(null)
 const commandForm = ref(null)
@@ -604,6 +667,11 @@ const ENTITY_COMMANDS = {
 const suggestedCommands = computed(() => {
   const entityType = props.device.entity_type || 'switch'
   return ENTITY_COMMANDS[entityType] || ENTITY_COMMANDS.switch
+})
+
+// Command names learned on other devices of the same entity type
+const otherDeviceCommands = computed(() => {
+  return getOtherDeviceCommands(deviceStore.devices, props.device, suggestedCommands.value)
 })
 
 // Watch for device prop changes and reload commands
@@ -1150,6 +1218,77 @@ const deleteCommand = (command) => {
   showDeleteConfirm.value = true
 }
 
+const startRenameCommand = async (command) => {
+  commandToRename.value = command
+  renameInput.value = command
+  renameError.value = ''
+  showRenameDialog.value = true
+  await nextTick()
+  if (renameInputRef.value) {
+    renameInputRef.value.focus()
+    renameInputRef.value.select()
+  }
+}
+
+const cancelRenameCommand = () => {
+  showRenameDialog.value = false
+  commandToRename.value = ''
+  renameInput.value = ''
+  renameError.value = ''
+}
+
+const handleRenameConfirm = async () => {
+  const oldName = commandToRename.value
+  const newName = renameInput.value.trim()
+  renameError.value = ''
+
+  if (!newName) {
+    renameError.value = 'Command name is required'
+    return
+  }
+  if (newName === oldName) {
+    cancelRenameCommand()
+    return
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(newName)) {
+    renameError.value = 'Use letters, numbers, underscores, and dashes only'
+    return
+  }
+  if (learnedCommands.value.some(c => c.name === newName)) {
+    renameError.value = `A command named '${newName}' already exists on this device`
+    return
+  }
+
+  renaming.value = true
+  try {
+    const response = await api.post(`/api/commands/${props.device.id}/${oldName}/rename`, {
+      new_name: newName
+    })
+
+    if (response.data.success) {
+      showRenameDialog.value = false
+      await loadLearnedCommands(true)
+      await loadUntrackedCommands()
+
+      resultMessage.value = `Command "${oldName}" renamed to "${newName}"`
+      resultType.value = 'success'
+
+      emit('learned', {
+        deviceId: props.device.id,
+        commandName: newName,
+        action: 'renamed'
+      })
+    } else {
+      renameError.value = response.data.error || 'Failed to rename command'
+    }
+  } catch (error) {
+    console.error('❌ Rename error:', error)
+    renameError.value = error.response?.data?.error || error.message || 'Failed to rename command'
+  } finally {
+    renaming.value = false
+  }
+}
+
 const cancelDeleteCommand = () => {
   showDeleteConfirm.value = false
   commandToDelete.value = ''
@@ -1467,6 +1606,102 @@ const copyCommandCode = async (commandName) => {
   display: flex;
   flex-direction: column;
   box-shadow: var(--ha-shadow-lg);
+}
+
+/* Rename Command Dialog */
+.rename-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  padding: 20px;
+}
+
+.rename-dialog {
+  background: var(--ha-card-background);
+  border-radius: 12px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--ha-shadow-lg);
+  overflow: hidden;
+}
+
+.rename-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--ha-border-color);
+}
+
+.rename-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ha-text-primary-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rename-body {
+  padding: 20px 24px;
+}
+
+.rename-message {
+  margin: 0 0 16px 0;
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rename-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ha-text-primary-color);
+}
+
+.rename-form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ha-border-color);
+  border-radius: 8px;
+  background: var(--ha-input-background, var(--ha-card-background));
+  color: var(--ha-text-primary-color);
+  font-size: 14px;
+}
+
+.rename-form-group input:focus {
+  outline: none;
+  border-color: var(--ha-primary-color);
+}
+
+.rename-form-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.rename-hint {
+  color: var(--ha-text-secondary-color);
+}
+
+.rename-error {
+  color: var(--ha-error-color, #f44336);
+  font-weight: 500;
+}
+
+.rename-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--ha-border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .modal-header {

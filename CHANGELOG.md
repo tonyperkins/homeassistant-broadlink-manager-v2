@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.5.1-beta.9] - 2026-11-05
+
+### Fixed
+- Fix Stateless Device checkbox not persisting when creating a new device (fixes #55)
+
+
 ## [0.5.1-beta.8] - 2026-10-28
 
 ### Fixed

@@ -692,6 +692,9 @@ def create_managed_device():
 
             device_data["broadlink_entity"] = broadlink_entity
 
+            # Store stateless mode (no state tracking, generates buttons instead)
+            device_data["stateless"] = bool(data.get("stateless", False))
+
             # Store brightness_steps for light entities (default 100)
             if entity_type == "light":
                 device_data["brightness_steps"] = int(

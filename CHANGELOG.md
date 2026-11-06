@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1-beta.10] - 2026-11-05
+
 ### Added
 - Rename tracked commands in place from the commands modal, preserving the learned code (no delete/relearn needed) (#57)
 - Command Name dropdown now suggests command names learned on your other devices of the same entity type (#56)

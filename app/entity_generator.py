@@ -4,6 +4,7 @@ Entity Generator for Broadlink Manager Add-on
 Generates Home Assistant YAML entity configurations
 """
 
+import hashlib
 import logging
 import re
 from pathlib import Path
@@ -12,6 +13,52 @@ from datetime import datetime
 import yaml
 
 logger = logging.getLogger(__name__)
+
+# Transliteration map for Cyrillic characters (Ukrainian/Russian/Belarusian).
+# Home Assistant's own slugify transliterates Cyrillic device names, so devices
+# named in Ukrainian/Russian produce valid slugs there. This table mirrors that
+# behavior; without it a purely Cyrillic name sanitizes to an empty string and
+# generated helper keys like "_speed" are rejected by HA ("invalid slug _speed").
+_CYRILLIC_TRANSLIT = {
+    "а": "a",
+    "б": "b",
+    "в": "v",
+    "г": "g",
+    "д": "d",
+    "е": "e",
+    "є": "ie",
+    "ё": "e",
+    "ж": "zh",
+    "з": "z",
+    "и": "y",
+    "і": "i",
+    "ї": "i",
+    "й": "y",
+    "к": "k",
+    "л": "l",
+    "м": "m",
+    "н": "n",
+    "о": "o",
+    "п": "p",
+    "р": "r",
+    "с": "s",
+    "т": "t",
+    "у": "u",
+    "ф": "f",
+    "х": "h",
+    "ц": "ts",
+    "ч": "ch",
+    "ш": "sh",
+    "щ": "shch",
+    "ъ": "",
+    "ы": "y",
+    "ь": "",
+    "э": "e",
+    "ю": "yu",
+    "я": "ya",
+    "ґ": "g",
+    "ў": "u",
+}
 
 
 def sanitize_slug(name: str) -> str:
@@ -27,12 +74,20 @@ def sanitize_slug(name: str) -> str:
     """
     # Convert to lowercase
     slug = name.lower()
+    # Transliterate Cyrillic characters to Latin (matches HA slugify behavior)
+    slug = "".join(_CYRILLIC_TRANSLIT.get(ch, ch) for ch in slug)
     # Replace spaces, hyphens, and other invalid chars with underscores
     slug = re.sub(r"[^a-z0-9_]", "_", slug)
     # Remove consecutive underscores
     slug = re.sub(r"_+", "_", slug)
     # Remove leading/trailing underscores
     slug = slug.strip("_")
+    # Fall back to a stable slug derived from the original name when everything
+    # was stripped (e.g. names written in CJK or emoji only). This keeps the
+    # generated YAML valid instead of producing keys like "_state"/"_speed".
+    if not slug:
+        digest = hashlib.md5(name.encode("utf-8")).hexdigest()[:8]
+        slug = f"device_{digest}"
     return slug
 
 

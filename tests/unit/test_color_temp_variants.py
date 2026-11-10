@@ -4,6 +4,8 @@ Unit tests for color temperature variant detection and generation.
 Tests the new feature that creates master + variant light entities for CCT lights.
 """
 
+import re
+
 import pytest
 from unittest.mock import Mock, MagicMock
 from app.entity_generator import EntityGenerator, sanitize_slug
@@ -383,3 +385,40 @@ class TestSanitizeSlug:
     def test_sanitize_leading_trailing_underscores(self):
         """Test that leading/trailing underscores are removed"""
         assert sanitize_slug("_bedroom_light_") == "bedroom_light"
+
+    def test_sanitize_cyrillic_name(self):
+        """Test that Cyrillic names transliterate to a valid Latin slug.
+
+        Regression test for GitHub Issue #59: a device named in Ukrainian
+        sanitized to an empty string, producing invalid helper keys like
+        "_speed" that made Home Assistant reject the whole package
+        ("Invalid config for 'input_select' ... invalid slug _speed").
+        """
+        assert sanitize_slug("телевізор") == "televizor"
+        assert sanitize_slug("Вітальня") == "vitalnya"
+        assert sanitize_slug("Кондиционер") == "kondytsyoner"
+
+    def test_sanitize_mixed_latin_cyrillic(self):
+        """Test mixed Latin/Cyrillic names"""
+        assert sanitize_slug("TV Прiставка") == "tv_pristavka"
+
+    def test_sanitize_non_latin_fallback(self):
+        """Test that names with no Latin representation get a stable fallback slug.
+
+        Without this, names written entirely in CJK/emoji sanitize to ""
+        and generated keys start with an underscore (invalid HA slug).
+        """
+        slug = sanitize_slug("客厅的灯")
+        assert slug.startswith("device_")
+        assert re.match(r"^device_[0-9a-f]{8}$", slug)
+        # Stable across calls
+        assert slug == sanitize_slug("客厅的灯")
+
+    def test_sanitize_never_empty_or_underscore_prefixed(self):
+        """Generated helper suffixes like f"{slug}_speed" must be valid slugs"""
+        for name in ["", "!!!", "ї", "💛", "___"]:
+            slug = sanitize_slug(name)
+            assert slug
+            assert not slug.startswith("_")
+            assert not slug.endswith("_")
+            assert re.match(r"^[a-z0-9][a-z0-9_]*$", slug)

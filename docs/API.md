@@ -484,6 +484,58 @@ Get all commands for a device.
 
 ---
 
+### Get Command Repeat Count
+
+Get the repeat count stored in a command's learned code. The repeat byte tells the
+Broadlink hardware how many extra times to transmit the frame back-to-back, so a
+single send can behave like a held button (useful for TV lifts and RF motors).
+
+**Endpoint:** `GET /api/commands/<device_id>/<command_name>/repeat`
+
+**Response:**
+```json
+{
+  "device_id": "samsung_model1",
+  "command_name": "close",
+  "repeat": 0,
+  "type_byte": "0xb1",
+  "type": "rf433",
+  "min": 0,
+  "max": 255
+}
+```
+
+---
+
+### Set Command Repeat Count
+
+Patch the repeat byte of a command's stored code (0-255). Only the stored code
+changes; regenerate entities to propagate the new code to Home Assistant.
+
+**Endpoint:** `POST /api/commands/<device_id>/<command_name>/repeat`
+
+**Request:**
+```json
+{
+  "repeat": 255
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Repeat count for 'close' set to 255",
+  "repeat": 255,
+  "data": "sQACABI0..."
+}
+```
+
+Returns `400` if the repeat value is not an integer between 0 and 255, or if the
+stored code is not a recognized Broadlink IR/RF code.
+
+---
+
 ### Get Broadlink Commands
 
 Get learned commands from Broadlink storage files.

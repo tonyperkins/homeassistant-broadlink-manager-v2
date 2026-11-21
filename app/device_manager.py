@@ -446,6 +446,48 @@ class DeviceManager:
             logger.error(f"Error renaming command on device {device_id}: {e}")
             return False
 
+    def update_command_data(self, device_id: str, command_name: str, new_data: str) -> bool:
+        """
+        Update a command's learned code data in place, preserving all other
+        command metadata (name, type, learned_at, etc.)
+
+        Args:
+            device_id: Device identifier
+            command_name: Command name
+            new_data: New base64 encoded command data
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            devices = self._load_devices()
+
+            if device_id not in devices:
+                logger.warning(f"Device {device_id} not found")
+                return False
+
+            commands = devices[device_id].get("commands", {})
+            if command_name not in commands:
+                logger.warning(
+                    f"Command {command_name} not found on device {device_id}"
+                )
+                return False
+
+            commands[command_name]["data"] = new_data
+            devices[device_id]["updated_at"] = datetime.now().isoformat()
+
+            if self._save_devices(devices):
+                logger.info(
+                    f"Updated command data for {command_name} on device {device_id}"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Error updating command data: {e}")
+            return False
+
     def get_device_commands(self, device_id: str) -> Dict[str, Any]:
         """
         Get all commands for a device

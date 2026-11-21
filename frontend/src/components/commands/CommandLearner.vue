@@ -401,6 +401,15 @@
                   >
                     <i class="mdi mdi-pencil"></i>
                   </button>
+                  <button
+                    type="button"
+                    @click="startRepeatEdit(cmd.name)"
+                    class="icon-btn"
+                    :title="cmd.hasError ? 'Cannot edit repeats - command failed to learn' : cmd.isPending ? 'Cannot edit repeats - waiting for code' : 'Edit repeat count (held-button devices)'"
+                    :disabled="cmd.hasError || cmd.isPending"
+                  >
+                    <i class="mdi mdi-repeat"></i>
+                  </button>
                   <button type="button" @click="deleteCommand(cmd.name)" class="icon-btn danger" :title="cmd.hasError ? 'Delete and re-learn' : 'Delete command'">
                     <i class="mdi mdi-delete"></i>
                   </button>
@@ -521,6 +530,53 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Repeat Count Dialog -->
+    <div v-if="showRepeatDialog" class="rename-overlay" @click.self="cancelRepeatEdit">
+      <div class="rename-dialog">
+        <div class="rename-header">
+          <h3><i class="mdi mdi-repeat"></i> Edit Repeat Count</h3>
+        </div>
+        <div class="rename-body">
+          <p class="rename-message">
+            How many extra times the Broadlink re-transmits the
+            <strong>{{ commandToRepeat }}</strong> code, back-to-back with no gaps.
+          </p>
+          <div class="rename-form-group">
+            <label for="repeat-count-input">Repeat count (0-255)</label>
+            <input
+              id="repeat-count-input"
+              ref="repeatInputRef"
+              v-model.number="repeatInput"
+              type="number"
+              min="0"
+              max="255"
+              step="1"
+              :disabled="savingRepeat || loadingRepeat"
+              @keyup.enter="handleRepeatConfirm"
+              @keyup.esc="cancelRepeatEdit"
+              @input="repeatError = ''"
+            />
+            <small v-if="repeatError" class="rename-error">{{ repeatError }}</small>
+            <small v-else-if="loadingRepeat" class="rename-hint">Loading current repeat count...</small>
+            <small v-else class="rename-hint">
+              Raise this for devices that need a held button (TV lifts, RF motors) so a
+              single send transmits continuously. Regenerate entities afterwards to apply in
+              Home Assistant.
+            </small>
+          </div>
+        </div>
+        <div class="rename-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRepeatEdit" :disabled="savingRepeat">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" @click="handleRepeatConfirm" :disabled="savingRepeat || loadingRepeat || repeatInput === '' || repeatInput === null">
+            <i v-if="savingRepeat" class="mdi mdi-loading mdi-spin"></i>
+            <template v-else>Save</template>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -574,6 +630,13 @@ const renameInput = ref('')
 const renameError = ref('')
 const renaming = ref(false)
 const renameInputRef = ref(null)
+const showRepeatDialog = ref(false)
+const commandToRepeat = ref('')
+const repeatInput = ref(0)
+const repeatError = ref('')
+const repeatInputRef = ref(null)
+const loadingRepeat = ref(false)
+const savingRepeat = ref(false)
 const commandSelect = ref(null)
 const customCommandInput = ref(null)
 const commandForm = ref(null)
@@ -1292,6 +1355,76 @@ const handleRenameConfirm = async () => {
 const cancelDeleteCommand = () => {
   showDeleteConfirm.value = false
   commandToDelete.value = ''
+}
+
+const startRepeatEdit = async (command) => {
+  commandToRepeat.value = command
+  repeatInput.value = 0
+  repeatError.value = ''
+  showRepeatDialog.value = true
+
+  // Fetch the current repeat count from the stored code
+  loadingRepeat.value = true
+  try {
+    const response = await api.get(`/api/commands/${props.device.id}/${command}/repeat`)
+    repeatInput.value = response.data.repeat
+  } catch (error) {
+    console.error('❌ Error loading repeat count:', error)
+    repeatError.value = error.response?.data?.error || error.message || 'Failed to load repeat count'
+  } finally {
+    loadingRepeat.value = false
+    await nextTick()
+    if (repeatInputRef.value && !repeatError.value) {
+      repeatInputRef.value.focus()
+      repeatInputRef.value.select()
+    }
+  }
+}
+
+const cancelRepeatEdit = () => {
+  showRepeatDialog.value = false
+  commandToRepeat.value = ''
+  repeatInput.value = 0
+  repeatError.value = ''
+}
+
+const handleRepeatConfirm = async () => {
+  const command = commandToRepeat.value
+  const repeat = repeatInput.value
+  repeatError.value = ''
+
+  if (repeat === '' || repeat === null || !Number.isInteger(repeat) || repeat < 0 || repeat > 255) {
+    repeatError.value = 'Enter a whole number between 0 and 255'
+    return
+  }
+
+  savingRepeat.value = true
+  try {
+    const response = await api.post(`/api/commands/${props.device.id}/${command}/repeat`, {
+      repeat
+    })
+
+    if (response.data.success) {
+      showRepeatDialog.value = false
+      await loadLearnedCommands(true)
+
+      resultMessage.value = `Repeat count for "${command}" set to ${repeat}`
+      resultType.value = 'success'
+
+      emit('learned', {
+        deviceId: props.device.id,
+        commandName: command,
+        action: 'repeat-updated'
+      })
+    } else {
+      repeatError.value = response.data.error || 'Failed to set repeat count'
+    }
+  } catch (error) {
+    console.error('❌ Repeat count error:', error)
+    repeatError.value = error.response?.data?.error || error.message || 'Failed to set repeat count'
+  } finally {
+    savingRepeat.value = false
+  }
 }
 
 const handleDeleteConfirm = async (alsoDeleteFromIntegration) => {

@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime
 from flask import jsonify, request, current_app, Response
 from . import api_bp
+from broadlink_code import parse_code, set_repeat_count
 
 logger = logging.getLogger(__name__)
 
@@ -955,6 +956,95 @@ def rename_command(device_id, command_name):
 
     except Exception as e:
         logger.error(f"Error renaming command: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/commands/<device_id>/<command_name>/repeat", methods=["GET"])
+def get_command_repeat(device_id, command_name):
+    """Get the repeat count stored in a command's learned code"""
+    try:
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({"error": "Device not found"}), 404
+
+        command = device.get("commands", {}).get(command_name)
+        if not command:
+            return jsonify({"error": "Command not found"}), 404
+
+        try:
+            info = parse_code(command.get("data", ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        return jsonify(
+            {
+                "device_id": device_id,
+                "command_name": command_name,
+                "repeat": info["repeat"],
+                "type_byte": info["type_byte"],
+                "type": info["type"],
+                "min": 0,
+                "max": 255,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting command repeat count: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/commands/<device_id>/<command_name>/repeat", methods=["POST"])
+def set_command_repeat(device_id, command_name):
+    """
+    Set the repeat count stored in a command's learned code.
+
+    The repeat byte tells the Broadlink hardware how many extra times to
+    transmit the frame back-to-back, so a single send can behave like a
+    held button (TV lifts, RF motors). The stored code is patched in place;
+    regenerate entities to propagate the change to Home Assistant.
+    """
+    try:
+        device_manager = current_app.config.get("device_manager")
+        if not device_manager:
+            return jsonify({"error": "Device manager not available"}), 500
+
+        data = request.json or {}
+        repeat = data.get("repeat")
+
+        device = device_manager.get_device(device_id)
+        if not device:
+            return jsonify({"error": "Device not found"}), 404
+
+        command = device.get("commands", {}).get(command_name)
+        if not command:
+            return jsonify({"error": "Command not found"}), 404
+
+        try:
+            new_code = set_repeat_count(command.get("data", ""), repeat)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        if not device_manager.update_command_data(device_id, command_name, new_code):
+            return jsonify({"error": "Failed to save command"}), 500
+
+        logger.info(
+            f"✅ Set repeat count for '{command_name}' on '{device_id}' to {repeat}"
+        )
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Repeat count for '{command_name}' set to {repeat}",
+                "repeat": repeat,
+                "data": new_code,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Error setting command repeat count: {e}")
         return jsonify({"error": str(e)}), 500
 
 

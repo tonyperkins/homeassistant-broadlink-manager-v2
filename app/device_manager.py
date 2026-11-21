@@ -446,7 +446,9 @@ class DeviceManager:
             logger.error(f"Error renaming command on device {device_id}: {e}")
             return False
 
-    def update_command_data(self, device_id: str, command_name: str, new_data: str) -> bool:
+    def update_command_data(
+        self, device_id: str, command_name: str, new_data: str
+    ) -> bool:
         """
         Update a command's learned code data in place, preserving all other
         command metadata (name, type, learned_at, etc.)
